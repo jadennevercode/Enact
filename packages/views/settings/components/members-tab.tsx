@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Crown, Shield, User, Plus, MoreHorizontal, UserMinus, Clock, X, Mail, Link, Copy, Trash2 } from "lucide-react";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { useOptionalNavigation } from "../../navigation";
-import type { MemberWithUser, MemberRole, Invitation, ShareLink } from "@multica/core/types";
-import { Input } from "@multica/ui/components/ui/input";
-import { Button } from "@multica/ui/components/ui/button";
-import { Card, CardContent } from "@multica/ui/components/ui/card";
-import { Badge } from "@multica/ui/components/ui/badge";
+import type { MemberWithUser, MemberRole, Invitation, ShareLink } from "@enact/core/types";
+import { Input } from "@enact/ui/components/ui/input";
+import { Button } from "@enact/ui/components/ui/button";
+import { Card, CardContent } from "@enact/ui/components/ui/card";
+import { Badge } from "@enact/ui/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -18,14 +18,14 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@multica/ui/components/ui/alert-dialog";
+} from "@enact/ui/components/ui/alert-dialog";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@multica/ui/components/ui/select";
+} from "@enact/ui/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,14 +35,14 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useCurrentWorkspace } from "@multica/core/paths";
-import { memberListOptions, invitationListOptions, shareLinkListOptions, workspaceKeys } from "@multica/core/workspace/queries";
-import { api } from "@multica/core/api";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useCurrentWorkspace } from "@enact/core/paths";
+import { memberListOptions, invitationListOptions, shareLinkListOptions, workspaceKeys } from "@enact/core/workspace/queries";
+import { api } from "@enact/core/api";
 import { useT } from "../../i18n";
 import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
 

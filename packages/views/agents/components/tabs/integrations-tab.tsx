@@ -1,18 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { Agent } from "@multica/core/types";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { larkInstallationsOptions } from "@multica/core/lark";
-import { slackInstallationsOptions } from "@multica/core/slack";
+import type { Agent } from "@enact/core/types";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { larkInstallationsOptions } from "@enact/core/lark";
+import { slackInstallationsOptions } from "@enact/core/slack";
 import {
   dingtalkAgentGroupsOptions,
   dingtalkInstallationsOptions,
-} from "@multica/core/dingtalk";
-import { wecomInstallationsOptions } from "@multica/core/wecom";
-import { telegramInstallationsOptions } from "@multica/core/telegram";
-import { memberListOptions } from "@multica/core/workspace/queries";
+} from "@enact/core/dingtalk";
+import { wecomInstallationsOptions } from "@enact/core/wecom";
+import { telegramInstallationsOptions } from "@enact/core/telegram";
+import { memberListOptions } from "@enact/core/workspace/queries";
 import { LarkAgentBindButton } from "../../../settings/components/lark-tab";
 import { LarkMark } from "../../../settings/components/lark-mark";
 import { SlackAgentBindButton } from "../../../settings/components/slack-tab";

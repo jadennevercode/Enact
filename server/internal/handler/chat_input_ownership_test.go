@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/service"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/service"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // setupDirectChatSession creates a runtime-guard agent (with its registered

@@ -12,10 +12,10 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/multica-ai/multica/server/internal/middleware"
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/internal/util/secretbox"
-	"github.com/multica-ai/multica/server/pkg/plugincontract"
+	"github.com/enact-ai/enact/server/internal/middleware"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/util/secretbox"
+	"github.com/enact-ai/enact/server/pkg/plugincontract"
 )
 
 // The reference manifest for handler tests declares only capabilities this
@@ -117,7 +117,7 @@ func writeLocalPluginFile(t *testing.T, dir, entry, content string) {
 	}
 }
 
-// withLocalPluginSource points the service at a temp MULTICA_PLUGIN_DIR,
+// withLocalPluginSource points the service at a temp ENACT_PLUGIN_DIR,
 // enables every capability, publishes the plugin, and returns the published
 // version id — which is what an install names now.
 func withLocalPluginSource(t *testing.T, manifest string) string {
@@ -154,7 +154,7 @@ func withLocalPluginSourceIn(t *testing.T, root string, manifest string) string 
 	return publishLocalPlugin(t, "hello")
 }
 
-// publishLocalPlugin publishes a directory under MULTICA_PLUGIN_DIR and returns
+// publishLocalPlugin publishes a directory under ENACT_PLUGIN_DIR and returns
 // the id of the version it created. Re-publishing an unchanged version string is
 // what a development loop does, so the service gives those a `+dev.N` suffix
 // rather than a conflict — which is why this always returns a NEW version.
@@ -307,7 +307,7 @@ func TestPluginInstallConfigureAndUninstall(t *testing.T) {
 	}
 
 	params := map[string]string{"id": testWorkspaceID, "installationId": installed.ID}
-	configure, _ := json.Marshal(map[string]any{"values": map[string]any{"repo": "multica-ai/multica", "token": "sk-super-secret"}})
+	configure, _ := json.Marshal(map[string]any{"values": map[string]any{"repo": "enact-ai/enact", "token": "sk-super-secret"}})
 	recorder = httptest.NewRecorder()
 	testHandler.ConfigurePlugin(recorder, pluginHandlerRequest(http.MethodPut, "/plugins/config", configure, params))
 	if recorder.Code != http.StatusOK {
@@ -325,7 +325,7 @@ func TestPluginInstallConfigureAndUninstall(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &configured); err != nil {
 		t.Fatalf("decode configured installation: %v", err)
 	}
-	if configured.Config["repo"] != "multica-ai/multica" {
+	if configured.Config["repo"] != "enact-ai/enact" {
 		t.Fatalf("plain config value was not stored: %v", configured.Config)
 	}
 	if _, present := configured.Config["token"]; present {

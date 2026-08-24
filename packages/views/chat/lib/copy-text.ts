@@ -1,5 +1,5 @@
-import type { ChatMessage } from "@multica/core/types";
-import type { ChatTimelineItem } from "@multica/core/chat";
+import type { ChatMessage } from "@enact/core/types";
+import type { ChatTimelineItem } from "@enact/core/chat";
 
 /**
  * Split an assistant timeline into three regions for the conductor-style fold:

@@ -5,7 +5,7 @@ import type {
   ChatMessage,
   ChatPendingTask,
   ChatQuickActionsPayload,
-} from "@multica/core/types";
+} from "@enact/core/types";
 
 import {
   applyChatDoneToCache,

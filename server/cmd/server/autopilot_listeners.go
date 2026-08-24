@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/handler"
-	"github.com/multica-ai/multica/server/internal/issuestatus"
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/handler"
+	"github.com/enact-ai/enact/server/internal/issuestatus"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // registerAutopilotListeners hooks into issue and task events to keep

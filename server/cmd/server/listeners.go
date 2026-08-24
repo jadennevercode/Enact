@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/handler"
-	"github.com/multica-ai/multica/server/internal/realtime"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/handler"
+	"github.com/enact-ai/enact/server/internal/realtime"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // internalOnlyPayloadKeys lists payload keys that exist purely for in-process

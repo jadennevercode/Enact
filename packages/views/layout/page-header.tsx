@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@multica/ui/lib/utils";
-import { SidebarTrigger, useSidebarSafe } from "@multica/ui/components/ui/sidebar";
+import { cn } from "@enact/ui/lib/utils";
+import { SidebarTrigger, useSidebarSafe } from "@enact/ui/components/ui/sidebar";
 
 /**
  * The left edge every page shares: the header, the toolbar under it, and any

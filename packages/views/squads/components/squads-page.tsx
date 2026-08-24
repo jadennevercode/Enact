@@ -16,17 +16,17 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useCurrentWorkspace, useWorkspacePaths } from "@multica/core/paths";
+import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
 import {
   agentListOptions,
   memberListOptions,
   squadListOptions,
   workspaceKeys,
-} from "@multica/core/workspace/queries";
-import { resolvePublicFileUrl } from "@multica/core/workspace/avatar-url";
-import { useAuthStore } from "@multica/core/auth";
-import { api } from "@multica/core/api";
-import { useModalStore } from "@multica/core/modals";
+} from "@enact/core/workspace/queries";
+import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
+import { useAuthStore } from "@enact/core/auth";
+import { api } from "@enact/core/api";
+import { useModalStore } from "@enact/core/modals";
 import {
   useSquadsViewStore,
   SQUAD_SCOPES,
@@ -35,9 +35,9 @@ import {
   type SquadListFilters,
   type SquadsScope,
   type SquadSortField,
-} from "@multica/core/squads/stores";
-import type { Agent, MemberWithUser, Squad } from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/core/squads/stores";
+import type { Agent, MemberWithUser, Squad } from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +45,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -58,7 +58,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import {
   ListGrid,
   ListGridCell,
@@ -67,20 +67,20 @@ import {
   ListGridRow,
   LIST_GRID_BOTTOM_CLEARANCE,
   type ListGridSortDirection,
-} from "@multica/ui/components/ui/list-grid";
+} from "@enact/ui/components/ui/list-grid";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@multica/ui/components/ui/popover";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { Switch } from "@multica/ui/components/ui/switch";
+} from "@enact/ui/components/ui/popover";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { Switch } from "@enact/ui/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@multica/ui/components/ui/tooltip";
-import { ActorAvatar as ActorAvatarBase } from "@multica/ui/components/common/actor-avatar";
+} from "@enact/ui/components/ui/tooltip";
+import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/actor-avatar";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { FILTER_ITEM_CLASS, HoverCheck } from "../../common/hover-check";
 import { useIntentNavigate, useRowLink } from "../../navigation";

@@ -12,11 +12,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/multica-ai/multica/server/internal/attributionbackfill"
-	"github.com/multica-ai/multica/server/internal/dbstartup"
-	"github.com/multica-ai/multica/server/internal/logger"
-	"github.com/multica-ai/multica/server/internal/migrations"
-	"github.com/multica-ai/multica/server/internal/taskusagebackfill"
+	"github.com/enact-ai/enact/server/internal/attributionbackfill"
+	"github.com/enact-ai/enact/server/internal/dbstartup"
+	"github.com/enact-ai/enact/server/internal/logger"
+	"github.com/enact-ai/enact/server/internal/migrations"
+	"github.com/enact-ai/enact/server/internal/taskusagebackfill"
 )
 
 // preMigrationHook runs work that must happen before a specific migration is
@@ -75,7 +75,7 @@ var commentContentBigramIndex = usableIndexRequirement{
 // MUL-4897 / GH #5544: migration 198 VALIDATEs the strict attribution
 // constraint installed by 197, which drops migration 190's
 // originator_source IS NULL exemption. Self-hosted databases never ran the
-// out-of-band backfill that Multica's cloud did, so their legacy rows make
+// out-of-band backfill that Enact's cloud did, so their legacy rows make
 // 198 fail closed and the backend refuses to start. The hook reconciles
 // those rows (accountable_user_id := originator_user_id) idempotently BEFORE
 // VALIDATE, so a stuck-at-197 instance auto-heals on `migrate up` with no
@@ -483,7 +483,7 @@ func runAttributionStrictHook(ctx context.Context, pool *pgxpool.Pool) error {
 // runners (multi-replica backend Deployment, scale-up, or a manual
 // `migrate up` overlapping with pod startup). The exact value is
 // arbitrary — it just needs to be stable across every process that runs
-// migrations against the same database. See GitHub multica-ai/multica#3647.
+// migrations against the same database. See GitHub enact-ai/enact#3647.
 const migrationAdvisoryLockKey int64 = 7244554146635925501
 
 // defaultSchemaMigrationsTable is the unqualified name of the bookkeeping
@@ -543,7 +543,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://multica:multica@localhost:5432/multica?sslmode=disable"
+		dbURL = "postgres://enact:enact@localhost:5432/enact?sslmode=disable"
 	}
 
 	startupSettings := dbstartup.SettingsFromEnv()
@@ -620,7 +620,7 @@ func main() {
 // processes against the same database with the same options: every
 // caller blocks on pg_advisory_lock, and once it is their turn the
 // already-applied EXISTS check turns each finished migration into a
-// no-op skip. See GitHub multica-ai/multica#3647 / MUL-2923.
+// no-op skip. See GitHub enact-ai/enact#3647 / MUL-2923.
 func runMigrations(ctx context.Context, pool *pgxpool.Pool, opts runOptions) error {
 	switch opts.Direction {
 	case "up", "down":

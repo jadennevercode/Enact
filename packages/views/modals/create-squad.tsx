@@ -3,33 +3,33 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, UserPlus, X } from "lucide-react";
-import { api } from "@multica/core/api";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useWorkspacePaths } from "@multica/core/paths";
+import { api } from "@enact/core/api";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useWorkspacePaths } from "@enact/core/paths";
 import {
   agentListOptions,
   memberListOptions,
   workspaceKeys,
-} from "@multica/core/workspace/queries";
-import { AGENT_DESCRIPTION_MAX_LENGTH } from "@multica/core/agents";
-import { isImeComposing } from "@multica/core/utils";
-import type { Agent, MemberWithUser } from "@multica/core/types";
+} from "@enact/core/workspace/queries";
+import { AGENT_DESCRIPTION_MAX_LENGTH } from "@enact/core/agents";
+import { isImeComposing } from "@enact/core/utils";
+import type { Agent, MemberWithUser } from "@enact/core/types";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@multica/ui/components/ui/popover";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
-import { Label } from "@multica/ui/components/ui/label";
+} from "@enact/ui/components/ui/popover";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
+import { Label } from "@enact/ui/components/ui/label";
 import { toast } from "sonner";
 
 import { useNavigation } from "../navigation";

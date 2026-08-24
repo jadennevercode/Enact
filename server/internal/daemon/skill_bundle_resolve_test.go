@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multica-ai/multica/server/pkg/skillbundle"
-	"github.com/multica-ai/multica/server/pkg/taskfailure"
+	"github.com/enact-ai/enact/server/pkg/skillbundle"
+	"github.com/enact-ai/enact/server/pkg/taskfailure"
 )
 
 func TestSkillBundleResolveTimeout(t *testing.T) {

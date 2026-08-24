@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/multica-ai/multica/server/internal/daemon/execenv"
-	"github.com/multica-ai/multica/server/internal/daemon/processtree"
-	"github.com/multica-ai/multica/server/internal/daemon/repocache"
+	"github.com/enact-ai/enact/server/internal/daemon/execenv"
+	"github.com/enact-ai/enact/server/internal/daemon/processtree"
+	"github.com/enact-ai/enact/server/internal/daemon/repocache"
 )
 
 // reposDirName is the bare-repo cache directory inside the workspaces root.
@@ -1016,7 +1016,7 @@ func dirSizeContext(ctx context.Context, root string) (int64, error) {
 const (
 	gitCmdTimeout         = 30 * time.Second
 	gitMaintenanceTimeout = 10 * time.Minute
-	repoMaintenanceMarker = ".multica-maintenance-pending"
+	repoMaintenanceMarker = ".enact-maintenance-pending"
 )
 
 // pruneRepoWorktrees runs `git worktree prune` on all bare repos in the cache,

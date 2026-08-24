@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/remotemcp"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/remotemcp"
 )
 
 // The approval is the grant, not the install.

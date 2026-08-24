@@ -1,5 +1,5 @@
-import type { TimelineEntry } from "@multica/core/types";
-import { sortTimelineEntriesAsc } from "@multica/core/issues/timeline-sort";
+import type { TimelineEntry } from "@enact/core/types";
+import { sortTimelineEntriesAsc } from "@enact/core/issues/timeline-sort";
 
 /**
  * Walks the parent_id graph rooted at `rootId` and returns every descendant in

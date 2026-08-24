@@ -2,34 +2,34 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@multica/core/api";
-import { useAuthStore } from "@multica/core/auth";
-import { useCurrentWorkspace, useWorkspacePaths } from "@multica/core/paths";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { resolvePublicFileUrl } from "@multica/core/workspace/avatar-url";
-import { isImeComposing } from "@multica/core/utils";
-import { getShortcut, shortcutMatchesEvent } from "@multica/core/shortcuts";
+import { api } from "@enact/core/api";
+import { useAuthStore } from "@enact/core/auth";
+import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
+import { isImeComposing } from "@enact/core/utils";
+import { getShortcut, shortcutMatchesEvent } from "@enact/core/shortcuts";
 import { useTimeAgo } from "../../i18n";
-import { agentListOptions, memberListOptions, squadMemberStatusOptions, workspaceKeys } from "@multica/core/workspace/queries";
+import { agentListOptions, memberListOptions, squadMemberStatusOptions, workspaceKeys } from "@enact/core/workspace/queries";
 import { useNavigation } from "../../navigation";
 import { AppLink } from "../../navigation";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { PageHeader } from "../../layout/page-header";
 import { Users, Plus, Trash2, ArrowUpRight, Crown, Loader2, Pencil, FileText, Save } from "lucide-react";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
-import { Label } from "@multica/ui/components/ui/label";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
+import { Label } from "@enact/ui/components/ui/label";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@multica/ui/components/ui/popover";
+} from "@enact/ui/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@multica/ui/components/ui/tooltip";
+} from "@enact/ui/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,8 +47,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
-import { ActorAvatar as ActorAvatarBase } from "@multica/ui/components/common/actor-avatar";
+} from "@enact/ui/components/ui/alert-dialog";
+import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/actor-avatar";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { ContentEditor } from "../../editor/content-editor";
@@ -59,7 +59,7 @@ import {
 } from "../../issues/components/pickers/property-picker";
 import { ChevronDown, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import type { Squad, SquadMember, SquadMemberStatus, SquadMemberStatusValue, Agent, MemberWithUser } from "@multica/core/types";
+import type { Squad, SquadMember, SquadMemberStatus, SquadMemberStatusValue, Agent, MemberWithUser } from "@enact/core/types";
 import { useT } from "../../i18n";
 import { matchesPinyin } from "../../editor/extensions/pinyin-match";
 

@@ -6,8 +6,8 @@ import {
   isWebNotificationSupported,
   requestWebNotificationPermission,
   type WebNotificationPermission,
-} from "@multica/core/platform";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/core/platform";
+import { Button } from "@enact/ui/components/ui/button";
 import { isDesktopShell } from "../../platform";
 import { useT } from "../../i18n";
 import { SettingsCard, SettingsRow } from "./settings-layout";

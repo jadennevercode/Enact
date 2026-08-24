@@ -7,8 +7,8 @@ import {
   Webhook, RotateCw, Server,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { autopilotDetailOptions, autopilotRunsOptions, autopilotRunOptions } from "@multica/core/autopilots/queries";
-import { projectDetailOptions } from "@multica/core/projects/queries";
+import { autopilotDetailOptions, autopilotRunsOptions, autopilotRunOptions } from "@enact/core/autopilots/queries";
+import { projectDetailOptions } from "@enact/core/projects/queries";
 import {
   useUpdateAutopilot,
   useDeleteAutopilot,
@@ -16,25 +16,25 @@ import {
   useCreateAutopilotTrigger,
   useDeleteAutopilotTrigger,
   useRotateAutopilotTriggerWebhookToken,
-} from "@multica/core/autopilots/mutations";
-import { buildAutopilotWebhookUrl } from "@multica/core/autopilots";
-import { api, clientErrorMessage, dispatchReasonCode } from "@multica/core/api";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { useActorName } from "@multica/core/workspace/hooks";
+} from "@enact/core/autopilots/mutations";
+import { buildAutopilotWebhookUrl } from "@enact/core/autopilots";
+import { api, clientErrorMessage, dispatchReasonCode } from "@enact/core/api";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { useActorName } from "@enact/core/workspace/hooks";
 import { useNavigation, AppLink } from "../../navigation";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { ActorAvatar } from "../../common/actor-avatar";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { Button } from "@multica/ui/components/ui/button";
-import { Switch } from "@multica/ui/components/ui/switch";
-import { cn } from "@multica/ui/lib/utils";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { Button } from "@enact/ui/components/ui/button";
+import { Switch } from "@enact/ui/components/ui/switch";
+import { cn } from "@enact/ui/lib/utils";
 import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +44,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
+} from "@enact/ui/components/ui/alert-dialog";
 import { ScheduleEditor } from "./schedule-editor/schedule-editor";
 import { WebhookUrlField } from "./webhook-url-field";
 import { getDefaultScheduleConfig, type ScheduleConfig } from "./schedule-editor/model";
@@ -59,8 +59,8 @@ import type {
   AutopilotRun,
   AutopilotSubscriber,
   AutopilotTrigger,
-} from "@multica/core/types";
-import type { AgentTask } from "@multica/core/types/agent";
+} from "@enact/core/types";
+import type { AgentTask } from "@enact/core/types/agent";
 import { ReadonlyContent } from "../../editor";
 import { TranscriptButton } from "../../common/task-transcript";
 import { AutopilotDialog } from "./autopilot-dialog";

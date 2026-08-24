@@ -10,12 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/featureflags"
-	"github.com/multica-ai/multica/server/internal/issuestatus"
-	"github.com/multica-ai/multica/server/internal/logger"
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/featureflags"
+	"github.com/enact-ai/enact/server/internal/issuestatus"
+	"github.com/enact-ai/enact/server/internal/logger"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // Issue status catalog API (MUL-6243).

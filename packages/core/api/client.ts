@@ -627,7 +627,7 @@ export class ApiClient {
     if (typeof document === "undefined") return null;
     const match = document.cookie
       .split("; ")
-      .find((c) => c.startsWith("multica_csrf="));
+      .find((c) => c.startsWith("enact_csrf="));
     return match ? match.split("=")[1] ?? null : null;
   }
 
@@ -1564,8 +1564,8 @@ export class ApiClient {
   }
 
   // ---------------------------------------------------------------------
-  // Cloud Billing — proxies to multica-cloud /api/v1/billing/*. The
-  // multica-api server stamps X-User-ID and forwards bytes; everything
+  // Cloud Billing — proxies to enact-cloud /api/v1/billing/*. The
+  // enact-api server stamps X-User-ID and forwards bytes; everything
   // here is upstream-shaped. See packages/core/types/billing.ts for the
   // response field documentation.
   // ---------------------------------------------------------------------
@@ -2585,7 +2585,7 @@ export class ApiClient {
   }
 
   /**
-   * Publishes from a directory the operator hosts (MULTICA_PLUGIN_DIR) — the
+   * Publishes from a directory the operator hosts (ENACT_PLUGIN_DIR) — the
    * development channel, so iterating on a surface does not mean zipping and
    * uploading after every edit. It still produces an immutable version.
    */
@@ -2678,7 +2678,7 @@ export class ApiClient {
       : "";
     return this.fetch<unknown>(`/api/v1/plugin${request.path}${query}`, {
       method: request.method,
-      headers: { "X-Multica-Plugin-Installation": installationId },
+      headers: { "X-Enact-Plugin-Installation": installationId },
       body: request.body === undefined ? undefined : JSON.stringify(request.body),
     });
   }
@@ -2699,7 +2699,7 @@ export class ApiClient {
   ): Promise<PluginHookResult> {
     const raw = await this.fetch<unknown>(`/api/v1/plugin/hooks/${encodeURIComponent(hookKey)}`, {
       method: "POST",
-      headers: { "X-Multica-Plugin-Installation": installationId },
+      headers: { "X-Enact-Plugin-Installation": installationId },
       body: JSON.stringify({ trigger: request.trigger, issue_id: request.issueId, input: request.input }),
     });
     return parseWithFallback(raw, PluginHookResultSchema, {
@@ -4464,7 +4464,7 @@ export class ApiClient {
 
   // registerWecomBYO performs a bring-your-own-app install: the admin pastes
   // the bot id and long-connection secret from the WeCom admin console,
-  // and the backend seals the secret with MULTICA_WECOM_SECRET_KEY before
+  // and the backend seals the secret with ENACT_WECOM_SECRET_KEY before
   // persisting, returning the new installation.
   async registerWecomBYO(
     workspaceId: string,
@@ -4491,8 +4491,8 @@ export class ApiClient {
   }
 
   // redeemWecomBindingToken binds the WeCom aibot userid carried by the
-  // token to the logged-in Multica user. Called by the /wecom/bind redeem
-  // page after the user clicks through the "link your Multica account"
+  // token to the logged-in Enact user. Called by the /wecom/bind redeem
+  // page after the user clicks through the "link your Enact account"
   // prompt the bot sent in WeCom. Status codes:
   //   410 Gone      → invalid / expired / already consumed
   //   409 Conflict  → the WeCom user is already bound to a different user

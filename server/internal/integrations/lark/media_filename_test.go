@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/integrations/channel"
+	"github.com/enact-ai/enact/server/internal/integrations/channel"
 )
 
 func TestCleanFilenameRejectsDotOnlyNames(t *testing.T) {

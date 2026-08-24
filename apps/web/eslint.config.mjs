@@ -1,4 +1,4 @@
-import nextConfig from "@multica/eslint-config/next";
+import nextConfig from "@enact/eslint-config/next";
 
 export default [
   ...nextConfig,

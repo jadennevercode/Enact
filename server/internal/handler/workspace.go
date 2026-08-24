@@ -14,12 +14,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/analytics"
-	"github.com/multica-ai/multica/server/internal/issuestatus"
-	"github.com/multica-ai/multica/server/internal/logger"
-	obsmetrics "github.com/multica-ai/multica/server/internal/metrics"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/analytics"
+	"github.com/enact-ai/enact/server/internal/issuestatus"
+	"github.com/enact-ai/enact/server/internal/logger"
+	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 var nonAlpha = regexp.MustCompile(`[^a-zA-Z]`)

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // TestDispatchAutopilotForPlanIsIdempotent locks in the

@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useNavigationStore } from "@multica/core/navigation";
-import { useAuthStore } from "@multica/core/auth";
+import { useNavigationStore } from "@enact/core/navigation";
+import { useAuthStore } from "@enact/core/auth";
 import {
   paths,
   resolvePostAuthDestination,
   useCurrentWorkspace,
   useHasOnboarded,
-} from "@multica/core/paths";
-import { useWorkspaceList } from "@multica/core/workspace";
-import { useRecentIssuesStore } from "@multica/core/issues/stores";
+} from "@enact/core/paths";
+import { useWorkspaceList } from "@enact/core/workspace";
+import { useRecentIssuesStore } from "@enact/core/issues/stores";
 import { useNavigation } from "../navigation";
 
 /**

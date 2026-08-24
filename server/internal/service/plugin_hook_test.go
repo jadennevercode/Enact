@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/plugincontract"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/plugincontract"
 )
 
 func testInstallationID(t *testing.T) pgtype.UUID {

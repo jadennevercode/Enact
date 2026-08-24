@@ -6,10 +6,10 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@multica/ui/components/ui/popover";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
-import { cn } from "@multica/ui/lib/utils";
+} from "@enact/ui/components/ui/popover";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
+import { cn } from "@enact/ui/lib/utils";
 import { useT } from "../i18n";
 import {
   type Hsv,

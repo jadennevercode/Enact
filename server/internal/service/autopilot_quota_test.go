@@ -13,11 +13,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/multica-ai/multica/server/internal/entitlement"
-	"github.com/multica-ai/multica/server/internal/entitlement/entitlementtest"
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/entitlement"
+	"github.com/enact-ai/enact/server/internal/entitlement/entitlementtest"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 type autopilotQuotaFixture struct {

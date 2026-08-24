@@ -6,12 +6,12 @@ import {
   HoverCard,
   HoverCardTrigger,
   HoverCardContent,
-} from "@multica/ui/components/ui/hover-card";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { agentTaskSnapshotOptions } from "@multica/core/agents";
-import type { AgentTask } from "@multica/core/types";
-import { cn } from "@multica/ui/lib/utils";
-import type { AvatarSize } from "@multica/ui/lib/avatar-size";
+} from "@enact/ui/components/ui/hover-card";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { agentTaskSnapshotOptions } from "@enact/core/agents";
+import type { AgentTask } from "@enact/core/types";
+import { cn } from "@enact/ui/lib/utils";
+import type { AvatarSize } from "@enact/ui/lib/avatar-size";
 import { AgentAvatarStack } from "../../agents/components/agent-avatar-stack";
 import { AgentActivityHoverContent } from "../../agents/components/agent-activity-hover-content";
 import { selectIssueTasks, type IssueTaskGroups } from "../surface/activity";

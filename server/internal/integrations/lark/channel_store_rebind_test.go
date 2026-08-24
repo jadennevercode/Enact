@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // Rebind regression fixtures. Namespaced away from the scope test's ids so a
@@ -63,7 +63,7 @@ func seedRebindOwners(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 			ws, "rebind "+ws, "rebind-"+ws)
 	}
 	exec(`INSERT INTO agent_runtime (id, workspace_id, name, runtime_mode, provider)
-VALUES ($1, $2, 'rebind runtime', 'local', 'multica_daemon') ON CONFLICT (id) DO NOTHING`, rbRuntime, rbWS)
+VALUES ($1, $2, 'rebind runtime', 'local', 'enact_daemon') ON CONFLICT (id) DO NOTHING`, rbRuntime, rbWS)
 	// Names must be unique per workspace (agent_workspace_name_unique), so key
 	// each on its id.
 	for _, agent := range []string{rbAgentA, rbAgentB} {

@@ -7,11 +7,11 @@
 // call below goes over the bridge, where the host re-issues it as the signed-in
 // user and checks the scopes this plugin was granted.
 //
-// A surface entry is ONE script with no module graph. Multica stores and serves
+// A surface entry is ONE script with no module graph. Enact stores and serves
 // the published artifact and inlines it into the document it generates, so
 // there is no origin for a static `import` to resolve against — and that is the
 // point: a surface cannot reach its author's server just by loading. In a real
-// plugin you would bundle `@multica/plugin-sdk` in; this file inlines the few
+// plugin you would bundle `@enact/plugin-sdk` in; this file inlines the few
 // calls it needs so the example stays readable and has nothing to install.
 
 const pending = new Map();
@@ -20,7 +20,7 @@ let sequence = 0;
 
 window.addEventListener("message", (event) => {
   const data = event.data;
-  if (!data || data.type !== "multica:plugin-bridge-init" || !event.ports[0]) return;
+  if (!data || data.type !== "enact:plugin-bridge-init" || !event.ports[0]) return;
   // Only the embedder may hand this frame a port, and only once. Sibling frames
   // are mutually opaque but `parent.frames[i]` is an allowed cross-origin
   // access, so another plugin on this page could otherwise deliver its own port
@@ -49,7 +49,7 @@ window.addEventListener("message", (event) => {
 // miss that event entirely.
 (function announce(attempts) {
   if (port || attempts > 50) return;
-  window.parent.postMessage({ type: "multica:plugin-surface-ready" }, "*");
+  window.parent.postMessage({ type: "enact:plugin-surface-ready" }, "*");
   setTimeout(() => announce(attempts + 1), 120);
 })(0);
 

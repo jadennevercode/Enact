@@ -1,4 +1,4 @@
-import { SettingsPage } from "@multica/views/settings";
+import { SettingsPage } from "@enact/views/settings";
 
 export default function Page() {
   return <SettingsPage />;

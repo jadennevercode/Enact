@@ -4,22 +4,22 @@ import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { Check, ChevronRight, Link2, MoreHorizontal, PanelRight, Pin, PinOff, Trash2, UserMinus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@multica/ui/lib/utils";
-import { copyText } from "@multica/ui/lib/clipboard";
+import { cn } from "@enact/ui/lib/utils";
+import { copyText } from "@enact/ui/lib/clipboard";
 import { toast } from "sonner";
-import type { ProjectStatus, ProjectPriority } from "@multica/core/types";
-import { useAuthStore } from "@multica/core/auth";
-import { projectDetailOptions } from "@multica/core/projects/queries";
-import { useUpdateProject, useDeleteProject } from "@multica/core/projects/mutations";
-import { pinListOptions } from "@multica/core/pins";
-import { useCreatePin, useDeletePin } from "@multica/core/pins";
-import { memberListOptions, agentListOptions } from "@multica/core/workspace/queries";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useIssuesScope } from "@multica/core/issues/stores";
-import { useRecentContextStore } from "@multica/core/chat";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { useActorName } from "@multica/core/workspace/hooks";
-import { PROJECT_STATUS_ORDER, PROJECT_STATUS_CONFIG, PROJECT_PRIORITY_ORDER } from "@multica/core/projects/config";
+import type { ProjectStatus, ProjectPriority } from "@enact/core/types";
+import { useAuthStore } from "@enact/core/auth";
+import { projectDetailOptions } from "@enact/core/projects/queries";
+import { useUpdateProject, useDeleteProject } from "@enact/core/projects/mutations";
+import { pinListOptions } from "@enact/core/pins";
+import { useCreatePin, useDeletePin } from "@enact/core/pins";
+import { memberListOptions, agentListOptions } from "@enact/core/workspace/queries";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useIssuesScope } from "@enact/core/issues/stores";
+import { useRecentContextStore } from "@enact/core/chat";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { useActorName } from "@enact/core/workspace/hooks";
+import { PROJECT_STATUS_ORDER, PROJECT_STATUS_CONFIG, PROJECT_PRIORITY_ORDER } from "@enact/core/projects/config";
 import { getProjectIssueMetrics } from "./project-issue-metrics";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { useNavigation } from "../../navigation";
@@ -29,29 +29,29 @@ import { ProjectResourcesSection } from "./project-resources-section";
 import { ProjectStartDatePicker } from "./project-start-date-picker";
 import { ProjectDueDatePicker } from "./project-due-date-picker";
 import { IssueSurface } from "../../issues/surface/issue-surface";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { Button } from "@multica/ui/components/ui/button";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@multica/ui/components/ui/resizable";
-import { Sheet, SheetContent } from "@multica/ui/components/ui/sheet";
-import { useIsMobile } from "@multica/ui/hooks/use-mobile";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { Button } from "@enact/ui/components/ui/button";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@enact/ui/components/ui/resizable";
+import { Sheet, SheetContent } from "@enact/ui/components/ui/sheet";
+import { useIsMobile } from "@enact/ui/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from "@multica/ui/components/ui/popover";
+} from "@enact/ui/components/ui/popover";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@multica/ui/components/ui/tooltip";
-import { EmojiPicker } from "@multica/ui/components/common/emoji-picker";
+} from "@enact/ui/components/ui/tooltip";
+import { EmojiPicker } from "@enact/ui/components/common/emoji-picker";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import {
   AnimatedRightSidebar,
@@ -68,7 +68,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
+} from "@enact/ui/components/ui/alert-dialog";
 import { useT } from "../../i18n";
 import { useProjectStatusLabels, useProjectPriorityLabels } from "./labels";
 import { matchesPinyin } from "../../editor/extensions/pinyin-match";
@@ -152,7 +152,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   // Sidebar panel
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: "multica_project_detail_layout",
+    id: "enact_project_detail_layout",
   });
   const sidebarRef = usePanelRef();
   const desktopSidebarInitialOpen = getAnimatedRightSidebarInitialOpen(

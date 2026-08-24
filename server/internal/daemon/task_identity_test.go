@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/multica-ai/multica/server/pkg/taskfailure"
+	"github.com/enact-ai/enact/server/pkg/taskfailure"
 )
 
 func TestRunTaskRejectsMismatchedAgentIdentityBeforePreparation(t *testing.T) {

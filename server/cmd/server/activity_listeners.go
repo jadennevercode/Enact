@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/handler"
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/dbid"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/handler"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/dbid"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // registerActivityListeners wires up event bus listeners that record activity

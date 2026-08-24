@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { useCurrentMember } from "@multica/core/permissions";
+import { useCurrentMember } from "@enact/core/permissions";
 import {
   pluginInstallationsOptions,
   pluginPackagesOptions,
@@ -15,28 +15,28 @@ import {
   usePublishPluginPackage,
   useSetPluginEnabled,
   useUninstallPlugin,
-} from "@multica/core/plugins";
-import { useCurrentWorkspace } from "@multica/core/paths";
+} from "@enact/core/plugins";
+import { useCurrentWorkspace } from "@enact/core/paths";
 import type {
   PluginConfigField,
   PluginInstallation,
   PluginPackage,
   PluginPreview,
-} from "@multica/core/types";
-import { Alert, AlertDescription, AlertTitle } from "@multica/ui/components/ui/alert";
-import { Badge } from "@multica/ui/components/ui/badge";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
+} from "@enact/core/types";
+import { Alert, AlertDescription, AlertTitle } from "@enact/ui/components/ui/alert";
+import { Badge } from "@enact/ui/components/ui/badge";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@multica/ui/components/ui/select";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { Textarea } from "@multica/ui/components/ui/textarea";
-import { Switch } from "@multica/ui/components/ui/switch";
+} from "@enact/ui/components/ui/select";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { Textarea } from "@enact/ui/components/ui/textarea";
+import { Switch } from "@enact/ui/components/ui/switch";
 import { mcpHooks, PluginHookActivity, PluginMCPApproval } from "../../plugins";
 import { useT } from "../../i18n";
 import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";

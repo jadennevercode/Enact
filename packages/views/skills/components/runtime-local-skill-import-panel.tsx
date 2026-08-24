@@ -19,28 +19,28 @@ import type {
   RuntimeLocalSkillImportConflict,
   RuntimeLocalSkillSummary,
   Skill,
-} from "@multica/core/types";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
+} from "@enact/core/types";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
 import {
   runtimeDisplayLabel,
   runtimeListOptions,
   runtimeLocalSkillsKeys,
   runtimeLocalSkillsOptions,
   resolveRuntimeLocalSkillImport,
-} from "@multica/core/runtimes";
+} from "@enact/core/runtimes";
 import {
   memberListOptions,
   skillDetailOptions,
   workspaceKeys,
-} from "@multica/core/workspace/queries";
-import { Button } from "@multica/ui/components/ui/button";
-import { Badge } from "@multica/ui/components/ui/badge";
-import { Checkbox } from "@multica/ui/components/ui/checkbox";
-import { Input } from "@multica/ui/components/ui/input";
-import { Label } from "@multica/ui/components/ui/label";
-import { Progress } from "@multica/ui/components/ui/progress";
-import { Textarea } from "@multica/ui/components/ui/textarea";
+} from "@enact/core/workspace/queries";
+import { Button } from "@enact/ui/components/ui/button";
+import { Badge } from "@enact/ui/components/ui/badge";
+import { Checkbox } from "@enact/ui/components/ui/checkbox";
+import { Input } from "@enact/ui/components/ui/input";
+import { Label } from "@enact/ui/components/ui/label";
+import { Progress } from "@enact/ui/components/ui/progress";
+import { Textarea } from "@enact/ui/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -49,13 +49,13 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@multica/ui/components/ui/select";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { useScrollFade } from "@multica/ui/hooks/use-scroll-fade";
+} from "@enact/ui/components/ui/select";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { useScrollFade } from "@enact/ui/hooks/use-scroll-fade";
 import {
   UI_EASE_OUT,
   UI_MOTION_DURATION,
-} from "@multica/ui/lib/motion";
+} from "@enact/ui/lib/motion";
 import { useT } from "../../i18n";
 import { HighlightText } from "../../search/highlight-text";
 import { ProviderLogo } from "../../runtimes/components/provider-logo";

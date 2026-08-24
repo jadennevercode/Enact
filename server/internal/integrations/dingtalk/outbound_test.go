@@ -3,8 +3,8 @@ package dingtalk
 import (
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 func TestEventContent(t *testing.T) {

@@ -11,11 +11,11 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { Issue } from "@multica/core/types";
+import type { Issue } from "@enact/core/types";
 import {
   ContextMenu,
   ContextMenuContent,
-} from "@multica/ui/components/ui/context-menu";
+} from "@enact/ui/components/ui/context-menu";
 import { useIssueActions } from "./use-issue-actions";
 import {
   IssueActionsMenuItems,

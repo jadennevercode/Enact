@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multica-ai/multica/server/pkg/skillbundle"
+	"github.com/enact-ai/enact/server/pkg/skillbundle"
 )
 
 type SkillBundleCache struct {

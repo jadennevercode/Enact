@@ -12,19 +12,19 @@ import {
   EMPTY_AGENT_DRAFT,
   isDraftDescriptionWithinLimit,
   type AgentDraft,
-} from "@multica/core/agents";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { isRuntimeUsableForUser, runtimeListOptions } from "@multica/core/runtimes";
+} from "@enact/core/agents";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { isRuntimeUsableForUser, runtimeListOptions } from "@enact/core/runtimes";
 import type {
   MemberWithUser,
   RuntimeDevice,
   SkillSummary,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   memberListOptions,
   skillListOptions,
-} from "@multica/core/workspace/queries";
+} from "@enact/core/workspace/queries";
 
 interface CreateAgentForm {
   draft: AgentDraft;

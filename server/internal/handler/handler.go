@@ -18,31 +18,31 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/analytics"
-	"github.com/multica-ai/multica/server/internal/auth"
-	"github.com/multica-ai/multica/server/internal/cloudruntime"
-	"github.com/multica-ai/multica/server/internal/daemonws"
-	"github.com/multica-ai/multica/server/internal/entitlement"
-	"github.com/multica-ai/multica/server/internal/events"
-	"github.com/multica-ai/multica/server/internal/integrations/channel/engine"
-	composio "github.com/multica-ai/multica/server/internal/integrations/composio"
-	"github.com/multica-ai/multica/server/internal/integrations/dingtalk"
-	"github.com/multica-ai/multica/server/internal/integrations/ghsnapshot"
-	"github.com/multica-ai/multica/server/internal/integrations/lark"
-	"github.com/multica-ai/multica/server/internal/integrations/slack"
-	"github.com/multica-ai/multica/server/internal/integrations/telegram"
-	"github.com/multica-ai/multica/server/internal/integrations/wecom"
-	"github.com/multica-ai/multica/server/internal/issuestatus"
-	obsmetrics "github.com/multica-ai/multica/server/internal/metrics"
-	"github.com/multica-ai/multica/server/internal/middleware"
-	"github.com/multica-ai/multica/server/internal/realtime"
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/internal/storage"
-	"github.com/multica-ai/multica/server/internal/util"
-	"github.com/multica-ai/multica/server/internal/util/secretbox"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/featureflag"
-	"github.com/multica-ai/multica/server/pkg/llm"
+	"github.com/enact-ai/enact/server/internal/analytics"
+	"github.com/enact-ai/enact/server/internal/auth"
+	"github.com/enact-ai/enact/server/internal/cloudruntime"
+	"github.com/enact-ai/enact/server/internal/daemonws"
+	"github.com/enact-ai/enact/server/internal/entitlement"
+	"github.com/enact-ai/enact/server/internal/events"
+	"github.com/enact-ai/enact/server/internal/integrations/channel/engine"
+	composio "github.com/enact-ai/enact/server/internal/integrations/composio"
+	"github.com/enact-ai/enact/server/internal/integrations/dingtalk"
+	"github.com/enact-ai/enact/server/internal/integrations/ghsnapshot"
+	"github.com/enact-ai/enact/server/internal/integrations/lark"
+	"github.com/enact-ai/enact/server/internal/integrations/slack"
+	"github.com/enact-ai/enact/server/internal/integrations/telegram"
+	"github.com/enact-ai/enact/server/internal/integrations/wecom"
+	"github.com/enact-ai/enact/server/internal/issuestatus"
+	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
+	"github.com/enact-ai/enact/server/internal/middleware"
+	"github.com/enact-ai/enact/server/internal/realtime"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/storage"
+	"github.com/enact-ai/enact/server/internal/util"
+	"github.com/enact-ai/enact/server/internal/util/secretbox"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/featureflag"
+	"github.com/enact-ai/enact/server/pkg/llm"
 )
 
 // randomID returns a random 16-byte hex string used as a request ID for
@@ -76,16 +76,16 @@ type Config struct {
 	DisableWorkspaceCreation bool
 	// VCSIntegrationEnabled gates the self-hosted Git provider integration
 	// (Forgejo / Gitea / GitLab) at the deployment level, independent of whether
-	// MULTICA_VCS_SECRET_KEY is set. It is the product boundary: the feature is
-	// intended for self-hosted Multica only (where Multica and the Git instance
+	// ENACT_VCS_SECRET_KEY is set. It is the product boundary: the feature is
+	// intended for self-hosted Enact only (where Enact and the Git instance
 	// can share a network), and is left off on the managed cloud — connect,
 	// rotate, and webhook handlers reject when it is false, and /api/config
 	// omits it so the UI hides the whole section rather than showing a
 	// "missing key" message a cloud user cannot act on. Populated from
-	// MULTICA_VCS_INTEGRATION_ENABLED; the self-host compose defaults it on.
+	// ENACT_VCS_INTEGRATION_ENABLED; the self-host compose defaults it on.
 	VCSIntegrationEnabled bool
 	// PublicURL is the absolute base URL the API is reachable at from the
-	// public internet, with no trailing slash (e.g. "https://multica.ai").
+	// public internet, with no trailing slash (e.g. "https://enact.ai").
 	// Used to build webhook_url responses and the fixed Remote MCP OAuth
 	// callback URI — never to decide request identity, routing, or workspace
 	// scope. Empty when unset; webhook clients can fall back to their own origin,
@@ -98,7 +98,7 @@ type Config struct {
 	// TrustedProxies are CIDRs whose source IP we trust to set
 	// X-Forwarded-For / X-Real-IP. Empty means "trust nothing": the rate
 	// limiter uses r.RemoteAddr exclusively. Populated via the
-	// MULTICA_TRUSTED_PROXIES env var (comma-separated CIDRs, e.g.
+	// ENACT_TRUSTED_PROXIES env var (comma-separated CIDRs, e.g.
 	// "10.0.0.0/8,127.0.0.1/32"). This is specifically to keep the per-IP
 	// webhook limiter from being bypassed by a spoofed XFF on deployments
 	// without a header-stripping reverse proxy in front.
@@ -121,14 +121,14 @@ type Config struct {
 	// MUL-4309; LLM access is internal-only now. When both LLMAPIKey and
 	// LLMBaseURL are empty the layer is disabled and callers fall back
 	// silently (see maybeGenerateChatTitleAsync).
-	//   - LLMAPIKey       -> MULTICA_LLM_API_KEY
-	//   - LLMBaseURL       -> MULTICA_LLM_BASE_URL (OpenAI or any compatible gateway)
-	//   - LLMDefaultModel  -> MULTICA_LLM_DEFAULT_MODEL (used when a request omits `model`)
-	//   - LLMMaxRetries    -> MULTICA_LLM_MAX_RETRIES (transport retry budget)
+	//   - LLMAPIKey       -> ENACT_LLM_API_KEY
+	//   - LLMBaseURL       -> ENACT_LLM_BASE_URL (OpenAI or any compatible gateway)
+	//   - LLMDefaultModel  -> ENACT_LLM_DEFAULT_MODEL (used when a request omits `model`)
+	//   - LLMMaxRetries    -> ENACT_LLM_MAX_RETRIES (transport retry budget)
 	LLMAPIKey       string
 	LLMBaseURL      string
 	LLMDefaultModel string
-	// LLMMaxRetries is the parsed MULTICA_LLM_MAX_RETRIES budget. nil means
+	// LLMMaxRetries is the parsed ENACT_LLM_MAX_RETRIES budget. nil means
 	// unset (llm.DefaultMaxRetries applies); llm.Retries(0) disables retries.
 	// The type carries the validation: it can only be built through llm.Retries,
 	// and cmd/server additionally fails the boot on an out-of-range value before
@@ -225,7 +225,7 @@ type Handler struct {
 	WebhookDeliveryWorker        *WebhookDeliveryWorker
 	CloudRuntime                 cloudRuntimeProxy
 	// Lark integration. All three are nil when the Lark master key
-	// (MULTICA_LARK_SECRET_KEY) is unset; the corresponding HTTP
+	// (ENACT_LARK_SECRET_KEY) is unset; the corresponding HTTP
 	// handlers return 503 in that case so a misconfigured self-host
 	// deployment surfaces a clear error instead of silently using a
 	// zero key. Wired in cmd/server/router.go after handler.New.
@@ -241,7 +241,7 @@ type Handler struct {
 	// LarkAPIClient is the live transport that backs SendInteractiveCard,
 	// PatchInteractiveCard, SendBindingPromptCard, GetBotInfo. The
 	// router wires the real Lark HTTP client whenever
-	// MULTICA_LARK_SECRET_KEY is set; tests that need a no-op
+	// ENACT_LARK_SECRET_KEY is set; tests that need a no-op
 	// behaviour can swap in `lark.NewStubAPIClient(...)` directly. The
 	// UI consults IsConfigured() to decide whether to surface install
 	// entry points.
@@ -257,7 +257,7 @@ type Handler struct {
 	// drives any channel type, not just Feishu. It remains nil when lease
 	// configuration is unsafe or a selected Redis backend fails its startup
 	// readiness check; each platform registers its Factory only when configured
-	// (Feishu when MULTICA_LARK_SECRET_KEY is set). The router does NOT
+	// (Feishu when ENACT_LARK_SECRET_KEY is set). The router does NOT
 	// call Run; the process owner (main.go) starts it under a long-running
 	// context and joins via WaitWithTimeout (bounded, fenced by
 	// ShutdownTimeout) during graceful shutdown so the lease renewer yields
@@ -277,18 +277,18 @@ type Handler struct {
 	ChannelMediaReconciler *service.ChannelMediaReconciler
 	// SlackInstall owns the bring-your-own-app Slack install lifecycle (register
 	// pasted tokens / list / revoke) and the at-rest encryption of each app's bot
-	// + app tokens (MUL-3666). Nil unless MULTICA_SLACK_SECRET_KEY is set.
+	// + app tokens (MUL-3666). Nil unless ENACT_SLACK_SECRET_KEY is set.
 	SlackInstall *slack.InstallService
 	// SlackBindingTokens mints/redeems the user-binding tokens behind the
 	// "link your Slack account" prompt (MUL-3666). Nil unless Slack is
-	// configured (MULTICA_SLACK_SECRET_KEY set).
+	// configured (ENACT_SLACK_SECRET_KEY set).
 	SlackBindingTokens *slack.BindingTokenService
 	// DingTalkInstall owns the bring-your-own-app DingTalk lifecycle. It is nil
-	// unless MULTICA_DINGTALK_SECRET_KEY is configured.
+	// unless ENACT_DINGTALK_SECRET_KEY is configured.
 	DingTalkInstall *dingtalk.InstallService
 	// DingTalkBindingTokens mints and redeems the single-use account-link tokens.
 	DingTalkBindingTokens *dingtalk.BindingTokenService
-	// SlackHistory backs the agent-facing `multica chat history` command: it
+	// SlackHistory backs the agent-facing `enact chat history` command: it
 	// reads a chat session's bound Slack conversation on demand (MUL-3871). Nil
 	// unless Slack is configured; GetChatChannelHistory then reports "no channel
 	// integration". A future platform satisfies the same reader interface.
@@ -301,7 +301,7 @@ type Handler struct {
 	// WebSocket subscribe frame. Nil disables the wecom integration.
 	WecomCredentials wecom.CredentialsResolver
 	// WecomBindingTokens mints/redeems the user-binding tokens behind the
-	// "link your Multica account" prompt sent to first-time WeCom users
+	// "link your Enact account" prompt sent to first-time WeCom users
 	// (their aibot userid is a "T"-prefixed anonymized id with no relation
 	// to their real userid or email, so an explicit binding is required —
 	// see wecom/binding.go). Nil disables the redeem endpoint (returns 503)
@@ -315,7 +315,7 @@ type Handler struct {
 
 	// TelegramInstall owns the Telegram bot install lifecycle (register a
 	// pasted BotFather token / list / revoke) and the at-rest encryption of
-	// each bot's token. Nil unless MULTICA_TELEGRAM_SECRET_KEY is set.
+	// each bot's token. Nil unless ENACT_TELEGRAM_SECRET_KEY is set.
 	TelegramInstall *telegram.InstallService
 	// TelegramBindingTokens mints/redeems the user-binding tokens behind the
 	// "link your Telegram account" prompt. Nil unless Telegram is configured.
@@ -329,7 +329,7 @@ type Handler struct {
 	// DEPLOYMENT, carry a file the agent produced the last hop into the
 	// conversation. It answers the claim response's
 	// chat_channel_delivers_files, which the agent's PER-TURN prompt turns into
-	// either "run `multica attachment upload`" or "describe the file in words"
+	// either "run `enact attachment upload`" or "describe the file in words"
 	// (daemon/prompt.go). Not the brief: the brief is the prompt cache prefix and
 	// this is a per-turn verdict, so stating it there made one session render two
 	// briefs (MUL-5377).
@@ -356,7 +356,7 @@ type Handler struct {
 	LLM *llm.Client
 	// VCSSecretBox encrypts/decrypts per-workspace Git provider access tokens and
 	// webhook secrets at rest (Forgejo / Gitea / GitLab). Nil when
-	// MULTICA_VCS_SECRET_KEY is unset; the connect/webhook handlers return 503
+	// ENACT_VCS_SECRET_KEY is unset; the connect/webhook handlers return 503
 	// in that case so a misconfigured self-host deployment surfaces a clear
 	// error rather than silently storing plaintext. Wired in
 	// cmd/server/router.go after New.
@@ -424,7 +424,7 @@ func New(queries *db.Queries, txStarter txStarter, hub *realtime.Hub, bus *event
 	taskSvc := service.NewTaskService(queries, txStarter, hub, bus, daemonHub)
 	taskSvc.Analytics = analyticsClient
 	// Chat follow-up suggestions run through the same internal LLM layer that
-	// backs auto-titling. A deployment with no MULTICA_LLM_* configuration gets
+	// backs auto-titling. A deployment with no ENACT_LLM_* configuration gets
 	// a disabled client, which turns the feature off rather than failing.
 	taskSvc.QuickActions = llmClient
 	h := &Handler{

@@ -3,8 +3,8 @@
 import { useRef } from "react";
 import { Paperclip } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
 
 interface FileUploadButtonProps {
   /** Called with the selected File — caller handles upload. */

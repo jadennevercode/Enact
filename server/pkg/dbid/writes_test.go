@@ -81,8 +81,8 @@ func TestV7QueriesBindAnIDWithADatabaseFallback(t *testing.T) {
 }
 
 const (
-	dbImportPath   = "github.com/multica-ai/multica/server/pkg/db/generated"
-	dbidImportPath = "github.com/multica-ai/multica/server/pkg/dbid"
+	dbImportPath   = "github.com/enact-ai/enact/server/pkg/db/generated"
+	dbidImportPath = "github.com/enact-ai/enact/server/pkg/dbid"
 )
 
 // TestEveryV7ParamsLiteralSetsAnIDAndImportsDBID walks production Go sources

@@ -6,16 +6,16 @@ import type {
   Agent,
   AgentRuntime,
   MemberWithUser,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   AGENT_DESCRIPTION_MAX_LENGTH,
   AGENT_MAX_CONCURRENT_TASKS_MAX,
   AGENT_MAX_CONCURRENT_TASKS_MIN,
-} from "@multica/core/agents";
-import { runtimeModelsOptions } from "@multica/core/runtimes";
-import { isImeComposing } from "@multica/core/utils";
-import { Input } from "@multica/ui/components/ui/input";
-import { Textarea } from "@multica/ui/components/ui/textarea";
+} from "@enact/core/agents";
+import { runtimeModelsOptions } from "@enact/core/runtimes";
+import { isImeComposing } from "@enact/core/utils";
+import { Input } from "@enact/ui/components/ui/input";
+import { Textarea } from "@enact/ui/components/ui/textarea";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import {
   SettingsCard,

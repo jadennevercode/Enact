@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
-import { I18nProvider } from "@multica/core/i18n/react";
+import { I18nProvider } from "@enact/core/i18n/react";
 import enCommon from "../locales/en/common.json";
 import enIssues from "../locales/en/issues.json";
 
@@ -22,12 +22,12 @@ vi.mock("@tanstack/react-query", () => ({
       ? { data: data.script, isPending: false, isError: data.script === null }
       : { data: data.installed, isLoading: false, isError: false },
 }));
-vi.mock("@multica/core/plugins", () => ({
+vi.mock("@enact/core/plugins", () => ({
   pluginInstallationsOptions: () => ({ queryKey: ["plugins"] }),
   pluginSurfaceScriptOptions: () => ({ queryKey: ["surface"] }),
 }));
-vi.mock("@multica/core/paths", () => ({ useCurrentWorkspace: () => ({ id: "workspace-1", name: "Acme", slug: "acme" }) }));
-vi.mock("@multica/core/config", () => ({ useFeatureEnabled: () => data.flagEnabled }));
+vi.mock("@enact/core/paths", () => ({ useCurrentWorkspace: () => ({ id: "workspace-1", name: "Acme", slug: "acme" }) }));
+vi.mock("@enact/core/config", () => ({ useFeatureEnabled: () => data.flagEnabled }));
 vi.mock("../platform/local-directory", () => ({ isDesktopShell: () => false }));
 
 import { PluginPanelSection } from "./plugin-panel-section";
@@ -129,7 +129,7 @@ describe("PluginPanelSection", () => {
     expect(screen.getByText(/could not load its interface/i)).toBeInTheDocument();
   });
 
-  it("loads a surface's code from Multica, never from the plugin author", () => {
+  it("loads a surface's code from Enact, never from the plugin author", () => {
     // The frame's document carries the code inline. If anything here starts
     // emitting a remote <script src>, every panel open becomes a request to a
     // third party again.
@@ -147,12 +147,12 @@ describe("PluginPanelSection", () => {
 
     const frame = screen.getByTitle("Hello Panel — Hello") as HTMLIFrameElement;
     const postMessage = vi.spyOn(frame.contentWindow!, "postMessage");
-    const event = new MessageEvent("message", { data: { type: "multica:plugin-surface-error" } });
+    const event = new MessageEvent("message", { data: { type: "enact:plugin-surface-error" } });
     Object.defineProperty(event, "source", { value: frame.contentWindow, configurable: true });
     act(() => window.dispatchEvent(event));
 
     expect(screen.getByText("Hello Panel could not load its interface.")).toBeInTheDocument();
-    expect(postMessage).toHaveBeenCalledWith({ type: "multica:plugin-surface-error-ack" }, "*");
+    expect(postMessage).toHaveBeenCalledWith({ type: "enact:plugin-surface-error-ack" }, "*");
   });
 
   it("clears a previous surface failure when the issue changes", () => {
@@ -160,7 +160,7 @@ describe("PluginPanelSection", () => {
     const { rerender } = render(<PluginPanelSection issueId="issue-1" />, { wrapper: Wrapper });
 
     const frame = screen.getByTitle("Hello Panel — Hello") as HTMLIFrameElement;
-    const event = new MessageEvent("message", { data: { type: "multica:plugin-surface-error" } });
+    const event = new MessageEvent("message", { data: { type: "enact:plugin-surface-error" } });
     Object.defineProperty(event, "source", { value: frame.contentWindow, configurable: true });
     act(() => window.dispatchEvent(event));
     expect(screen.getByText("Hello Panel could not load its interface.")).toBeInTheDocument();
@@ -176,7 +176,7 @@ describe("PluginPanelSection", () => {
 
     const frame = screen.getByTitle("Hello Panel — Hello") as HTMLIFrameElement;
     const originalDocument = frame.getAttribute("srcdoc");
-    const event = new MessageEvent("message", { data: { type: "multica:plugin-surface-error" } });
+    const event = new MessageEvent("message", { data: { type: "enact:plugin-surface-error" } });
     Object.defineProperty(event, "source", { value: frame.contentWindow, configurable: true });
     act(() => window.dispatchEvent(event));
     expect(screen.getByText("Hello Panel could not load its interface.")).toBeInTheDocument();

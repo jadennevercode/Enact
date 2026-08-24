@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/service"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/service"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // A chat-created issue must broadcast the same full issue payload the HTTP

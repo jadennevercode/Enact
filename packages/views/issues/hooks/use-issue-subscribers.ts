@@ -2,22 +2,22 @@
 
 import { useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IssueSubscriber } from "@multica/core/types";
+import type { IssueSubscriber } from "@enact/core/types";
 import type {
   SubscriberAddedPayload,
   SubscriberRemovedPayload,
-} from "@multica/core/types";
-import { issueSubscribersOptions, issueKeys } from "@multica/core/issues/queries";
+} from "@enact/core/types";
+import { issueSubscribersOptions, issueKeys } from "@enact/core/issues/queries";
 import {
   useToggleIssueSubscriber,
   useUnsubscribeFromIssueSubtree,
-} from "@multica/core/issues/mutations";
-import { useWSEvent, useWSReconnect } from "@multica/core/realtime";
-// Imported from the defining module, not the "@multica/core/api" barrel: the
+} from "@enact/core/issues/mutations";
+import { useWSEvent, useWSReconnect } from "@enact/core/realtime";
+// Imported from the defining module, not the "@enact/core/api" barrel: the
 // barrel drags the client singleton and ws-client into the module graph of
 // every consumer of this hook, which measurably slowed test startup and tipped
 // an unrelated timing-sensitive suite over its waitFor budget.
-import { ApiError } from "@multica/core/api/client";
+import { ApiError } from "@enact/core/api/client";
 import { toast } from "sonner";
 import { useT } from "../../i18n";
 

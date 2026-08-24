@@ -1,5 +1,5 @@
-import type { Project } from "@multica/core/types";
-import { cn } from "@multica/ui/lib/utils";
+import type { Project } from "@enact/core/types";
+import { cn } from "@enact/ui/lib/utils";
 
 export type ProjectIconSize = "sm" | "md" | "lg";
 

@@ -1,20 +1,20 @@
 # Entitlement policy consumer
 
-This package is the mechanical Multica-side consumer of the private Cloud
+This package is the mechanical Enact-side consumer of the private Cloud
 enforcement-policy endpoint. Commercial inputs stay in Cloud: this package does
 not contain plan names, subscription-state mapping, rollout dates, cohorts,
 exemptions, limit values, or kill-switch policy.
 
 Production wiring remains explicit and off by default. Set
-`MULTICA_ENTITLEMENT_POLICY_ENABLED=true`,
-`MULTICA_ENTITLEMENT_POLICY_URL`, and the independent
-`MULTICA_ENTITLEMENT_SERVICE_TOKEN` to enable the client. A disabled client
+`ENACT_ENTITLEMENT_POLICY_ENABLED=true`,
+`ENACT_ENTITLEMENT_POLICY_URL`, and the independent
+`ENACT_ENTITLEMENT_SERVICE_TOKEN` to enable the client. A disabled client
 performs no HTTP request, and the autopilot consumer does not access its quota
 tables; the issue-window consumer likewise keeps its legacy SQL and performs no
 window read. Self-hosted deployments therefore retain the legacy paths.
 Timeout, stale grace, and the emergency down switch are controlled by
-`MULTICA_ENTITLEMENT_POLICY_TIMEOUT`, `MULTICA_ENTITLEMENT_STALE_GRACE`, and
-`MULTICA_ENTITLEMENT_EMERGENCY_DISABLED`.
+`ENACT_ENTITLEMENT_POLICY_TIMEOUT`, `ENACT_ENTITLEMENT_STALE_GRACE`, and
+`ENACT_ENTITLEMENT_EMERGENCY_DISABLED`.
 
 ## Contract
 

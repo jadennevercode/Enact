@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/analytics"
-	"github.com/multica-ai/multica/server/internal/metrics"
+	"github.com/enact-ai/enact/server/internal/analytics"
+	"github.com/enact-ai/enact/server/internal/metrics"
 )
 
 func TestNormalizePR3LabelsCollapseUnknownValues(t *testing.T) {
@@ -88,7 +88,7 @@ func TestOnboardingStartedUnknownPlatformCollapses(t *testing.T) {
 	// present: web and unknown. Anything else means the raw header
 	// leaked into the label.
 	families := metrics.GatherForTest(t, m)
-	famName := "multica_onboarding_started_total"
+	famName := "enact_onboarding_started_total"
 	fam, ok := families[famName]
 	if !ok {
 		t.Fatalf("metric family %s not present in registry output", famName)

@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { useAuthStore } from "@multica/core/auth";
-import { paths } from "@multica/core/paths";
-import { workspaceListOptions } from "@multica/core/workspace/queries";
-import { Button } from "@multica/ui/components/ui/button";
+import { useAuthStore } from "@enact/core/auth";
+import { paths } from "@enact/core/paths";
+import { workspaceListOptions } from "@enact/core/workspace/queries";
+import { Button } from "@enact/ui/components/ui/button";
 import { useNavigation } from "../navigation";
 import { useT } from "../i18n";
 

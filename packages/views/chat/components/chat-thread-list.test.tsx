@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { I18nProvider } from "@multica/core/i18n/react";
-import type { Agent, ChatSession } from "@multica/core/types";
+import { I18nProvider } from "@enact/core/i18n/react";
+import type { Agent, ChatSession } from "@enact/core/types";
 import enChat from "../../locales/en/chat.json";
 import enIssues from "../../locales/en/issues.json";
 
@@ -24,24 +24,24 @@ vi.mock("../../common/actor-avatar", () => ({
   ),
 }));
 
-vi.mock("@multica/core/hooks", () => ({
+vi.mock("@enact/core/hooks", () => ({
   useWorkspaceId: () => "ws-1",
 }));
 
-vi.mock("@multica/core/agents", () => ({
+vi.mock("@enact/core/agents", () => ({
   useWorkspacePresenceMap: () => ({ byAgent: new Map() }),
 }));
 
-vi.mock("@multica/core/api", () => ({
+vi.mock("@enact/core/api", () => ({
   api: { cancelTaskById: vi.fn() },
 }));
 
-vi.mock("@multica/core/chat", () => ({
+vi.mock("@enact/core/chat", () => ({
   useChatStore: (selector: (s: { setActiveSession: typeof setActiveSession }) => unknown) =>
     selector({ setActiveSession }),
 }));
 
-vi.mock("@multica/core/chat/mutations", () => ({
+vi.mock("@enact/core/chat/mutations", () => ({
   useDeleteChatSession: () => ({ mutate: vi.fn(), isPending: false }),
   useSetChatSessionPinned: () => ({ mutate: vi.fn(), isPending: false }),
   useSetChatSessionArchived: () => ({ mutate: archiveMutate, isPending: false }),

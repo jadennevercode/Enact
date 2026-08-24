@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "@multica/core/auth";
-import { paths } from "@multica/core/paths";
-import { workspaceListOptions } from "@multica/core/workspace/queries";
-import { InvitePage } from "@multica/views/invite";
+import { useAuthStore } from "@enact/core/auth";
+import { paths } from "@enact/core/paths";
+import { workspaceListOptions } from "@enact/core/workspace/queries";
+import { InvitePage } from "@enact/views/invite";
 
 export default function InviteAcceptPage() {
   const router = useRouter();

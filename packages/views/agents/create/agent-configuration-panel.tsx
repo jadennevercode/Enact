@@ -7,12 +7,12 @@ import {
   applyDraftRuntimeChange,
   type AgentDraft,
   type AgentPermissionScope,
-} from "@multica/core/agents";
-import type { MemberWithUser, RuntimeDevice } from "@multica/core/types";
-import { Checkbox } from "@multica/ui/components/ui/checkbox";
-import { Input } from "@multica/ui/components/ui/input";
-import { Textarea } from "@multica/ui/components/ui/textarea";
-import { cn } from "@multica/ui/lib/utils";
+} from "@enact/core/agents";
+import type { MemberWithUser, RuntimeDevice } from "@enact/core/types";
+import { Checkbox } from "@enact/ui/components/ui/checkbox";
+import { Input } from "@enact/ui/components/ui/input";
+import { Textarea } from "@enact/ui/components/ui/textarea";
+import { cn } from "@enact/ui/lib/utils";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { useT } from "../../i18n";

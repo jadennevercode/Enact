@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/multica-ai/multica/server/internal/integrations/channel"
+	"github.com/enact-ai/enact/server/internal/integrations/channel"
 )
 
 // Tunables for the inbound dispatcher. Remote media resolution is detached by

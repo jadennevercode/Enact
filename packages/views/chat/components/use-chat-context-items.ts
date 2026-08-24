@@ -1,12 +1,12 @@
 "use client";
 
-import { issueStatusCategory } from "@multica/core/issues";
+import { issueStatusCategory } from "@enact/core/issues";
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { selectRecentContexts, useRecentContextStore, type RecentContextEntry } from "@multica/core/chat";
-import { issueDetailOptions } from "@multica/core/issues/queries";
-import { projectDetailOptions } from "@multica/core/projects/queries";
-import type { Issue, Project } from "@multica/core/types";
+import { selectRecentContexts, useRecentContextStore, type RecentContextEntry } from "@enact/core/chat";
+import { issueDetailOptions } from "@enact/core/issues/queries";
+import { projectDetailOptions } from "@enact/core/projects/queries";
+import type { Issue, Project } from "@enact/core/types";
 import type { MentionItem } from "../../editor/extensions/mention-suggestion";
 import { useNavigation } from "../../navigation";
 

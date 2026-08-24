@@ -4,21 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 import { ArrowLeft, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@multica/ui/components/ui/button";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@multica/ui/components/ui/resizable";
-import { useIsCompact } from "@multica/ui/hooks/use-mobile";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { useChatStore } from "@multica/core/chat";
-import { chatQuickActionsPendingOptions } from "@multica/core/chat/queries";
-import { useRegenerateChatQuickActions } from "@multica/core/chat/mutations";
-import { useQuickActionsPendingTimeout } from "@multica/core/chat/use-quick-actions-pending-timeout";
+} from "@enact/ui/components/ui/resizable";
+import { useIsCompact } from "@enact/ui/hooks/use-mobile";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { useChatStore } from "@enact/core/chat";
+import { chatQuickActionsPendingOptions } from "@enact/core/chat/queries";
+import { useRegenerateChatQuickActions } from "@enact/core/chat/mutations";
+import { useQuickActionsPendingTimeout } from "@enact/core/chat/use-quick-actions-pending-timeout";
 import { useQuickActionsFailureToast } from "./components/use-quick-actions-failure-toast";
 import { useQuery } from "@tanstack/react-query";
-import type { Agent, ChatSession } from "@multica/core/types";
+import type { Agent, ChatSession } from "@enact/core/types";
 import { PageHeader } from "../layout/page-header";
 import { useNavigation } from "../navigation";
 import { useT } from "../i18n";
@@ -118,7 +118,7 @@ export function ChatPage() {
   }, [c.activeSessionId]);
 
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: "multica_chat_layout",
+    id: "enact_chat_layout",
   });
 
   // `?agent=` intent bookkeeping. The ref holds the param value already

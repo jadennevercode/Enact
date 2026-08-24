@@ -1,9 +1,9 @@
 "use client";
 
-import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import type { IssueStatusCatalog } from "@multica/core/issue-statuses";
-import { useWorkspaceId } from "@multica/core/hooks";
-import type { IssueStatus } from "@multica/core/types";
+import { useIssueStatuses } from "@enact/core/issue-statuses/hooks";
+import type { IssueStatusCatalog } from "@enact/core/issue-statuses";
+import { useWorkspaceId } from "@enact/core/hooks";
+import type { IssueStatus } from "@enact/core/types";
 import { StatusIcon } from "./status-icon";
 
 /**

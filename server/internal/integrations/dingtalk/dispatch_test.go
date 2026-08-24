@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multica-ai/multica/server/internal/integrations/channel"
+	"github.com/enact-ai/enact/server/internal/integrations/channel"
 )
 
 func dispatchMsg(conv, id string) channel.InboundMessage {

@@ -1,8 +1,8 @@
 "use client";
 
-import type { IssueProperty } from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
+import type { IssueProperty } from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
 import {
   Bookmark,
   BriefcaseBusiness,

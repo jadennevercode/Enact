@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { IssueStatus, UpdateIssueRequest } from "@multica/core/types";
-import { STATUS_CONFIG } from "@multica/core/issues/config";
-import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import { useWorkspaceId } from "@multica/core/hooks";
+import type { IssueStatus, UpdateIssueRequest } from "@enact/core/types";
+import { STATUS_CONFIG } from "@enact/core/issues/config";
+import { useIssueStatuses } from "@enact/core/issue-statuses/hooks";
+import { useWorkspaceId } from "@enact/core/hooks";
 import { StatusIcon } from "../status-icon";
 import { PropertyPicker, PickerItem } from "./property-picker";
 import { useT } from "../../../i18n";

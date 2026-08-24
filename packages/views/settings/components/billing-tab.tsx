@@ -12,8 +12,8 @@ import {
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
-import { ApiError, errorCode } from "@multica/core/api";
-import { autopilotQuotaUsageOptions } from "@multica/core/autopilots";
+import { ApiError, errorCode } from "@enact/core/api";
+import { autopilotQuotaUsageOptions } from "@enact/core/autopilots";
 import {
   useCreateWorkspaceSubscriptionCheckout,
   useCreateWorkspaceSubscriptionPortal,
@@ -23,21 +23,21 @@ import {
   workspaceSubscriptionEntitlementsOptions,
   workspaceSubscriptionPricesOptions,
   workspaceSubscriptionSummaryOptions,
-} from "@multica/core/billing";
-import { useFeatureEnabled } from "@multica/core/config";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
-import { useCurrentMember } from "@multica/core/permissions";
-import { useCurrentWorkspace } from "@multica/core/paths";
+} from "@enact/core/billing";
+import { useFeatureEnabled } from "@enact/core/config";
+import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@enact/core/feature-flags";
+import { useCurrentMember } from "@enact/core/permissions";
+import { useCurrentWorkspace } from "@enact/core/paths";
 import type {
   PurchaseWorkspaceSeatsRequest,
   WorkspaceSeatPurchasePreview,
   WorkspaceSubscriptionInterval,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from "@multica/ui/components/ui/alert";
+} from "@enact/ui/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,9 +47,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
-import { Badge } from "@multica/ui/components/ui/badge";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/ui/components/ui/alert-dialog";
+import { Badge } from "@enact/ui/components/ui/badge";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -57,14 +57,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
-import { Input } from "@multica/ui/components/ui/input";
+} from "@enact/ui/components/ui/dialog";
+import { Input } from "@enact/ui/components/ui/input";
 import {
   Progress,
   ProgressLabel,
   ProgressValue,
-} from "@multica/ui/components/ui/progress";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
+} from "@enact/ui/components/ui/progress";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
 import { useLocale, useT } from "../../i18n";
 import { useNavigation } from "../../navigation";
 import { openExternal } from "../../platform";

@@ -1,8 +1,8 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
 import { useLogout } from "../../auth";
 import { useT } from "../../i18n";
 

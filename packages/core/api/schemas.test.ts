@@ -1539,11 +1539,11 @@ describe("Telegram installation schemas", () => {
       workspace_id: "w1",
       agent_id: "a1",
       bot_id: "12345",
-      bot_username: "multica_test_bot",
+      bot_username: "enact_test_bot",
       installer_user_id: "u1",
       status: "active",
     });
-    expect(parsed.bot_username).toBe("multica_test_bot");
+    expect(parsed.bot_username).toBe("enact_test_bot");
     expect(parsed.status).toBe("active");
   });
 
@@ -1607,10 +1607,10 @@ describe("Plugin schemas", () => {
     // state where a component could render it.
     const parsed = PluginInstallationSchema.parse({
       id: "installation-1",
-      config: { repo: "multica-ai/multica" },
+      config: { repo: "enact-ai/enact" },
       configured_secrets: ["token"],
     });
-    expect(parsed.config).toEqual({ repo: "multica-ai/multica" });
+    expect(parsed.config).toEqual({ repo: "enact-ai/enact" });
     expect(parsed.configured_secrets).toEqual(["token"]);
     expect(Object.keys(parsed)).not.toContain("secrets");
   });

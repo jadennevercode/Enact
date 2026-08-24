@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Input } from "@multica/ui/components/ui/input";
-import { Textarea } from "@multica/ui/components/ui/textarea";
+import { Input } from "@enact/ui/components/ui/input";
+import { Textarea } from "@enact/ui/components/ui/textarea";
 import { toast } from "sonner";
-import { useAuthStore } from "@multica/core/auth";
-import { api } from "@multica/core/api";
+import { useAuthStore } from "@enact/core/auth";
+import { api } from "@enact/core/api";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { useT } from "../../i18n";
 import {

@@ -82,7 +82,7 @@ describe("surface document", () => {
     // test reloads the document; this pins that no beacon is generated at all.
     const document = buildSurfaceDocument({ code: "console.log('hi');", grantedScopes: [], theme: {} });
     expect(document).not.toContain("pagehide");
-    expect(document).not.toContain("multica:plugin-surface-navigated");
+    expect(document).not.toContain("enact:plugin-surface-navigated");
   });
 
   it("installs browser error listeners before plugin code runs", () => {
@@ -90,7 +90,7 @@ describe("surface document", () => {
     const executeIndex = document.indexOf("document.body.appendChild(element)");
     expect(document.indexOf('addEventListener("error"')).toBeLessThan(executeIndex);
     expect(document.indexOf('addEventListener("unhandledrejection"')).toBeLessThan(executeIndex);
-    expect(document).toContain("multica:plugin-surface-error-ack");
+    expect(document).toContain("enact:plugin-surface-error-ack");
   });
 
   it("carries code that would otherwise close the script element early", () => {
@@ -102,7 +102,7 @@ describe("surface document", () => {
     expect(document).not.toContain("alert(1)");
     expect(document).not.toContain('"</script>');
 
-    const encoded = /id="multica-surface-code">([^<]*)</.exec(document)?.[1] ?? "";
+    const encoded = /id="enact-surface-code">([^<]*)</.exec(document)?.[1] ?? "";
     expect(encoded).not.toBe("");
     expect(new TextDecoder().decode(Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))))
       .toBe(code);
@@ -113,7 +113,7 @@ describe("surface document", () => {
     // would fail at runtime with a message pointing nowhere near the cause.
     const code = `const 消息 = "部署已完成 ✅";`;
     const document = buildSurfaceDocument({ code, grantedScopes: [], theme: {} });
-    const encoded = /id="multica-surface-code">([^<]*)</.exec(document)?.[1] ?? "";
+    const encoded = /id="enact-surface-code">([^<]*)</.exec(document)?.[1] ?? "";
     expect(new TextDecoder().decode(Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))))
       .toBe(code);
   });

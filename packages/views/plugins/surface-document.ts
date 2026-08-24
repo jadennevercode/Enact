@@ -8,7 +8,7 @@
  * The script is INLINED rather than loaded from an origin. When it came from
  * the author's server, `script-src` had to name that origin, which meant a
  * surface could always reach its author back — and it meant every panel open
- * told the author who was reading which issue. Now Multica stores the published
+ * told the author who was reading which issue. Now Enact stores the published
  * artifact and hands it to the frame, so the policy names no remote script
  * origin at all.
  *
@@ -164,14 +164,14 @@ body {
 </head>
 <body>
 <div id="root"></div>
-<script type="text/plain" id="multica-surface-code">${encodeSurfaceCode(code)}</script>
+<script type="text/plain" id="enact-surface-code">${encodeSurfaceCode(code)}</script>
 <script>
 (function () {
   var errorReportAttempts = 0;
   var errorReportTimer = null;
 
   function emitSurfaceError() {
-    parent.postMessage({ type: 'multica:plugin-surface-error' }, '*');
+    parent.postMessage({ type: 'enact:plugin-surface-error' }, '*');
     errorReportAttempts++;
     if (errorReportAttempts >= 50 && errorReportTimer !== null) {
       clearInterval(errorReportTimer);
@@ -190,7 +190,7 @@ body {
   // the same six-second window as the SDK bridge handshake.
   window.addEventListener("message", function (event) {
     if (event.source !== parent) return;
-    if (!event.data || event.data.type !== 'multica:plugin-surface-error-ack') return;
+    if (!event.data || event.data.type !== 'enact:plugin-surface-error-ack') return;
     errorReportAttempts = 50;
     if (errorReportTimer !== null) clearInterval(errorReportTimer);
     errorReportTimer = null;
@@ -203,7 +203,7 @@ body {
   window.addEventListener("unhandledrejection", reportSurfaceError);
 
   try {
-    var encoded = document.getElementById("multica-surface-code").textContent;
+    var encoded = document.getElementById("enact-surface-code").textContent;
     var binary = atob(encoded);
     var bytes = new Uint8Array(binary.length);
     for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

@@ -2,21 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
 import { render, renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { issueDetailOptions } from "@multica/core/issues/queries";
-import { projectDetailOptions } from "@multica/core/projects/queries";
-import { chatSessionsOptions } from "@multica/core/chat/queries";
+import { issueDetailOptions } from "@enact/core/issues/queries";
+import { projectDetailOptions } from "@enact/core/projects/queries";
+import { chatSessionsOptions } from "@enact/core/chat/queries";
 import {
   inboxListOptions,
   archivedInboxListOptions,
-} from "@multica/core/inbox/queries";
-import { agentListOptions } from "@multica/core/workspace/queries";
-import { runtimeListOptions } from "@multica/core/runtimes/queries";
+} from "@enact/core/inbox/queries";
+import { agentListOptions } from "@enact/core/workspace/queries";
+import { runtimeListOptions } from "@enact/core/runtimes/queries";
 
 // Mutable workspace stub so a test can simulate "workspace not resolved yet".
 const ws = vi.hoisted(() => ({ current: { id: "ws1", slug: "acme" } as { id: string; slug: string } | null }));
 
-vi.mock("@multica/core/paths", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@multica/core/paths")>()),
+vi.mock("@enact/core/paths", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@enact/core/paths")>()),
   useCurrentWorkspace: () => ws.current,
 }));
 

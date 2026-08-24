@@ -7,14 +7,14 @@ import type {
   Issue,
   IssueTableFacetSpec,
   IssueTableFacetsResponse,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   actorIssuesViewStore,
   type ActorIssuesScope,
-} from "@multica/core/issues/stores/actor-issues-view-store";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@multica/ui/components/ui/tooltip";
+} from "@enact/core/issues/stores/actor-issues-view-store";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@enact/ui/components/ui/tooltip";
 import {
   IssueDisplayControls,
   ViewRefreshIndicator,

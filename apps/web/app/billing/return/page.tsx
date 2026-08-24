@@ -1,4 +1,4 @@
-import { BillingReturnPage } from "@multica/views/billing";
+import { BillingReturnPage } from "@enact/views/billing";
 
 /**
  * `/billing/return` — where Stripe Checkout and Billing Portal send the browser.

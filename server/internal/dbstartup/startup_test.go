@@ -83,38 +83,38 @@ func TestParsePoolConfigPreservesNativeConnectTimeout(t *testing.T) {
 	tests := []struct {
 		name          string
 		databaseURL   string
-		multicaValue  time.Duration
+		enactValue  time.Duration
 		wantPGXNative time.Duration
 	}{
 		{
-			name:          "URL longer than Multica fallback",
+			name:          "URL longer than Enact fallback",
 			databaseURL:   "postgres://user:pass@localhost:5432/db?sslmode=disable&connect_timeout=30",
-			multicaValue:  5 * time.Second,
+			enactValue:  5 * time.Second,
 			wantPGXNative: 30 * time.Second,
 		},
 		{
-			name:          "URL shorter than explicit Multica value",
+			name:          "URL shorter than explicit Enact value",
 			databaseURL:   "postgres://user:pass@localhost:5432/db?sslmode=disable&connect_timeout=1",
-			multicaValue:  30 * time.Second,
+			enactValue:  30 * time.Second,
 			wantPGXNative: time.Second,
 		},
 		{
 			name:          "URL explicitly disables timeout",
 			databaseURL:   "postgres://user:pass@localhost:5432/db?sslmode=disable&connect_timeout=0",
-			multicaValue:  5 * time.Second,
+			enactValue:  5 * time.Second,
 			wantPGXNative: 0,
 		},
 		{
 			name:          "keyword value",
 			databaseURL:   "host=localhost port=5432 user=user password=pass dbname=db sslmode=disable connect_timeout=12",
-			multicaValue:  5 * time.Second,
+			enactValue:  5 * time.Second,
 			wantPGXNative: 12 * time.Second,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := ParsePoolConfig(tt.databaseURL, tt.multicaValue)
+			cfg, err := ParsePoolConfig(tt.databaseURL, tt.enactValue)
 			if err != nil {
 				t.Fatalf("ParsePoolConfig: %v", err)
 			}

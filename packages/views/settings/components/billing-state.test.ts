@@ -5,7 +5,7 @@ import type {
   AutopilotQuotaUsage,
   WorkspaceSubscriptionEntitlements,
   WorkspaceSubscriptionSummary,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   canPurchaseWorkspaceSubscription,
   hasManagedWorkspaceSubscription,

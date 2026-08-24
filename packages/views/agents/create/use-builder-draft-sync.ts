@@ -14,8 +14,8 @@ import {
   toStoredAgentDraft,
   type AgentDraft,
   type StoredAgentDraft,
-} from "@multica/core/agents";
-import { api } from "@multica/core/api";
+} from "@enact/core/agents";
+import { api } from "@enact/core/api";
 
 /** How long editing pauses before the configuration is written back. */
 const AUTOSAVE_DELAY_MS = 800;

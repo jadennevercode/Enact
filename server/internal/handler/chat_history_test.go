@@ -13,8 +13,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/multica-ai/multica/server/internal/integrations/channel"
-	"github.com/multica-ai/multica/server/internal/integrations/slack"
+	"github.com/enact-ai/enact/server/internal/integrations/channel"
+	"github.com/enact-ai/enact/server/internal/integrations/slack"
 )
 
 type fakeChatHistoryReader struct {

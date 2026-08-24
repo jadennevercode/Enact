@@ -3,21 +3,21 @@
 import { useMemo, useState } from "react";
 import { BarChart3, ChevronRight, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
 import {
   CompactNumberFlow,
   CurrencyNumberFlow,
-} from "@multica/ui/components/ui/number-flow";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { agentListOptions } from "@multica/core/workspace/queries";
-import type { RuntimeUsage, AgentRuntime } from "@multica/core/types";
+} from "@enact/ui/components/ui/number-flow";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { agentListOptions } from "@enact/core/workspace/queries";
+import type { RuntimeUsage, AgentRuntime } from "@enact/core/types";
 import {
   runtimeUsageOptions,
   runtimeUsageByAgentOptions,
-} from "@multica/core/runtimes/queries";
-import { useCustomPricingStore } from "@multica/core/runtimes/custom-pricing-store";
+} from "@enact/core/runtimes/queries";
+import { useCustomPricingStore } from "@enact/core/runtimes/custom-pricing-store";
 import { useViewingTimezone } from "../../common/use-viewing-timezone";
 import {
   formatTokens,

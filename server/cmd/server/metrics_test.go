@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/analytics"
-	"github.com/multica-ai/multica/server/internal/events"
-	obsmetrics "github.com/multica-ai/multica/server/internal/metrics"
-	"github.com/multica-ai/multica/server/internal/realtime"
+	"github.com/enact-ai/enact/server/internal/analytics"
+	"github.com/enact-ai/enact/server/internal/events"
+	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
+	"github.com/enact-ai/enact/server/internal/realtime"
 )
 
 func TestMainRouterDoesNotExposeDiagnostics(t *testing.T) {

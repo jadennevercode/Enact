@@ -8,15 +8,15 @@ import {
   stripBuilderDraft,
   type AgentDraft,
   type BuilderRestore,
-} from "@multica/core/agents";
-import { isRuntimeUsableForUser } from "@multica/core/runtimes";
+} from "@enact/core/agents";
+import { isRuntimeUsableForUser } from "@enact/core/runtimes";
 import type {
   ChatMessage,
   MemberWithUser,
   RuntimeDevice,
-} from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
+} from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
 import { ChatInput } from "../../chat/components/chat-input";
 import {
   ChatMessageList,

@@ -36,21 +36,21 @@ import {
   useCreateCloudBillingCheckoutSession,
   useCreateCloudBillingPortalSession,
   useInvalidateBillingDataAfterCredit,
-} from "@multica/core/billing";
+} from "@enact/core/billing";
 import type {
   BillingBatch,
   BillingPriceTier,
   BillingTopup,
   BillingTransaction,
-} from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@multica/ui/components/ui/card";
+} from "@enact/ui/components/ui/card";
 import { useT } from "../i18n";
 import { useNavigation } from "../navigation";
 

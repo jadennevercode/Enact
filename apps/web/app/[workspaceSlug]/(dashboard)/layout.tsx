@@ -1,10 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
-import { DashboardLayout } from "@multica/views/layout";
-import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
-import { SearchCommand, SearchTrigger } from "@multica/views/search";
-import { FloatingChat } from "@multica/views/chat";
+import { DashboardLayout } from "@enact/views/layout";
+import { EnactIcon } from "@enact/ui/components/common/enact-icon";
+import { SearchCommand, SearchTrigger } from "@enact/views/search";
+import { FloatingChat } from "@enact/views/chat";
 import { WebNotificationBridge } from "@/components/web-notification-bridge";
 import { WorkspaceDocumentTitle } from "@/platform/workspace-document-title";
 
@@ -18,7 +18,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <WorkspaceDocumentTitle />
       </Suspense>
       <DashboardLayout
-        loadingIndicator={<MulticaIcon className="size-6" />}
+        loadingIndicator={<EnactIcon className="size-6" />}
         searchSlot={<SearchTrigger />}
         extra={
           <>

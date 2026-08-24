@@ -1,9 +1,9 @@
 "use client";
 
-import { ActorAvatar as ActorAvatarBase } from "@multica/ui/components/common/actor-avatar";
-import { AVATAR_SIZE_PX, type AvatarSize } from "@multica/ui/lib/avatar-size";
-import { useActorName } from "@multica/core/workspace/hooks";
-import { cn } from "@multica/ui/lib/utils";
+import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/actor-avatar";
+import { AVATAR_SIZE_PX, type AvatarSize } from "@enact/ui/lib/avatar-size";
+import { useActorName } from "@enact/core/workspace/hooks";
+import { cn } from "@enact/ui/lib/utils";
 
 interface AgentAvatarStackProps {
   // Agent ids to render, in display order. The component does NOT dedupe —

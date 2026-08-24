@@ -52,9 +52,9 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DataTable } from "@multica/ui/components/ui/data-table";
-import { Button } from "@multica/ui/components/ui/button";
-import { Input } from "@multica/ui/components/ui/input";
+import { DataTable } from "@enact/ui/components/ui/data-table";
+import { Button } from "@enact/ui/components/ui/button";
+import { Input } from "@enact/ui/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,39 +64,39 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import {
   TableCell,
   TableRow,
-} from "@multica/ui/components/ui/table";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { cn } from "@multica/ui/lib/utils";
-import { ApiError } from "@multica/core/api";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import { useModalStore } from "@multica/core/modals";
+} from "@enact/ui/components/ui/table";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { cn } from "@enact/ui/lib/utils";
+import { ApiError } from "@enact/core/api";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useIssueStatuses } from "@enact/core/issue-statuses/hooks";
+import { useModalStore } from "@enact/core/modals";
 import {
   issueKeys,
   issueTableGroupsOptions,
   issueTableRowPageOptions,
-} from "@multica/core/issues/queries";
+} from "@enact/core/issues/queries";
 import {
   TABLE_SYSTEM_COLUMNS,
   propertyIdFromViewKey,
   type SortField,
   type TableColumnKey,
   type TableSystemColumnKey,
-} from "@multica/core/issues/stores/view-store";
-import { useViewStore } from "@multica/core/issues/stores/view-store-context";
-import { propertyListOptions } from "@multica/core/properties";
-import { projectListOptions } from "@multica/core/projects/queries";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { buildActorNameResolver, useActorName } from "@multica/core/workspace/hooks";
+} from "@enact/core/issues/stores/view-store";
+import { useViewStore } from "@enact/core/issues/stores/view-store-context";
+import { propertyListOptions } from "@enact/core/properties";
+import { projectListOptions } from "@enact/core/projects/queries";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { buildActorNameResolver, useActorName } from "@enact/core/workspace/hooks";
 import {
   agentListOptions,
   memberListOptions,
   squadListOptions,
-} from "@multica/core/workspace/queries";
+} from "@enact/core/workspace/queries";
 import type {
   Issue,
   IssueProperty,
@@ -107,12 +107,12 @@ import type {
   IssueTableRowsResponse,
   Project,
   UpdateIssueRequest,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   actorRefsFromValue,
   formatActorRef,
   isActorPropertyType,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import {
   useInfiniteQuery,
   useQueries,

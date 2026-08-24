@@ -9,19 +9,19 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@multica/ui/components/ui/card";
-import { Input } from "@multica/ui/components/ui/input";
-import { Button } from "@multica/ui/components/ui/button";
-import { Label } from "@multica/ui/components/ui/label";
+} from "@enact/ui/components/ui/card";
+import { Input } from "@enact/ui/components/ui/input";
+import { Button } from "@enact/ui/components/ui/button";
+import { Label } from "@enact/ui/components/ui/label";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@multica/ui/components/ui/input-otp";
-import { useAuthStore } from "@multica/core/auth";
-import { workspaceKeys } from "@multica/core/workspace/queries";
-import { api } from "@multica/core/api";
-import type { User } from "@multica/core/types";
+} from "@enact/ui/components/ui/input-otp";
+import { useAuthStore } from "@enact/core/auth";
+import { workspaceKeys } from "@enact/core/workspace/queries";
+import { api } from "@enact/core/api";
+import type { User } from "@enact/core/types";
 import { useT } from "../i18n";
 
 // ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ export function LoginPage({
       })
       .catch(() => {
         // Cookie auth failed — fall back to localStorage token
-        const token = localStorage.getItem("multica_token");
+        const token = localStorage.getItem("enact_token");
         if (!token) return;
 
         api.setToken(token);
@@ -150,7 +150,7 @@ export function LoginPage({
           })
           .catch(() => {
             api.setToken(null);
-            localStorage.removeItem("multica_token");
+            localStorage.removeItem("enact_token");
           });
       });
   }, [cliCallback]);
@@ -198,7 +198,7 @@ export function LoginPage({
         if (cliCallback) {
           // CLI path: get token directly for the redirect URL
           const { token } = await api.verifyCode(email, value);
-          localStorage.setItem("multica_token", token);
+          localStorage.setItem("enact_token", token);
           api.setToken(token);
           onTokenObtained?.();
           redirectToCliCallback(cliCallback.url, token, cliCallback.state);
@@ -249,7 +249,7 @@ export function LoginPage({
 
       if (authSourceRef.current === "localStorage") {
         // Session was detected via localStorage — reuse that token directly.
-        const stored = localStorage.getItem("multica_token");
+        const stored = localStorage.getItem("enact_token");
         if (!stored) throw new Error("token missing");
         token = stored;
       } else {

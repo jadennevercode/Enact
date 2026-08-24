@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { pluginSurfaceScriptOptions } from "@multica/core/plugins";
-import type { PluginInstallation, PluginSurface } from "@multica/core/types";
-import { cn } from "@multica/ui/lib/utils";
+import { pluginSurfaceScriptOptions } from "@enact/core/plugins";
+import type { PluginInstallation, PluginSurface } from "@enact/core/types";
+import { cn } from "@enact/ui/lib/utils";
 import { useT } from "../i18n";
 import { buildSurfaceDocument, readThemeTokens } from "./surface-document";
 import { createSurfaceBridge } from "./surface-bridge";
@@ -80,14 +80,14 @@ export function PluginSurfaceFrame({ wsId, installation, surface, issueId, class
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const type = (event.data as { type?: string } | null)?.type;
-      if (type !== "multica:plugin-surface-error") return;
+      if (type !== "enact:plugin-surface-error") return;
       // Same window-identity rule as the bridge: without it any frame on the
       // page could light up the failure banner on every other panel.
       if (!frameRef.current?.contentWindow || event.source !== frameRef.current.contentWindow) return;
       // A surface whose script throws on its first line posts the error rather
       // than rendering blank. Acknowledge it so the guest can stop repeating
       // the signal it started before this effect was guaranteed to be mounted.
-      frameRef.current.contentWindow.postMessage({ type: "multica:plugin-surface-error-ack" }, "*");
+      frameRef.current.contentWindow.postMessage({ type: "enact:plugin-surface-error-ack" }, "*");
       setFailedSurfaceInstance(surfaceInstance);
     };
     window.addEventListener("message", onMessage);

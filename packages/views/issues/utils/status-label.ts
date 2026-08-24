@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { isIssueStatusCategory } from "@multica/core/issue-statuses";
-import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import type { IssueStatusCategory } from "@multica/core/types";
+import { isIssueStatusCategory } from "@enact/core/issue-statuses";
+import { useIssueStatuses } from "@enact/core/issue-statuses/hooks";
+import type { IssueStatusCategory } from "@enact/core/types";
 import { useT } from "../../i18n";
 
 /**

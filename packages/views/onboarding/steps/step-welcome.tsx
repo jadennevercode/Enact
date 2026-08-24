@@ -1,14 +1,14 @@
 "use client";
 
-import { statusCategoryOfKey } from "@multica/core/issues";
+import { statusCategoryOfKey } from "@enact/core/issues";
 import { useState } from "react";
 import { ArrowRight, Download, Loader2 } from "lucide-react";
-import { Button, buttonVariants } from "@multica/ui/components/ui/button";
-import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
-import { cn } from "@multica/ui/lib/utils";
-import { DragStrip } from "@multica/views/platform";
-import { STATUS_CONFIG } from "@multica/core/issues/config";
-import type { IssueStatus } from "@multica/core/types";
+import { Button, buttonVariants } from "@enact/ui/components/ui/button";
+import { EnactIcon } from "@enact/ui/components/common/enact-icon";
+import { cn } from "@enact/ui/lib/utils";
+import { DragStrip } from "@enact/views/platform";
+import { STATUS_CONFIG } from "@enact/core/issues/config";
+import type { IssueStatus } from "@enact/core/types";
 import { StatusIcon } from "../../issues/components/status-icon";
 import { ProviderLogo } from "../../runtimes/components/provider-logo";
 import { useT } from "../../i18n";
@@ -79,7 +79,7 @@ export function StepWelcome({
         <div className="flex flex-1 flex-col justify-center px-6 pb-12 sm:px-10 md:px-20 lg:px-20 xl:px-24">
           <div className="flex w-full max-w-[540px] flex-col gap-8">
             <div className="flex items-center gap-2.5">
-              <MulticaIcon className="size-5 text-foreground" noSpin />
+              <EnactIcon className="size-5 text-foreground" noSpin />
               <span className="font-serif text-title-lg font-medium tracking-tight">
                 {t(($) => $.welcome.wordmark)}
               </span>

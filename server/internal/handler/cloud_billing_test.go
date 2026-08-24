@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/cloudruntime"
-	"github.com/multica-ai/multica/server/internal/featureflags"
-	"github.com/multica-ai/multica/server/internal/middleware"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/cloudruntime"
+	"github.com/enact-ai/enact/server/internal/featureflags"
+	"github.com/enact-ai/enact/server/internal/middleware"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // proxyExpectation captures the assertions every standard

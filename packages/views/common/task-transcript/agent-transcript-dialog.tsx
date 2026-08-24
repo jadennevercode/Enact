@@ -27,11 +27,11 @@ import {
   Coins,
   GitBranch,
 } from "lucide-react";
-import { cn } from "@multica/ui/lib/utils";
-import { copyText } from "@multica/ui/lib/clipboard";
-import { Button } from "@multica/ui/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@multica/ui/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@multica/ui/components/ui/popover";
+import { cn } from "@enact/ui/lib/utils";
+import { copyText } from "@enact/ui/lib/clipboard";
+import { Button } from "@enact/ui/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@enact/ui/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@enact/ui/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -39,21 +39,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import { ActorAvatar } from "../actor-avatar";
 import { AttributionBadge } from "../../issues/components/attribution-badge";
 import { cancelReasonLabel } from "../../agents/components/tabs/task-failure";
 import { RichContent } from "../../rich-content";
-import { api } from "@multica/core/api";
+import { api } from "@enact/core/api";
 import {
   useTranscriptViewStore,
   type TranscriptFilterKey,
   type TranscriptSortDirection,
-} from "@multica/core/agents/stores";
-import type { AgentTask, Agent, AgentRuntime } from "@multica/core/types/agent";
-import { resolveWorkdirCopyTarget } from "@multica/core/issues";
-import { runtimeDisplayName, providerDisplayName } from "@multica/core/runtimes";
-import { useCustomPricingStore } from "@multica/core/runtimes/custom-pricing-store";
+} from "@enact/core/agents/stores";
+import type { AgentTask, Agent, AgentRuntime } from "@enact/core/types/agent";
+import { resolveWorkdirCopyTarget } from "@enact/core/issues";
+import { runtimeDisplayName, providerDisplayName } from "@enact/core/runtimes";
+import { useCustomPricingStore } from "@enact/core/runtimes/custom-pricing-store";
 import { redactSecrets } from "./redact";
 import {
   createNewestFirstFollow,

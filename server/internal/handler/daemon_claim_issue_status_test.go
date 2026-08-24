@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/testutil"
+	"github.com/enact-ai/enact/server/internal/testutil"
 )
 
 // TestClaimTaskByRuntime_PopulatesIssueStatusCatalog verifies the claim

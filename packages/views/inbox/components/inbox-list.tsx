@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { Archive, ChevronRight, Inbox } from "lucide-react";
-import { isEditableShortcutTarget } from "@multica/core/shortcuts";
-import { isImeComposing } from "@multica/core/utils";
-import type { InboxItem } from "@multica/core/types";
+import { isEditableShortcutTarget } from "@enact/core/shortcuts";
+import { isImeComposing } from "@enact/core/utils";
+import type { InboxItem } from "@enact/core/types";
 import type { InboxView } from "./inbox-view";
 import { InboxListItem } from "./inbox-list-item";
 import { VirtuosoSeed, VIRTUOSO_SEED_COUNT } from "../../common/virtuoso-seed";

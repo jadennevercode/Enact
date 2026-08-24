@@ -314,7 +314,7 @@ export function AuthInitializer({
     };
 
     if (!cookieAuth) {
-      const token = storage.getItem("multica_token");
+      const token = storage.getItem("enact_token");
       if (!token) {
         settled = true;
         onLogout?.();

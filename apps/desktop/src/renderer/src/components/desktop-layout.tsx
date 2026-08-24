@@ -2,7 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@multica/ui/lib/utils";
+import { cn } from "@enact/ui/lib/utils";
 import {
   useNavigationInputBindings,
   useTabHistory,
@@ -11,23 +11,23 @@ import {
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
-} from "@multica/ui/components/ui/sidebar";
-import { ModalRegistry } from "@multica/views/modals/registry";
+} from "@enact/ui/components/ui/sidebar";
+import { ModalRegistry } from "@enact/views/modals/registry";
 import {
   AppSidebar,
   GlobalShortcuts,
   NavigationProgress,
-} from "@multica/views/layout";
-import { SearchCommand, SearchTrigger } from "@multica/views/search";
-import { FloatingChat } from "@multica/views/chat";
-import { WorkspaceSlugProvider, paths, useCurrentWorkspace } from "@multica/core/paths";
-import { workspaceListOptions } from "@multica/core/workspace";
+} from "@enact/views/layout";
+import { SearchCommand, SearchTrigger } from "@enact/views/search";
+import { FloatingChat } from "@enact/views/chat";
+import { WorkspaceSlugProvider, paths, useCurrentWorkspace } from "@enact/core/paths";
+import { workspaceListOptions } from "@enact/core/workspace";
 import {
   useNavigation,
   type LinkClickIntent,
-} from "@multica/views/navigation";
-import { getCurrentSlug, subscribeToCurrentSlug } from "@multica/core/platform";
-import { useDesktopUnreadBadge } from "@multica/views/platform";
+} from "@enact/views/navigation";
+import { getCurrentSlug, subscribeToCurrentSlug } from "@enact/core/platform";
+import { useDesktopUnreadBadge } from "@enact/views/platform";
 import {
   DesktopNavigationProvider,
   routeContentLinkPath,
@@ -171,8 +171,8 @@ function useInternalLinkHandler() {
       if (!detail?.path) return;
       routeContentLinkPath(detail.path, detail.disposition);
     };
-    window.addEventListener("multica:navigate", handler);
-    return () => window.removeEventListener("multica:navigate", handler);
+    window.addEventListener("enact:navigate", handler);
+    return () => window.removeEventListener("enact:navigate", handler);
   }, []);
 }
 
@@ -192,7 +192,7 @@ function useInternalLinkHandler() {
  *      covers both click-to-select and URL-param-select paths.
  *
  * The click routes through `useNavigation().push` — NOT the
- * `multica:navigate` event, whose handler `openTab`s into the ACTIVE
+ * `enact:navigate` event, whose handler `openTab`s into the ACTIVE
  * workspace's tab group. The navigation adapter detects a cross-workspace
  * path and translates it into `switchWorkspace(slug, path)`, so clicking a
  * workspace-A notification while B is active performs a real workspace

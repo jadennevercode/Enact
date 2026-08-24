@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { runtimeKeys } from "@multica/core/runtimes";
-import type { AgentRuntime } from "@multica/core/types";
+import { runtimeKeys } from "@enact/core/runtimes";
+import type { AgentRuntime } from "@enact/core/types";
 
 /**
  * DesktopAPI exposes a richer DaemonStatus shape than the public AgentRuntime

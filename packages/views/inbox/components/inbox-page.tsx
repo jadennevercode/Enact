@@ -10,24 +10,24 @@ import {
 } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { useModalStore } from "@multica/core/modals";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { useModalStore } from "@enact/core/modals";
 import {
   getShortcut,
   isEditableShortcutTarget,
   isPortalLayerShortcutTarget,
   shortcutMatchesEvent,
-} from "@multica/core/shortcuts";
-import { isImeComposing } from "@multica/core/utils";
-import { useIssueDraftStore } from "@multica/core/issues/stores/draft-store";
+} from "@enact/core/shortcuts";
+import { isImeComposing } from "@enact/core/utils";
+import { useIssueDraftStore } from "@enact/core/issues/stores/draft-store";
 import {
   inboxListOptions,
   archivedInboxListOptions,
   deduplicateInboxItems,
   deduplicateArchivedInboxItems,
   useInboxUnreadCount,
-} from "@multica/core/inbox/queries";
+} from "@enact/core/inbox/queries";
 import {
   useMarkInboxRead,
   useMarkInboxUnread,
@@ -37,11 +37,11 @@ import {
   useArchiveAllInbox,
   useArchiveAllReadInbox,
   useArchiveCompletedInbox,
-} from "@multica/core/inbox/mutations";
+} from "@enact/core/inbox/mutations";
 
 import { IssueDetail, issueHighlightMementoKey } from "../../issues/components";
 import { useViewStateWriter } from "../../platform";
-import { ErrorBoundary } from "@multica/ui/components/common/error-boundary";
+import { ErrorBoundary } from "@enact/ui/components/common/error-boundary";
 import { useNavigation, useReportNavigating } from "../../navigation";
 import { toast } from "sonner";
 import {
@@ -55,24 +55,24 @@ import {
   ListChecks,
   ArrowLeft,
 } from "lucide-react";
-import type { InboxItem } from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
+import type { InboxItem } from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@multica/ui/components/ui/resizable";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { NumberFlow } from "@multica/ui/components/ui/number-flow";
+} from "@enact/ui/components/ui/resizable";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { NumberFlow } from "@enact/ui/components/ui/number-flow";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@multica/ui/components/ui/dropdown-menu";
-import { useIsCompact } from "@multica/ui/hooks/use-mobile";
-import { cn } from "@multica/ui/lib/utils";
+} from "@enact/ui/components/ui/dropdown-menu";
+import { useIsCompact } from "@enact/ui/hooks/use-mobile";
+import { cn } from "@enact/ui/lib/utils";
 import { PAGE_GUTTER, PageHeader } from "../../layout/page-header";
 import { useTimeAgo } from "./inbox-list-item";
 import { InboxList } from "./inbox-list";
@@ -237,7 +237,7 @@ export function InboxPage() {
   ]);
 
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: "multica_inbox_layout",
+    id: "enact_inbox_layout",
   });
 
   const isCompact = useIsCompact();
@@ -616,7 +616,7 @@ export function InboxPage() {
         key={detailItem.issue_id}
         issueId={detailItem.issue_id}
         defaultSidebarOpen={false}
-        layoutId="multica_inbox_issue_detail_layout"
+        layoutId="enact_inbox_issue_detail_layout"
         highlightCommentId={detailItem.details?.comment_id ?? undefined}
         highlightRequestToken={highlightRequestToken}
         leadingAction={compactBackAction}

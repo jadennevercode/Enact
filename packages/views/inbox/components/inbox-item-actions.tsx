@@ -1,8 +1,8 @@
 "use client";
 
 import { Archive, ArchiveRestore, Check, CircleDot, ExternalLink } from "lucide-react";
-import { paths, useWorkspaceSlug } from "@multica/core/paths";
-import type { InboxItem } from "@multica/core/types";
+import { paths, useWorkspaceSlug } from "@enact/core/paths";
+import type { InboxItem } from "@enact/core/types";
 import type { RowActionItem } from "../../common/row-actions-menu";
 import { useIntentNavigate } from "../../navigation";
 import { useT } from "../../i18n";

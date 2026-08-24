@@ -273,8 +273,8 @@ jobs:
         # to apps/mobile/** + packages/core/**) so it doesn't add
         # ~50s of expo-lint + tsc to every web/desktop PR. Keep this
         # filter in sync with the root package.json scripts, which also
-        # exclude @multica/mobile.
-        run: pnpm exec turbo build typecheck lint --filter='!@multica/docs' --filter='!@multica/mobile'
+        # exclude @enact/mobile.
+        run: pnpm exec turbo build typecheck lint --filter='!@enact/docs' --filter='!@enact/mobile'
 
       # Blocking from the start: it reports nothing today, and it covers the
       # one regression knip structurally cannot see. packages/ui exports four
@@ -354,7 +354,7 @@ jobs:
         # job's responsibility -- frontend-build owns the `typecheck` task.
         # `test` reaches dependency sources through the hash-only
         # `^cache-inputs` edge (see turbo.json), so no `tsc` runs here.
-        run: pnpm exec turbo test --filter='!@multica/docs' --filter='!@multica/mobile' --filter='!@multica/views'
+        run: pnpm exec turbo test --filter='!@enact/docs' --filter='!@enact/mobile' --filter='!@enact/views'
 
   # Split views across two runners. GitHub reports the matrix job's combined
   # result, so the aggregate gate can continue depending on this one job ID.
@@ -412,7 +412,7 @@ jobs:
 
       - name: Test views shard ${{ matrix.index }}/${{ matrix.total }}
         if: ${{ needs.changes.outputs.frontend == 'true' }}
-        run: pnpm exec turbo test --filter='@multica/views' -- --shard=${{ matrix.index }}/${{ matrix.total }}
+        run: pnpm exec turbo test --filter='@enact/views' -- --shard=${{ matrix.index }}/${{ matrix.total }}
 
   # Aggregate gate. `frontend` is the status-check name the repository's
   # branch rules refer to, so it has to survive the split above: this job
@@ -455,13 +455,13 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_DB: multica
-          POSTGRES_USER: multica
-          POSTGRES_PASSWORD: multica
+          POSTGRES_DB: enact
+          POSTGRES_USER: enact
+          POSTGRES_PASSWORD: enact
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U multica -d multica"
+          --health-cmd "pg_isready -U enact -d enact"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -475,7 +475,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgres://multica:multica@localhost:5432/multica?sslmode=disable
+      DATABASE_URL: postgres://enact:enact@localhost:5432/enact?sslmode=disable
       # Wires up the RedisLocalSkill*_test.go suite. Distinct from REDIS_URL
       # (which would flip the server binary itself onto the Redis-backed
       # realtime relay + request stores); the tests talk to this Redis
@@ -743,7 +743,7 @@ jobs:
       - name: Build Windows CLI helper entrypoint
         if: ${{ needs.changes.outputs.backend == 'true' }}
         working-directory: server
-        run: go build ./cmd/multica
+        run: go build ./cmd/enact
 
   image-budget:
     # Soft gate against the 21.7MB of raw PNG/JPG that MUL-6352 cleared out:

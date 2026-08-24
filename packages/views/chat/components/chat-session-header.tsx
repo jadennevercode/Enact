@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2, UserRound } from "lucide-react";
-import { Button } from "@multica/ui/components/ui/button";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,16 +19,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
-import { useWorkspacePaths } from "@multica/core/paths";
+} from "@enact/ui/components/ui/alert-dialog";
+import { useWorkspacePaths } from "@enact/core/paths";
 import {
   useUpdateChatSession,
   useDeleteChatSession,
   useSetChatSessionArchived,
-} from "@multica/core/chat/mutations";
-import { useChatStore } from "@multica/core/chat";
-import type { Agent, ChatSession } from "@multica/core/types";
-import { isImeComposing } from "@multica/core/utils";
+} from "@enact/core/chat/mutations";
+import { useChatStore } from "@enact/core/chat";
+import type { Agent, ChatSession } from "@enact/core/types";
+import { isImeComposing } from "@enact/core/utils";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { AppLink } from "../../navigation";
 import { useT } from "../../i18n";

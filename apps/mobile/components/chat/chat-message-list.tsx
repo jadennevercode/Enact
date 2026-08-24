@@ -50,8 +50,8 @@ import type {
   ChatPendingTask,
   ChatQuickAction,
   TaskMessagePayload,
-} from "@multica/core/types";
-import type { AgentAvailability } from "@multica/core/agents";
+} from "@enact/core/types";
+import type { AgentAvailability } from "@enact/core/agents";
 import { taskMessagesOptions } from "@/data/queries/chat";
 import { Text } from "@/components/ui/text";
 import { Markdown } from "@/lib/markdown";

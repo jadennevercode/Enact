@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { buildCreateAgentRequest, type AgentDraft } from "@multica/core/agents";
-import { api, ApiError } from "@multica/core/api";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useWorkspacePaths } from "@multica/core/paths";
-import type { Agent } from "@multica/core/types";
+import { buildCreateAgentRequest, type AgentDraft } from "@enact/core/agents";
+import { api, ApiError } from "@enact/core/api";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useWorkspacePaths } from "@enact/core/paths";
+import type { Agent } from "@enact/core/types";
 import {
   cacheAgentResponse,
   workspaceKeys,
-} from "@multica/core/workspace/queries";
+} from "@enact/core/workspace/queries";
 import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
 

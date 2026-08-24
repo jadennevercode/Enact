@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { InboxItem } from "@multica/core/types";
+import type { InboxItem } from "@enact/core/types";
 import {
   getInboxDisplayTitle,
   getQuickCreateOutcomeDetail,

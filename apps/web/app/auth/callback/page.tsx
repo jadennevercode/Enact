@@ -3,19 +3,19 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { sanitizeNextUrl, useAuthStore } from "@multica/core/auth";
-import { workspaceKeys } from "@multica/core/workspace/queries";
-import { paths, resolvePostAuthDestination } from "@multica/core/paths";
-import { api } from "@multica/core/api";
-import { validateCliCallback, redirectToCliCallback } from "@multica/views/auth";
+import { sanitizeNextUrl, useAuthStore } from "@enact/core/auth";
+import { workspaceKeys } from "@enact/core/workspace/queries";
+import { paths, resolvePostAuthDestination } from "@enact/core/paths";
+import { api } from "@enact/core/api";
+import { validateCliCallback, redirectToCliCallback } from "@enact/views/auth";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@multica/ui/components/ui/card";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/ui/components/ui/card";
+import { Button } from "@enact/ui/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 function CallbackContent() {
@@ -48,7 +48,7 @@ function CallbackContent() {
     const nextUrl = sanitizeNextUrl(nextPart ? nextPart.slice(5) : null);
 
     // CLI callback params — carried across the Google OAuth round-trip so
-    // headless/WSL2 `multica login` can receive the JWT after browser-based
+    // headless/WSL2 `enact login` can receive the JWT after browser-based
     // Google auth completes.
     const cliCallbackPart = stateParts.find((p) => p.startsWith("cli_callback:"));
     const cliStatePart = stateParts.find((p) => p.startsWith("cli_state:"));
@@ -85,7 +85,7 @@ function CallbackContent() {
         .googleLogin(code, redirectUri)
         .then(({ token }) => {
           setDesktopToken(token);
-          window.location.href = `multica://auth/callback?token=${encodeURIComponent(token)}`;
+          window.location.href = `enact://auth/callback?token=${encodeURIComponent(token)}`;
         })
         .catch((err) => {
           setError(err instanceof Error ? err.message : "Login failed");
@@ -108,7 +108,7 @@ function CallbackContent() {
 
           // 2. Un-onboarded users may have pending invitations on their
           //    email even when no `next=` was carried (came from a fresh
-          //    login on multica.ai instead of clicking the email link,
+          //    login on enact.ai instead of clicking the email link,
           //    or `state` was lost across the round-trip). Look them up by
           //    email and route to the batch /invitations page if any.
           //    Already-onboarded users skip this lookup — their new invites
@@ -148,9 +148,9 @@ function CallbackContent() {
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-display-sm">Opening Multica</CardTitle>
+            <CardTitle className="text-display-sm">Opening Enact</CardTitle>
             <CardDescription>
-              You should see a prompt to open the Multica desktop app. If
+              You should see a prompt to open the Enact desktop app. If
               nothing happens, click the button below.
             </CardDescription>
           </CardHeader>
@@ -158,10 +158,10 @@ function CallbackContent() {
             <Button
               variant="outline"
               onClick={() => {
-                window.location.href = `multica://auth/callback?token=${encodeURIComponent(desktopToken)}`;
+                window.location.href = `enact://auth/callback?token=${encodeURIComponent(desktopToken)}`;
               }}
             >
-              Open Multica Desktop
+              Open Enact Desktop
             </Button>
           </CardContent>
         </Card>

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multica-ai/multica/server/internal/daemon/execenv"
+	"github.com/enact-ai/enact/server/internal/daemon/execenv"
 )
 
 // TestRunTaskSquadLeaderReusesWorkdirBeforeGCMetaWritten drives two real

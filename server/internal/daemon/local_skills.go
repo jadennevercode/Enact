@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/multica-ai/multica/server/internal/skill"
-	"github.com/multica-ai/multica/server/pkg/agent"
+	"github.com/enact-ai/enact/server/internal/skill"
+	"github.com/enact-ai/enact/server/pkg/agent"
 )
 
 const (

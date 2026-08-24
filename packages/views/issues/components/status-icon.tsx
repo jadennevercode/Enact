@@ -1,6 +1,6 @@
-import { statusCategoryOfKey } from "@multica/core/issues";
-import type { IssueStatus, IssueStatusCategory } from "@multica/core/types";
-import { STATUS_CONFIG } from "@multica/core/issues/config";
+import { statusCategoryOfKey } from "@enact/core/issues";
+import type { IssueStatus, IssueStatusCategory } from "@enact/core/types";
+import { STATUS_CONFIG } from "@enact/core/issues/config";
 
 // ---------------------------------------------------------------------------
 // Geometry constants (viewBox 0 0 14 14, center 7,7)

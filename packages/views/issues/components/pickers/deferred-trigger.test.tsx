@@ -12,16 +12,16 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQuery: () => ({ data: [] }),
 }));
 
-vi.mock("@multica/core/auth", () => ({
+vi.mock("@enact/core/auth", () => ({
   useAuthStore: (selector: (state: { user: null }) => unknown) =>
     selector({ user: null }),
 }));
 
-vi.mock("@multica/core/hooks", () => ({
+vi.mock("@enact/core/hooks", () => ({
   useWorkspaceId: () => "workspace-1",
 }));
 
-vi.mock("@multica/core/workspace/hooks", () => ({
+vi.mock("@enact/core/workspace/hooks", () => ({
   useActorName: () => ({ getActorName: () => "Unknown" }),
 }));
 

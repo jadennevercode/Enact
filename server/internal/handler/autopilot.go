@@ -16,12 +16,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/analytics"
-	obsmetrics "github.com/multica-ai/multica/server/internal/metrics"
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/analytics"
+	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // computeNextRun delegates to the shared cron helper in the service package.
@@ -128,7 +128,7 @@ type AutopilotTriggerResponse struct {
 	// triggers; nil for schedule/api. Not stored — see triggerToResponse.
 	WebhookPath *string `json:"webhook_path"`
 	// WebhookURL is the absolute URL composed from the server's
-	// MULTICA_PUBLIC_URL setting. Nil when the server has no public URL
+	// ENACT_PUBLIC_URL setting. Nil when the server has no public URL
 	// configured; clients then build the URL themselves from webhook_path
 	// plus their API base / current origin.
 	WebhookURL *string `json:"webhook_url"`

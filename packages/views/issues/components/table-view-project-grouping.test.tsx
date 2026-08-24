@@ -8,22 +8,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setApiInstance } from "@multica/core/api";
-import type { ApiClient } from "@multica/core/api/client";
-import { ViewStoreProvider } from "@multica/core/issues/stores/view-store-context";
-import { getIssueSurfaceViewStore } from "@multica/core/issues/stores/surface-view-store";
+import { setApiInstance } from "@enact/core/api";
+import type { ApiClient } from "@enact/core/api/client";
+import { ViewStoreProvider } from "@enact/core/issues/stores/view-store-context";
+import { getIssueSurfaceViewStore } from "@enact/core/issues/stores/surface-view-store";
 import type {
   Issue,
   IssueTableGroupsRequest,
   IssueTableQuerySpec,
   IssueTableRowsRequest,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import { renderWithI18n } from "../../test/i18n";
 import { IssueSurfaceSelectionProvider } from "../surface/selection-context";
 import type { IssueSurfaceSelection } from "../surface/selection-context";
 import { TableView } from "./table-view";
 
-vi.mock("@multica/core/hooks", () => ({ useWorkspaceId: () => "ws-1" }));
+vi.mock("@enact/core/hooks", () => ({ useWorkspaceId: () => "ws-1" }));
 
 // jsdom has no layout, so the real row virtualizer sees a 0-height viewport and
 // renders nothing. Render every row inline instead.
@@ -46,13 +46,13 @@ vi.mock("@tanstack/react-virtual", () => ({
   }),
 }));
 
-vi.mock("@multica/core/workspace/hooks", () => ({
+vi.mock("@enact/core/workspace/hooks", () => ({
   useActorName: () => ({ getActorName: () => "Someone" }),
   buildActorNameResolver: () => () => "Someone",
 }));
 
 const authState = { user: { id: "user-1", email: "t@t.co", name: "Tester" }, isAuthenticated: true };
-vi.mock("@multica/core/auth", () => ({
+vi.mock("@enact/core/auth", () => ({
   useAuthStore: Object.assign(
     (selector?: (state: unknown) => unknown) =>
       selector ? selector(authState) : authState,
@@ -74,10 +74,10 @@ vi.mock("../../navigation", () => ({
   useIntentNavigate: () => () => {},
 }));
 
-vi.mock("@multica/core/paths", async () => {
+vi.mock("@enact/core/paths", async () => {
   const actual =
-    await vi.importActual<typeof import("@multica/core/paths")>(
-      "@multica/core/paths",
+    await vi.importActual<typeof import("@enact/core/paths")>(
+      "@enact/core/paths",
     );
   return { ...actual, useWorkspacePaths: () => actual.paths.workspace("test") };
 });

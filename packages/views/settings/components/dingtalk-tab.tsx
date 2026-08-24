@@ -4,17 +4,17 @@ import { useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, ExternalLink, Info, Trash2 } from "lucide-react";
-import { cn } from "@multica/ui/lib/utils";
-import { Button } from "@multica/ui/components/ui/button";
-import { Card, CardContent } from "@multica/ui/components/ui/card";
+import { cn } from "@enact/ui/lib/utils";
+import { Button } from "@enact/ui/components/ui/button";
+import { Card, CardContent } from "@enact/ui/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
-import { Input } from "@multica/ui/components/ui/input";
-import { Label } from "@multica/ui/components/ui/label";
+} from "@enact/ui/components/ui/dialog";
+import { Input } from "@enact/ui/components/ui/input";
+import { Label } from "@enact/ui/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,32 +24,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
+} from "@enact/ui/components/ui/alert-dialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@multica/ui/components/ui/tooltip";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
+} from "@enact/ui/components/ui/tooltip";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
 import {
   agentListOptions,
   memberListOptions,
-} from "@multica/core/workspace/queries";
+} from "@enact/core/workspace/queries";
 import { DingTalkMark } from "./dingtalk-mark";
-import { useActorName } from "@multica/core/workspace/hooks";
+import { useActorName } from "@enact/core/workspace/hooks";
 import {
   dingtalkGroupsOptions,
   dingtalkInstallationsOptions,
   dingtalkKeys,
-} from "@multica/core/dingtalk";
-import { api } from "@multica/core/api";
+} from "@enact/core/dingtalk";
+import { api } from "@enact/core/api";
 import type {
   DingTalkGroup,
   DingTalkGroupBot,
   DingTalkInstallation,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { openExternal } from "../../platform";
 import { useT, useTimeAgo } from "../../i18n";
@@ -507,7 +507,7 @@ export function DingTalkBotGroups({
 // workspace owner/admin-only in Settings.
 //
 // Adding a new installation flows through the Agent detail page: the install
-// path is per-agent (each Multica agent gets exactly one robot — the
+// path is per-agent (each Enact agent gets exactly one robot — the
 // (workspace_id, agent_id, channel_type) UNIQUE in channel_installation), so
 // asking the user to pick an agent here would re-create that page's picker.
 export function DingTalkTab() {
@@ -588,7 +588,7 @@ export function DingTalkTab() {
             <p className="text-caption text-muted-foreground">
               {t(($) => $.dingtalk.not_enabled_description_prefix)}{" "}
               <code className="rounded bg-muted px-1 py-0.5 text-micro">
-                MULTICA_DINGTALK_SECRET_KEY
+                ENACT_DINGTALK_SECRET_KEY
               </code>{" "}
               {t(($) => $.dingtalk.not_enabled_description_suffix)}{" "}
               {t(($) => $.dingtalk.not_enabled_self_host_hint)}
@@ -812,7 +812,7 @@ function dingtalkDocsUrl(lang: string | undefined): string {
       : lang?.startsWith("ko")
         ? "/ko"
         : "";
-  return `https://multica.ai/docs${prefix}/dingtalk-bot-integration`;
+  return `https://enact.ai/docs${prefix}/dingtalk-bot-integration`;
 }
 
 // DingTalkAgentBindButton is the per-agent CTA exposed from the agent detail

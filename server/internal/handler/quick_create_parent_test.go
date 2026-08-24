@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/multica-ai/multica/server/internal/service"
-	"github.com/multica-ai/multica/server/pkg/agent"
+	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/pkg/agent"
 )
 
 // TestQuickCreateIssueParentTrustBoundary locks the server-side trust boundary
@@ -83,7 +83,7 @@ func TestQuickCreateIssueParentTrustBoundary(t *testing.T) {
 	var foreignWorkspaceID, foreignUserID, foreignParentID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO "user" (name, email) VALUES ($1, $2) RETURNING id
-	`, "QuickCreate Foreign", "quickcreate-foreign@multica.ai").Scan(&foreignUserID); err != nil {
+	`, "QuickCreate Foreign", "quickcreate-foreign@enact.ai").Scan(&foreignUserID); err != nil {
 		t.Fatalf("create foreign user: %v", err)
 	}
 	t.Cleanup(func() {

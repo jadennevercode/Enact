@@ -7,9 +7,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
-import { Button } from "@multica/ui/components/ui/button";
-import { FileUploadButton } from "@multica/ui/components/common/file-upload-button";
+} from "@enact/ui/components/ui/dialog";
+import { Button } from "@enact/ui/components/ui/button";
+import { FileUploadButton } from "@enact/ui/components/common/file-upload-button";
 import {
   ContentEditor,
   type ContentEditorRef,
@@ -24,10 +24,10 @@ import {
   FEEDBACK_KINDS,
   isFeedbackContext,
   type FeedbackKind,
-} from "@multica/core/feedback";
-import { useCurrentWorkspace } from "@multica/core/paths";
+} from "@enact/core/feedback";
+import { useCurrentWorkspace } from "@enact/core/paths";
 import { useT } from "../i18n";
-import { useShortcut } from "@multica/core/shortcuts";
+import { useShortcut } from "@enact/core/shortcuts";
 import { ShortcutKeycaps } from "../common/shortcut-keycaps";
 
 const MAX_MESSAGE_LEN = 10000;
@@ -136,7 +136,7 @@ export function FeedbackModal({
           <p className="mt-1 text-caption text-muted-foreground">
             {t(($) => $.feedback.github_hint_prefix)}
             <a
-              href="https://github.com/multica-ai/multica/issues"
+              href="https://github.com/enact-ai/enact/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"

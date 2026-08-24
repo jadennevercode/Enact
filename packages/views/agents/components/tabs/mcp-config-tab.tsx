@@ -11,21 +11,21 @@ import {
   Trash2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { Agent, AgentRuntime, WorkspaceMcpServer } from "@multica/core/types";
-import { ApiError } from "@multica/core/api";
+import type { Agent, AgentRuntime, WorkspaceMcpServer } from "@enact/core/types";
+import { ApiError } from "@enact/core/api";
 import {
   runtimeCapabilitiesOptions,
   runtimeDisplayLabel,
-} from "@multica/core/runtimes";
+} from "@enact/core/runtimes";
 import {
   agentMcpServersOptions,
   workspaceMcpServersOptions,
-} from "@multica/core/workspace/queries";
+} from "@enact/core/workspace/queries";
 import {
   useAddAgentMcpServer,
   useRemoveAgentMcpServer,
   useSetAgentMcpServerEnabled,
-} from "@multica/core/workspace/mutations";
+} from "@enact/core/workspace/mutations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,16 +35,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@multica/ui/components/ui/alert-dialog";
-import { Badge } from "@multica/ui/components/ui/badge";
-import { Button } from "@multica/ui/components/ui/button";
+} from "@enact/ui/components/ui/alert-dialog";
+import { Badge } from "@enact/ui/components/ui/badge";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@multica/ui/components/ui/dropdown-menu";
-import { Switch } from "@multica/ui/components/ui/switch";
+} from "@enact/ui/components/ui/dropdown-menu";
+import { Switch } from "@enact/ui/components/ui/switch";
 import { toast } from "sonner";
 import { useT } from "../../../i18n";
 import {

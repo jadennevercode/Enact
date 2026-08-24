@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { bucketDiagnosticPath, setDiagnosticRoute } from "@multica/core/diagnostics";
-import { useAuthStore } from "@multica/core/auth";
+import { bucketDiagnosticPath, setDiagnosticRoute } from "@enact/core/diagnostics";
+import { useAuthStore } from "@enact/core/auth";
 import { useActiveTabIdentity, useActiveTabUrl } from "@/stores/tab-store";
 import {
   useWindowOverlayStore,

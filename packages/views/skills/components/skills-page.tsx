@@ -17,22 +17,22 @@ import type {
   MemberWithUser,
   Skill,
   SkillSummary,
-} from "@multica/core/types";
+} from "@enact/core/types";
 import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useWorkspacePaths } from "@multica/core/paths";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useWorkspacePaths } from "@enact/core/paths";
 import {
   agentListOptions,
   memberListOptions,
   selectSkillAssignments,
   skillListOptions,
-} from "@multica/core/workspace/queries";
-import { runtimeDisplayLabel, runtimeListOptions } from "@multica/core/runtimes";
-import { resolvePublicFileUrl } from "@multica/core/workspace/avatar-url";
-import { Button } from "@multica/ui/components/ui/button";
-import { Checkbox } from "@multica/ui/components/ui/checkbox";
+} from "@enact/core/workspace/queries";
+import { runtimeDisplayLabel, runtimeListOptions } from "@enact/core/runtimes";
+import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
+import { Button } from "@enact/ui/components/ui/button";
+import { Checkbox } from "@enact/ui/components/ui/checkbox";
 import {
   LIST_GRID_BOTTOM_CLEARANCE,
   ListGrid,
@@ -42,14 +42,14 @@ import {
   ListGridHeaderCell,
   ListGridRow,
   type ListGridSortDirection,
-} from "@multica/ui/components/ui/list-grid";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
+} from "@enact/ui/components/ui/list-grid";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@multica/ui/components/ui/tooltip";
-import { ActorAvatar } from "@multica/ui/components/common/actor-avatar";
+} from "@enact/ui/components/ui/tooltip";
+import { ActorAvatar } from "@enact/ui/components/common/actor-avatar";
 import {
   rowLinkInteractiveProps,
   useNavigation,
@@ -68,7 +68,7 @@ import {
   DEFAULT_HIDDEN_COLUMNS,
   type SkillColumnKey,
   type SkillSortField,
-} from "@multica/core/skills/stores";
+} from "@enact/core/skills/stores";
 import { SkillListToolbar } from "./skill-list-toolbar";
 import {
   SkillBatchToolbar,
@@ -149,7 +149,7 @@ function columnTrackVars(
 }
 
 // Sort/filter/column types and defaults live in the core view store
-// (@multica/core/skills/stores/view-store) so the persisted state and the
+// (@enact/core/skills/stores/view-store) so the persisted state and the
 // UI share one definition. Re-exported here for the toolbar's convenience.
 export type SortField = SkillSortField;
 
@@ -182,7 +182,7 @@ function PageHeaderBar({
       count={totalCount}
       description={t(($) => $.page.tagline)}
       learnMore={{
-        href: "https://multica.ai/docs/skills",
+        href: "https://enact.ai/docs/skills",
         label: t(($) => $.page.learn_more),
       }}
       actions={

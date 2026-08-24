@@ -2,29 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, FilterX, ListTodo, Plus } from "lucide-react";
-import { Button } from "@multica/ui/components/ui/button";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
-import { cn } from "@multica/ui/lib/utils";
-import { useWorkspaceId } from "@multica/core/hooks";
+import { Button } from "@enact/ui/components/ui/button";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
+import { cn } from "@enact/ui/lib/utils";
+import { useWorkspaceId } from "@enact/core/hooks";
 import {
   useViewStore,
   ViewStoreProvider,
-} from "@multica/core/issues/stores/view-store-context";
+} from "@enact/core/issues/stores/view-store-context";
 import {
   getIssueSurfaceViewStore,
   seedIssueSurfaceViewState,
-} from "@multica/core/issues/stores/surface-view-store";
-import { useActiveIssueView } from "@multica/core/issue-views/use-active-view";
-import { baselineFromQuery } from "@multica/core/issue-views/baseline";
+} from "@enact/core/issues/stores/surface-view-store";
+import { useActiveIssueView } from "@enact/core/issue-views/use-active-view";
+import { baselineFromQuery } from "@enact/core/issue-views/baseline";
 import { ViewBaselineProvider, useViewBaseline } from "./view-baseline-context";
-import type { IssueViewScope } from "@multica/core/issue-views/queries";
+import type { IssueViewScope } from "@enact/core/issue-views/queries";
 import {
   actorKindForViewVariant,
   issueScopeKey,
   myRelationForViewVariant,
   type IssueScope,
-} from "@multica/core/issues/surface/scope";
-import type { Issue } from "@multica/core/types";
+} from "@enact/core/issues/surface/scope";
+import type { Issue } from "@enact/core/types";
 import { BoardView } from "../components/board-view";
 import { BatchActionToolbar } from "../components/batch-action-toolbar";
 import { GanttView } from "../components/gantt-view";

@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ComponentProps, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { AgentRuntime, RuntimeProfile } from "@multica/core/types";
-import { I18nProvider } from "@multica/core/i18n/react";
+import type { AgentRuntime, RuntimeProfile } from "@enact/core/types";
+import { I18nProvider } from "@enact/core/i18n/react";
 import enCommon from "../../locales/en/common.json";
 import enRuntimes from "../../locales/en/runtimes.json";
 import enAgents from "../../locales/en/agents.json";
@@ -21,11 +21,11 @@ const mockQueryData = vi.hoisted(() => ({
   profiles: [] as RuntimeProfile[],
 }));
 
-vi.mock("@multica/core/hooks", () => ({
+vi.mock("@enact/core/hooks", () => ({
   useWorkspaceId: () => "ws-1",
 }));
 
-vi.mock("@multica/core/api", () => ({
+vi.mock("@enact/core/api", () => ({
   api: {
     updateRuntime: (...args: unknown[]) => mockUpdateRuntime(...args),
     deleteRuntime: vi.fn(),
@@ -69,12 +69,12 @@ vi.mock("@tanstack/react-query", async () => {
   };
 });
 
-vi.mock("@multica/core/auth", () => ({
+vi.mock("@enact/core/auth", () => ({
   useAuthStore: (sel: (s: { user: { id: string } }) => unknown) =>
     sel({ user: { id: "user-me" } }),
 }));
 
-vi.mock("@multica/core/runtimes", () => ({
+vi.mock("@enact/core/runtimes", () => ({
   deriveRuntimeHealth: () => "online",
   runtimeDisplayName: (rt: { name: string; custom_name?: string | null }) =>
     rt.custom_name?.trim() || rt.name,
@@ -89,18 +89,18 @@ vi.mock("@multica/core/runtimes", () => ({
   }),
 }));
 
-vi.mock("@multica/core/agents", () => ({
+vi.mock("@enact/core/agents", () => ({
   useWorkspacePresenceMap: () => ({ byAgent: new Map() }),
 }));
 
-vi.mock("@multica/core/paths", () => ({
+vi.mock("@enact/core/paths", () => ({
   useWorkspacePaths: () => ({
     runtimes: () => "/runtimes",
     agentDetail: () => "/agents",
   }),
 }));
 
-vi.mock("@multica/core/runtimes/mutations", () => ({
+vi.mock("@enact/core/runtimes/mutations", () => ({
   useUpdateRuntime: () => ({
     mutate: (
       args: { runtimeId: string; patch: Record<string, unknown> },

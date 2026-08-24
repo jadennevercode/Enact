@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/multica-ai/multica/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/service"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/multica-ai/multica/server/pkg/plugincontract"
+	"github.com/enact-ai/enact/server/pkg/plugincontract"
 )
 
 // hookHandlerTestManifest declares the three host-driven triggers. Its endpoint

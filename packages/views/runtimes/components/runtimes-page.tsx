@@ -11,19 +11,19 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "@multica/core/auth";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { memberNeedsMikaSetup, useBootstrapMika } from "@multica/core/onboarding";
+import { useAuthStore } from "@enact/core/auth";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { memberNeedsMikaSetup, useBootstrapMika } from "@enact/core/onboarding";
 import { MIKA_PLACEHOLDER_EMOJI } from "../../onboarding/components/mika-intro";
-import { useRequiredWorkspaceSlug, useWorkspacePaths } from "@multica/core/paths";
-import { agentTaskSnapshotOptions } from "@multica/core/agents";
-import { chatSessionsOptions } from "@multica/core/chat/queries";
-import { runtimeProfileListOptions } from "@multica/core/runtimes";
-import { runtimeListOptions, runtimeKeys } from "@multica/core/runtimes/queries";
-import { useWSEvent } from "@multica/core/realtime";
-import { agentListOptions } from "@multica/core/workspace/queries";
-import type { AgentRuntime } from "@multica/core/types";
-import { Button } from "@multica/ui/components/ui/button";
+import { useRequiredWorkspaceSlug, useWorkspacePaths } from "@enact/core/paths";
+import { agentTaskSnapshotOptions } from "@enact/core/agents";
+import { chatSessionsOptions } from "@enact/core/chat/queries";
+import { runtimeProfileListOptions } from "@enact/core/runtimes";
+import { runtimeListOptions, runtimeKeys } from "@enact/core/runtimes/queries";
+import { useWSEvent } from "@enact/core/realtime";
+import { agentListOptions } from "@enact/core/workspace/queries";
+import type { AgentRuntime } from "@enact/core/types";
+import { Button } from "@enact/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,12 +31,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   MikaRuntimeChoice,
   type MikaRuntimeSelection,
 } from "./mika-runtime-choice";
-import { Skeleton } from "@multica/ui/components/ui/skeleton";
+import { Skeleton } from "@enact/ui/components/ui/skeleton";
 import {
   CollectionPageHeader,
   CollectionPageHeaderAction,

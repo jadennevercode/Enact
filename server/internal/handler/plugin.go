@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/multica-ai/multica/server/internal/featureflags"
-	"github.com/multica-ai/multica/server/internal/service"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/plugincontract"
+	"github.com/enact-ai/enact/server/internal/featureflags"
+	"github.com/enact-ai/enact/server/internal/service"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/plugincontract"
 )
 
 func (h *Handler) pluginsV1Enabled(ctx context.Context) bool {

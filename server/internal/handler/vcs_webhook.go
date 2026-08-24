@@ -10,10 +10,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/multica-ai/multica/server/internal/integrations/vcs"
-	"github.com/multica-ai/multica/server/internal/issuestatus"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
-	"github.com/multica-ai/multica/server/pkg/protocol"
+	"github.com/enact-ai/enact/server/internal/integrations/vcs"
+	"github.com/enact-ai/enact/server/internal/issuestatus"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
 // ── Response mappers ────────────────────────────────────────────────────────

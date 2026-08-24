@@ -4,26 +4,26 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { Minus, Maximize2, Minimize2, ChevronDown, Plus, Check, Archive, Pencil, Loader2, Square } from "lucide-react";
-import { Button } from "@multica/ui/components/ui/button";
-import { cn } from "@multica/ui/lib/utils";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@multica/ui/components/ui/tooltip";
+import { Button } from "@enact/ui/components/ui/button";
+import { cn } from "@enact/ui/lib/utils";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@enact/ui/components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@multica/ui/components/ui/popover";
+} from "@enact/ui/components/ui/popover";
 import { toast } from "sonner";
-import { useWorkspaceId } from "@multica/core/hooks";
-import { useAuthStore } from "@multica/core/auth";
-import { agentListOptions, memberListOptions } from "@multica/core/workspace/queries";
-import { projectListOptions } from "@multica/core/projects/queries";
-import { canAssignAgent } from "@multica/views/issues/components";
-import { api, dispatchReasonCode } from "@multica/core/api";
+import { useWorkspaceId } from "@enact/core/hooks";
+import { useAuthStore } from "@enact/core/auth";
+import { agentListOptions, memberListOptions } from "@enact/core/workspace/queries";
+import { projectListOptions } from "@enact/core/projects/queries";
+import { canAssignAgent } from "@enact/views/issues/components";
+import { api, dispatchReasonCode } from "@enact/core/api";
 import {
   isAgentRuntimeBound,
   useAgentPresenceDetail,
   useWorkspaceAgentAvailability,
-} from "@multica/core/agents";
+} from "@enact/core/agents";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { useAppForeground } from "../../common/use-app-foreground";
 import {
@@ -50,7 +50,7 @@ import {
   pendingChatTasksOptions,
   chatKeys,
   isTaskMessageTaskId,
-} from "@multica/core/chat/queries";
+} from "@enact/core/chat/queries";
 import {
   useCreateChatSession,
   useMarkChatSessionRead,
@@ -58,14 +58,14 @@ import {
   useSetChatSessionArchived,
   useSetChatSessionProject,
   useUpdateChatSession,
-} from "@multica/core/chat/mutations";
-import { useChatStore } from "@multica/core/chat";
-import { upsertChatMessageToCaches } from "@multica/core/chat/message-cache";
-import { chatQuickActionsPendingOptions } from "@multica/core/chat/queries";
-import { useQuickActionsPendingTimeout } from "@multica/core/chat/use-quick-actions-pending-timeout";
+} from "@enact/core/chat/mutations";
+import { useChatStore } from "@enact/core/chat";
+import { upsertChatMessageToCaches } from "@enact/core/chat/message-cache";
+import { chatQuickActionsPendingOptions } from "@enact/core/chat/queries";
+import { useQuickActionsPendingTimeout } from "@enact/core/chat/use-quick-actions-pending-timeout";
 import { useQuickActionsFailureToast } from "./use-quick-actions-failure-toast";
-import { hideQueuedChatMessages } from "@multica/core/chat/pending";
-import { removeChatMessageFromCaches } from "@multica/core/realtime";
+import { hideQueuedChatMessages } from "@enact/core/chat/pending";
+import { removeChatMessageFromCaches } from "@enact/core/realtime";
 import { useChatDraftRestore } from "./use-chat-draft-restore";
 import { useChatTaskActions } from "./use-chat-task-actions";
 import { useChatInputFocus } from "./use-chat-input-focus";
@@ -77,7 +77,7 @@ import { ChatResizeHandles } from "./chat-resize-handles";
 import { useChatContextItems } from "./use-chat-context-items";
 import { useChatResize } from "./use-chat-resize";
 import { useVisualViewportKeyboard } from "./use-visual-viewport-keyboard";
-import { useIsMobile } from "@multica/ui/hooks/use-mobile";
+import { useIsMobile } from "@enact/ui/hooks/use-mobile";
 import {
   hasInFlightPendingTask,
   isStillOnComposeTarget,
@@ -85,8 +85,8 @@ import {
   seedAcceptedPendingTask,
 } from "./use-chat-controller";
 import { useChatProjectContextSupport } from "./use-chat-project-context-support";
-import { createLogger } from "@multica/core/logger";
-import type { Agent, Attachment, ChatMessage, ChatSession, PendingChatTasksResponse } from "@multica/core/types";
+import { createLogger } from "@enact/core/logger";
+import type { Agent, Attachment, ChatMessage, ChatSession, PendingChatTasksResponse } from "@enact/core/types";
 import { useT } from "../../i18n";
 
 const uiLogger = createLogger("chat.ui");

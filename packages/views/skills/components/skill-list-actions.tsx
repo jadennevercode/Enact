@@ -15,19 +15,19 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { Agent, SkillSummary } from "@multica/core/types";
-import { api } from "@multica/core/api";
-import { workspaceKeys } from "@multica/core/workspace/queries";
-import { useWorkspacePaths } from "@multica/core/paths";
-import { resolvePublicFileUrl } from "@multica/core/workspace/avatar-url";
-import { Button } from "@multica/ui/components/ui/button";
-import { Checkbox } from "@multica/ui/components/ui/checkbox";
-import { Input } from "@multica/ui/components/ui/input";
+import type { Agent, SkillSummary } from "@enact/core/types";
+import { api } from "@enact/core/api";
+import { workspaceKeys } from "@enact/core/workspace/queries";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
+import { Button } from "@enact/ui/components/ui/button";
+import { Checkbox } from "@enact/ui/components/ui/checkbox";
+import { Input } from "@enact/ui/components/ui/input";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@multica/ui/components/ui/collapsible";
+} from "@enact/ui/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -35,21 +35,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@multica/ui/components/ui/dialog";
+} from "@enact/ui/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@multica/ui/components/ui/dropdown-menu";
+} from "@enact/ui/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@multica/ui/components/ui/tooltip";
-import { ActorAvatar } from "@multica/ui/components/common/actor-avatar";
-import { cn } from "@multica/ui/lib/utils";
+} from "@enact/ui/components/ui/tooltip";
+import { ActorAvatar } from "@enact/ui/components/common/actor-avatar";
+import { cn } from "@enact/ui/lib/utils";
 import { useT } from "../../i18n";
 import { useIntentNavigate } from "../../navigation";
 import { isRefreshableOrigin, readOrigin } from "../lib/origin";

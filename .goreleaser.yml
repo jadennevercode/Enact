@@ -1,12 +1,12 @@
 version: 2
 
-project_name: multica
+project_name: enact
 
 builds:
-  - id: multica
-    main: ./cmd/multica
+  - id: enact
+    main: ./cmd/enact
     dir: server
-    binary: multica
+    binary: enact
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -23,8 +23,8 @@ builds:
       - arm64
 
 archives:
-  # Legacy archive name kept so already-released CLIs (whose `multica update`
-  # looks for `multica_{os}_{arch}.{ext}`) can keep self-updating. Remove
+  # Legacy archive name kept so already-released CLIs (whose `enact update`
+  # looks for `enact_{os}_{arch}.{ext}`) can keep self-updating. Remove
   # once those versions are no longer in use.
   - id: legacy
     files:
@@ -65,21 +65,21 @@ changelog:
       - "^chore:"
 
 brews:
-  - name: multica
+  - name: enact
     ids:
       - versioned
     repository:
-      owner: multica-ai
+      owner: enact-ai
       name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: "https://github.com/multica-ai/multica"
-    description: "Multica CLI — local agent runtime and management tool for the Multica platform"
-    # No license stanza: Multica ships under the Multica License (Apache 2.0
+    homepage: "https://github.com/enact-ai/enact"
+    description: "Enact CLI — local agent runtime and management tool for the Enact platform"
+    # No license stanza: Enact ships under the Enact License (Apache 2.0
     # terms with additional conditions, see LICENSE), which has no SPDX
     # identifier, so declaring "Apache-2.0" here would be a false claim.
     install: |
-      bin.install "multica"
+      bin.install "enact"
     test: |
-      system "#{bin}/multica", "version"
+      system "#{bin}/enact", "version"

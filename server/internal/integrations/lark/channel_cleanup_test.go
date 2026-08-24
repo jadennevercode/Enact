@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/multica-ai/multica/server/internal/util"
-	db "github.com/multica-ai/multica/server/pkg/db/generated"
+	"github.com/enact-ai/enact/server/internal/util"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // Delete-time channel cleanup fixtures. These pin the #4810 fix on the OTHER
@@ -163,7 +163,7 @@ func TestDeleteChannelInstallationsBySystemRuntimeAgents(t *testing.T) {
 	}
 	exec(`INSERT INTO workspace (id, name, slug, description) VALUES ($1, 'cc ws', 'cc-ws', '')`, ccWS)
 	exec(`INSERT INTO agent_runtime (id, workspace_id, name, runtime_mode, provider)
-VALUES ($1, $2, 'cc runtime', 'local', 'multica_daemon')`, ccRuntime, ccWS)
+VALUES ($1, $2, 'cc runtime', 'local', 'enact_daemon')`, ccRuntime, ccWS)
 	exec(`INSERT INTO agent (id, workspace_id, name, runtime_mode, runtime_id, kind, system_key)
 VALUES ($1, $2, 'cc system agent', 'local', $3, 'system', 'cc_probe')`, ccAgentArch, ccWS, ccRuntime)
 	exec(`INSERT INTO agent (id, workspace_id, name, runtime_mode, runtime_id)
@@ -209,7 +209,7 @@ func TestDeleteWorkspace_SweepsChannelInstallations(t *testing.T) {
 	}
 	exec(`INSERT INTO workspace (id, name, slug, description) VALUES ($1, 'cc ws del', 'cc-ws-del', '')`, ccWSDel)
 	exec(`INSERT INTO agent_runtime (id, workspace_id, name, runtime_mode, provider)
-VALUES ($1, $2, 'cc runtime del', 'local', 'multica_daemon')`, ccRuntimeDel, ccWSDel)
+VALUES ($1, $2, 'cc runtime del', 'local', 'enact_daemon')`, ccRuntimeDel, ccWSDel)
 	exec(`INSERT INTO agent (id, workspace_id, name, runtime_mode, runtime_id)
 VALUES ($1, $2, 'cc agent del', 'local', $3)`, ccAgentDel, ccWSDel, ccRuntimeDel)
 

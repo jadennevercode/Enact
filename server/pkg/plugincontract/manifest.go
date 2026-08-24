@@ -1,11 +1,11 @@
 // Package plugincontract defines the versioned public contract between plugin
-// authors and the Multica host. It must stay independent from private handlers,
+// authors and the Enact host. It must stay independent from private handlers,
 // services, and database implementations.
 //
-// A plugin relates to Multica in exactly three ways:
+// A plugin relates to Enact in exactly three ways:
 //
-//   - Action   (plugin -> Multica): host capabilities the plugin calls.
-//   - Hook     (Multica -> plugin): plugin capabilities the host calls.
+//   - Action   (plugin -> Enact): host capabilities the plugin calls.
+//   - Hook     (Enact -> plugin): plugin capabilities the host calls.
 //   - Resource (no call at all):    static contributions such as skill text.
 //
 // "Who triggers" and "what capability is called" are orthogonal: a hook is
@@ -27,7 +27,7 @@ const (
 	ManifestVersion1 = 1
 
 	// ManifestFilename is the conventional file name inside a plugin package.
-	ManifestFilename = "multica.plugin.json"
+	ManifestFilename = "enact.plugin.json"
 
 	// MaxManifestSize bounds a fetched manifest before it is parsed.
 	MaxManifestSize = 1 << 20
