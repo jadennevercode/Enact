@@ -42,15 +42,26 @@
   color: var(--shiki-dark) !important;
 }
 
-/* Enact icon: entrance spin animation */
-@keyframes entrance-spin {
-  0% { transform: rotate(0deg); opacity: 0; }
-  50% { opacity: 1; }
-  100% { transform: rotate(360deg); opacity: 1; }
+/* Enact icon: entrance + hover motion.
+ * The mark is an isometric cube stack, so it lifts and settles instead of
+ * spinning — a flat rotation on an object drawn in perspective reads as a
+ * rendering glitch rather than an animation. */
+@keyframes entrance-rise {
+  0% { transform: translateY(2px) scale(0.9); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.animate-entrance-spin {
-  animation: entrance-spin 0.6s ease-out forwards;
+.animate-entrance-rise {
+  animation: entrance-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.enact-mark-lift {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.enact-mark-lift:hover {
+  transform: translateY(-1px) scale(1.06);
 }
 
 /* Onboarding: step / phase entry — 400ms fade.
@@ -291,7 +302,7 @@ html[data-dnd-dragging="true"] * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-entrance-spin,
+  .animate-entrance-rise,
   .animate-onboarding-enter,
   .animate-welcome-emoji-pop,
   .animate-completion-badge,
@@ -300,6 +311,12 @@ html[data-dnd-dragging="true"] * {
   .animate-chat-text-shimmer,
   .animate-nav-progress-sweep {
     animation: none;
+  }
+
+  .enact-mark-lift,
+  .enact-mark-lift:hover {
+    transition: none;
+    transform: none;
   }
 
   [data-right-sidebar-panel] {

@@ -15,16 +15,14 @@ import type { MetadataRoute } from "next";
  * icon has no URL bar to recover from a wrong destination.
  *
  * The icons under /icons are generated, not hand-drawn. To regenerate after a
- * brand change, edit public/icons/icon.svg and run from public/icons:
+ * brand change, edit public/icons/icon.svg and run from the repo root:
  *
- *   sips -s format png --resampleHeightWidth 512 512 icon.svg --out icon-maskable-512.png
- *   sips -s format png --resampleHeightWidth 180 180 icon.svg --out apple-touch-icon.png
- *   sips -s format png --resampleHeightWidth 512 512 ../../../desktop/build/icon.png --out icon-512.png
- *   sips -s format png --resampleHeightWidth 192 192 ../../../desktop/build/icon.png --out icon-192.png
+ *   node scripts/generate-brand-icons.mjs
  *
- * The two `any` icons come from the desktop app icon so an installed web app
- * and an installed desktop app show the same artwork; the maskable one is
- * full-bleed because Android crops it to the launcher's shape.
+ * That script also emits the desktop and mobile app icons from the same
+ * source, so an installed web app and an installed desktop app show the same
+ * artwork. The maskable icon is full-bleed because Android crops it to the
+ * launcher's shape.
  */
 
 /** Launch path. Exported so manifest.test.ts can run it through the proxy. */

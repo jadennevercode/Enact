@@ -1,12 +1,13 @@
 /**
- * Enact wordmark / sigil. 1:1 vector copy of docs/assets/logo-light.svg —
- * keep this file and the SVG in sync.
+ * Enact mark — three cubes stacked in isometric projection. 1:1 vector copy of
+ * packages/ui/components/common/enact-icon.tsx and docs/assets/logo-light.svg.
+ * Keep all three in sync.
  *
  * react-native-svg does not resolve CSS `currentColor`, so callers must pass
  * `color` explicitly. For theme-aware usage, pair with `useColorScheme` +
  * `THEME` token from `@/lib/theme`.
  */
-import Svg, { Polygon } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { THEME } from "@/lib/theme";
 import { useColorScheme } from "@/lib/use-color-scheme";
 
@@ -15,18 +16,28 @@ interface EnactLogoProps {
   color?: string;
 }
 
+const FACES: [string, number][] = [
+  ["M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z", 1],
+  ["M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z", 0.62],
+  ["M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z", 0.38],
+  ["M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z", 1],
+  ["M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z", 0.62],
+  ["M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z", 0.38],
+  ["M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z", 1],
+  ["M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z", 0.62],
+  ["M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z", 0.38],
+];
+
 export function EnactLogo({ size = 48, color }: EnactLogoProps) {
   const { isDarkColorScheme } = useColorScheme();
   const resolvedColor =
     color ?? (isDarkColorScheme ? THEME.dark.foreground : THEME.light.foreground);
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 80 80">
-      <Polygon
-        fill={resolvedColor}
-        points="35,51.1 35,80 45,80 45,51.1 71.8,77.9 78.9,70.8 52.1,44 90,44 90,34 52.1,34 78.9,7.2 71.8,0.1 45,26.9 45,-11 35,-11 35,26.9 8.2,0.1 1.1,7.2 27.9,34 -10,34 -10,44 27.9,44 1.1,70.8 8.2,77.9"
-        transform="translate(5, 5.5) scale(0.87)"
-      />
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {FACES.map(([d, opacity]) => (
+        <Path key={d} d={d} fill={resolvedColor} fillOpacity={opacity} />
+      ))}
     </Svg>
   );
 }

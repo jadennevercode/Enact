@@ -6,6 +6,7 @@ import { cn } from "@enact/ui/lib/utils";
 import { useScrollFade } from "@enact/ui/hooks/use-scroll-fade";
 import { AppLink, useNavigation } from "../navigation";
 import { HelpLauncher } from "./help-launcher";
+import { EnactBrand } from "./enact-brand";
 import { JoinDiscordCard } from "./join-discord-card";
 import {
   DndContext,
@@ -594,8 +595,11 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
   return (
       <Sidebar variant="inset">
         {topSlot}
-        {/* Workspace Switcher */}
+        {/* Product identity, then Workspace Switcher. On desktop `topSlot` is
+            the traffic-light spacer, so the brand sits below it rather than
+            fighting the macOS drag strip. */}
         <SidebarHeader className={cn("py-3", headerClassName)} style={headerStyle}>
+          <EnactBrand />
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>

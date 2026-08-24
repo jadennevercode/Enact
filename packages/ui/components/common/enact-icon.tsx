@@ -3,11 +3,11 @@ import { cn } from "../../lib/utils";
 
 interface EnactIconProps extends React.ComponentProps<"span"> {
   /**
-   * If true, play a one-time entrance spin animation.
+   * If true, play a one-time entrance animation.
    */
   animate?: boolean;
   /**
-   * If true, disable hover spin animation.
+   * If true, disable the hover animation.
    */
   noSpin?: boolean;
   /**
@@ -27,10 +27,49 @@ const borderedSizes = {
 };
 
 /**
- * Pure CSS 8-pointed asterisk icon matching the Enact logo.
- * Uses currentColor so it adapts to light/dark themes automatically.
- * Clip-path polygon traced from the original SVG path coordinates.
+ * The Enact mark: three cubes stacked in isometric projection.
+ *
+ * Geometry — each cube is a hexagon split into three faces. With half-width
+ * w = 5.5 and side height s = 5.5, the top cube's lower silhouette (the V from
+ * 6.5,10.625 through 12,13.375 to 17.5,10.625) is exactly the upper edge of the
+ * two lower cubes' top faces, so the three tessellate with no overlap and draw
+ * order does not matter.
+ *
+ * Depth comes from opacity on a single `currentColor` fill rather than from a
+ * palette, so the mark inherits text color and stays correct in both themes and
+ * on any surface it is placed on.
  */
+const FACES = [
+  // Top cube — top, left, right
+  { d: "M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z", o: 1 },
+  { d: "M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z", o: 0.62 },
+  { d: "M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z", o: 0.38 },
+  // Lower-left cube
+  { d: "M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z", o: 1 },
+  { d: "M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z", o: 0.62 },
+  { d: "M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z", o: 0.38 },
+  // Lower-right cube
+  { d: "M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z", o: 1 },
+  { d: "M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z", o: 0.62 },
+  { d: "M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z", o: 0.38 },
+];
+
+function MarkSvg({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      {FACES.map((face) => (
+        <path key={face.d} d={face.d} fillOpacity={face.o} />
+      ))}
+    </svg>
+  );
+}
+
 export function EnactIcon({
   className,
   animate = false,
@@ -43,18 +82,14 @@ export function EnactIcon({
 
   useEffect(() => {
     if (!animate) return;
-    const timer = setTimeout(() => setEntranceDone(true), 600);
+    const timer = setTimeout(() => setEntranceDone(true), 450);
     return () => clearTimeout(timer);
   }, [animate]);
 
-  const clipPath = `polygon(
-    45% 62.1%, 45% 100%, 55% 100%, 55% 62.1%,
-    81.8% 88.9%, 88.9% 81.8%, 62.1% 55%, 100% 55%,
-    100% 45%, 62.1% 45%, 88.9% 18.2%, 81.8% 11.1%,
-    55% 37.9%, 55% 0%, 45% 0%, 45% 37.9%,
-    18.2% 11.1%, 11.1% 18.2%, 37.9% 45%, 0% 45%,
-    0% 55%, 37.9% 55%, 11.1% 81.8%, 18.2% 88.9%
-  )`;
+  const motion = cn(
+    !entranceDone && "animate-entrance-rise",
+    entranceDone && !noSpin && "enact-mark-lift"
+  );
 
   if (bordered) {
     const sizeConfig = borderedSizes[size];
@@ -68,18 +103,8 @@ export function EnactIcon({
         aria-hidden="true"
         {...props}
       >
-        <span
-          className={cn(
-            "block",
-            sizeConfig.icon,
-            !entranceDone && "animate-entrance-spin",
-            entranceDone && !noSpin && "hover:animate-spin"
-          )}
-        >
-          <span
-            className="block size-full bg-current"
-            style={{ clipPath }}
-          />
+        <span className={cn("block", sizeConfig.icon, motion)}>
+          <MarkSvg className="block size-full" />
         </span>
       </span>
     );
@@ -87,19 +112,11 @@ export function EnactIcon({
 
   return (
     <span
-      className={cn(
-        "inline-block size-[1em]",
-        !entranceDone && "animate-entrance-spin",
-        entranceDone && !noSpin && "hover:animate-spin",
-        className
-      )}
+      className={cn("inline-block size-[1em]", motion, className)}
       aria-hidden="true"
       {...props}
     >
-      <span
-        className="block size-full bg-current"
-        style={{ clipPath }}
-      />
+      <MarkSvg className="block size-full" />
     </span>
   );
 }

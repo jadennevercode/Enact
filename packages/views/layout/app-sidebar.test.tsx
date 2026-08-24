@@ -429,3 +429,33 @@ describe("personal nav — Chat", () => {
     expect(chatBadge(container)).toHaveAttribute("aria-label", "5");
   });
 });
+
+describe("product identity", () => {
+  beforeEach(() => {
+    workspaces.current = [];
+  });
+
+  it("shows the Enact brand in the sidebar header", () => {
+    render(<AppSidebar />);
+    expect(screen.getByText("Enact")).toBeInTheDocument();
+  });
+
+  // The brand is a label, not a control: the workspace switcher sits directly
+  // beneath it, and a second interactive row in the same corner reads as one
+  // control with a broken hit target.
+  it("does not make the brand interactive", () => {
+    render(<AppSidebar />);
+    const brand = screen.getByText("Enact");
+    expect(brand.closest("a, button")).toBeNull();
+  });
+
+  // The switcher falls back to the product name only when no workspace has
+  // loaded, so an unnamed workspace must not produce two "Enact" rows.
+  it("keeps the brand distinct from the workspace switcher label", () => {
+    workspaces.current = [
+      { id: "ws-1", name: "Acme", slug: "acme", avatar_url: null },
+    ];
+    render(<AppSidebar />);
+    expect(screen.getAllByText("Enact")).toHaveLength(1);
+  });
+});

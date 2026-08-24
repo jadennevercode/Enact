@@ -1,28 +1,35 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import { ArrowUpRight } from "lucide-react";
 
-// Docs-local stateless Enact mark — matches @enact/ui's EnactIcon
-// visually (same 8-pointed-asterisk clip-path), but without useState/
-// useEffect so it's safe to render from Server Components such as
-// layout.config.tsx / layout.tsx. Keep in sync with
-// packages/ui/components/common/enact-icon.tsx if the mark changes.
-const ENACT_CLIP = `polygon(
-  45% 62.1%, 45% 100%, 55% 100%, 55% 62.1%,
-  81.8% 88.9%, 88.9% 81.8%, 62.1% 55%, 100% 55%,
-  100% 45%, 62.1% 45%, 88.9% 18.2%, 81.8% 11.1%,
-  55% 37.9%, 55% 0%, 45% 0%, 45% 37.9%,
-  18.2% 11.1%, 11.1% 18.2%, 37.9% 45%, 0% 45%,
-  0% 55%, 37.9% 55%, 11.1% 81.8%, 18.2% 88.9%
-)`;
+// Docs-local stateless Enact mark — same isometric cube-stack geometry as
+// @enact/ui's EnactIcon, but without useState/useEffect so it's safe to
+// render from Server Components such as layout.config.tsx / layout.tsx.
+// Keep in sync with packages/ui/components/common/enact-icon.tsx.
+const ENACT_FACES: [string, number][] = [
+  ["M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z", 1],
+  ["M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z", 0.62],
+  ["M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z", 0.38],
+  ["M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z", 1],
+  ["M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z", 0.62],
+  ["M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z", 0.38],
+  ["M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z", 1],
+  ["M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z", 0.62],
+  ["M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z", 0.38],
+];
 
 function EnactMark() {
   return (
-    <span className="inline-block size-[1em]" aria-hidden="true">
-      <span
-        className="block size-full bg-current"
-        style={{ clipPath: ENACT_CLIP }}
-      />
-    </span>
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="size-[1em]"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {ENACT_FACES.map(([d, o]) => (
+        <path key={d} d={d} fillOpacity={o} />
+      ))}
+    </svg>
   );
 }
 
