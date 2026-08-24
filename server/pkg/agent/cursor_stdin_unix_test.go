@@ -134,8 +134,13 @@ printf '%%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 	fakePath := filepath.Join(dir, "cursor-agent")
 	writeTestExecutable(t, fakePath, []byte(script))
 
-	prompt := strings.Repeat("enact cursor stdin payload 0123456789\n", 13_108)
-	if len(prompt) < 512*1024 {
+	// Derive the repeat count from the target size rather than hardcoding it:
+	// the line is prose, and editing it (a rename, a typo fix) silently changed
+	// the total the last time this was a literal.
+	const minPrompt = 512 * 1024
+	const line = "enact cursor stdin payload 0123456789\n"
+	prompt := strings.Repeat(line, minPrompt/len(line)+1)
+	if len(prompt) < minPrompt {
 		t.Fatalf("test prompt too small: %d bytes", len(prompt))
 	}
 

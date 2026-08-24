@@ -1218,7 +1218,7 @@ export function createEnDict(allowSignup: boolean): LandingDict {
         changes: [],
         features: [
           "You can now run your agents on the new Codex gpt-5.6 models — Sol, Terra, and Luna.",
-          "Type or paste an issue key like MUL-123 and it turns into a clickable issue link on its own.",
+          "Type or paste an issue key like ENAC-123 and it turns into a clickable issue link on its own.",
           "When you upload an avatar, you can now crop, zoom, and rotate it before saving.",
           "When an agent ends without a text reply, chat now shows a clear no-reply note instead of a blank message.",
           "Mention a busy agent across several separate comment threads and each thread now gets its own answer.",
@@ -1426,7 +1426,7 @@ export function createEnDict(allowSignup: boolean): LandingDict {
           "Slack channels can backfill their conversation history into Enact, so an agent has the prior context the moment it joins.",
           "Slack messages show a 👀 reaction while an agent is preparing its reply, and the reaction is always cleared on the way out.",
           "Skill bundles can be installed from a local .skill or .zip archive.",
-          "enact issue commands no longer accept short UUID prefixes — use the issue key (MUL-123) or the full UUID.",
+          "enact issue commands no longer accept short UUID prefixes — use the issue key (ENAC-123) or the full UUID.",
           "The Agents page is now usable on mobile.",
         ],
         improvements: [
@@ -2880,7 +2880,7 @@ export function createEnDict(allowSignup: boolean): LandingDict {
         ],
         improvements: [
           "Sidebar redesign — Personal / Workspace grouping, user profile footer, ⌘K search input",
-          "Search ranking — case-insensitive matching, identifier search (MUL-123), multi-word support",
+          "Search ranking — case-insensitive matching, identifier search (ENAC-123), multi-word support",
           "Search result keyword highlighting",
           "Daily token usage chart with cleaner Y-axis and per-category tooltip",
           "Master Agent multiline input support",
