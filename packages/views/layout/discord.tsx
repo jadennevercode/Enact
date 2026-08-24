@@ -1,5 +1,10 @@
-/** Community invite link. Shared by the help launcher and the sidebar card. */
-export const DISCORD_URL = "https://discord.gg/W8gYBn226t";
+/**
+ * Community invite link, shared by the help launcher and the sidebar card.
+ *
+ * `null` while there is no community to invite anyone to: both consumers
+ * render nothing rather than a dead invite. Set a URL to restore them.
+ */
+export const DISCORD_URL: string | null = null;
 
 // lucide-react ships no Discord brand glyph, so render the official mark
 // inline. Sized via className to match the surrounding icons.

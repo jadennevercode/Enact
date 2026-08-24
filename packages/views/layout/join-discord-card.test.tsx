@@ -19,6 +19,20 @@ vi.mock("../i18n", () => ({
   }),
 }));
 
+// DISCORD_URL ships as null (no community to invite anyone to yet), so the
+// dismissal behaviour below is only reachable with an invite configured.
+// Mocking it keeps that logic covered for whenever a URL is filled in, and
+// lets the last case assert the shipped null state.
+const inviteUrl = { current: null as string | null };
+vi.mock("./discord", () => ({
+  get DISCORD_URL() {
+    return inviteUrl.current;
+  },
+  DiscordIcon: ({ className }: { className?: string }) => (
+    <span data-testid="discord-icon" className={className} />
+  ),
+}));
+
 const userId = { current: "user-1" as string | undefined };
 vi.mock("@enact/core/auth", () => ({
   useAuthStore: (selector: (s: { user?: { id?: string } }) => unknown) =>
@@ -28,17 +42,26 @@ vi.mock("@enact/core/auth", () => ({
 afterEach(() => {
   localStorage.clear();
   userId.current = "user-1";
+  inviteUrl.current = null;
 });
 
 describe("JoinDiscordCard", () => {
+  it("renders nothing while no invite is configured", () => {
+    inviteUrl.current = null;
+    const { container } = render(<JoinDiscordCard />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("links to the Discord invite", () => {
+    inviteUrl.current = "https://discord.gg/example";
     render(<JoinDiscordCard />);
     const link = screen.getByRole("link", { name: /join our discord/i });
-    expect(link).toHaveAttribute("href", "https://discord.gg/W8gYBn226t");
+    expect(link).toHaveAttribute("href", "https://discord.gg/example");
     expect(link).toHaveAttribute("target", "_blank");
   });
 
   it("hides and stays hidden after dismiss, persisting per user", async () => {
+    inviteUrl.current = "https://discord.gg/example";
     const user = userEvent.setup();
     const { unmount } = render(<JoinDiscordCard />);
 
@@ -52,6 +75,7 @@ describe("JoinDiscordCard", () => {
   });
 
   it("keeps the card visible for a different user", async () => {
+    inviteUrl.current = "https://discord.gg/example";
     const user = userEvent.setup();
     const { unmount } = render(<JoinDiscordCard />);
     await user.click(screen.getByRole("button", { name: "Dismiss" }));

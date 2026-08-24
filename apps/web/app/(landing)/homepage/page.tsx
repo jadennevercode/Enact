@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Enact — open-source platform that turns coding agents into real teammates. Assign tasks, track progress, compound skills.",
   openGraph: {
-    title: "Enact — Project Management for Human + Agent Teams",
+    title: "Enact — Governed agentic delivery",
     description:
       "Manage your human + agent workforce in one place.",
     url: "/homepage",

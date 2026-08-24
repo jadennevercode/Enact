@@ -52,15 +52,17 @@ export function HowItWorksSection() {
           >
             {t.howItWorks.ctaDocs}
           </Link>
-          <Link
-            href={githubUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={heroButtonClassName("ghost")}
-          >
-            <GitHubMark className="size-4" />
-            {t.howItWorks.ctaGithub}
-          </Link>
+          {githubUrl && (
+            <Link
+              href={githubUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={heroButtonClassName("ghost")}
+            >
+              <GitHubMark className="size-4" />
+              {t.howItWorks.ctaGithub}
+            </Link>
+          )}
         </div>
       </div>
     </section>

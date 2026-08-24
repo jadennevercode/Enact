@@ -36,7 +36,7 @@ export function JoinDiscordCard() {
   const userId = useAuthStore((s) => s.user?.id);
   const [dismissed, dismiss] = useDiscordCardDismissed(userId);
 
-  if (dismissed) return null;
+  if (DISCORD_URL === null || dismissed) return null;
 
   return (
     <div className="group/discord relative min-w-0 flex-1">

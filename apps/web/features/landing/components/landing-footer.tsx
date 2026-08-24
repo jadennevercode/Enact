@@ -15,11 +15,20 @@ import {
 import { useLocale, locales, localeLabels } from "../i18n";
 import { useDashboardCtaHref } from "../utils/use-dashboard-cta";
 
+const SOCIALS = [
+  { href: twitterUrl, label: "X", Mark: XMark },
+  { href: githubUrl, label: "GitHub", Mark: GitHubMark },
+  { href: discordUrl, label: "Discord", Mark: DiscordMark },
+];
+
 export function LandingFooter() {
   const { t, locale, setLocale } = useLocale();
   const user = useAuthStore((s) => s.user);
   const ctaHref = useDashboardCtaHref();
   const groups = Object.values(t.footer.groups);
+  const socials = SOCIALS.filter(
+    (s): s is typeof s & { href: string } => s.href !== null,
+  );
 
   return (
     <footer className="bg-[#0a0d12] text-white">
@@ -37,33 +46,24 @@ export function LandingFooter() {
             <p className="mt-4 max-w-[300px] text-body leading-[1.7] text-white/50 sm:text-body-lg">
               {t.footer.tagline}
             </p>
-            <div className="mt-4 flex items-center gap-3">
-              <Link
-                href={twitterUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-white/40 transition-colors hover:text-white"
-              >
-                <XMark className="size-4" />
-              </Link>
-              <Link
-                href={githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-white/40 transition-colors hover:text-white"
-              >
-                <GitHubMark className="size-4" />
-              </Link>
-              <Link
-                href={discordUrl}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Discord"
-                className="text-white/40 transition-colors hover:text-white"
-              >
-                <DiscordMark className="size-4" />
-              </Link>
-            </div>
+            {/* Social row collapses entirely while every brand link is unset,
+                rather than leaving a row of dead icons. */}
+            {socials.length > 0 && (
+              <div className="mt-4 flex items-center gap-3">
+                {socials.map(({ href, label, Mark }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={label}
+                    className="text-white/40 transition-colors hover:text-white"
+                  >
+                    <Mark className="size-4" />
+                  </Link>
+                ))}
+              </div>
+            )}
             <div className="mt-6">
               <Link
                 href={ctaHref}
@@ -82,19 +82,26 @@ export function LandingFooter() {
                   {group.label}
                 </h4>
                 <ul className="mt-4 flex flex-col gap-2.5">
-                  {group.links.map((link) => (
-                    <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        {...(link.href.startsWith("http")
-                          ? { target: "_blank", rel: "noreferrer" }
-                          : {})}
-                        className="text-body text-white/50 transition-colors hover:text-white"
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
+                  {/* A null href is an unset brand link (see shared.tsx); drop
+                      the row instead of rendering a link to nowhere. */}
+                  {group.links
+                    .filter(
+                      (link): link is typeof link & { href: string } =>
+                        link.href !== null,
+                    )
+                    .map((link) => (
+                      <li key={link.label}>
+                        <Link
+                          href={link.href}
+                          {...(link.href.startsWith("http")
+                            ? { target: "_blank", rel: "noreferrer" }
+                            : {})}
+                          className="text-body text-white/50 transition-colors hover:text-white"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
               </div>
             ))}

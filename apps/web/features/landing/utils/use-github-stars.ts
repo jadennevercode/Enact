@@ -18,13 +18,17 @@ import { useEffect, useState } from "react";
  * a loop; the button just degrades to its plain "GitHub" label.
  */
 
-const REPO = "enact-ai/enact";
+// `null` while no public repo is published — the badge is skipped entirely
+// rather than firing a request that can only 404. Set this to "owner/name"
+// alongside `githubUrl` in components/shared.tsx to bring the badge back.
+const REPO: string | null = null;
 
 // `undefined` = never fetched; `number` = resolved count; `null` = fetch failed.
 let cachedStars: number | null | undefined;
 let inFlight: Promise<number | null> | null = null;
 
 async function loadStars(): Promise<number | null> {
+  if (REPO === null) return null;
   if (cachedStars !== undefined) return cachedStars;
   if (inFlight) return inFlight;
 

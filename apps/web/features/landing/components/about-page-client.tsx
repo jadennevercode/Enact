@@ -43,17 +43,19 @@ export function AboutPageClient() {
             ))}
           </div>
 
-          <div className="mt-12">
-            <Link
-              href={githubUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2.5 rounded-[12px] bg-[#0a0d12] px-5 py-3 text-body font-semibold text-white transition-colors hover:bg-[#0a0d12]/88"
-            >
-              <GitHubMark className="size-4" />
-              {t.about.cta}
-            </Link>
-          </div>
+          {githubUrl && (
+            <div className="mt-12">
+              <Link
+                href={githubUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-[12px] bg-[#0a0d12] px-5 py-3 text-body font-semibold text-white transition-colors hover:bg-[#0a0d12]/88"
+              >
+                <GitHubMark className="size-4" />
+                {t.about.cta}
+              </Link>
+            </div>
+          )}
         </div>
       </main>
       <LandingFooter />

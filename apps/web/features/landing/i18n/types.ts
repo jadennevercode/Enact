@@ -34,7 +34,7 @@ type FeatureSection = {
 
 type FooterGroup = {
   label: string;
-  links: { label: string; href: string }[];
+  links: { label: string; href: string | null }[];
 };
 
 export type ContactSalesOption = { value: string; label: string };

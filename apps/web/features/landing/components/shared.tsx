@@ -1,8 +1,17 @@
 import { cn } from "@enact/ui/lib/utils";
 
-export const githubUrl = "https://github.com/enact-ai/enact";
-export const twitterUrl = "https://x.com/EnactAI";
-export const discordUrl = "https://discord.gg/W8gYBn226t";
+/**
+ * Outbound brand links.
+ *
+ * `null` means "no such destination yet", and every consumer renders nothing
+ * rather than a dead link — the header's GitHub button and star badge, the
+ * repo CTAs on the landing / about / how-it-works sections, and the footer's
+ * social row and link columns all read from these. Filling one in restores
+ * its affordance with no other change.
+ */
+export const githubUrl: string | null = null;
+export const twitterUrl: string | null = null;
+export const discordUrl: string | null = null;
 
 export function GitHubMark({ className }: { className?: string }) {
   return (

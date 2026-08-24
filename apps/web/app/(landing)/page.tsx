@@ -4,12 +4,12 @@ import { RedirectIfAuthenticated } from "@/features/landing/components/redirect-
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Enact — Project Management for Human + Agent Teams",
+    absolute: "Enact — Governed agentic delivery",
   },
   description:
     "Open-source platform that turns coding agents into real teammates. Assign tasks, track progress, compound skills.",
   openGraph: {
-    title: "Enact — Project Management for Human + Agent Teams",
+    title: "Enact — Governed agentic delivery",
     description:
       "Manage your human + agent workforce in one place.",
     url: "/",

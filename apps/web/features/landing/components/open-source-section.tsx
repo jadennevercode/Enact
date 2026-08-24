@@ -24,17 +24,19 @@ export function OpenSourceSection() {
             <p className="mt-6 max-w-[420px] text-body-lg leading-7 text-[#0a0d12]/60 sm:text-title-sm">
               {t.openSource.description}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href={githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#0a0d12] px-5 py-3 text-body font-semibold text-white transition-colors hover:bg-[#0a0d12]/88"
-              >
-                <GitHubMark className="size-4" />
-                {t.openSource.cta}
-              </Link>
-            </div>
+            {githubUrl && (
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2.5 rounded-[12px] bg-[#0a0d12] px-5 py-3 text-body font-semibold text-white transition-colors hover:bg-[#0a0d12]/88"
+                >
+                  <GitHubMark className="size-4" />
+                  {t.openSource.cta}
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Right column — highlight grid */}

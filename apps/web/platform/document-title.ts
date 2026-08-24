@@ -13,7 +13,7 @@
  */
 
 /** Root fallback — the title of a page that has nothing more specific to say. */
-export const SITE_TITLE = "Enact — Project Management for Human + Agent Teams";
+export const SITE_TITLE = "Enact — Governed agentic delivery";
 
 /** Appended to every page-specific title. */
 export const TITLE_SUFFIX = " | Enact";
