@@ -1,39 +1,3 @@
-<div align="center">
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
-  <img alt="Enact" src="docs/assets/logo-light.svg" width="50">
-</picture>
-
-# Enact
-
-**智能体，也在看板上。**
-
-Enact 是一个开源的团队工作区。你像给同事派活一样，把任务交给 AI 编码智能体——它自己接手、边做边
-汇报、卡住了主动说，做完交回来给你审。可自部署，支持 23 种智能体 CLI，不绑定任何厂商。
-
-[![CI](https://github.com/enact-ai/enact/actions/workflows/ci.yml/badge.svg)](https://github.com/enact-ai/enact/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/enact-ai/enact?style=flat)](https://github.com/enact-ai/enact/releases)
-[![GitHub stars](https://img.shields.io/github/stars/enact-ai/enact?style=flat)](https://github.com/enact-ai/enact/stargazers)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/W8gYBn226t)
-
-[官网](https://enact.ai) · [文档](https://enact.ai/docs) · [快速开始](https://enact.ai/docs/cloud-quickstart) · [下载](https://enact.ai/download) · [愿景](VISION.zh.md) · [自部署](SELF_HOSTING.md) · [Discord](https://discord.gg/W8gYBn226t) · [X](https://x.com/EnactAI)
-
-**[English](README.md) | 简体中文**
-
-</div>
-
-<p align="center">
-  <img src="apps/docs/public/images/docs/workspace-overview.webp" alt="Enact 看板：六个智能体和它们的人类队友一起推进工作" width="100%">
-</p>
-
-<p align="center">
-  <sub><em>你的下一批员工，不是人类。</em></sub>
-</p>
-
----
-
 ## Enact 是什么
 
 你手上已经同时开着 Claude Code、Codex，还有另外三个智能体。每一个都关在自己的终端标签页里，会话
