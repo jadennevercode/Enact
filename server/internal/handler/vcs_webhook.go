@@ -219,9 +219,9 @@ func (h *Handler) mirrorVCSPullRequest(ctx context.Context, conn db.VcsConnectio
 	// branch-name reference, or a body closing keyword. An identifier matched
 	// ONLY by a bare body mention is reference_only — it links (so the PR shows
 	// in history) but is hidden from the issue PR list and excluded from the
-	// close aggregate, so a drive-by "Related MUL-1" neither looks like a
+	// close aggregate, so a drive-by "Related ENA-1" neither looks like a
 	// working PR nor blocks a genuine Closes sibling from advancing the issue.
-	// Mirrors the GitHub path (MUL-3739); branch is deliberately excluded from
+	// Mirrors the GitHub path (ENA-3739); branch is deliberately excluded from
 	// the closing-keyword scan there and here.
 	qualifyingIdents := map[string]struct{}{}
 	for _, id := range extractIdentifiers(ev.Title, ev.Branch) {
@@ -261,7 +261,7 @@ func (h *Handler) mirrorVCSPullRequest(ctx context.Context, conn db.VcsConnectio
 
 	if ev.State == "merged" || ev.State == "closed" {
 		for _, issue := range reevalIssues {
-			// A custom terminal status counts as terminal here. (MUL-6243)
+			// A custom terminal status counts as terminal here. (ENA-6243)
 			if s := issuestatus.Effective(ctx, h.Queries, issue.WorkspaceID, issue.Status); s == "done" || s == "cancelled" {
 				continue
 			}

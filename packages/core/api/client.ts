@@ -55,6 +55,8 @@ import type {
   User,
   Skill,
   SkillSummary,
+  OntologyDetail,
+  OntologySummary,
   CreateSkillRequest,
   UpdateSkillRequest,
   SetAgentSkillsRequest,
@@ -101,6 +103,7 @@ import type {
   ProjectResource,
   CreateProjectResourceRequest,
   UpdateProjectResourceRequest,
+  ListProjectArtifactsResponse,
   ListProjectResourcesResponse,
   Label,
   IssueProperty,
@@ -274,6 +277,8 @@ import {
   EMPTY_ISSUE_TABLE_GROUPS_RESPONSE,
   EMPTY_ISSUE_TABLE_ROWS_RESPONSE,
   EMPTY_LIST_ISSUES_RESPONSE,
+  EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
+  EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SEARCH_PROJECTS_RESPONSE,
   EMPTY_SQUAD,
@@ -297,6 +302,9 @@ import {
   CronPreviewResponseSchema,
   UNREADABLE_CRON_PREVIEW_RESPONSE,
   ListIssuesResponseSchema,
+  ListProjectArtifactsResponseSchema,
+  OntologyDetailSchema,
+  OntologyListSchema,
   CreateIssueResponseSchema,
   IssueSchema,
   ListWebhookDeliveriesResponseSchema,
@@ -312,6 +320,7 @@ import {
   SubscribersListSchema,
   TimelineEntriesSchema,
   UserSchema,
+  LoginResponseSchema,
   WebhookDeliveryResponseSchema,
   BillingBalanceSchema,
   BillingTransactionsPageSchema,
@@ -507,7 +516,7 @@ export function errorCode(err: unknown): string | undefined {
 }
 
 // dispatchReasonCode extracts the stable, machine-readable admission reason
-// (MUL-4525) from a blocked-trigger error's structured body, when present. UI
+// (ENA-4525) from a blocked-trigger error's structured body, when present. UI
 // callers localize a blocked/partial trigger from this code instead of pattern
 // matching the human-readable message. Returns undefined for non-ApiErrors or
 // bodies without a reason_code (older servers), so callers fall back to their
@@ -524,7 +533,7 @@ export function dispatchReasonCode(err: unknown): string | undefined {
 // error (4xx). Handlers write those for the user — "autopilot is not active",
 // "Idempotency-Key is too long" — so they are worth rendering. A 5xx message is
 // internal detail (Go error chains, pgx table/constraint names, internal ids)
-// that must never reach a toast (MUL-6472), and a non-ApiError is a transport
+// that must never reach a toast (ENA-6472), and a non-ApiError is a transport
 // failure whose message ("Failed to fetch") says nothing a user can act on.
 // Both return undefined so the caller falls back to its own localized sentence.
 export function clientErrorMessage(err: unknown): string | undefined {
@@ -730,18 +739,12 @@ export class ApiClient {
   }
 
   // Auth
-  async sendCode(email: string): Promise<void> {
-    await this.fetch("/auth/send-code", {
+  async emailLogin(email: string): Promise<LoginResponse> {
+    const raw = await this.fetch<unknown>("/auth/email-login", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-  }
-
-  async verifyCode(email: string, code: string): Promise<LoginResponse> {
-    return this.fetch("/auth/verify-code", {
-      method: "POST",
-      body: JSON.stringify({ email, code }),
-    });
+    return LoginResponseSchema.parse(raw);
   }
 
   async googleLogin(code: string, redirectUri: string): Promise<LoginResponse> {
@@ -989,7 +992,7 @@ export class ApiClient {
   }
 
   /**
-   * Fetch one issue by UUID **or** by bare identifier ("MUL-123"): the server
+   * Fetch one issue by UUID **or** by bare identifier ("ENA-123"): the server
    * resolves `PREFIX-NUMBER` against the workspace's own prefix through the
    * unique `(workspace_id, number)` index, and 404s on a wrong prefix or a
    * missing number.
@@ -1195,7 +1198,7 @@ export class ApiClient {
   /** Dry-run the unified run-enqueue predicate for a prospective issue write
    *  (create / single assign / single status / batch). Returns the runs that
    *  would start; no side effect. The four entry points consult this instead
-   *  of re-implementing the rule (MUL-3375). */
+   *  of re-implementing the rule (ENA-3375). */
   async previewIssueTrigger(params: IssueTriggerPreviewParams): Promise<IssueTriggerPreview> {
     const raw = await this.fetch<unknown>("/api/issues/preview-trigger", {
       method: "POST",
@@ -1310,7 +1313,7 @@ export class ApiClient {
   /**
    * Leaves this issue and every descendant, and keeps future children of the
    * tree from re-subscribing the user — the escape hatch for an agent-built
-   * tree that keeps growing (MUL-5483).
+   * tree that keeps growing (ENA-5483).
    *
    * Deliberately its own endpoint rather than a `subtree` flag on
    * `unsubscribeFromIssue`. Web/desktop staging ships on merge while the
@@ -1470,9 +1473,9 @@ export class ApiClient {
 
   /**
    * Returns the plaintext `custom_env` map for an agent. Admits the
-   * agent's owner or a workspace owner/admin (MUL-5438); calls from
+   * agent's owner or a workspace owner/admin (ENA-5438); calls from
    * agent-actor sessions get a 403. Every successful call writes an
-   * `agent_env_revealed` activity_log row server-side. MUL-2600.
+   * `agent_env_revealed` activity_log row server-side. ENA-2600.
    */
   async getAgentEnv(id: string): Promise<AgentEnvResponse> {
     return this.fetch(`/api/agents/${id}/env`);
@@ -1483,8 +1486,8 @@ export class ApiClient {
    * `"****"` are preserved server-side (the **** guard) so a partial
    * UI edit doesn't overwrite real secrets with the masked
    * placeholder. Admits the agent's owner or a workspace owner/admin
-   * (MUL-5438); agent actors get a 403. Every successful call writes an
-   * `agent_env_updated` activity_log row. MUL-2600.
+   * (ENA-5438); agent actors get a 403. Every successful call writes an
+   * `agent_env_updated` activity_log row. ENA-2600.
    */
   async updateAgentEnv(id: string, data: UpdateAgentEnvRequest): Promise<AgentEnvResponse> {
     return this.fetch(`/api/agents/${id}/env`, {
@@ -1859,7 +1862,7 @@ export class ApiClient {
   // `active_agents`) if they don't match — caller should re-render the agent
   // list and force the user to re-confirm.
   //
-  // The agents are UNBOUND, not archived or deleted (MUL-5559): they keep their
+  // The agents are UNBOUND, not archived or deleted (ENA-5559): they keep their
   // configuration, chats and task history and need a new runtime to run again.
   // `agents_archived` is the server's deprecated mirror of `agents_unbound`,
   // kept because installed clients read it; prefer `agents_unbound`.
@@ -1886,7 +1889,7 @@ export class ApiClient {
       /**
        * Custom display name. Pass an empty string to clear it (the server
        * reverts to the default name). Omit to leave it unchanged — a JSON
-       * `null` is treated as "unchanged", not "clear". See MUL-4217.
+       * `null` is treated as "unchanged", not "clear". See ENA-4217.
        */
       custom_name?: string;
       /** Apply custom_name to every runtime on the same machine. */
@@ -1900,7 +1903,7 @@ export class ApiClient {
   }
 
   // ---------------------------------------------------------------------
-  // Custom runtime profiles (MUL-3284). All workspace-scoped: the caller
+  // Custom runtime profiles (ENA-3284). All workspace-scoped: the caller
   // passes the workspace id the same way the runtimes list resolves it.
   // ---------------------------------------------------------------------
 
@@ -2157,7 +2160,7 @@ export class ApiClient {
   // pending/running, then render or fail), so the response is validated rather
   // than cast: an unparseable body degrades to an explicit "failed" record that
   // shows the discovery error and keeps manual model entry usable, instead of a
-  // fabricated empty catalog or an endless spinner (MUL-5444).
+  // fabricated empty catalog or an endless spinner (ENA-5444).
   async initiateListModels(runtimeId: string): Promise<RuntimeModelListRequest> {
     const raw = await this.fetch<unknown>(`/api/runtimes/${runtimeId}/models`, {
       method: "POST",
@@ -2968,11 +2971,53 @@ export class ApiClient {
     });
   }
 
-	async removeAgentSkill(agentId: string, skillId: string): Promise<void> {
+  async removeAgentSkill(agentId: string, skillId: string): Promise<void> {
 		await this.fetch(`/api/agents/${agentId}/skills/${skillId}`, {
 			method: "DELETE",
 		});
 	}
+
+  // Ontologies are backed by the same runtime bundle mechanism as skills, but
+  // remain a separate product surface and API contract.
+  async listOntologies(): Promise<OntologySummary[]> {
+    const raw = await this.fetch<unknown>("/api/ontologies");
+    return parseWithFallback(raw, OntologyListSchema, [], {
+      endpoint: "GET /api/ontologies",
+    });
+  }
+
+  async getOntology(name: string): Promise<OntologyDetail> {
+    const raw = await this.fetch<unknown>(
+      `/api/ontologies/${encodeURIComponent(name)}`,
+    );
+    return parseWithFallback(raw, OntologyDetailSchema, EMPTY_ONTOLOGY_DETAIL, {
+      endpoint: "GET /api/ontologies/:name",
+    });
+  }
+
+  async attachAgentOntology(agentId: string, domain: string): Promise<void> {
+    await this.fetch(
+      `/api/agents/${agentId}/ontologies/${encodeURIComponent(domain)}`,
+      { method: "POST" },
+    );
+  }
+
+  async setAgentOntologyEnabled(
+    agentId: string,
+    ontologyId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    await this.fetch(`/api/agents/${agentId}/ontologies/${ontologyId}/enabled`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  async removeAgentOntology(agentId: string, ontologyId: string): Promise<void> {
+    await this.fetch(`/api/agents/${agentId}/ontologies/${ontologyId}`, {
+      method: "DELETE",
+    });
+  }
 
   // Personal Access Tokens
   async listPersonalAccessTokens(): Promise<PersonalAccessToken[]> {
@@ -2994,7 +3039,7 @@ export class ApiClient {
   async uploadFile(
     file: File,
     opts?: { issueId?: string; commentId?: string; chatSessionId?: string },
-    // Optional abort signal so a module-level upload coordinator (MUL-5181)
+    // Optional abort signal so a module-level upload coordinator (ENA-5181)
     // can cancel an in-flight upload on logout. When aborted, `fetch` rejects
     // with an AbortError, which the coordinator distinguishes from a real
     // failure via `signal.aborted` / `err.name === "AbortError"`.
@@ -3075,7 +3120,7 @@ export class ApiClient {
   // id the caller is refreshing so the server can atomically confirm it is still
   // the session's latest turn (409 otherwise) — that keeps the client's pending
   // marker aligned with the turn chat:quick_actions will resolve, with no
-  // response reconciliation needed even under a WS-before-HTTP race (MUL-5149).
+  // response reconciliation needed even under a WS-before-HTTP race (ENA-5149).
   async regenerateChatQuickActions(
     sessionId: string,
     messageId: string,
@@ -3414,6 +3459,26 @@ export class ApiClient {
     await this.fetch(`/api/projects/${id}`, { method: "DELETE" });
   }
 
+  // Project artifacts — every file produced under a project, resolved through
+  // the issues in it. Schema-parsed rather than cast: the artifacts browser
+  // builds its whole tree from this response, and a drifted field must degrade
+  // to an empty tree rather than throw inside the render.
+  async listProjectArtifacts(
+    projectId: string,
+    limit?: number,
+  ): Promise<ListProjectArtifactsResponse> {
+    const query = limit === undefined ? "" : `?limit=${limit}`;
+    const raw = await this.fetch<unknown>(
+      `/api/projects/${projectId}/artifacts${query}`,
+    );
+    return parseWithFallback(
+      raw,
+      ListProjectArtifactsResponseSchema,
+      EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
+      { endpoint: "GET /api/projects/{id}/artifacts" },
+    );
+  }
+
   // Project resources
   async listProjectResources(
     projectId: string,
@@ -3490,7 +3555,7 @@ export class ApiClient {
     await this.fetch(`/api/labels/${id}`, { method: "DELETE" });
   }
 
-  // Issue status catalog (MUL-6243). Reads are open to any workspace member;
+  // Issue status catalog (ENA-6243). Reads are open to any workspace member;
   // the mutations below are owner/admin only and return 403 otherwise.
   async listIssueStatuses(includeArchived = false): Promise<ListIssueStatusesResponse> {
     const query = includeArchived ? "?include_archived=true" : "";
@@ -3524,7 +3589,7 @@ export class ApiClient {
    * Rewrites one category's custom-status order in a single server-side
    * statement. Not expressible as a sequence of `updateIssueStatus` calls: a
    * row rejected mid-sequence would leave the earlier rows already reordered
-   * while the caller sees a failure. (MUL-6243)
+   * while the caller sees a failure. (ENA-6243)
    */
   async reorderIssueStatuses(
     category: IssueStatusCategory,
@@ -3758,7 +3823,7 @@ export class ApiClient {
     });
   }
 
-  // Saved issue views (MUL-4796). Responses go through zod so installed
+  // Saved issue views (ENA-4796). Responses go through zod so installed
   // desktop builds survive backend drift; a malformed list degrades to []
   // (selector shows only built-ins) rather than blanking the page.
   async listIssueViews(params: {
@@ -4263,11 +4328,11 @@ export class ApiClient {
     });
   }
 
-  // Composio integration (MUL-3720). All routes are user-scoped (a connection
+  // Composio integration (ENA-3720). All routes are user-scoped (a connection
   // belongs to a user, not a workspace), so none take a workspaceId.
 
   /** The project's connectable Composio toolkits (those with an enabled auth
-   * config). Since MUL-4009 the backend filters out non-connectable toolkits,
+   * config). Since ENA-4009 the backend filters out non-connectable toolkits,
    * so every entry has `connectable: true`. A resolver/upstream failure is a
    * 502 rather than an empty list. */
   async listComposioToolkits(): Promise<ComposioToolkit[]> {
@@ -4295,7 +4360,7 @@ export class ApiClient {
     });
   }
 
-  // Slack integration (MUL-3666)
+  // Slack integration (ENA-3666)
   async listSlackInstallations(workspaceId: string): Promise<ListSlackInstallationsResponse> {
     return this.fetch(`/api/workspaces/${workspaceId}/slack/installations`);
   }

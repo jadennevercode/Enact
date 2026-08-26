@@ -10,7 +10,7 @@ import (
 )
 
 // TestCreateAgent_ThinkingLevel_ValidationConsistency exercises the
-// MUL-2339 invariant: when an HTTP caller sends a literal-invalid
+// ENA-2339 invariant: when an HTTP caller sends a literal-invalid
 // thinking_level the API MUST return 400, regardless of which other
 // field combination the same request mutates. The constraint comes
 // from Trump's PR1 review: "invalid value 的 API 行为请保持一致，
@@ -414,7 +414,7 @@ func TestUpdateAgent_RuntimeSwitch_PreservesValidValueRejectsInvalid(t *testing.
 }
 
 // TestUpdateAgent_RuntimeSwitch_ClearsKnownIncompatibleModel covers the
-// runtime/model persistence bug from MUL-3341: a runtime_id-only PATCH used
+// runtime/model persistence bug from ENA-3341: a runtime_id-only PATCH used
 // to preserve a provider-native model string, so switching a Claude Code
 // agent to Codex could leave agent.model = "claude-..." and fail at task
 // execution. Unknown custom models are intentionally preserved because the
@@ -547,7 +547,7 @@ func TestUpdateAgent_RuntimeSwitch_ClearsKnownIncompatibleModel(t *testing.T) {
 // just that it was. A runtime with no reasoning control must not be described
 // as receiving an unrecognised value: "high" is a fine effort token, and the
 // old shared sentence sent users looking for a spelling that cannot exist
-// (MUL-5770).
+// (ENA-5770).
 //
 // Copilot is the standing example: it discovers over ACP but executes through
 // its own CLI, so no live ACP session exists to carry an effort. Hermes used
@@ -597,7 +597,7 @@ func TestThinkingLevelRejectionCopy(t *testing.T) {
 // 400s, and the body explains the capability gap rather than blaming the
 // value. Empty stays valid — it means "runtime default".
 //
-// It also pins the other side of the MUL-5991 change: hermes, which used to be
+// It also pins the other side of the ENA-5991 change: hermes, which used to be
 // this test's subject, now accepts a level because jcode applies one.
 func TestCreateAgent_NoReasoningControlRejectsThinkingLevel(t *testing.T) {
 	if testHandler == nil {

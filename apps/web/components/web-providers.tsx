@@ -13,6 +13,7 @@ import {
   clearLoggedInCookie,
 } from "@/features/auth/auth-cookie";
 import { detectWebOS } from "@/platform/client-os";
+import { deriveBrowserWsUrlFromPage } from "@/config/runtime-urls";
 
 // Legacy token in localStorage → keep this session in token mode so users who
 // logged in before the cookie-auth migration stay authed. They migrate to
@@ -29,13 +30,9 @@ function hasLegacyToken(): boolean {
   }
 }
 
-// Derive WebSocket URL from the page origin so self-hosted / LAN deployments
-// work without an explicit runtime wsUrl. The Next.js runtime proxy handles
-// /ws -> backend when the deployment keeps WebSockets same-origin.
-function deriveWsUrl(): string | undefined {
+function deriveWsUrl(loopbackBackendPort?: string): string | undefined {
   if (typeof window === "undefined") return undefined;
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws`;
+  return deriveBrowserWsUrlFromPage(window.location.href, loopbackBackendPort);
 }
 
 // Build-time version preferred (CI sets NEXT_PUBLIC_APP_VERSION to a git tag
@@ -50,12 +47,14 @@ export function WebProviders({
   resources,
   apiBaseUrl,
   wsUrl,
+  loopbackBackendPort,
 }: {
   children: React.ReactNode;
   locale: SupportedLocale;
   resources: Record<string, LocaleResources>;
   apiBaseUrl?: string;
   wsUrl?: string;
+  loopbackBackendPort?: string;
 }) {
   const cookieAuth = !hasLegacyToken();
   // Stable identity reference so downstream effects keyed on it don't see a
@@ -68,7 +67,7 @@ export function WebProviders({
   return (
     <CoreProvider
       apiBaseUrl={apiBaseUrl}
-      wsUrl={wsUrl || deriveWsUrl()}
+      wsUrl={wsUrl || deriveWsUrl(loopbackBackendPort)}
       cookieAuth={cookieAuth}
       onLogin={setLoggedInCookie}
       onLogout={() => {

@@ -56,7 +56,7 @@ type TaskService struct {
 	// idle claim polls while missing/error states preserve the DB fallback.
 	ReclaimCheck *ReclaimCheckCache
 	// Composio computes the per-task MCP overlay (Stage 3 of the Composio
-	// epic, MUL-3721) — the integration's "current user's connected apps
+	// epic, ENA-3721) — the integration's "current user's connected apps
 	// → MCP session URL" hook called from each Enqueue* path. Optional: a
 	// nil ComposioOverlayBuilder turns the overlay step into a no-op so
 	// every Enact deployment that hasn't enabled Composio behaves
@@ -236,7 +236,7 @@ func (s *TaskService) forgetTaskReclaim(task db.AgentTaskQueue) {
 // workspaceID scopes the fetch to the task's own workspace: the summary is
 // later returned in claim / task-history responses, so a foreign comment UUID
 // reaching an enqueue/merge path must NOT leak another workspace's text even in
-// truncated form (MUL-4252).
+// truncated form (ENA-4252).
 func (s *TaskService) buildCommentTriggerSummary(ctx context.Context, workspaceID, commentID pgtype.UUID) pgtype.Text {
 	if !commentID.Valid {
 		return pgtype.Text{}
@@ -256,16 +256,16 @@ func (s *TaskService) buildCommentTriggerSummary(ctx context.Context, workspaceI
 }
 
 // ResolveOriginatorFromTriggerComment is the exported wrapper used by the
-// comment-merge path (MUL-4195) to compute the top-of-chain human originator
+// comment-merge path (ENA-4195) to compute the top-of-chain human originator
 // for a newly-arrived comment, so a merge can be gated on the originator being
 // unchanged. workspaceID scopes the comment lookup to the task's workspace
-// (MUL-4252). See resolveOriginatorFromTriggerComment for the chain rules.
+// (ENA-4252). See resolveOriginatorFromTriggerComment for the chain rules.
 func (s *TaskService) ResolveOriginatorFromTriggerComment(ctx context.Context, workspaceID, commentID pgtype.UUID) pgtype.UUID {
 	return s.resolveOriginatorFromTriggerComment(ctx, workspaceID, commentID)
 }
 
 // AttributionForMergedComment resolves the FULL attribution snapshot for a comment
-// being coalesced into an already-queued task (MUL-4302). A merge re-attributes the
+// being coalesced into an already-queued task (ENA-4302). A merge re-attributes the
 // run to the newly-arrived comment's human, so the whole snapshot — source, evidence,
 // delegation lineage, and both person columns — must move together as one
 // attribution.Result; re-stamping only the person columns would leave a run showing
@@ -291,15 +291,15 @@ func (s *TaskService) AttributionForMergedComment(ctx context.Context, workspace
 }
 
 // BuildCommentTriggerSummary is the exported wrapper used by the comment-merge
-// path (MUL-4195) to refresh a coalesced task's trigger_summary to the newest
-// trigger comment's snapshot. workspaceID scopes the lookup (MUL-4252).
+// path (ENA-4195) to refresh a coalesced task's trigger_summary to the newest
+// trigger comment's snapshot. workspaceID scopes the lookup (ENA-4252).
 func (s *TaskService) BuildCommentTriggerSummary(ctx context.Context, workspaceID, commentID pgtype.UUID) pgtype.Text {
 	return s.buildCommentTriggerSummary(ctx, workspaceID, commentID)
 }
 
 // BuildRuntimeMCPOverlayForMerge recomputes the Composio MCP overlay +
 // connected-app metadata for (originatorUserID, agent), used when a merge
-// re-stamps a coalesced task's originator (MUL-4195 review must-fix #1). The
+// re-stamps a coalesced task's originator (ENA-4195 review must-fix #1). The
 // overlay is a pure function of (originator, agent); re-stamping it alongside
 // originator_user_id keeps the coalescing run's connected-app capabilities and
 // audit attribution consistent with the latest trigger comment's originator
@@ -394,7 +394,7 @@ func (s *TaskService) buildRuntimeMCPOverlay(ctx context.Context, originatorUser
 
 // resolveOriginatorFromTriggerComment returns the top-of-chain HUMAN user
 // id for a comment that triggered an Enqueue* path. The chain rules
-// (MUL-3869):
+// (ENA-3869):
 //
 //   - trigger comment authored by a member → originator = author_id (that
 //     member IS the top-of-chain human).
@@ -410,7 +410,7 @@ func (s *TaskService) buildRuntimeMCPOverlay(ctx context.Context, originatorUser
 // A nil receiver / nil Queries falls through to invalid so unit-test
 // setups that don't wire a DB stay safe. workspaceID scopes the comment lookup
 // to the task's workspace so a foreign comment UUID cannot resolve an
-// originator from another tenant (MUL-4252).
+// originator from another tenant (ENA-4252).
 func (s *TaskService) resolveOriginatorFromTriggerComment(ctx context.Context, workspaceID, commentID pgtype.UUID) pgtype.UUID {
 	// The originator VALUE is independent of the agent-authored source label, so
 	// any label works here; comment_source is passed only as a placeholder.
@@ -422,9 +422,9 @@ func (s *TaskService) resolveOriginatorFromTriggerComment(ctx context.Context, w
 // comment-triggered run. It performs the DB reads and hands the gathered facts
 // to the pure attribution.ClassifyComment rules so the classification stays
 // side-effect-free and unit-tested. The returned UserID is byte-identical to
-// the pre-MUL-4302 originator resolution, so authorization behavior (Composio
+// the pre-ENA-4302 originator resolution, so authorization behavior (Composio
 // overlay, canInvokeAgent A2A gate) is unchanged. workspaceID scopes the comment
-// lookup to the task's workspace (MUL-4252).
+// lookup to the task's workspace (ENA-4252).
 //
 // agentAuthoredSource selects the label for an agent-authored trigger comment:
 // attribution.SourceCommentSource for the issue-assignee-reacting path,
@@ -473,7 +473,7 @@ func (s *TaskService) attributionFromComment(ctx context.Context, comment db.Com
 // direct issue assignment/creation falls back to the issue's member creator.
 // Agent-created issues that carry an explicit task-origin link — quick_create
 // (daemon quick-create flow) or agent_create (an agent's ordinary `issue
-// create`, MUL-4305) — inherit that origin task's originator, since origin_id
+// create`, ENA-4305) — inherit that origin task's originator, since origin_id
 // points at the agent_task_queue row that created the issue. Other
 // agent/system origins, including autopilot, deliberately remain unattributed.
 func (s *TaskService) resolveOriginatorForIssueTask(ctx context.Context, issue db.Issue, triggerCommentID pgtype.UUID) pgtype.UUID {
@@ -490,7 +490,7 @@ func (s *TaskService) resolveOriginatorForIssueTask(ctx context.Context, issue d
 // trigger comment case (see attributionFromTriggerComment).
 func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issue, triggerCommentID pgtype.UUID, agentAuthoredSource attribution.Source, actorUserID pgtype.UUID) attribution.Result {
 	// A direct member action is the accountable human AND originator, ahead of any
-	// trigger comment, origin, or rule (MUL-4302 §4/§5). This covers assign/promote,
+	// trigger comment, origin, or rule (ENA-4302 §4/§5). This covers assign/promote,
 	// a manual autopilot trigger, and a manual rerun — the last of which may INHERIT
 	// a triggerCommentID for the daemon's prompt context, but must still attribute to
 	// the member who clicked rerun, not the original comment's human. So the actor is
@@ -503,7 +503,7 @@ func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issu
 			return attribution.Result{Source: attribution.SourceUnattributed}
 		}
 		// workspace-scoped so a foreign comment UUID cannot resolve a human from
-		// another tenant (MUL-4252).
+		// another tenant (ENA-4252).
 		comment, err := s.Queries.GetCommentInWorkspace(ctx, db.GetCommentInWorkspaceParams{
 			ID:          triggerCommentID,
 			WorkspaceID: issue.WorkspaceID,
@@ -521,7 +521,7 @@ func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issu
 		// comment we skip the comment branch and fall through to the parent issue's
 		// own provenance below — the same creator / agent_create-origin /
 		// autopilot-origin chain a direct enqueue resolves — reaching owner_fallback
-		// only if that provenance itself has no human (MUL-4302; raised by Bohan on
+		// only if that provenance itself has no human (ENA-4302; raised by Bohan on
 		// the stage-cascade fallback).
 		if comment.AuthorType != "system" {
 			return s.attributionFromComment(ctx, comment, agentAuthoredSource)
@@ -531,7 +531,7 @@ func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issu
 	// webhook trigger: no human authorized the run, so originator stays NULL, but it
 	// is accountable to the human currently RESPONSIBLE for the firing trigger's
 	// effective config (creator, then last substantive editor) — trigger_owner
-	// (MUL-4302; Elon must-fix), degrading to the rule publisher when no such member
+	// (ENA-4302; Elon must-fix), degrading to the rule publisher when no such member
 	// is recoverable. Resolved the same way run_only dispatch resolves
 	// it, so both autopilot execution modes attribute identically. (A manual trigger
 	// carries an actor and is already handled above.) The issue only stores the
@@ -554,7 +554,7 @@ func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issu
 	// task to inherit its human, and only when the DB is wired (nil Queries keeps
 	// unit-test setups safe and yields unattributed). Both origin types stamp
 	// origin_id with the agent_task_queue row that created the issue, so the
-	// top-of-chain human is that task's originator_user_id (MUL-4305).
+	// top-of-chain human is that task's originator_user_id (ENA-4305).
 	if !(issue.CreatorType == "member" && issue.CreatorID.Valid) &&
 		s != nil && s.Queries != nil && issue.OriginType.Valid && issue.OriginID.Valid &&
 		(issue.OriginType.String == "quick_create" || issue.OriginType.String == "agent_create") {
@@ -569,7 +569,7 @@ func (s *TaskService) attributionForIssueTask(ctx context.Context, issue db.Issu
 }
 
 // ruleOwnerAttribution resolves the rule_owner attribution for an autopilot run
-// from its active (latest) rule version snapshot (MUL-4302 §3.4). Shared by both
+// from its active (latest) rule version snapshot (ENA-4302 §3.4). Shared by both
 // autopilot execution modes — run_only dispatch and the create_issue enqueue path —
 // so they attribute identically. originator stays NULL (an autopilot carries no
 // human's authority); only the audit-accountable side is set, to the version's
@@ -596,7 +596,7 @@ func ruleOwnerAttribution(ctx context.Context, q *db.Queries, workspaceID, autop
 }
 
 // triggerOwnerAttribution resolves an autopilot schedule/webhook run to the human
-// currently RESPONSIBLE for the firing trigger's effective config (MUL-4302; Bohan +
+// currently RESPONSIBLE for the firing trigger's effective config (ENA-4302; Bohan +
 // Elon must-fix). triggerID is the autopilot_run's trigger_id. The trigger row's
 // published_by starts at the creator and transfers to whoever later substantively
 // edits it, so the run attributes to whoever last shaped what fires it — not the
@@ -611,7 +611,7 @@ func triggerOwnerAttribution(ctx context.Context, q *db.Queries, triggerID, work
 		// trigger's cron/filter/webhook, or an autopilot-level change that bumps all
 		// its triggers), then the editor. So a run attributes to whoever last shaped
 		// what fires it, not the original creator — and editing another trigger never
-		// moves this one (MUL-4302; Elon must-fix).
+		// moves this one (ENA-4302; Elon must-fix).
 		if trig, err := q.GetAutopilotTrigger(ctx, triggerID); err == nil &&
 			trig.PublishedByType.Valid && trig.PublishedByType.String == "member" && trig.PublishedByID.Valid {
 			return attribution.TriggerOwner(trig.PublishedByID, evidenceKind, evidenceRefID)
@@ -622,7 +622,7 @@ func triggerOwnerAttribution(ctx context.Context, q *db.Queries, triggerID, work
 
 // ErrAttributionFailClosed signals that a run resolved to no precise accountable
 // human and the enqueue is REFUSED rather than started. It covers three cases, all
-// of which mean "we cannot guarantee an accountable human for this run" (MUL-4302
+// of which mean "we cannot guarantee an accountable human for this run" (ENA-4302
 // §1/§3.5): the workspace opted into fail-closed; the workspace policy could not be
 // read (so we cannot confirm fallback is allowed — fail closed, don't run); or
 // owner_fallback has no agent owner to fall back to. Enqueue paths surface it so the
@@ -728,7 +728,7 @@ func attributionCreateParams(attr attribution.Result) (source pgtype.Text, deleg
 // resolution the enqueue path persists on the task row. Without a shared entry
 // point the gate saw an empty originator for agent-triggered assigns and denied
 // private leaders that the write path would have attributed correctly
-// (MUL-4305).
+// (ENA-4305).
 func (s *TaskService) OriginatorForIssueTask(ctx context.Context, issue db.Issue, triggerCommentID pgtype.UUID) pgtype.UUID {
 	return s.resolveOriginatorForIssueTask(ctx, issue, triggerCommentID)
 }
@@ -777,7 +777,7 @@ func (s *TaskService) captureTaskCancelled(ctx context.Context, task db.AgentTas
 	// needs to call back; eagerly deleting the token closes the
 	// window where a compromised process could keep authenticating
 	// against the API until the 24h expiry. Failure is non-fatal — the
-	// expiry / FK cascade are the durable guards. MUL-2600.
+	// expiry / FK cascade are the durable guards. ENA-2600.
 	if err := s.Queries.DeleteTaskTokensByTask(ctx, task.ID); err != nil {
 		slog.Warn("cancel task: failed to revoke task tokens",
 			"task_id", util.UUIDToString(task.ID), "error", err)
@@ -1083,11 +1083,11 @@ func (s *TaskService) hydrateDeferredChannelIssueTaskOverlay(ctx context.Context
 }
 
 // EnqueueTaskForIssueWithHandoff is the assign/promote variant that carries a
-// handoff note into the run's opening context (MUL-3375). The note rides a
+// handoff note into the run's opening context (ENA-3375). The note rides a
 // dedicated task column; the daemon renders it via the assignment-handoff
 // branch. Empty note behaves exactly like EnqueueTaskForIssue. actorUserID is the
 // member who performed the assign/promote and becomes the accountable human for
-// the run (MUL-4302 §4); invalid when the caller has no member actor.
+// the run (ENA-4302 §4); invalid when the caller has no member actor.
 func (s *TaskService) EnqueueTaskForIssueWithHandoff(ctx context.Context, issue db.Issue, handoffNote string, actorUserID pgtype.UUID) (db.AgentTaskQueue, error) {
 	return s.enqueueIssueTask(ctx, issue, pgtype.UUID{}, false, handoffNote, actorUserID, pgtype.UUID{}, pgtype.Timestamptz{})
 }
@@ -1164,11 +1164,11 @@ func (s *TaskService) enqueueIssueTaskWithCommentPlan(ctx context.Context, issue
 	// The issue assignee reacting to an agent-authored comment is a
 	// comment_source attribution (a special case of delegation); a member
 	// comment or direct member assignment is direct_human. attr.UserID is the
-	// same value the pre-MUL-4302 resolver produced, so overlay/authorization
+	// same value the pre-ENA-4302 resolver produced, so overlay/authorization
 	// are unchanged; the extra fields are audit provenance.
 	attr := s.attributionForIssueTask(ctx, issue, triggerCommentID, attribution.SourceCommentSource, actorUserID)
 	// No precise human resolved → owner_fallback (accountable = agent owner), or
-	// refuse the enqueue if the workspace is fail-closed (MUL-4302 §3.5).
+	// refuse the enqueue if the workspace is fail-closed (ENA-4302 §3.5).
 	attr, err = s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
 		slog.Warn("task enqueue refused: attribution fail-closed", "issue_id", util.UUIDToString(issue.ID), "agent_id", util.UUIDToString(issue.AssigneeID))
@@ -1287,9 +1287,9 @@ func (s *TaskService) EnqueueTaskForSquadLeader(ctx context.Context, issue db.Is
 }
 
 // EnqueueTaskForSquadLeaderWithHandoff is the assign/promote variant carrying a
-// handoff note into the leader run's opening context (MUL-3375). Empty note
+// handoff note into the leader run's opening context (ENA-3375). Empty note
 // behaves exactly like EnqueueTaskForSquadLeader. actorUserID is the member who
-// performed the assign/promote and becomes the accountable human (MUL-4302 §4);
+// performed the assign/promote and becomes the accountable human (ENA-4302 §4);
 // invalid when the caller has no member actor.
 func (s *TaskService) EnqueueTaskForSquadLeaderWithHandoff(ctx context.Context, issue db.Issue, leaderID pgtype.UUID, squadID pgtype.UUID, handoffNote string, actorUserID pgtype.UUID) (db.AgentTaskQueue, error) {
 	return s.enqueueMentionTask(ctx, issue, leaderID, pgtype.UUID{}, true, squadID, false, handoffNote, actorUserID, pgtype.UUID{})
@@ -1317,10 +1317,10 @@ func (s *TaskService) enqueueMentionTaskWithCommentPlan(ctx context.Context, iss
 	// An explicit mention / thread-parent / squad-leader hop from an
 	// agent-authored comment is a delegation (the parent task's human is
 	// copied); a member mention is direct_human. attr.UserID matches the
-	// pre-MUL-4302 value, so authorization is unchanged.
+	// pre-ENA-4302 value, so authorization is unchanged.
 	attr := s.attributionForIssueTask(ctx, issue, triggerCommentID, attribution.SourceDelegation, actorUserID)
 	// No precise human resolved → owner_fallback (accountable = agent owner), or
-	// refuse the enqueue if the workspace is fail-closed (MUL-4302 §3.5).
+	// refuse the enqueue if the workspace is fail-closed (ENA-4302 §3.5).
 	attr, err = s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
 		slog.Warn("mention task enqueue refused: attribution fail-closed", "issue_id", util.UUIDToString(issue.ID), "agent_id", util.UUIDToString(agentID))
@@ -1398,12 +1398,12 @@ func (s *TaskService) EnqueueDeferredAssigneeFallback(ctx context.Context, issue
 	// routed task, so resolve attribution from that comment (member author →
 	// direct_human; agent author → comment_source chain) and stamp it at creation.
 	// Promotion later only flips status, so stamping here keeps the eventual run
-	// off the NULL-source bypass (MUL-4302 §2). Overlay is intentionally left for
+	// off the NULL-source bypass (ENA-4302 §2). Overlay is intentionally left for
 	// the existing promotion path — this change is attribution-only. No direct
 	// actor here: the fallback is comment-routed, so attribution rides the comment.
 	attr := s.attributionForIssueTask(ctx, issue, triggerCommentID, attribution.SourceCommentSource, pgtype.UUID{})
 	// No precise human resolved → owner_fallback (accountable = agent owner), or
-	// refuse if the workspace is fail-closed (MUL-4302 §3.5).
+	// refuse if the workspace is fail-closed (ENA-4302 §3.5).
 	attr, err = s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
 		slog.Warn("deferred fallback enqueue refused: attribution fail-closed", "issue_id", util.UUIDToString(issue.ID), "agent_id", util.UUIDToString(agentID))
@@ -1550,10 +1550,10 @@ func (s *TaskService) EnqueueQuickCreateTask(ctx context.Context, workspaceID, r
 	// / run to reference (the issue is linked back later via LinkTaskToIssue).
 	// Evidence is therefore intentionally NULL; the accountable human is captured on
 	// originator/accountable_user_id, so this is not a NULL-source bypass — source
-	// is still stamped direct_human (MUL-4302 §2).
+	// is still stamped direct_human (ENA-4302 §2).
 	attr := attribution.DirectHumanRun(requesterID, "", pgtype.UUID{})
 	// An unresolved requester degrades to owner_fallback (accountable = agent
-	// owner), or is refused if the workspace is fail-closed (MUL-4302 §3.5).
+	// owner), or is refused if the workspace is fail-closed (ENA-4302 §3.5).
 	attr, err = s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
 		return db.AgentTaskQueue{}, err
@@ -1629,13 +1629,13 @@ var ErrChatQuickActionsUnavailable = errors.New("chat quick actions: llm layer n
 // longer the session's latest assistant turn (a newer reply landed since the
 // refresh button was rendered). The regeneration is refused so the client's
 // optimistic pending marker never points at a turn the resulting
-// chat:quick_actions event will not match (MUL-5149).
+// chat:quick_actions event will not match (ENA-5149).
 var ErrChatQuickActionsStale = errors.New("chat quick actions: refresh target is stale")
 
 // ErrChatQuickActionsBusy signals the session already has work in flight — a
 // running turn about to change the latest reply, or another regenerate pass —
 // so a new refresh is refused to avoid a stale-target supplement or a duplicate
-// quota-spending pass (MUL-5149).
+// quota-spending pass (ENA-5149).
 var ErrChatQuickActionsBusy = errors.New("chat quick actions: session busy")
 
 // ErrChatSessionArchived signals that a send or a debounced channel flush lost
@@ -1663,7 +1663,7 @@ var ErrChatSessionArchived = errors.New("chat task: session archived")
 // creator to the installer, not the sender (see the lark dispatcher). Web chat
 // passes the request user; the lark dispatcher passes the inbound sender of the
 // latest message in the silence window. Stored on the task so the daemon brief
-// can attribute the run to the right person. See MUL-2645.
+// can attribute the run to the right person. See ENA-2645.
 //
 // forceFreshSession applies only to the task created by this call. The daemon
 // uses it to skip prior chat-session resume for this dispatch without clearing
@@ -1686,10 +1686,10 @@ func (s *TaskService) EnqueueChatTask(ctx context.Context, chatSession db.ChatSe
 	// attribution UI links to the conversation the same way it does for
 	// autopilot_run / issue_assignment — the dedicated chat_session_id column still
 	// exists for its own consumers. An unresolved sender (some Lark group messages)
-	// degrades to unattributed rather than a NULL-source bypass (MUL-4302 §2).
+	// degrades to unattributed rather than a NULL-source bypass (ENA-4302 §2).
 	attr := attribution.DirectHumanRun(initiatorUserID, attribution.EvidenceChat, chatSession.ID)
 	// An unresolved sender degrades to owner_fallback (accountable = agent owner),
-	// or is refused if the workspace is fail-closed (MUL-4302 §3.5).
+	// or is refused if the workspace is fail-closed (ENA-4302 §3.5).
 	attr, err = s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
 		slog.Warn("chat task enqueue refused: attribution fail-closed", "chat_session_id", util.UUIDToString(chatSession.ID))
@@ -1836,7 +1836,7 @@ func (s *TaskService) EnqueueChatTask(ctx context.Context, chatSession db.ChatSe
 
 // RegenerateChatQuickActions runs a fresh suggestion pass for the session's
 // latest assistant turn, letting the user refresh the quick-action pills
-// without sending a new message (MUL-5149). Generation happens server-side
+// without sending a new message (ENA-5149). Generation happens server-side
 // through the same LLM path as the automatic pass, so this enqueues no agent
 // task and resumes no provider session — it just validates the target. It
 // returns the target assistant message id (so the client can anchor its pending
@@ -1868,7 +1868,7 @@ func (s *TaskService) RegenerateChatQuickActions(ctx context.Context, chatSessio
 	// and this request; regenerating then would build suggestions from the
 	// newer context yet attach them to the stale turn, and the client's pending
 	// marker would wait on a chat:quick_actions that never matches. Refuse so
-	// the client rolls back and re-offers refresh on the new turn (MUL-5149).
+	// the client rolls back and re-offers refresh on the new turn (ENA-5149).
 	if target.ID != expectedMessageID {
 		return pgtype.UUID{}, db.AgentTaskQueue{}, ErrChatQuickActionsStale
 	}
@@ -1964,7 +1964,7 @@ var ErrChatSessionAlreadyStarted = errors.New("chat session already has a user m
 // SendDirectChatMessage atomically persists one web/mobile direct-chat turn:
 // the owning task (which claims its own input batch via chat_input_task_id), the
 // user message bound to that task, any attachment bindings, and the session
-// touch all commit together (MUL-4351). The daemon is only notified after the
+// touch all commit together (ENA-4351). The daemon is only notified after the
 // commit, so it can never observe a message without a task or a task without its
 // input owner — and a later claim reads exactly this task's user messages
 // instead of scanning trailing history.
@@ -1990,7 +1990,7 @@ func (s *TaskService) SendDirectChatMessage(
 	// + fallback must not run with a transaction open) — the same direct_human stamp
 	// EnqueueChatTask writes. Without this the direct-chat path was a bypass: it set
 	// originator_user_id but left accountable_user_id / source / evidence NULL,
-	// violating the one-way invariant and dropping the audit source (MUL-4302 §2).
+	// violating the one-way invariant and dropping the audit source (ENA-4302 §2).
 	attr := attribution.DirectHumanRun(initiatorUserID, attribution.EvidenceChat, session.ID)
 	attr, err := s.applyAttributionFallback(ctx, attr, agent)
 	if err != nil {
@@ -2001,7 +2001,7 @@ func (s *TaskService) SendDirectChatMessage(
 	var out DirectChatSendResult
 	if err := s.runInTx(ctx, func(qtx *db.Queries) error {
 		// Serialise this send against a concurrent runtime rebind of the same
-		// session (MUL-5163). The lock must be taken first and the agent re-read
+		// session (ENA-5163). The lock must be taken first and the agent re-read
 		// under it: the runtime_id the caller loaded can already be stale by the
 		// time we get here, and a send blocked behind a rebind would otherwise
 		// resume and stamp its task with the runtime the switch just moved away
@@ -2147,7 +2147,7 @@ type MikaOnboardingOpenResult struct {
 
 // OpenMikaOnboardingChat writes a Mika conversation's first two rows in one
 // transaction: the hidden kickoff and the product-authored opening the member
-// sees (MUL-5827). Nothing is enqueued — this used to be a full chat task, and
+// sees (ENA-5827). Nothing is enqueued — this used to be a full chat task, and
 // the member waited out a runtime cold start to read a reply the product had
 // already decided word for word.
 //
@@ -2227,7 +2227,7 @@ func (s *TaskService) OpenMikaOnboardingChat(ctx context.Context, session db.Cha
 // Callers are explicit issue-lifecycle cleanup paths only — DeleteIssue and
 // BatchDeleteIssues, where the owning issue row is going away so its tasks
 // must not be left orphaned. A plain status flip, `cancelled` included, no
-// longer routes here (MUL-4465): cancelling an issue is not an implicit "stop
+// longer routes here (ENA-4465): cancelling an issue is not an implicit "stop
 // all runs" switch. Do not re-add a status-driven caller.
 //
 // Before #1587 this path was "cancel rows and return", which left each affected
@@ -2734,7 +2734,7 @@ func (s *TaskService) settleQueuedChatInput(
 
 // deleteUserChatInput removes a cancelled/edited turn's member-typed input and
 // releases any onboarding kickoff the turn had adopted — onto the session's
-// next queued turn when there is one, otherwise back to unowned (MUL-5827).
+// next queued turn when there is one, otherwise back to unowned (ENA-5827).
 // The two must happen together: deleting the input while leaving the kickoff
 // bound to the dead task would strand the onboarding context on a run that
 // will never happen.
@@ -2816,7 +2816,7 @@ func (s *TaskService) finalizeCancelledChatMessage(ctx context.Context, task db.
 				return fmt.Errorf("delete empty cancelled chat user message: %w", err)
 			}
 			// Always restorable now: the delete cannot return a kickoff row, so
-			// what comes back is always what the member typed (MUL-5827).
+			// what comes back is always what the member typed (ENA-5827).
 			cancelled = &CancelledChatMessageResult{
 				ChatSessionID:  util.UUIDToString(deleted.ChatSessionID),
 				MessageID:      util.UUIDToString(deleted.ID),
@@ -2884,7 +2884,7 @@ func (s *TaskService) FinalizeDeferredCancelledChat(ctx context.Context, taskID 
 	)
 	if err := s.runInTx(ctx, func(qtx *db.Queries) error {
 		// Lock the task's chat_session first. chat_draft_restore has no FK
-		// (MUL-3515), so the insert below takes no lock of its own on the
+		// (ENA-3515), so the insert below takes no lock of its own on the
 		// session — without this, a workspace/agent/session delete that swept
 		// the table just before we commit would leave our restore row (holding
 		// the user's prompt) orphaned forever. The deleters take the same lock
@@ -3375,7 +3375,7 @@ func (s *TaskService) RequeueTaskAfterClaimFailure(ctx context.Context, task db.
 	return &requeued, nil
 }
 
-// ClaimTasksForRuntimes is the machine-level (MUL-4257) batch counterpart of
+// ClaimTasksForRuntimes is the machine-level (ENA-4257) batch counterpart of
 // ClaimTaskForRuntime: it claims up to maxTasks tasks across every runtime in
 // runtimeIDs in a single call, so a daemon can poll for all of its runtimes
 // with one HTTP request and a constant number of DB queries instead of one
@@ -3523,7 +3523,7 @@ func (s *TaskService) ClaimTasksForRuntimes(ctx context.Context, runtimeIDs []pg
 		// them with a 500 makes the daemon HTTP-fall-back and claim a SECOND
 		// batch into the same free slots (the first batch then waits for stale
 		// reclaim) — the same double-claim this PR set out to remove
-		// (MUL-4257). Prefer partial success: hand back what committed so the
+		// (ENA-4257). Prefer partial success: hand back what committed so the
 		// handler finalizes and returns it; the errored candidates stay queued
 		// for the next poll.
 		if len(claimed) > 0 {
@@ -3567,7 +3567,7 @@ func (s *TaskService) ClaimTasksForRuntimes(ctx context.Context, runtimeIDs []pg
 			// Each scoped claim commits in its own transaction, so earlier
 			// iterations (and step-2 reclaims) are already dispatched
 			// server-side. Returning nil here would drop them and force the
-			// daemon to double-claim via HTTP fallback (MUL-4257). Return the
+			// daemon to double-claim via HTTP fallback (ENA-4257). Return the
 			// partial batch instead; the failed agent's task stays queued.
 			if len(claimed) > 0 {
 				slog.Error("batch claim: claim task failed after partial success; returning claimed tasks to avoid loss",
@@ -3924,7 +3924,7 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, resu
 			}
 
 			// Write the assistant outcome in the SAME transaction as the status
-			// flip and resume-pointer update (MUL-4351). For a task-owned direct
+			// flip and resume-pointer update (ENA-4351). For a task-owned direct
 			// task this is exactly one row (message or no_response); for a
 			// legacy/channel task an empty output writes no row (see
 			// writeChatCompletionOutcome). Failing here rolls the whole completion
@@ -4066,7 +4066,7 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, resu
 // chatNoResponseFallback is the non-empty English body stored on a no_response
 // assistant row. New clients render a localized "no text reply this turn"
 // message keyed on message_kind='no_response'; older clients that ignore
-// message_kind still show this text instead of an empty bubble (MUL-4351).
+// message_kind still show this text instead of an empty bubble (ENA-4351).
 const chatNoResponseFallback = "The agent finished this turn without a text reply."
 
 // writeChatCompletionOutcome writes the assistant chat_message outcome for a
@@ -4083,7 +4083,7 @@ const chatNoResponseFallback = "The agent finished this turn without a text repl
 // Channel (Slack/Lark) and legacy tasks keep the prior behavior: a non-empty
 // output writes an ordinary assistant message, but an EMPTY output writes NO
 // row, so chat:done carries empty content and the channel outbound silently
-// drops it (MUL-4351 review): the no_response fallback body must never be
+// drops it (ENA-4351 review): the no_response fallback body must never be
 // pushed to an external channel. Channel tasks now own a sealed input batch
 // (chat_input_task_id set) just like direct tasks, so the discriminator is the
 // immutable channel_ingested stamp on the owned batch — keyed by the batch
@@ -4110,7 +4110,7 @@ func (s *TaskService) writeChatCompletionOutcome(ctx context.Context, qtx *db.Qu
 	body, _ = splitChatQuickActions(body)
 	isEmpty := strings.TrimSpace(body) == ""
 
-	// MUL-4899 completion-boundary observation. Measures whether the delivery
+	// ENA-4899 completion-boundary observation. Measures whether the delivery
 	// contract in the runtime brief is actually landing on the chat surface.
 	// Strictly non-blocking: the reply is written either way.
 	s.observeChatOutputLocalPath(task, body)
@@ -4165,7 +4165,7 @@ func (s *TaskService) writeChatCompletionOutcome(ctx context.Context, qtx *db.Qu
 		// message_kind left NULL → COALESCE defaults to 'message'.
 		//
 		// The one exception is now a deploy-window case. The server writes the
-		// opening directly (MUL-5827), so no new task ever produces one — but a
+		// opening directly (ENA-5827), so no new task ever produces one — but a
 		// kickoff task enqueued by the previous server can still be claimed by
 		// this one, and its reply IS that member's opening. Leaving it a plain
 		// 'message' would permanently cost that session its starter cards.
@@ -4176,7 +4176,7 @@ func (s *TaskService) writeChatCompletionOutcome(ctx context.Context, qtx *db.Qu
 		// under a reply that is not an opening.
 		//
 		// Keyed on chatInputOwnerID, not task.ID: an auto-retry clone gets a
-		// fresh id while inheriting the root's chat_input_task_id (MUL-4351),
+		// fresh id while inheriting the root's chat_input_task_id (ENA-4351),
 		// and the kickoff user row stays bound to the root.
 		openingOnly, err := qtx.TaskInputIsOnboardingKickoffOnly(ctx, chatInputOwnerID(task))
 		if err != nil {
@@ -4222,7 +4222,7 @@ func (s *TaskService) writeChatCompletionOutcome(ctx context.Context, qtx *db.Qu
 }
 
 // observeChatOutputLocalPath records a metric when a chat reply references a
-// runtime-local path (MUL-4899). Observation only — it never mutates the reply,
+// runtime-local path (ENA-4899). Observation only — it never mutates the reply,
 // never fails the completion, and makes no claim to have fixed anything.
 //
 // Two hard constraints shape it:
@@ -4280,7 +4280,7 @@ func (s *TaskService) FailTask(ctx context.Context, taskID pgtype.UUID, errMsg, 
 	// reaches FailTask without going through request decoding.
 	errMsg = util.SanitizeTextForPostgres(errMsg)
 
-	// MUL-2946: synthesise a refined reason from the error text whenever the
+	// ENA-2946: synthesise a refined reason from the error text whenever the
 	// caller didn't supply one. This is the last write-path guard against
 	// "agent_error" coarse rows ending up in agent_task_queue.failure_reason
 	// — every other path either provides a classified reason directly
@@ -4290,7 +4290,7 @@ func (s *TaskService) FailTask(ctx context.Context, taskID pgtype.UUID, errMsg, 
 	if failureReason == "" {
 		failureReason = taskfailure.Classify(errMsg).String()
 	}
-	// MUL-5370: daemons upgrade on their own cadence, so a fix that depends on
+	// ENA-5370: daemons upgrade on their own cadence, so a fix that depends on
 	// a new daemon-side label only reaches hosts that happened to update. An
 	// older daemon reports a *non-empty* catchall for a failed skill-bundle
 	// download, which the branch above deliberately leaves alone — without this
@@ -4301,7 +4301,7 @@ func (s *TaskService) FailTask(ctx context.Context, taskID pgtype.UUID, errMsg, 
 	failureReason = taskfailure.NormalizeDaemonReason(failureReason, errMsg).String()
 
 	// Pre-compute the auto-retry so the retry child can be created inside the
-	// SAME transaction as the fail (MUL-4351). Doing it atomically closes the
+	// SAME transaction as the fail (ENA-4351). Doing it atomically closes the
 	// window between the fail committing and the retry appearing during which a
 	// newer chat task could claim the now-idle session and jump ahead of the
 	// retry. The overlay build can do network I/O (Composio), so we resolve it
@@ -4495,7 +4495,7 @@ func (s *TaskService) FailTask(ctx context.Context, taskID pgtype.UUID, errMsg, 
 			// onboarding kickoff would otherwise stay bound to a task that will
 			// never run again: the next turn would reach Mika with no onboarding
 			// context and no record that she had already greeted the member, and
-			// she would introduce herself a second time (MUL-5827). The query
+			// she would introduce herself a second time (ENA-5827). The query
 			// hands it to the session's next queued turn — including one the
 			// member queued while THIS turn was still running, which adoption at
 			// send time could not have caught.
@@ -4629,13 +4629,13 @@ func (s *TaskService) FailTask(ctx context.Context, taskID pgtype.UUID, errMsg, 
 // is transient infrastructure flakiness, not an agent decision. Unattended
 // issue runs otherwise terminate on it, while interactive chat only survives
 // because the CLI's own in-process retry happens to recover first — so we make
-// the platform retry it directly (MUL-4910). It is resume-safe (not in
+// the platform retry it directly (ENA-4910). It is resume-safe (not in
 // resumeUnsafeFailureReason), so the retry child inherits the session and
 // continues the truncated conversation rather than restarting from scratch.
 // skill_bundle_unavailable is retryable for the same reason: the agent process
 // never started, so there is nothing to be idempotent about, and every bundle
 // that did download is already cached on disk — a retry resumes from there
-// instead of re-fetching the whole set (MUL-5370).
+// instead of re-fetching the whole set (ENA-5370).
 var retryableReasons = map[string]bool{
 	string(taskfailure.ReasonRuntimeOffline):         true,
 	string(taskfailure.ReasonRuntimeRecovery):        true,
@@ -4653,7 +4653,7 @@ var retryableReasons = map[string]bool{
 // authoritative.
 //
 // Transient provider stream cuts (provider_network) get a bespoke three-tier
-// schedule (MUL-4910): first run + immediate retry + one retry deferred ~5s.
+// schedule (ENA-4910): first run + immediate retry + one retry deferred ~5s.
 // A blip that survives the immediate retry gets a short cooldown before the
 // final attempt instead of firing back-to-back. Every other retryable reason
 // keeps the task's generic max_attempts ceiling and retries immediately.
@@ -4673,7 +4673,7 @@ const (
 // not be revived by a raised ceiling. Callers persist this value into the retry
 // child (CreateRetryTask's max_attempts) so the row stays self-consistent:
 // provider_network's chain records attempt=3, max_attempts=3, not a
-// contradictory attempt=3, max_attempts=2 (MUL-4910).
+// contradictory attempt=3, max_attempts=2 (ENA-4910).
 func retryAttemptCeiling(reason string, taskMaxAttempts int32) int32 {
 	if taskMaxAttempts <= 1 {
 		return taskMaxAttempts
@@ -4725,7 +4725,7 @@ func resumeUnsafeFailureReason(reason string) bool {
 // that the GetLastTaskSession / GetLastChatTaskSession resume queries apply: an
 // Anthropic 400 invalid_request_error means the conversation history itself is
 // unprocessable even when failure_reason was mis- or un-classified (legacy
-// 'agent_error' rows written before MUL-1921, or deploy-window rows). Callers
+// 'agent_error' rows written before ENA-1921, or deploy-window rows). Callers
 // that only have a failure_reason (e.g. at fail time) may pass an empty
 // errorText.
 //
@@ -4941,7 +4941,7 @@ func (s *TaskService) MaybeRetryFailedTask(ctx context.Context, parent db.AgentT
 //     that have an issue ID but no specific task to target.
 //
 // A retry ALWAYS reuses the source task's workdir when it still exists on
-// disk (MUL-4869): a transient failure — network, provider 5xx/rate-limit,
+// disk (ENA-4869): a transient failure — network, provider 5xx/rate-limit,
 // runtime_offline, timeout, or an auth/quota/config error the user has since
 // fixed — should not throw away the work already done. Only the agent SESSION
 // is conditionally resumed, and that decision is made later by the daemon claim
@@ -4954,7 +4954,7 @@ func (s *TaskService) MaybeRetryFailedTask(ctx context.Context, parent db.AgentT
 // dir is objectively unreusable (GC'd, absent on the claiming runtime, or never
 // recorded) the daemon falls back to a fresh workdir. Auto-retry of an orphaned
 // mid-flight failure (HandleFailedTasks → MaybeRetryFailedTask →
-// CreateRetryTask) takes its own path, so MUL-1128's mid-flight resume contract
+// CreateRetryTask) takes its own path, so ENA-1128's mid-flight resume contract
 // is preserved.
 //
 // ErrRerunInvokeNotAllowed signals that RerunIssue refused to rerun because the
@@ -4969,7 +4969,7 @@ var ErrRerunInvokeNotAllowed = errors.New("rerun: operator not allowed to invoke
 //
 // canInvoke re-validates that the current operator may invoke the RESOLVED
 // target agent, keyed on the historical agent for a task_id rerun and on the
-// current assignee/leader otherwise (MUL-4525). It runs AFTER the target is
+// current assignee/leader otherwise (ENA-4525). It runs AFTER the target is
 // resolved but BEFORE any prior task is cancelled or a new one is created, so a
 // caller who can see the issue but cannot invoke its private agent cannot use
 // rerun as a back door — and a blocked rerun mutates nothing. Pass nil only
@@ -5036,7 +5036,7 @@ func (s *TaskService) RerunIssue(ctx context.Context, issueID pgtype.UUID, sourc
 	}
 
 	// Re-validate invoke permission on the RESOLVED target before mutating
-	// anything (MUL-4525). For a task_id rerun this gates the historical agent,
+	// anything (ENA-4525). For a task_id rerun this gates the historical agent,
 	// so a since-reassigned issue can't be used to re-fire a private agent the
 	// operator may only view. A block fails closed: no prior task is cancelled,
 	// no new task is created.
@@ -5053,7 +5053,7 @@ func (s *TaskService) RerunIssue(ctx context.Context, issueID pgtype.UUID, sourc
 	// Clear only the tasks that have not begun executing. Those are the rows the
 	// fresh enqueue would collide with under
 	// idx_one_pending_task_per_issue_agent_v2, and replacing them costs no work
-	// while keeping the new run attributed to the rerunning member (MUL-4302 §5)
+	// while keeping the new run attributed to the rerunning member (ENA-4302 §5)
 	// rather than inheriting whoever created the pending row.
 	//
 	// A running / waiting_local_directory task is deliberately left alone: an
@@ -5086,7 +5086,7 @@ func (s *TaskService) RerunIssue(ctx context.Context, issueID pgtype.UUID, sourc
 	cancelledCount := clearPendingSlot()
 
 	// A manual rerun is a NEW direct_human trigger attributed to the rerunning
-	// member, not the original run's human (MUL-4302 §5); actorUserID carries them.
+	// member, not the original run's human (ENA-4302 §5); actorUserID carries them.
 	// sourceTaskID is the rerun lineage: it rides the CreateAgentTask insert
 	// (rerun_of_task_id) so the queued event / daemon claim never sees a NULL
 	// lineage, and it stays distinct from system-retry's retry_of_task_id (§5).
@@ -5185,7 +5185,7 @@ func (s *TaskService) promoteNewestSurvivingComment(ctx context.Context, ids []p
 // pick a different execution than the one the user clicked. The NEW claim
 // handler ignores this flag for reruns and instead reads the exact source task
 // (rerun_of_task_id) to reuse its workdir and, when the failure did not poison
-// the conversation, resume its session (MUL-4869).
+// the conversation, resume its session (ENA-4869).
 func (s *TaskService) enqueueRerunTask(ctx context.Context, issue db.Issue, agentID pgtype.UUID, triggerCommentID pgtype.UUID, coalescedCommentIDs []pgtype.UUID, isLeader bool, squadID pgtype.UUID, actorUserID pgtype.UUID, rerunOfTaskID pgtype.UUID) (db.AgentTaskQueue, error) {
 	if issue.AssigneeType.String == "agent" && issue.AssigneeID.Valid &&
 		util.UUIDToString(issue.AssigneeID) == util.UUIDToString(agentID) {
@@ -5251,7 +5251,7 @@ func (s *TaskService) HandleFailedTasks(ctx context.Context, tasks []db.AgentTas
 				// blocked are excluded — a human or an external dependency owns
 				// the issue then — and a custom status resolves to the canonical
 				// status it inherits, so a custom review gate is excluded for
-				// the same reason In Review is. (MUL-6243)
+				// the same reason In Review is. (ENA-6243)
 				effectiveStatus := issuestatus.Effective(ctx, s.Queries, issue.WorkspaceID, issue.Status)
 				if effectiveStatus == "in_progress" && !processedIssues[issueKey] && !retriedIssues[issueKey] {
 					processedIssues[issueKey] = true
@@ -5277,7 +5277,7 @@ func (s *TaskService) HandleFailedTasks(ctx context.Context, tasks []db.AgentTas
 							// handler that normally emits issue:updated, so emit
 							// it here too. Without it the board / status-filter
 							// caches keep showing the issue as in_progress until
-							// the next write touches it (#4648 / MUL-3782).
+							// the next write touches it (#4648 / ENA-3782).
 							s.broadcastIssueUpdated(ctx, updatedIssue, issue.Status)
 						}
 					}
@@ -6345,7 +6345,7 @@ func (s *TaskService) broadcastChatDone(ctx context.Context, task db.AgentTaskQu
 // side effects: the activity-log and inbox listeners type-assert `issue` to a
 // handler.IssueResponse and skip a map, so a background status reset does not
 // emit status-change activity / notifications. That is intentional for the
-// realtime-staleness fix (#4648 / MUL-3782); folding those side effects in
+// realtime-staleness fix (#4648 / ENA-3782); folding those side effects in
 // would mean unifying the payload type and is left as a follow-up.
 func (s *TaskService) broadcastIssueUpdated(ctx context.Context, issue db.Issue, prevStatus string) {
 	prefix := s.getIssuePrefix(issue.WorkspaceID)
@@ -6500,7 +6500,7 @@ func builtInStatusCategory(status string) string {
 // IssueToMapWithCategory is IssueToMap with an AUTHORITATIVE status_category,
 // resolved through the catalog so a custom status is not emitted with a blank
 // one. Background events go through here; clients treat this payload as a
-// complete issue and bucket it by category. (MUL-6243)
+// complete issue and bucket it by category. (ENA-6243)
 func IssueToMapWithCategory(ctx context.Context, q issuestatus.Querier, issue db.Issue, issuePrefix string) map[string]any {
 	m := IssueToMap(issue, issuePrefix)
 	m["status_category"] = issuestatus.Effective(ctx, q, issue.WorkspaceID, issue.Status)
@@ -6518,7 +6518,7 @@ func IssueToMap(issue db.Issue, issuePrefix string) map[string]any {
 		"status":       issue.Status,
 		// Mirrors handler.IssueResponse.StatusCategory: a built-in status IS
 		// its own category, so this resolves with no catalog lookup. Empty for
-		// a custom status, which consumers resolve via the catalog. (MUL-6243)
+		// a custom status, which consumers resolve via the catalog. (ENA-6243)
 		"status_category":  builtInStatusCategory(issue.Status),
 		"priority":         issue.Priority,
 		"assignee_type":    util.TextToPtr(issue.AssigneeType),
@@ -6540,7 +6540,7 @@ func IssueToMap(issue db.Issue, issuePrefix string) map[string]any {
 	}
 }
 
-// IssueIdentifier renders the human-facing issue key ("MUL-42"). Callers that
+// IssueIdentifier renders the human-facing issue key ("ENA-42"). Callers that
 // resolve the workspace prefix defensively may pass "": a failed workspace
 // lookup should not surface as a stray "-42", so the number stands alone as
 // "#42". The HTTP layer never passes "" — handler.getIssuePrefix derives a
@@ -6691,7 +6691,7 @@ func (s *TaskService) notifyQuickCreateCompleted(ctx context.Context, task db.Ag
 	//
 	// This was one of three separate hand-rolled fixes for "an agent created
 	// this issue and no human is subscribed" (quick-create here, the autopilot
-	// subscriber template, and — missing entirely until MUL-5483 — ordinary
+	// subscriber template, and — missing entirely until ENA-5483 — ordinary
 	// agent-created sub-issues). Keeping a second write here would leave the
 	// same decision encoded in two places that can drift.
 	prefix := s.getIssuePrefix(workspaceID)

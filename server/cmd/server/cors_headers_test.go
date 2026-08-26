@@ -37,7 +37,7 @@ func TestCORSAllowedHeaders_IncludeIdempotencyKey(t *testing.T) {
 // Custom response headers are not readable from browser JS unless the server
 // exposes them, and only the CORS-safelisted headers are exposed by default — so
 // an entry missing here is not a degraded signal, it is no signal at all: the
-// header arrives on the wire and the client cannot see it (MUL-5492).
+// header arrives on the wire and the client cannot see it (ENA-5492).
 func TestCORSExposedHeaders_IncludeTruncationSignals(t *testing.T) {
 	for _, want := range []string{
 		handler.HeaderCommentsTruncated,

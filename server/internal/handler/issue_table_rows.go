@@ -483,7 +483,7 @@ SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
 		baseHandler.observeIssueWindow(r.Context(), compiled.workspaceID, windowPolicy, issueIDs, "table")
 	}
 	labelsByIssue := baseHandler.labelsByIssue(r.Context(), compiled.workspaceID, issueIDs)
-	// One Resolver for the page — see newStatusCategoryFiller. (MUL-6243)
+	// One Resolver for the page — see newStatusCategoryFiller. (ENA-6243)
 	fillTableRow := baseHandler.newStatusCategoryFiller(r.Context(), compiled.workspaceID)
 	responseRows := make([]issueTableRowResponse, len(scanned))
 	for index, row := range scanned {

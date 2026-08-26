@@ -32,7 +32,6 @@ DATABASE_URL=postgres://enact:enact@localhost:${postgres_port}/${postgres_db}?ss
 
 PORT=${backend_port}
 JWT_SECRET=change-me-in-production
-ENACT_DEV_VERIFICATION_CODE=888888
 ENACT_SERVER_URL=ws://localhost:${backend_port}/ws
 ENACT_PUBLIC_URL=http://localhost:${backend_port}
 ENACT_APP_URL=${frontend_origin}

@@ -878,7 +878,7 @@ func TestDeleteMember_RevokesTargetRuntimes(t *testing.T) {
 }
 
 // TestDeleteMember_PrunesChannelUserBindings verifies the application-layer
-// replacement for the channel_user_binding member-FK cascade (MUL-3515 §4):
+// replacement for the channel_user_binding member-FK cascade (ENA-3515 §4):
 // removing a member prunes that member's channel bindings, in the same tx as
 // the member-row delete, while leaving a remaining member's binding intact.
 func TestDeleteMember_PrunesChannelUserBindings(t *testing.T) {
@@ -888,7 +888,7 @@ func TestDeleteMember_PrunesChannelUserBindings(t *testing.T) {
 	const removedOpenID = "ou_revoke_binding_removed"
 	const keepOpenID = "ou_revoke_binding_keep"
 
-	// channel_* rows have no FK to workspace (MUL-3515 §4), so the fixture's
+	// channel_* rows have no FK to workspace (ENA-3515 §4), so the fixture's
 	// workspace-delete cleanup never reaches them; clear by deterministic key
 	// both before (in case a prior run was killed mid-test) and after.
 	cleanChannel := func() {
@@ -910,14 +910,14 @@ RETURNING id
 
 	// Binding for the member being removed — must be pruned.
 	dbfx.Exec(t, `
-INSERT INTO channel_user_binding (workspace_id, multica_user_id, installation_id, channel_type, channel_user_id)
+INSERT INTO channel_user_binding (workspace_id, enact_user_id, installation_id, channel_type, channel_user_id)
 VALUES ($1, $2, $3, 'feishu', $4)
 `, fx.WorkspaceID, fx.TargetUserID, installID, removedOpenID)
 
 	// Binding for the requester (an owner who stays) — must survive, proving
 	// the prune is scoped to the removed user, not the whole workspace.
 	dbfx.Exec(t, `
-INSERT INTO channel_user_binding (workspace_id, multica_user_id, installation_id, channel_type, channel_user_id)
+INSERT INTO channel_user_binding (workspace_id, enact_user_id, installation_id, channel_type, channel_user_id)
 VALUES ($1, $2, $3, 'feishu', $4)
 `, fx.WorkspaceID, testUserID, installID, keepOpenID)
 
@@ -1090,7 +1090,7 @@ INSERT INTO member (workspace_id, user_id, role) VALUES ($1, $2, 'owner')
 }
 
 // TestDefaultIssuePrefixFromSlug pins the derivation new workspaces get
-// (MUL-6050): alphanumerics of the slug, first 4, uppercased. The Chinese
+// (ENA-6050): alphanumerics of the slug, first 4, uppercased. The Chinese
 // cases are the point of the change — under the old name-based derivation
 // every one of them collapsed to "WS".
 //
@@ -1126,7 +1126,7 @@ func TestDefaultIssuePrefixFromSlug(t *testing.T) {
 // workspaces whose stored prefix is empty. Issue identifiers are computed
 // from the current prefix on every read, so changing what this returns would
 // silently rewrite the identifier of every historical issue in those
-// workspaces. The product decision on MUL-6050 was explicit: no backfill,
+// workspaces. The product decision on ENA-6050 was explicit: no backfill,
 // existing workspaces are left exactly as they are — which means this
 // function must keep returning what it always did, including "WS" for
 // non-ASCII names.
@@ -1158,7 +1158,7 @@ func TestLegacyIssuePrefixFromName_Frozen(t *testing.T) {
 // must stay on the old name-based derivation. Pointing it at
 // defaultIssuePrefixFromSlug would rewrite the identifier of every issue in
 // those legacy workspaces on the next read — the exact outcome the "no
-// backfill, leave existing workspaces alone" decision on MUL-6050 rules out.
+// backfill, leave existing workspaces alone" decision on ENA-6050 rules out.
 func TestIssuePrefixForWorkspace_LegacyFallbackFrozen(t *testing.T) {
 	cases := []struct {
 		label string
@@ -1192,7 +1192,7 @@ func TestNormalizeIssuePrefix(t *testing.T) {
 		// Absent / blank means "use the default", not "invalid".
 		{"", "", true},
 		{"   ", "", true},
-		// Rejections the API accepted before MUL-6050.
+		// Rejections the API accepted before ENA-6050.
 		{"ABCDEFGHIJK", "", false},
 		{"前端", "", false},
 		{"AB-CD", "", false},
@@ -1213,7 +1213,7 @@ func TestNormalizeIssuePrefix(t *testing.T) {
 }
 
 // TestCreateWorkspace_ChineseNameDerivesPrefixFromSlug is the end-to-end
-// regression for MUL-6050: a workspace whose name has no ASCII letters used
+// regression for ENA-6050: a workspace whose name has no ASCII letters used
 // to be created with prefix "WS" — deterministically, for every Chinese team
 // on the instance. It must now take its prefix from the slug, which the same
 // form already forced the user to choose in ASCII.
@@ -1239,7 +1239,7 @@ func TestCreateWorkspace_ChineseNameDerivesPrefixFromSlug(t *testing.T) {
 		t.Fatalf("issue_prefix = %q, want %q (derived from the slug, not the name)", resp.IssuePrefix, "HAND")
 	}
 	if resp.IssuePrefix == "WS" {
-		t.Fatal("issue_prefix fell back to WS — the MUL-6050 regression is back")
+		t.Fatal("issue_prefix fell back to WS — the ENA-6050 regression is back")
 	}
 }
 
@@ -1270,7 +1270,7 @@ func TestCreateWorkspace_HonorsExplicitIssuePrefix(t *testing.T) {
 }
 
 // TestCreateWorkspace_RejectsInvalidIssuePrefix closes the API-side hole the
-// settings UI already guarded: before MUL-6050 the create and update handlers
+// settings UI already guarded: before ENA-6050 the create and update handlers
 // only trimmed and uppercased the caller-supplied prefix, so a direct API call
 // could persist CJK text or a 100-character string as an issue prefix.
 func TestCreateWorkspace_RejectsInvalidIssuePrefix(t *testing.T) {

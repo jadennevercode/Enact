@@ -62,7 +62,7 @@ func (s *Store) GetInstallation(ctx context.Context, id pgtype.UUID) (Installati
 }
 
 // IsWorkspaceMember re-checks membership at inbound time. With channel_* FKs
-// removed (MUL-3515 §4) a stale binding could otherwise route a message to a
+// removed (ENA-3515 §4) a stale binding could otherwise route a message to a
 // user who has since left the workspace.
 func (s *Store) IsWorkspaceMember(ctx context.Context, workspaceID, userID pgtype.UUID) (bool, error) {
 	_, err := s.Queries.GetMemberByUserAndWorkspace(ctx, db.GetMemberByUserAndWorkspaceParams{

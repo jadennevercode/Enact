@@ -125,7 +125,7 @@ func enrich(t *testing.T, fake *enricherFakeClient, msg InboundMessage, cfg Inbo
 	return e.Enrich(context.Background(), msg, InstallationCredentials{AppID: "a", AppSecret: "s"})
 }
 
-// TestEnrichQuotedReply covers the MUL-2951 quoted-reply example: a text
+// TestEnrichQuotedReply covers the ENA-2951 quoted-reply example: a text
 // reply to a prior text message gets the parent inlined as a
 // <quoted_message> block ahead of the user's own prose.
 func TestEnrichQuotedReply(t *testing.T) {

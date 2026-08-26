@@ -13,7 +13,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/testutil"
 )
 
-// TestTriggerAutopilot_InternalFailureDoesNotEchoError pins MUL-6472: an
+// TestTriggerAutopilot_InternalFailureDoesNotEchoError pins ENA-6472: an
 // unclassified dispatch failure answers with a FIXED 500 string. The chain
 // behind it names internal machinery (here "create run: load idempotent quota
 // run: no rows in result set", elsewhere pgx table/constraint names), and every
@@ -45,7 +45,7 @@ func TestTriggerAutopilot_InternalFailureDoesNotEchoError(t *testing.T) {
 		testPool.Exec(context.Background(), `DELETE FROM autopilot_quota_period WHERE workspace_id = $1`, testWorkspaceID)
 	})
 
-	agentID := createWebhookTestAgent(t, "MUL-6472 Trigger Agent")
+	agentID := createWebhookTestAgent(t, "ENA-6472 Trigger Agent")
 	autopilotID := createWebhookTestAutopilot(t, agentID, "active", "run_only")
 
 	// A settled reservation with no run row pointing back at it. Reusing its
@@ -53,7 +53,7 @@ func TestTriggerAutopilot_InternalFailureDoesNotEchoError(t *testing.T) {
 	// is an internal error rather than the recoverable "reserved" orphan case.
 	// The stored key is the one the manual entry point composes, not the raw
 	// header value.
-	const idempotencyKey = "mul-6472-orphaned-reservation"
+	const idempotencyKey = "ena-6472-orphaned-reservation"
 	dbfx.Insert(t, "autopilot_quota_reservation", testutil.Cols{
 		"workspace_id":         testWorkspaceID,
 		"period_start":         start,

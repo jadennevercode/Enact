@@ -18,7 +18,7 @@ func setWorkspaceDeleteLockTimeoutForTest(t *testing.T, v time.Duration) {
 }
 
 // TestDeleteWorkspace_FailsFastWhenRollupLockHeld is the regression test for
-// MUL-5983: "clicking delete workspace does nothing".
+// ENA-5983: "clicking delete workspace does nothing".
 //
 // The teardown transaction takes global advisory lock 4246 so the
 // task_usage_hourly rollup cannot write aggregates for a workspace that is
@@ -38,7 +38,7 @@ func TestDeleteWorkspace_FailsFastWhenRollupLockHeld(t *testing.T) {
 
 	// Taking 4246 by hand is exactly what the rollup family's cross-binary
 	// guard exists to serialise: internal/scheduler runs in parallel against
-	// the same database, and its own 4246 tests read the lock's state (MUL-3980).
+	// the same database, and its own 4246 tests read the lock's state (ENA-3980).
 	lockRollupSingleton(t)
 
 	setWorkspaceDeleteLockTimeoutForTest(t, 500*time.Millisecond)
@@ -105,7 +105,7 @@ VALUES ($1, $2, 'owner')
 		// Unblock the handler so the test binary can still shut down cleanly.
 		releaseHolder()
 		<-done
-		t.Fatal("DeleteWorkspace blocked on advisory lock 4246 instead of timing out — this is the hang users see as 'delete workspace does nothing' (MUL-5983)")
+		t.Fatal("DeleteWorkspace blocked on advisory lock 4246 instead of timing out — this is the hang users see as 'delete workspace does nothing' (ENA-5983)")
 	}
 
 	if w.Code != http.StatusServiceUnavailable {

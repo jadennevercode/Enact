@@ -2,7 +2,7 @@ package execenv
 
 import "testing"
 
-// ChannelCarriesFiles is the delivery half of the MUL-4899 channel policy. It
+// ChannelCarriesFiles is the delivery half of the ENA-4899 channel policy. It
 // decides whether an agent is told to run `enact attachment upload` or to
 // describe its file in words, so a wrong answer is not cosmetic: a false
 // positive has the agent write "see the attached chart" into a conversation

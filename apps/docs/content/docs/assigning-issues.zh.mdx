@@ -72,10 +72,10 @@ Enact 会为智能体创建一条[执行任务](/tasks)。在线运行时领取�
 ## 使用 CLI
 
 ```bash
-enact issue assign MUL-42 --to "Agent name"
-enact issue assign MUL-42 --to-id <agent-uuid> --no-start
-enact issue status MUL-42 in_progress --no-start
-enact issue assign MUL-42 --unassign
+enact issue assign ENA-42 --to "Agent name"
+enact issue assign ENA-42 --to-id <agent-uuid> --no-start
+enact issue status ENA-42 in_progress --no-start
+enact issue assign ENA-42 --unassign
 ```
 
 脚本中用 `--to-id <uuid>` 可避免同名对象匹配错误。UUID 通过 `enact agent list --output json` 或 `enact workspace member list --output json` 查看。

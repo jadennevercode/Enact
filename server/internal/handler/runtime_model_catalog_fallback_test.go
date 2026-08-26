@@ -19,7 +19,7 @@ func reportModelList(t *testing.T, requestID string, body map[string]any) *httpt
 	req := newDaemonTokenRequest(
 		http.MethodPost,
 		"/api/daemon/runtimes/"+testRuntimeID+"/models/"+requestID+"/result",
-		body, testWorkspaceID, "daemon-mul5549",
+		body, testWorkspaceID, "daemon-ena5549",
 	)
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("runtimeId", testRuntimeID)
@@ -46,7 +46,7 @@ func withModelListStores(t *testing.T) ModelCatalogCache {
 	return cache
 }
 
-// TestReportModelListResult_FallbackDoesNotPoisonCache is the MUL-5549
+// TestReportModelListResult_FallbackDoesNotPoisonCache is the ENA-5549
 // regression, driven end to end through the handler.
 //
 // A runtime discovers its real catalog, then hits a transient discovery failure
@@ -194,7 +194,7 @@ func TestReportModelListResult_EmptyCatalogStillDropsSnapshot(t *testing.T) {
 // TestModelCatalogCacheDecision pins the three-way branch ReportModelListResult
 // takes on a completed report.
 //
-// The fallback row is the MUL-5549 regression. A static stand-in is non-empty
+// The fallback row is the ENA-5549 regression. A static stand-in is non-empty
 // and `supported`, so it used to be indistinguishable from a real catalog and
 // got stored as last-known-good for the full 24h serve window. It must now be
 // Keep: not stored, but also not allowed to evict a real catalog we already

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { TestApiClient } from "./fixtures";
 import { waitForPageText } from "./helpers";
 
-// Stage 3.2 (MUL-3870): the creator-only MCP tab on the agent detail page.
+// Stage 3.2 (ENA-3870): the creator-only MCP tab on the agent detail page.
 //
 // Auth + workspace bootstrap go through the real backend (same as every other
 // spec), but the agent list and the Composio connection/catalog endpoints are
@@ -80,6 +80,23 @@ function mockAgent(ownerId: string, workspaceId: string) {
  *  /api/agents/<id> body. Returns a getter for the last captured allowlist. */
 async function mockApis(page: Page, ownerId: string) {
   const captured: { allowlist?: unknown } = {};
+
+  await page.route("**/api/config", async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      feature_flags?: Record<string, boolean>;
+    };
+    await route.fulfill({
+      response,
+      json: {
+        ...body,
+        feature_flags: {
+          ...body.feature_flags,
+          composio_mcp_apps: true,
+        },
+      },
+    });
+  });
 
   await page.route("**/api/integrations/composio/toolkits", (route) =>
     route.fulfill({
@@ -161,8 +178,10 @@ test.describe("Agent MCP tab (creator-only)", () => {
     });
     await waitForPageText(page, "MCP Test Agent");
 
-    // The creator-only tab entry is present and opens the connection list.
-    const tab = page.getByRole("button", { name: "MCP Apps" });
+    // The creator-only tab entry lives under Capabilities and opens the
+    // connection list.
+    await page.getByRole("tab", { name: "Capabilities" }).click();
+    const tab = page.getByRole("tab", { name: "MCP Apps" });
     await expect(tab).toBeVisible({ timeout: 15000 });
     await tab.click();
 
@@ -184,10 +203,12 @@ test.describe("Agent MCP tab (creator-only)", () => {
     });
     await waitForPageText(page, "MCP Test Agent");
 
-    // Other tabs render, but the creator-only MCP Apps entry must not.
-    await expect(page.getByRole("button", { name: "Activity" })).toBeVisible({
+    // The capabilities section renders, but the creator-only MCP Apps entry
+    // must not.
+    await page.getByRole("tab", { name: "Capabilities" }).click();
+    await expect(page.getByRole("tab", { name: "Instructions" })).toBeVisible({
       timeout: 15000,
     });
-    await expect(page.getByRole("button", { name: "MCP Apps" })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "MCP Apps" })).toHaveCount(0);
   });
 });

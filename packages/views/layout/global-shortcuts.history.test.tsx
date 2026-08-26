@@ -25,6 +25,7 @@ vi.mock("@enact/core/paths", () => ({
     squads: () => "/w/squads",
     usage: () => "/w/usage",
     runtimes: () => "/w/runtimes",
+    ontologies: () => "/w/ontologies",
     skills: () => "/w/skills",
     settings: () => "/w/settings",
   }),

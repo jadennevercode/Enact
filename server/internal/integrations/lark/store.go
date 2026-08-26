@@ -2,7 +2,7 @@ package lark
 
 // Channel-backed store for the Feishu integration.
 //
-// MUL-3515 generalized the lark_* tables into channel_* (a channel_type
+// ENA-3515 generalized the lark_* tables into channel_* (a channel_type
 // discriminator + a JSONB `config` blob for the platform-specific
 // identifiers/credentials). This file owns the one boundary where that JSONB
 // is (de)serialized: the rest of the package keeps working with flat domain

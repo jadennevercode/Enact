@@ -10,6 +10,7 @@ import { RESOURCES } from "@enact/views/locales";
 import { getRequestLocale } from "@/lib/request-locale";
 import { SITE_TITLE, TITLE_TEMPLATE } from "@/platform/document-title";
 import {
+  resolveBrowserBackendPort,
   resolveBrowserApiBaseUrl,
   resolveBrowserWsUrl,
 } from "@/config/runtime-urls";
@@ -139,6 +140,7 @@ export default async function RootLayout({
   const resources = { [locale]: RESOURCES[locale] };
   const apiBaseUrl = resolveBrowserApiBaseUrl(process.env);
   const wsUrl = resolveBrowserWsUrl(process.env);
+  const loopbackBackendPort = resolveBrowserBackendPort(process.env);
 
   return (
     <html
@@ -171,6 +173,7 @@ export default async function RootLayout({
             resources={resources}
             apiBaseUrl={apiBaseUrl}
             wsUrl={wsUrl}
+            loopbackBackendPort={loopbackBackendPort}
           >
             {children}
           </WebProviders>

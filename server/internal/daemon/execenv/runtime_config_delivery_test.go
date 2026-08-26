@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The MUL-4899 delivery contract as the BRIEF states it. Two orthogonal
+// The ENA-4899 delivery contract as the BRIEF states it. Two orthogonal
 // properties are pinned here and must not be collapsed:
 //
 //   - The invariant ("never link a local path") is ALWAYS-ON — every task kind,
@@ -20,7 +20,7 @@ import (
 // The brief stops there on purpose. Whether the last hop into a room happens is
 // a DEPLOYMENT fact — object storage, and a server new enough to report it —
 // that flips under a session already running, and the brief is the prompt-cache
-// prefix (MUL-5377), so a brief that answered it would render twice for one
+// prefix (ENA-5377), so a brief that answered it would render twice for one
 // resumed chat. The verdict is stated by the per-turn chat prompt, and both of
 // its branches are pinned by TestBuildChatPromptTwoLayerChannelPolicy in
 // daemon/prompt_test.go — that is where the "upload works here" / "describe it
@@ -238,7 +238,7 @@ func TestBriefSurfaceDeliveryPolicy(t *testing.T) {
 // of the defect: the verdict arrives on every claim, an operator toggling object
 // storage or upgrading the server flips it under a chat that is already running,
 // and the brief is the prompt-cache prefix. Two briefs for one resumed session
-// is a cache miss on every turn after the flip (MUL-5377).
+// is a cache miss on every turn after the flip (ENA-5377).
 //
 // So the property is inverted here rather than dropped. What the verdict
 // actually changes still has to be pinned somewhere, and it is: the per-turn
@@ -261,7 +261,7 @@ func TestBriefChannelDeliveryCopyIgnoresServerVerdict(t *testing.T) {
 	for _, name := range []string{"chat_wecom_no_store", "chat_wecom_old_server"} {
 		got := buildMetaSkillContent("claude", fixtures[name])
 		if got != delivering {
-			t.Errorf("brief for %q differs from chat_wecom — the server's per-turn file-delivery verdict reached the cached prefix (MUL-5377).\n%s",
+			t.Errorf("brief for %q differs from chat_wecom — the server's per-turn file-delivery verdict reached the cached prefix (ENA-5377).\n%s",
 				name, firstBriefDiff(delivering, got))
 		}
 	}
@@ -275,7 +275,7 @@ func TestBriefChannelDeliveryCopyIgnoresServerVerdict(t *testing.T) {
 // wording in it — one channel-backed brief may differ from another ONLY in
 // which platform it names. Anything platform-specific past the name is either a
 // promise or a denial about the last hop, and the brief may carry neither,
-// because that hop is a deployment fact stated per turn (MUL-4899).
+// because that hop is a deployment fact stated per turn (ENA-4899).
 //
 // So this substitutes the display name out and requires the briefs to be
 // byte-identical. A per-platform position fails here whatever words it is
@@ -305,7 +305,7 @@ func TestBriefChannelDeliveryCopyIsPlatformNeutral(t *testing.T) {
 		for _, channelType := range []string{ChannelTypeFeishu, ChannelTypeWecom} {
 			got := neutralized(channelType, delivers)
 			if got != baseline {
-				t.Errorf("brief for channel %q (delivers=%v) differs from %q beyond the platform name — the brief took a position on one platform's file delivery, which is a per-turn deployment fact (MUL-4899, MUL-5377).\n%s",
+				t.Errorf("brief for channel %q (delivers=%v) differs from %q beyond the platform name — the brief took a position on one platform's file delivery, which is a per-turn deployment fact (ENA-4899, ENA-5377).\n%s",
 					channelType, delivers, ChannelTypeSlack, firstBriefDiff(baseline, got))
 			}
 		}
@@ -319,7 +319,7 @@ func TestBriefChannelDeliveryCopyIsPlatformNeutral(t *testing.T) {
 // The Attachments section owns that framing — it is what `## Output` cannot
 // express, because Output does not know an attachment felt shared. The
 // no-clickable-local-path rule itself belongs to Output and used to be restated
-// here verbatim; MUL-5442 replaced the restatement with a pointer, so this test
+// here verbatim; ENA-5442 replaced the restatement with a pointer, so this test
 // pins the framing plus the pointer and lets the delivery tests above own the
 // rule.
 func TestBriefInboundAttachmentIsNotADeliverable(t *testing.T) {

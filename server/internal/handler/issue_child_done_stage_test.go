@@ -148,7 +148,7 @@ func TestStageProgressSummary_SkipsUnstaged(t *testing.T) {
 }
 
 // stageAdvanceInstruction must point at a known next stage when one exists,
-// and — the core of MUL-4062 — must NOT assert finality when no later stage
+// and — the core of ENA-4062 — must NOT assert finality when no later stage
 // exists yet, because a lazily-created intermediate stage reaches nextStage==0
 // exactly like a true final stage does.
 func TestStageAdvanceInstruction(t *testing.T) {
@@ -163,7 +163,7 @@ func TestStageAdvanceInstruction(t *testing.T) {
 
 	t.Run("no created next stage does not assert finality", func(t *testing.T) {
 		got := stageAdvanceInstruction(0, parentID)
-		// Regression guard for MUL-4062: an intermediate stage in a lazily
+		// Regression guard for ENA-4062: an intermediate stage in a lazily
 		// created workflow also reaches nextStage==0, so the message must not
 		// claim this was definitively the final stage.
 		if strings.Contains(got, "This was the final stage") {
@@ -173,7 +173,7 @@ func TestStageAdvanceInstruction(t *testing.T) {
 		// done, and hand both paths (wrap up / create the next stage) to the
 		// leader. The explicit in_review command marks the wrap-up moment;
 		// the write itself is authorized by the standing status-ownership
-		// grant (MUL-6300), not by this ask.
+		// grant (ENA-6300), not by this ask.
 		if !strings.Contains(got, "does not mean the whole issue is done") {
 			t.Fatalf("expected stage-done != issue-done framing, got %q", got)
 		}
@@ -229,7 +229,7 @@ func TestStageBarrierClosed_UnstagedIgnoredInStagedSet(t *testing.T) {
 	})
 }
 
-// literalTerminalChild is the pre-MUL-6243 terminal test: it reads the status
+// literalTerminalChild is the pre-ENA-6243 terminal test: it reads the status
 // literal directly, with no catalog resolution. The stage-barrier logic these
 // tests cover is pure and operates on CANONICAL statuses, so pinning it with a
 // literal predicate keeps them testing the barrier itself rather than status

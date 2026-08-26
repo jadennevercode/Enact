@@ -1,4 +1,4 @@
-.PHONY: help makehelp dev server daemon cli enact build test migrate-up migrate-down sqlc seed clean setup start stop check worktree-env setup-main start-main stop-main check-main setup-worktree start-worktree stop-worktree check-worktree remove-worktree db-up db-down db-drop db-reset selfhost selfhost-build selfhost-stop
+.PHONY: help makehelp dev server daemon cli enact build test migrate-up migrate-down sqlc seed clean setup start stop check mmm-setup worktree-env setup-main start-main stop-main check-main setup-worktree start-worktree stop-worktree check-worktree remove-worktree db-up db-down db-drop db-reset selfhost selfhost-build selfhost-stop
 
 MAIN_ENV_FILE ?= .env
 WORKTREE_ENV_FILE ?= .env.worktree
@@ -186,6 +186,9 @@ stop: ## Stop backend and frontend processes for the current checkout
 check: ## Run typecheck, TS tests, Go tests, and Playwright E2E for the current checkout
 	$(REQUIRE_ENV)
 	@ENV_FILE="$(ENV_FILE)" bash scripts/check.sh
+
+mmm-setup: cli ## Provision the vendored MMM Runtime and import its Claude skills
+	@./server/bin/enact mmm setup --runtime-dir "$(CURDIR)/mmm-runtime" --import-skills $(ENACT_ARGS)
 
 db-up: ## Start the shared PostgreSQL container used by main and worktrees
 	@$(COMPOSE) up -d postgres

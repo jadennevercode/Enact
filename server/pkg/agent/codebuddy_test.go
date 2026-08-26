@@ -47,7 +47,7 @@ func TestBuildCodebuddyArgs_Basic(t *testing.T) {
 // It means "only use servers from --mcp-config" and drops CodeBuddy's user,
 // project and local scopes; measured against the real CLI, strict + a managed
 // config loaded ONLY the managed server, and strict alone loaded nothing at
-// all. The union is what mergeRuntimeAndAgentMcpConfig promises (MUL-5846).
+// all. The union is what mergeRuntimeAndAgentMcpConfig promises (ENA-5846).
 func TestBuildCodebuddyArgsNeverPassesStrictMCP(t *testing.T) {
 	t.Parallel()
 

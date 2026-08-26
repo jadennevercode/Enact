@@ -50,7 +50,7 @@ func TestConcurrentIndexCleanupsMatchTheirMigrations(t *testing.T) {
 		"down",
 	)
 
-	// The MUL-5999 batch specifically: every one of these builds an index the
+	// The ENA-5999 batch specifically: every one of these builds an index the
 	// new teardown queries depend on, so none of them may lose its hook.
 	for _, version := range []string{
 		"273_agent_task_queue_runtime_id_index",
@@ -75,7 +75,7 @@ func TestEveryConcurrentDownBuildHasCleanup(t *testing.T) {
 }
 
 // TestEveryConcurrentUpBuildHasCleanup is the up-direction counterpart, added
-// for MUL-6288. Only the down direction was covered before, so registration for
+// for ENA-6288. Only the down direction was covered before, so registration for
 // up migrations was effectively opt-in: 316, 317, 326, 328, 330 and 331 all
 // shipped without a hook and nothing failed. An unregistered build is invisible
 // until a real interrupted migration turns into either a permanently INVALID
@@ -153,7 +153,7 @@ func assertConcurrentIndexCleanupsMatchTheirMigrations(
 	}
 }
 
-// TestRunMigrationsRepairsInvalidRuntimeIDIndex is the MUL-5999 counterpart of
+// TestRunMigrationsRepairsInvalidRuntimeIDIndex is the ENA-5999 counterpart of
 // the 257 / 261 repair tests, run against migration 273's real SQL and its real
 // registered hook.
 //
@@ -168,7 +168,7 @@ func TestRunMigrationsRepairsInvalidRuntimeIDIndex(t *testing.T) {
 	defer cancel()
 
 	suffix := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Uint32())
-	schema := "migrate_mul5999_" + suffix
+	schema := "migrate_ena5999_" + suffix
 	schemaIdent := pgx.Identifier{schema}.Sanitize()
 	if _, err := pool.Exec(ctx, "CREATE SCHEMA "+schemaIdent); err != nil {
 		t.Fatalf("create schema: %v", err)

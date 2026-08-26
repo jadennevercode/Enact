@@ -1360,7 +1360,6 @@ func runGitAuthored(t *testing.T, repoPath string, args ...string) {
 // update too. Under the modern remote-tracking refspec, fetched heads land in
 // refs/remotes/origin/* and no longer collide with worktree-locked refs.
 func TestCreateWorktreeFetchesDespiteAgentBranchOnRemote(t *testing.T) {
-	t.Parallel()
 	sourceRepo := createTestRepo(t)
 	// Capture the default branch BEFORE any detach/commit/checkout dance — we
 	// need its name later to add new commits to the correct branch.
@@ -1896,7 +1895,7 @@ func TestCreateWorktreeRemovesCoAuthoredByHookWhenDisabled(t *testing.T) {
 // sentinel — only the older `# Installed by the Enact daemon.` comment.
 // Toggling the workspace setting off must still remove those legacy hooks,
 // otherwise users who flip the toggle in production keep seeing the trailer
-// indefinitely (the exact bug reported in MUL-1704).
+// indefinitely (the exact bug reported in ENA-1704).
 func TestCreateWorktreeRemovesLegacyCoAuthoredByHook(t *testing.T) {
 	t.Parallel()
 	sourceRepo := createTestRepo(t)

@@ -88,7 +88,7 @@ var agentSkillsCmd = &cobra.Command{
 // they're the ONLY post-creation path for reading or writing
 // custom_env values — `enact agent list / get / update` no longer
 // expose env on the wire. Each call hits the audited
-// `/api/agents/{id}/env` endpoint. See MUL-2600.
+// `/api/agents/{id}/env` endpoint. See ENA-2600.
 
 var agentEnvCmd = &cobra.Command{
 	Use:   "env",
@@ -430,7 +430,7 @@ func requireHumanLocalCommand(command string) error {
 	// the one signal that can outlive the task that wrote it: a local_directory
 	// run that never cleaned up leaves it in the user's own repository, where it
 	// disables every command below this function for that whole directory tree
-	// until someone deletes the file by hand (MUL-6132). Name it, so the user
+	// until someone deletes the file by hand (ENA-6132). Name it, so the user
 	// knows which file that is; the bare message below sends them to the source
 	// instead. Mirrors newAPIClient's leftover-marker handling.
 	if markerPath := leftoverDaemonTaskMarkerPath(); markerPath != "" {
@@ -598,7 +598,7 @@ func runAgentGet(cmd *cobra.Command, args []string) error {
 
 // applyAgentPermissionFlags translates the invocation-permission flags
 // (--permission-mode / --public-to-workspace / --public-to-member) into the
-// permission_mode + invocation_targets request fields (MUL-3963). When none of
+// permission_mode + invocation_targets request fields (ENA-3963). When none of
 // the flags are set it is a no-op, so the legacy --visibility handling still
 // drives the request. When any public-to-* flag is present without an explicit
 // --permission-mode, the mode defaults to public_to.
@@ -686,7 +686,7 @@ func runAgentCreate(cmd *cobra.Command, _ []string) error {
 	// thinking_level mirrors model: a thin pass-through to the top-level agent
 	// field the server already accepts and validates (IsKnownThinkingValue).
 	// The CLI deliberately does not enumerate valid levels — they are
-	// runtime/model-specific and the server owns the catalog (MUL-2339).
+	// runtime/model-specific and the server owns the catalog (ENA-2339).
 	if cmd.Flags().Changed("thinking-level") {
 		v, _ := cmd.Flags().GetString("thinking-level")
 		body["thinking_level"] = v

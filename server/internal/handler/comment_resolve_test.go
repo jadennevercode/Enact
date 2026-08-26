@@ -161,7 +161,7 @@ func newResolveTestFixture(t *testing.T) resolveTestFixture {
 }
 
 // TestResolveComment_ReplacesPriorThreadResolution is the core regression for
-// MUL-3180: a thread must have at most one resolved comment, and resolving a new
+// ENA-3180: a thread must have at most one resolved comment, and resolving a new
 // one atomically clears the previous resolution (instead of leaving two resolved
 // rows that the UI only papered over).
 func TestResolveComment_ReplacesPriorThreadResolution(t *testing.T) {

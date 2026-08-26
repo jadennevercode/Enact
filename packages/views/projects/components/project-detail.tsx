@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
-import { Check, ChevronRight, Link2, MoreHorizontal, PanelRight, Pin, PinOff, Trash2, UserMinus } from "lucide-react";
+import { Check, ChevronRight, FolderOpen, Link2, MoreHorizontal, PanelRight, Pin, PinOff, Trash2, UserMinus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@enact/ui/lib/utils";
 import { copyText } from "@enact/ui/lib/clipboard";
@@ -22,7 +22,7 @@ import { useActorName } from "@enact/core/workspace/hooks";
 import { PROJECT_STATUS_ORDER, PROJECT_STATUS_CONFIG, PROJECT_PRIORITY_ORDER } from "@enact/core/projects/config";
 import { getProjectIssueMetrics } from "./project-issue-metrics";
 import { ActorAvatar } from "../../common/actor-avatar";
-import { useNavigation } from "../../navigation";
+import { AppLink, useNavigation } from "../../navigation";
 import { TitleEditor, ContentEditor, type ContentEditorRef } from "../../editor";
 import { PriorityIcon } from "../../issues/components/priority-icon";
 import { ProjectResourcesSection } from "./project-resources-section";
@@ -30,7 +30,7 @@ import { ProjectStartDatePicker } from "./project-start-date-picker";
 import { ProjectDueDatePicker } from "./project-due-date-picker";
 import { IssueSurface } from "../../issues/surface/issue-surface";
 import { Skeleton } from "@enact/ui/components/ui/skeleton";
-import { Button } from "@enact/ui/components/ui/button";
+import { Button, buttonVariants } from "@enact/ui/components/ui/button";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@enact/ui/components/ui/resizable";
 import { Sheet, SheetContent } from "@enact/ui/components/ui/sheet";
 import { useIsMobile } from "@enact/ui/hooks/use-mobile";
@@ -479,6 +479,26 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
             leaf={<span className="truncate font-medium text-foreground">{project.title}</span>}
             actions={
               <>
+              {/* Artifacts lives in the header, not the sidebar: the sidebar
+                  collapses, and a browse-the-files entry that disappears with
+                  it is an entry nobody finds. */}
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <AppLink
+                      href={wsPaths.projectArtifacts(projectId)}
+                      className={cn(
+                        buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                        "text-muted-foreground",
+                      )}
+                      aria-label={t(($) => $.artifacts.open_action)}
+                    >
+                      <FolderOpen />
+                    </AppLink>
+                  }
+                />
+                <TooltipContent side="bottom">{t(($) => $.artifacts.open_action)}</TooltipContent>
+              </Tooltip>
               <Button
                 variant="ghost"
                 size="icon-sm"

@@ -13,7 +13,7 @@ import (
 )
 
 // TestDispatchAutopilotForPlanIsIdempotent locks in the
-// occurrence-level idempotency contract (MUL-3551):
+// occurrence-level idempotency contract (ENA-3551):
 //
 //   - A second DispatchAutopilotForPlan with the same (trigger_id,
 //     planned_at) MUST return the SAME run row that the first call

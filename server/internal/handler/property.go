@@ -23,10 +23,10 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Custom issue properties (MUL-4463): workspace-level typed property
+// Custom issue properties (ENA-4463): workspace-level typed property
 // definitions plus a per-issue value bag.
 //
-// Contract highlights (decided on MUL-4463):
+// Contract highlights (decided on ENA-4463):
 //   - Definitions are managed by human owner/admin members only. Agent actors
 //     are rejected even when the runtime owner has the role — otherwise field
 //     sprawl becomes something agents can mass-produce.
@@ -302,7 +302,7 @@ func selectOptionsHint(cfg PropertyConfig) string {
 }
 
 // ---------------------------------------------------------------------------
-// Actor values (MUL-6286)
+// Actor values (ENA-6286)
 // ---------------------------------------------------------------------------
 
 // actorPropertyKinds is the V1 value range for actor properties: workspace
@@ -623,7 +623,7 @@ func parseIssueProperties(raw []byte) map[string]any {
 // requirePropertyAdmin gates definition writes: human owner/admin members
 // only. Agent actors are rejected before the role check — an agent inherits
 // its runtime owner's credentials, and without this check an admin's agent
-// could mass-create definitions (MUL-4463 decision: agents propose via
+// could mass-create definitions (ENA-4463 decision: agents propose via
 // comments, humans confirm).
 func (h *Handler) requirePropertyAdmin(w http.ResponseWriter, r *http.Request) (workspaceID, userID string, ok bool) {
 	workspaceID = h.resolveWorkspaceID(r)

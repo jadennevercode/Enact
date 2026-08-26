@@ -16,7 +16,7 @@ import (
 )
 
 // TestRerunIssueBlockedBeforeMutationWhenInvokeDenied is the security acceptance
-// test for MUL-4525 §5: a rerun whose operator cannot invoke the resolved target
+// test for ENA-4525 §5: a rerun whose operator cannot invoke the resolved target
 // agent must be refused with ErrRerunInvokeNotAllowed, and it must fail BEFORE
 // any mutation — the prior task is not cancelled and no new task is created.
 func TestRerunIssueBlockedBeforeMutationWhenInvokeDenied(t *testing.T) {
@@ -93,7 +93,7 @@ func TestRerunIssueBlockedBeforeMutationWhenInvokeDenied(t *testing.T) {
 }
 
 // TestAutopilotDispatchAdmitsClickerNotCreator is the acceptance test for
-// MUL-4525 §3: a MANUAL "run now" admits on the CURRENT clicker's invoke
+// ENA-4525 §3: a MANUAL "run now" admits on the CURRENT clicker's invoke
 // permission (not the autopilot creator's), while automation (no human actor)
 // still falls back to the creator gate. The two must not fork.
 func TestAutopilotDispatchAdmitsClickerNotCreator(t *testing.T) {

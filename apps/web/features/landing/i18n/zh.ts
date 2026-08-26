@@ -130,8 +130,8 @@ export function createZhDict(allowSignup: boolean): LandingDict {
       {
         title: allowSignup ? "注册并创建您的工作空间" : "登录到您的工作空间",
         description: allowSignup
-          ? "输入您的邮箱，验证代码后即可使用。工作空间会自动创建——无需设置向导或配置表单。"
-          : "输入您的邮箱，验证代码后即可登录到您的工作空间——无需设置向导或配置表单。",
+          ? "输入邮箱即可开始。工作空间会自动创建——无需设置向导或配置表单。"
+          : "输入邮箱即可进入工作空间——无需设置向导或配置表单。",
       },
       {
         title: "\u5b89\u88c5 CLI \u5e76\u8fde\u63a5\u4f60\u7684\u673a\u5668",
@@ -262,22 +262,10 @@ export function createZhDict(allowSignup: boolean): LandingDict {
 
   about: {
     title: "\u5173\u4e8e Enact",
-    nameLine: {
-      prefix: "Enact\u2014\u2014",
-      mul: "Mul",
-      tiplexed: "tiplexed ",
-      i: "I",
-      nformationAnd: "nformation and ",
-      c: "C",
-      omputing: "omputing ",
-      a: "A",
-      gent: "gent\u3002",
-    },
+    nameLine: "Enact 让意图成为可追踪、可负责的行动。",
     paragraphs: [
-      "\u8fd9\u4e2a\u540d\u5b57\u662f\u5728\u5411 20 \u4e16\u7eaa 60 \u5e74\u4ee3\u5177\u6709\u5f00\u521b\u610f\u4e49\u7684\u64cd\u4f5c\u7cfb\u7edf Multics \u81f4\u610f\u3002Multics \u9996\u521b\u4e86\u5206\u65f6\u7cfb\u7edf\uff0c\u8ba9\u591a\u4e2a\u7528\u6237\u80fd\u591f\u5171\u4eab\u540c\u4e00\u53f0\u673a\u5668\uff0c\u540c\u65f6\u53c8\u50cf\u5404\u81ea\u72ec\u5360\u5b83\u4e00\u6837\u4f7f\u7528\u3002Unix \u5219\u662f\u5728\u6709\u610f\u7b80\u5316 Multics \u7684\u57fa\u7840\u4e0a\u8bde\u751f\u7684\uff0c\u5f3a\u8c03\u4e00\u4e2a\u7528\u6237\u3001\u4e00\u4e2a\u4efb\u52a1\u3001\u4e00\u79cd\u4f18\u96c5\u7684\u54f2\u5b66\u3002",
-      "\u6211\u4eec\u8ba4\u4e3a\uff0c\u7c7b\u4f3c\u7684\u8f6c\u6298\u70b9\u6b63\u5728\u518d\u6b21\u51fa\u73b0\u3002\u51e0\u5341\u5e74\u6765\uff0c\u8f6f\u4ef6\u56e2\u961f\u4e00\u76f4\u5904\u4e8e\u4e00\u79cd\u5355\u7ebf\u7a0b\u7684\u5de5\u4f5c\u6a21\u5f0f\uff0c\u4e00\u4e2a\u5de5\u7a0b\u5e08\u5904\u7406\u4e00\u4e2a\u4efb\u52a1\uff0c\u4e00\u6b21\u53ea\u4e13\u6ce8\u4e8e\u4e00\u4e2a\u4e0a\u4e0b\u6587\u3002AI agents \u6539\u53d8\u4e86\u8fd9\u4e2a\u7b49\u5f0f\u3002Enact \u5c06\u201c\u5206\u65f6\u201d\u91cd\u65b0\u5e26\u56de\u8fd9\u4e2a\u65f6\u4ee3\uff0c\u53ea\u4e0d\u8fc7\u4eca\u5929\u5728\u7cfb\u7edf\u4e2d\u8fdb\u884c\u591a\u8def\u590d\u7528\u7684\u201c\u7528\u6237\u201d\uff0c\u65e2\u5305\u62ec\u4eba\u7c7b\uff0c\u4e5f\u5305\u62ec\u81ea\u4e3b\u4ee3\u7406\u3002",
       "在 Enact 中，agents 是一级团队成员。它们会被分配任务，汇报进展，提出阻塞，并交付代码，就像人类同事一样。任务分配、活动时间线、task 生命周期，以及运行时基础设施，Enact 从第一天起就是围绕这一理念构建的。",
-      "\u548c\u5f53\u5e74\u7684 Multics \u4e00\u6837\uff0c\u8fd9\u4e00\u5224\u65ad\u5efa\u7acb\u5728\u201c\u591a\u8def\u590d\u7528\u201d\u4e4b\u4e0a\u3002\u4e00\u4e2a\u5c0f\u56e2\u961f\u4e0d\u8be5\u56e0\u4e3a\u4eba\u6570\u5c11\u5c31\u663e\u5f97\u80fd\u529b\u6709\u9650\u3002\u6709\u4e86\u5408\u9002\u7684\u7cfb\u7edf\uff0c\u4e24\u540d\u5de5\u7a0b\u5e08\u52a0\u4e0a\u4e00\u7ec4 agents\uff0c\u5c31\u80fd\u53d1\u6325\u51fa\u4e8c\u5341\u4eba\u56e2\u961f\u7684\u63a8\u8fdb\u901f\u5ea6\u3002",
+      "Enact 把人的决策、智能体执行和项目上下文放在同一套共享系统中，让小团队在保持治理能力的同时更快推进。",
       "\u8fd9\u4e2a\u5e73\u53f0\u662f\u5b8c\u5168\u5f00\u6e90\u5e76\u652f\u6301\u81ea\u6258\u7ba1\u7684\u3002\u4f60\u7684\u6570\u636e\u59cb\u7ec8\u4fdd\u7559\u5728\u81ea\u5df1\u7684\u57fa\u7840\u8bbe\u65bd\u4e2d\u3002\u4f60\u53ef\u4ee5\u5ba1\u67e5\u6bcf\u4e00\u884c\u4ee3\u7801\uff0c\u6269\u5c55 API\uff0c\u63a5\u5165\u81ea\u5df1\u7684 LLM providers\uff0c\u4e5f\u53ef\u4ee5\u5411\u793e\u533a\u8d21\u732e\u4ee3\u7801\u3002",
     ],
     cta: "\u5728 GitHub \u4e0a\u67e5\u770b",
@@ -1325,7 +1313,7 @@ export function createZhDict(allowSignup: boolean): LandingDict {
           "Codex 智能体的 MCP 设置能被正确读取了。",
           "Pi 智能体的 task 结果只显示最终答案，不再夹带中间步骤。",
           "自动化不再在单次运行超时的时候重复派发同一个任务。",
-          "任务的 PR 列表只显示真正关联到本任务的 PR，仅在描述里顺带提到「Related to MUL-…」的 PR 不再露出。",
+          "任务的 PR 列表只显示真正关联到本任务的 PR，仅在描述里顺带提到「Related to ENA-…」的 PR 不再露出。",
           "任务操作菜单里嵌套的「More」项改名为「Relations」，你不用点开也知道里面装的是关系类操作。",
           "所有附件上传按钮——对话输入、任务创建、任务描述、反馈——都支持在系统对话框里一次选多个文件。",
         ],
@@ -1579,7 +1567,7 @@ export function createZhDict(allowSignup: boolean): LandingDict {
         fixes: [
           "父任务仍在待办池时，子任务完成不会意外唤起后续自动处理",
           "删除项目现在需要所有者或管理员权限；私有 GitHub 仓库的技能导入在配置有效令牌后可以正常完成",
-          "登录验证码输入框会自动聚焦，进入详情页时侧边栏也不会再意外播放动画",
+          "登录输入框会自动聚焦，进入详情页时侧边栏也不会再意外播放动画",
           "Codex 权限处理和守护进程慢 task 诊断更可靠，排查问题时信息更完整",
         ],
       },
@@ -2353,7 +2341,7 @@ export function createZhDict(allowSignup: boolean): LandingDict {
           "新增 `enact daemon disk-usage` CLI，按 task / workspace 维度查看磁盘占用",
           "Skill Picker 弹窗新增搜索框，Agent 设置里挑技能更快",
           "Daemon GC 覆盖扩展到 chat、autopilot、quick-create task",
-          "任务详情页面包屑直接显示 MUL-xxxx identifier",
+          "任务详情页面包屑直接显示 ENA-xxxx identifier",
         ],
         improvements: [
           "Timeline 分页 size 提到 50，评论与活动按池独立 keyset 游标，长任务翻页更顺",

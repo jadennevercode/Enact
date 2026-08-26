@@ -89,7 +89,7 @@ const runtimeOfflineCodeNotExecutable = "not_executable"
 //
 // This is the single source of truth shared by:
 //   - service.shouldSkipDispatch (autopilot admission gate)
-//   - service.dispatchRunOnly    (squad-leader runtime check, MUL-2429)
+//   - service.dispatchRunOnly    (squad-leader runtime check, ENA-2429)
 //   - handler.isSquadLeaderReady (issue-assign / comment-trigger path)
 //   - the direct-agent trigger paths, which consult it for the BLOCKED verdict
 //     only: an offline machine still queues, because that wait ends by itself.

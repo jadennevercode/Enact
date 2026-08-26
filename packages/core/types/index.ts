@@ -83,6 +83,7 @@ export type {
   MikaBootstrapResponse,
 } from "./agent";
 export { RUNTIME_PROFILE_PROTOCOL_FAMILIES } from "./agent";
+export type { OntologyCatalogItem, OntologySummary, OntologyDetail } from "./ontology";
 export type { Workspace, WorkspaceRepo, WorkspaceMcpServer, Member, MemberRole, User, MemberWithUser, Invitation, ShareLink, ShareLinkInfo } from "./workspace";
 export type {
   PluginInstallation,
@@ -135,7 +136,11 @@ export type {
 export type { IssueSubscriber } from "./subscriber";
 export type * from "./events";
 export type * from "./api";
-export type { Attachment } from "./attachment";
+export type {
+  Attachment,
+  ProjectArtifact,
+  ListProjectArtifactsResponse,
+} from "./attachment";
 export {
   attachmentDownloadPath,
   attachmentIdFromDownloadURL,

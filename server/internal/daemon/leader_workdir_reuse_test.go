@@ -21,7 +21,7 @@ import (
 // session while NO .gc_meta.json exists. That absence is the whole point: the
 // server marks the prior task completed, reconciles the follow-up, and wakes
 // the runtime before the prior task's handler writes .gc_meta.json, so a
-// successor can be claimed inside that window (MUL-4886). Reuse must therefore
+// successor can be claimed inside that window (ENA-4886). Reuse must therefore
 // hinge on the Prepare-time .managed_env.json provenance, not the terminal GC
 // file. runTask writes that provenance via execenv.Prepare; this test never
 // writes .gc_meta.json, so it fails against the pre-fix GC-meta-keyed gate.

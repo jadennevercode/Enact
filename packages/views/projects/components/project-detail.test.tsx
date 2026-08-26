@@ -72,6 +72,7 @@ vi.mock("@enact/core/chat", () => ({
 vi.mock("@enact/core/paths", () => ({
   useWorkspacePaths: () => ({
     projects: () => "/test-workspace/projects",
+    projectArtifacts: (id: string) => `/test-workspace/projects/${id}/artifacts`,
   }),
 }));
 
@@ -328,5 +329,27 @@ describe("ProjectDetail project deletion", () => {
     expect(
       screen.queryByRole("button", { name: "Delete project" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// Regression: the artifacts entry first shipped inside the right sidebar,
+// which collapses — so the one affordance for "browse this project's files"
+// was invisible unless the sidebar happened to be open. It belongs in the
+// always-rendered header actions.
+describe("ProjectDetail artifacts entry", () => {
+  it("offers an artifacts link without needing the sidebar open", () => {
+    renderProjectDetail();
+
+    const link = screen.getByRole("link", { name: "Artifacts" });
+    expect(link.getAttribute("href")).toBe(
+      `/test-workspace/projects/${PROJECT.id}/artifacts`,
+    );
+  });
+
+  it("keeps the entry available to non-admin members", () => {
+    mocks.role = "member";
+    renderProjectDetail();
+
+    expect(screen.getByRole("link", { name: "Artifacts" })).toBeTruthy();
   });
 });

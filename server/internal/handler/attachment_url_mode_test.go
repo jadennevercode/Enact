@@ -13,7 +13,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Phase 1 of MUL-5372 / GitHub #5999: bulk responses stop pre-signing
+// Phase 1 of ENA-5372 / GitHub #5999: bulk responses stop pre-signing
 // attachment download URLs for callers that advertise they can resolve the
 // stable path themselves. The whole design rests on the server default never
 // moving, so most of what these tests pin is what happens when a caller says

@@ -447,7 +447,7 @@ func TestNotification_CommentCreated(t *testing.T) {
 	}
 }
 
-// TestNotification_SystemCommentSkipsInboxAndMentions guards the MUL-2538
+// TestNotification_SystemCommentSkipsInboxAndMentions guards the ENA-2538
 // must-fix: a comment with author_type='system' (the platform-generated
 // child-done parent notify) must NOT create any inbox rows for parent
 // subscribers and must NOT spawn mention-inbox rows even if the body string

@@ -15,13 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	skillpkg "github.com/enact-ai/enact/server/internal/skill"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -78,10 +78,12 @@ type SkillSummaryResponse struct {
 // the UI; the standalone `/api/agents/{id}/skills` endpoint returns the full
 // SkillSummaryResponse for callers that need the source/origin info.
 type AgentSkillSummary struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Enabled     bool   `json:"enabled"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	Enabled        bool   `json:"enabled"`
+	Kind           string `json:"kind,omitempty"`
+	OntologyDomain string `json:"ontology_domain,omitempty"`
 }
 
 type SkillFileResponse struct {
@@ -422,7 +424,7 @@ func (h *Handler) canManageSkill(w http.ResponseWriter, r *http.Request, skill d
 // a runtime-local-skill re-import. This is intentionally NARROWER than
 // canManageSkill: only the original creator may overwrite by re-importing.
 // Workspace owners/admins who want to change a skill they did not create must
-// edit it in-app instead. See MUL-2701 / MUL-2800.
+// edit it in-app instead. See ENA-2701 / ENA-2800.
 func canOverwriteSkillByLocalImport(userID string, skill db.Skill) bool {
 	return skill.CreatedBy.Valid && uuidToString(skill.CreatedBy) == userID
 }

@@ -19,6 +19,7 @@ import type {
 } from "@enact/core/types";
 import { api, ApiError } from "@enact/core/api";
 import { useWorkspaceId } from "@enact/core/hooks";
+import { isOntologySkill } from "@enact/core/skills";
 import {
   runtimeCapabilitiesOptions,
   runtimeDisplayLabel,
@@ -60,6 +61,10 @@ export function SkillsTab({
   const qc = useQueryClient();
   const wsId = useWorkspaceId();
   const { data: workspaceSkills = [] } = useQuery(skillListOptions(wsId));
+  const ordinaryWorkspaceSkills = workspaceSkills.filter(
+    (skill) => !isOntologySkill(skill),
+  );
+  const assignedSkills = agent.skills.filter((skill) => !isOntologySkill(skill));
   const runtimeId =
     runtime?.runtime_mode === "local" && runtime.status === "online"
       ? runtime.id
@@ -152,7 +157,7 @@ export function SkillsTab({
               variant="outline"
               size="sm"
               onClick={() => setShowAdd(true)}
-              disabled={workspaceSkills.length === 0}
+              disabled={ordinaryWorkspaceSkills.length === 0}
             >
               <Plus className="h-3.5 w-3.5" />
               {t(($) => $.tab_body.skills.add_action)}
@@ -160,7 +165,7 @@ export function SkillsTab({
           ) : null
         }
       >
-        {agent.skills.length === 0 ? (
+        {assignedSkills.length === 0 ? (
           <EmptyState
             icon={<SkillIcon className="h-6 w-6" />}
             title={t(($) => $.tab_body.skills.empty_title)}
@@ -168,7 +173,7 @@ export function SkillsTab({
           />
         ) : (
           <ul className="divide-y rounded-lg border bg-surface-raised/40">
-            {agent.skills.map((skill) => {
+            {assignedSkills.map((skill) => {
               const enabled = skill.enabled !== false;
               const busy = busyId === skill.id;
               return (

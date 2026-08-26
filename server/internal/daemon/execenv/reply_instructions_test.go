@@ -9,7 +9,7 @@ import (
 
 // TestBuildCommentReplyInstructionsCodexLinux pins that the Linux/macOS
 // reply template now mandates `--content-file` (post-#4182). The previous
-// `--content-stdin` + HEREDOC mandate (#1795 / #1851 / MUL-2904) was kept
+// `--content-stdin` + HEREDOC mandate (#1795 / #1851 / ENA-2904) was kept
 // for years to defend against backtick / `$()` substitution in the body,
 // but the heredoc/flag boundary turned out to be fragile in its own right:
 // when a model wrapped extra flags around the heredoc on `enact issue
@@ -57,7 +57,7 @@ func TestBuildCommentReplyInstructionsCodexLinux(t *testing.T) {
 // TestBuildCommentReplyInstructionsNonCodexLinux pins that EVERY provider on
 // Linux/macOS — not just Codex — gets the `--content-file` template. Two
 // shell-driven failure classes motivate the uniform file path:
-//   - MUL-2904 / OKK-497: an agent inlined a backtick-wrapped table name into
+//   - ENA-2904 / OKK-497: an agent inlined a backtick-wrapped table name into
 //     `--content`; the shell ran it as a command substitution, silently deleted
 //     it, the stored comment no longer matched the model's intent, and the
 //     model retried forever.
@@ -86,7 +86,7 @@ func TestBuildCommentReplyInstructionsNonCodexLinux(t *testing.T) {
 
 				for _, want := range []string{
 					"enact issue comment add " + issueID + " --parent " + triggerID + " --content-file ./reply.md",
-					// MUL-5442 cross-channel dedup: shell-hazard mechanics live in
+					// ENA-5442 cross-channel dedup: shell-hazard mechanics live in
 					// the brief's Comment Formatting; the cookbook keeps the
 					// file-first order, the command, and the pointer.
 					"Write the body file first",
@@ -102,7 +102,7 @@ func TestBuildCommentReplyInstructionsNonCodexLinux(t *testing.T) {
 				}
 
 				// The two regressions: agent-authored comments must never be
-				// steered at inline `--content "..."` (MUL-2904) and never at
+				// steered at inline `--content "..."` (ENA-2904) and never at
 				// `--content-stdin` HEREDOC on multi-flag commands (#4182).
 				for _, banned := range []string{
 					"--content \"...\"",
@@ -141,7 +141,7 @@ func TestBuildCommentReplyInstructionsWindowsUsesContentFile(t *testing.T) {
 			got := BuildCommentReplyInstructions(provider, issueID, triggerID, false)
 			for _, want := range []string{
 				"enact issue comment add " + issueID + " --parent " + triggerID + " --content-file",
-				// MUL-5442 cross-channel dedup: the $OutputEncoding trap's
+				// ENA-5442 cross-channel dedup: the $OutputEncoding trap's
 				// full mechanics live once, in the brief's Windows Comment
 				// Formatting variant; the per-turn cookbook keeps the ban,
 				// the one-line consequence, and the pointer.
@@ -178,7 +178,7 @@ func TestBuildCommentReplyInstructionsEmptyWhenNoTrigger(t *testing.T) {
 }
 
 // The brief must never carry this turn's trigger comment id; it points the
-// agent at the per-turn user message instead (MUL-5377).
+// agent at the per-turn user message instead (ENA-5377).
 func TestInjectRuntimeConfigKeepsTriggerCommentOutOfBrief(t *testing.T) {
 	saved := runtimeGOOS
 	t.Cleanup(func() { runtimeGOOS = saved })
@@ -201,10 +201,10 @@ func TestInjectRuntimeConfigKeepsTriggerCommentOutOfBrief(t *testing.T) {
 	s := string(content)
 
 	if strings.Contains(s, triggerID) {
-		t.Errorf("CLAUDE.md must not carry the trigger comment id (MUL-5377)\n---\n%s", s)
+		t.Errorf("CLAUDE.md must not carry the trigger comment id (ENA-5377)\n---\n%s", s)
 	}
 	for _, want := range []string{
-		// MUL-6417 retired the turn-mode router: one workflow, delivery
+		// ENA-6417 retired the turn-mode router: one workflow, delivery
 		// routed on what the per-turn message carries. Pin the routing RULE
 		// halves — a compression that drops either delivery case must fail
 		// here.
@@ -213,7 +213,7 @@ func TestInjectRuntimeConfigKeepsTriggerCommentOutOfBrief(t *testing.T) {
 		"never one from an earlier turn",
 		"With no triggering comment, post a new top-level comment",
 		// The no-write default that makes the un-routed workflow safe: a
-		// turn that moved nothing writes nothing (MUL-6300 → MUL-6417).
+		// turn that moved nothing writes nothing (ENA-6300 → ENA-6417).
 		"questions, discussion, and acknowledgements never touch status",
 	} {
 		if !strings.Contains(s, want) {
@@ -224,13 +224,13 @@ func TestInjectRuntimeConfigKeepsTriggerCommentOutOfBrief(t *testing.T) {
 	// The retired router must not come back in any phrasing.
 	for _, banned := range []string{"Turn mode", "mode block", "No mode line"} {
 		if strings.Contains(s, banned) {
-			t.Errorf("CLAUDE.md still carries retired mode-router text %q (MUL-6417)\n---\n%s", banned, s)
+			t.Errorf("CLAUDE.md still carries retired mode-router text %q (ENA-6417)\n---\n%s", banned, s)
 		}
 	}
 }
 
 // Windows reply instructions are file-first, never stdin. The instructions
-// now ship in the per-turn prompt, so pin the helper directly (MUL-5377).
+// now ship in the per-turn prompt, so pin the helper directly (ENA-5377).
 func TestWindowsCommentReplyInstructionsHaveNoStdin(t *testing.T) {
 	saved := runtimeGOOS
 	t.Cleanup(func() { runtimeGOOS = saved })
@@ -326,7 +326,7 @@ func TestInjectRuntimeConfigWindowsAssignmentBriefStaysFileOnly(t *testing.T) {
 
 // TestBuildCommentReplyInstructionsSquadLeaderCarveOut pins that the squad
 // leader variant scopes the reply imperative with the `no_action` exception
-// (MUL-5442 #6493 review): the leader's only silent path must not be
+// (ENA-5442 #6493 review): the leader's only silent path must not be
 // contradicted by a later unconditional "Post your reply" line, and the
 // ordinary variant must never carry the leader carve-out.
 func TestBuildCommentReplyInstructionsSquadLeaderCarveOut(t *testing.T) {

@@ -203,3 +203,34 @@ SELECT EXISTS(SELECT 1 FROM deleted) AS changed,
 SELECT * FROM attachment
 WHERE id = ANY(sqlc.arg(attachment_ids)::uuid[]) AND workspace_id = sqlc.arg(workspace_id)
 ORDER BY created_at ASC;
+
+-- name: ListAttachmentsByProject :many
+-- Project artifacts. An attachment carries no project_id of its own; project
+-- membership is derived through its owning issue (directly, or through the
+-- comment it hangs off). Deriving rather than denormalising keeps the listing
+-- correct for free when an issue moves between projects.
+--
+-- Chat-only attachments (chat_session_id set, no issue/comment owner) are
+-- absent by construction: a chat session belongs to no project, so there is no
+-- edge to follow.
+SELECT a.*,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+JOIN comment c ON c.id = a.comment_id
+JOIN issue i ON i.id = c.issue_id
+WHERE i.project_id = sqlc.arg(project_id)
+  AND a.workspace_id = sqlc.arg(workspace_id)
+  AND a.issue_id IS NULL
+UNION ALL
+SELECT a.*,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+JOIN issue i ON i.id = a.issue_id
+WHERE i.project_id = sqlc.arg(project_id)
+  AND a.workspace_id = sqlc.arg(workspace_id)
+ORDER BY owner_issue_number ASC, filename ASC, created_at ASC
+LIMIT sqlc.arg(row_limit);

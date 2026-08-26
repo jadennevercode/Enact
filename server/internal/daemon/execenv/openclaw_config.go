@@ -64,7 +64,7 @@ const openclawUserSnapshotFile = "openclaw-user-snapshot.json"
 // preparationProcessController.finish() is a no-op there. Closing this properly
 // needs process-tree ownership (Unix process group, Windows Job Object) so the
 // deadline can terminate the whole tree, which is its own change with its own
-// risk surface. Tracked in MUL-5467; this file intentionally keeps the existing
+// risk surface. Tracked in ENA-5467; this file intentionally keeps the existing
 // behaviour rather than shipping half of it.
 const openclawCLITimeout = 30 * time.Second
 
@@ -1087,7 +1087,7 @@ var openclawExec = execOpenclawCLI
 //
 // When the CLI is a batch shim that exits non-zero and says nothing at all,
 // openclawShimDiagnostic adds the interpreter-resolution detail that a bare
-// `exit status 1` hides (MUL-5422 / #6061). Real stderr always wins — the
+// `exit status 1` hides (ENA-5422 / #6061). Real stderr always wins — the
 // diagnostic is a fallback for the silent case, not a replacement.
 //
 // Attribution order matters. openclawCLITimeout kills the child via

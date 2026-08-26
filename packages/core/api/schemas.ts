@@ -58,6 +58,9 @@ import type {
   IssueTableGroupsResponse,
   IssueTableRowsResponse,
   ListIssuesResponse,
+  ListProjectArtifactsResponse,
+  OntologyDetail,
+  OntologySummary,
   ListGitHubInstallationsResponse,
   ListGitHubRepositoriesResponse,
   ListLabelsResponse,
@@ -452,7 +455,7 @@ export const EMPTY_LIST_LABELS_RESPONSE: ListLabelsResponse = {
   total: 0,
 };
 
-// Issue status catalog (MUL-6243). `category` is parsed as a plain string
+// Issue status catalog (ENA-6243). `category` is parsed as a plain string
 // rather than an enum: a newer server could in principle report a category this
 // build does not know, and failing the whole catalog parse would leave the UI
 // with no statuses at all. Consumers fall back to rendering by `color`/`name`
@@ -510,7 +513,7 @@ export const EMPTY_RESOURCE_LABELS_RESPONSE: ResourceLabelsResponse = {
   labels: [],
 };
 
-// Saved issue views (MUL-4796). `query`/`display` are opaque definition
+// Saved issue views (ENA-4796). `query`/`display` are opaque definition
 // blobs interpreted client-side per `definition_version` — keep them as
 // loose records so newer servers can add fields freely. `scope_type` /
 // `visibility` stay lenient strings; downstream code uses explicit `===`
@@ -605,7 +608,7 @@ export const EMPTY_ISSUE_PROPERTY: IssueProperty = {
   updated_at: "",
 };
 
-// Quick actions (MUL-5465). `visibility` and `status` stay z.string() rather
+// Quick actions (ENA-5465). `visibility` and `status` stay z.string() rather
 // than z.enum: they are server-driven, and a newer server adding a value must
 // degrade to the UI's default branch, not blank the whole list.
 export const QuickActionSchema = z.object({
@@ -708,7 +711,7 @@ export interface AppConfigResponse {
   // True when the CDN domain serves private content via time-bounded signed
   // URLs (CloudFront signing) — raw storage URLs on that domain are NOT
   // publicly fetchable and must not be used as native media sources
-  // (MUL-3254). Older servers omit the field; treat that as false.
+  // (ENA-3254). Older servers omit the field; treat that as false.
   cdn_signed?: boolean;
   allow_signup: boolean;
   google_client_id?: string;
@@ -823,7 +826,7 @@ export const ChatMessagesPageSchema = z.object({
 // also enforced so a missing value falls back to the empty record below.
 //
 // `markdown_url` is parsed lenient: a server old enough to predate
-// MUL-3192 omits the field, in which case the schema defaults it to "".
+// ENA-3192 omits the field, in which case the schema defaults it to "".
 // Callers that need to persist a URL into markdown should go through the
 // `useFileUpload` helper (which falls back to the legacy
 // `attachmentDownloadPath` shape when `markdown_url` is empty), so the
@@ -981,7 +984,7 @@ export const CommentSchema = z.object({
   updated_at: z.string(),
   revision: z.number().int().positive().optional(),
   source_task_id: z.string().nullable().optional(),
-  // Set only on comments a quick action produced (MUL-5465). Server-only.
+  // Set only on comments a quick action produced (ENA-5465). Server-only.
   quick_action_id: z.string().nullable().optional(),
 }).loose();
 
@@ -1015,7 +1018,7 @@ const CommentTriggerPreviewAgentSchema = z.object({
   reason: z.string().default(""),
 }).loose();
 
-// Per-target outcome of an explicit @agent / @squad mention (MUL-4525 §2).
+// Per-target outcome of an explicit @agent / @squad mention (ENA-4525 §2).
 // target_id is required to correlate with the client's rendered mention; a
 // malformed entry (missing id) is dropped rather than failing the whole payload.
 export const CommentTriggerOutcomeSchema = z.object({
@@ -1027,7 +1030,7 @@ export const CommentTriggerOutcomeSchema = z.object({
 
 export const CommentTriggerPreviewSchema = z.object({
   agents: z.array(CommentTriggerPreviewAgentSchema).default([]),
-  // Drop malformed blocked entries INDIVIDUALLY (MUL-4525): a single bad item
+  // Drop malformed blocked entries INDIVIDUALLY (ENA-4525): a single bad item
   // must not discard the whole set of valid blocked mentions. A non-array
   // degrades to []; each valid entry is kept, each malformed one dropped.
   blocked: z
@@ -1071,7 +1074,7 @@ export const IssueSchema = z.object({
   // `status` for the 7 built-ins, and the inherited category for a custom
   // status. Optional because only endpoints that resolve it emit it, so
   // consumers must fall back to `status` rather than treat "" as a category.
-  // (MUL-6243)
+  // (ENA-6243)
   status_category: z.string().optional(),
   priority: z.string(),
   assignee_type: z.string().nullable(),
@@ -1539,7 +1542,7 @@ export const RuntimeUsageByHourListSchema = z.array(RuntimeUsageByHourSchema);
 // can drift while task-list consumers still validate the fields they render.
 // ---------------------------------------------------------------------------
 
-// Human attribution (MUL-4302 §9): who an agent run is accountable to, and how
+// Human attribution (ENA-4302 §9): who an agent run is accountable to, and how
 // that human was resolved. Every field is defensive so a departed member, an
 // autopilot run (no originator), or an older backend degrades to a partial
 // object instead of a parse failure.
@@ -2001,7 +2004,7 @@ const AutopilotListItemSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   project_id: z.string().nullable().optional(),
-  // Older servers (pre-MUL-2429) omit assignee_type; "agent" is the
+  // Older servers (pre-ENA-2429) omit assignee_type; "agent" is the
   // documented default.
   assignee_type: z.string().default("agent"),
   assignee_id: z.string(),
@@ -2033,7 +2036,7 @@ export const EMPTY_LIST_AUTOPILOTS_RESPONSE = {
 };
 
 // Autopilot run (POST /trigger, GET /runs). Consumed by the "run now" flow,
-// which branches on `status` to avoid a false-success toast (MUL-4525), so the
+// which branches on `status` to avoid a false-success toast (ENA-4525), so the
 // response must be schema-parsed. `reason_code` is an additive, stable
 // classification of a non-success run the UI localizes; older servers omit it.
 // Defaults are conservative: an unreadable run degrades to a non-success status
@@ -2126,7 +2129,7 @@ export const EMPTY_WEBHOOK_DELIVERY: WebhookDelivery = {
 // lenient by the same rules as IssueSchema: enums stay `z.string()`,
 // nullable fields are unioned with `null`, unknown server fields pass
 // through via `.loose()`. `profile_description` is the field added in
-// MUL-2406; the server emits `""` when unset (NOT NULL DEFAULT ''), so
+// ENA-2406; the server emits `""` when unset (NOT NULL DEFAULT ''), so
 // the schema defaults to `""` too — keeps the type tight without
 // breaking older backends that don't return the column yet.
 // ---------------------------------------------------------------------------
@@ -2160,6 +2163,14 @@ export const EMPTY_USER: User = {
   created_at: "",
   updated_at: "",
 };
+
+export const LoginResponseSchema = z.object({
+  token: z.string().min(1),
+  user: UserSchema.extend({
+    id: z.string().min(1),
+    email: z.email(),
+  }),
+}).loose();
 
 // ---------------------------------------------------------------------------
 // Cross-workspace unread inbox summary (`/api/inbox/unread-summary` GET).
@@ -2636,7 +2647,7 @@ export const CreateWorkspaceSubscriptionPortalResponseSchema = z
 // rendering "managed by runtime" off an `undefined`.
 //
 // `cached` / `cached_at` are additive markers for a snapshot served from the
-// server-side catalog cache (MUL-5444); an older backend omits them.
+// server-side catalog cache (ENA-5444); an older backend omits them.
 // ---------------------------------------------------------------------------
 
 const RuntimeModelThinkingLevelSchema = z.object({
@@ -2909,6 +2920,98 @@ export const EMPTY_SKILL: Skill = {
   files: [],
 };
 
+const OntologyCatalogItemWireSchema = z.object({
+  name: z.string(),
+  name_zh: z.string().nullable().optional().default(null),
+  description: z.string().nullable().optional().default(null),
+  description_zh: z.string().nullable().optional().default(null),
+}).loose();
+
+const OntologySummaryWireSchema = z.object({
+  name: z.string(),
+  name_zh: z.string().nullable().optional().default(null),
+  version: z.string().optional().default(""),
+  description: z.string().optional().default(""),
+  description_zh: z.string().nullable().optional().default(null),
+  entity_count: z.number().optional().default(0),
+  action_count: z.number().optional().default(0),
+  policy_count: z.number().optional().default(0),
+  capability_count: z.number().optional().default(0),
+  is_layered: z.boolean().optional().default(false),
+  caphub_url: z.string().optional().default(""),
+}).loose();
+
+function ontologyItemFromWire(
+  item: z.infer<typeof OntologyCatalogItemWireSchema>,
+) {
+  return {
+    name: item.name,
+    nameZh: item.name_zh,
+    description: item.description,
+    descriptionZh: item.description_zh,
+  };
+}
+
+function ontologySummaryFromWire(
+  ontology: z.infer<typeof OntologySummaryWireSchema>,
+): OntologySummary {
+  return {
+    name: ontology.name,
+    nameZh: ontology.name_zh,
+    version: ontology.version,
+    description: ontology.description,
+    descriptionZh: ontology.description_zh,
+    entityCount: ontology.entity_count,
+    actionCount: ontology.action_count,
+    policyCount: ontology.policy_count,
+    capabilityCount: ontology.capability_count,
+    isLayered: ontology.is_layered,
+    capHubUrl: ontology.caphub_url,
+  };
+}
+
+export const OntologySummarySchema = OntologySummaryWireSchema.transform(
+  ontologySummaryFromWire,
+);
+
+export const OntologyListSchema = z.array(OntologySummaryWireSchema).transform(
+  (items) => items.map(ontologySummaryFromWire),
+);
+
+export const OntologyDetailSchema = OntologySummaryWireSchema.extend({
+  entities: z.array(OntologyCatalogItemWireSchema).optional().default([]),
+  actions: z.array(OntologyCatalogItemWireSchema).optional().default([]),
+  policies: z.array(OntologyCatalogItemWireSchema).optional().default([]),
+  capabilities: z.array(OntologyCatalogItemWireSchema).optional().default([]),
+  preview: z.string().optional().default(""),
+}).transform((ontology): OntologyDetail => ({
+  ...ontologySummaryFromWire(ontology),
+  entities: ontology.entities.map(ontologyItemFromWire),
+  actions: ontology.actions.map(ontologyItemFromWire),
+  policies: ontology.policies.map(ontologyItemFromWire),
+  capabilities: ontology.capabilities.map(ontologyItemFromWire),
+  preview: ontology.preview,
+}));
+
+export const EMPTY_ONTOLOGY_DETAIL: OntologyDetail = {
+  name: "",
+  nameZh: null,
+  version: "",
+  description: "",
+  descriptionZh: null,
+  entityCount: 0,
+  actionCount: 0,
+  policyCount: 0,
+  capabilityCount: 0,
+  isLayered: false,
+  capHubUrl: "",
+  entities: [],
+  actions: [],
+  policies: [],
+  capabilities: [],
+  preview: "",
+};
+
 /**
  * Read shape of one workspace MCP server.
  *
@@ -3022,4 +3125,43 @@ export const EMPTY_JOIN_SHARE_LINK_RESPONSE: {
   },
   workspace_id: "",
   workspace_slug: "",
+};
+
+// A file in a project's artifact listing. The owner-issue fields are what the
+// artifacts browser builds its folder tree from, so they carry defaults rather
+// than being required: a server that predates them still yields a usable —
+// if unfoldered — listing instead of collapsing the whole response to empty.
+const ProjectArtifactSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().default(""),
+  issue_id: z.string().nullable().default(null),
+  comment_id: z.string().nullable().default(null),
+  chat_session_id: z.string().nullable().default(null),
+  chat_message_id: z.string().nullable().default(null),
+  uploader_type: z.string().default(""),
+  uploader_id: z.string().default(""),
+  filename: z.string().default(""),
+  url: z.string().default(""),
+  download_url: z.string().default(""),
+  attachment_download_url: z.string().optional(),
+  markdown_url: z.string().default(""),
+  content_type: z.string().default(""),
+  size_bytes: z.number().default(0),
+  created_at: z.string().default(""),
+  owner_issue_id: z.string().default(""),
+  owner_issue_number: z.number().default(0),
+  owner_issue_identifier: z.string().default(""),
+  owner_issue_title: z.string().default(""),
+}).loose();
+
+export const ListProjectArtifactsResponseSchema = z.object({
+  artifacts: z.array(ProjectArtifactSchema).default([]),
+  total: z.number().default(0),
+  truncated: z.boolean().default(false),
+}).loose();
+
+export const EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE: ListProjectArtifactsResponse = {
+  artifacts: [],
+  total: 0,
+  truncated: false,
 };

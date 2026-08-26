@@ -84,7 +84,7 @@ type GitHubPullRequestResponse struct {
 	// Mergeable state mirrors GitHub's REST `mergeable_state` field, retained
 	// for compatibility. The card now reads the richer GraphQL fields below.
 	MergeableState *string `json:"mergeable_state"`
-	// ── GitHub API snapshot (MUL-5265, Plan C) ──────────────────────────────
+	// ── GitHub API snapshot (ENA-5265, Plan C) ──────────────────────────────
 	// These come from an authenticated GraphQL query, the single source of
 	// truth. All are null / empty / 0 when no snapshot has landed (or the
 	// GitHub App private key is unconfigured), so the card hides the CI / merge
@@ -493,7 +493,7 @@ func (h *Handler) GitHubConnect(w http.ResponseWriter, r *http.Request) {
 // sends after a user installs (or re-authorizes) the App. We expect
 // ?installation_id=<id>&state=<signed token>. We persist the installation
 // row (workspace ↔ installation_id mapping), then bounce the user back to
-// the new Settings → GitHub tab in the web app (RFC MUL-2414 §4.1). The
+// the new Settings → GitHub tab in the web app (RFC ENA-2414 §4.1). The
 // previous destination was the catch-all Settings page, which after the
 // GitHub-tab split would land users on the default profile tab instead of
 // the place that shows the connection they just completed.
@@ -973,7 +973,7 @@ func (h *Handler) ListPullRequestsForIssue(w http.ResponseWriter, r *http.Reques
 	out := make([]GitHubPullRequestResponse, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, issuePullRequestRowToResponse(row, h.PRRefresh.Enabled()))
-		// Page-visit trigger (MUL-5265): if this card's snapshot is missing or
+		// Page-visit trigger (ENA-5265): if this card's snapshot is missing or
 		// older than the view TTL, kick an async refresh. Non-blocking — the
 		// current (possibly stale) response is returned immediately and the
 		// fresh snapshot arrives via the pull_request:updated realtime event.
@@ -1028,21 +1028,21 @@ func (h *Handler) broadcastPRSnapshotApplied(ctx context.Context, prID pgtype.UU
 
 // ── Webhook ─────────────────────────────────────────────────────────────────
 
-// identifierRe extracts identifiers like "MUL-1510" from text. Case-insensitive
+// identifierRe extracts identifiers like "ENA-1510" from text. Case-insensitive
 // because branch names are conventionally lowercase but issue prefixes are
 // uppercase. Word boundary on the left prevents matching inside email-style
-// strings (e.g. "abc@MUL-1") and the digit anchor on the right rules out
+// strings (e.g. "abc@ENA-1") and the digit anchor on the right rules out
 // version numbers like "v1.2-3".
 var identifierRe = regexp.MustCompile(`(?i)\b([a-z][a-z0-9]{0,9})-(\d+)\b`)
 
 // closingIdentifierRe extracts identifiers that appear immediately after a
 // GitHub-style closing keyword ("close[sd]?", "fix(e[sd])?", "resolve[sd]?"),
 // optionally separated by a colon and whitespace. Matching is intentionally
-// strict on adjacency — "Fix MUL-1" closes MUL-1, but "Fix login MUL-1"
+// strict on adjacency — "Fix ENA-1" closes ENA-1, but "Fix login ENA-1"
 // does not. This mirrors GitHub's own closing-keyword grammar and is the
 // gate the webhook uses to decide whether to auto-advance an issue to
-// `done` after a PR merges. References like "Follow up in MUL-2" and bare
-// title prefixes like "MUL-1: ..." link the PR (via identifierRe) but
+// `done` after a PR merges. References like "Follow up in ENA-2" and bare
+// title prefixes like "ENA-1: ..." link the PR (via identifierRe) but
 // never auto-close.
 var closingIdentifierRe = regexp.MustCompile(
 	`(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)[:\s]+([a-z][a-z0-9]{0,9})-(\d+)\b`,
@@ -1081,7 +1081,7 @@ func (h *Handler) HandleGitHubWebhook(w http.ResponseWriter, r *http.Request) {
 	case "pull_request":
 		h.handlePullRequestEvent(ctx, body)
 	case "check_suite", "check_run", "status":
-		// CI events are pure triggers under Plan C (MUL-5265): their payload is
+		// CI events are pure triggers under Plan C (ENA-5265): their payload is
 		// never read for display. Each just asks the API pipeline to re-fetch
 		// the authoritative snapshot for the PR(s) it concerns.
 		h.triggerPRRefreshFromCIEvent(ctx, body)
@@ -1279,7 +1279,7 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, body []byte) {
 	// own issues (its own prefix + github toggle). Repo scope is whatever GitHub
 	// authorized the installation for; we deliberately don't gate on the
 	// workspace.repos registry — that list is "code the agent clones", not a
-	// webhook subscription (MUL-4343).
+	// webhook subscription (ENA-4343).
 	//
 	// Fanning out means an identifier can resolve in more than one workspace at
 	// once (issue prefixes are not globally unique and issue numbers restart at
@@ -1294,7 +1294,7 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, body []byte) {
 	// The PR row(s) now carry the new head; ask the API pipeline for the
 	// authoritative CI + mergeability snapshot for that head. The webhook is
 	// only the doorbell — its own mergeable/checks payload is not used for
-	// display anymore (MUL-5265).
+	// display anymore (ENA-5265).
 	h.PRRefresh.Enqueue(p.Installation.ID, p.Repository.Owner.Login, p.Repository.Name, p.PullRequest.Number)
 }
 
@@ -1570,7 +1570,7 @@ func (h *Handler) mirrorPullRequestForWorkspace(ctx context.Context, wsID pgtype
 	// upserts the close_intent flag — see LinkIssueToPullRequest) so
 	// re-firing the webhook doesn't duplicate.
 	//
-	// RFC MUL-2414 §4.8: the PR mirror upsert above always runs (so re-enabling
+	// RFC ENA-2414 §4.8: the PR mirror upsert above always runs (so re-enabling
 	// GitHub features restores history without backfill), but the link rows
 	// are a "new side-effect" and must be gated by the workspace's auto-link
 	// flag (which itself short-circuits when the master `github_enabled`
@@ -1579,7 +1579,7 @@ func (h *Handler) mirrorPullRequestForWorkspace(ctx context.Context, wsID pgtype
 	if h.workspaceAutoLinkPRsEnabled(ctx, wsID) {
 		idents := extractIdentifiers(p.PullRequest.Title, p.PullRequest.Body, p.PullRequest.Head.Ref)
 		// closingIdents is the subset of identifiers that this PR explicitly
-		// declared via a closing keyword ("Closes/Fixes/Resolves MUL-X").
+		// declared via a closing keyword ("Closes/Fixes/Resolves ENA-X").
 		// Linking still happens for every mention (idents above), but the
 		// link row's close_intent column — and therefore whether the
 		// auto-advance gate eventually fires — is only set for keyword-
@@ -1592,11 +1592,11 @@ func (h *Handler) mirrorPullRequestForWorkspace(ctx context.Context, wsID pgtype
 		// qualifyingIdents are the identifiers that genuinely tie this PR to an
 		// issue: a title prefix, a branch-name reference, or a body closing
 		// keyword. Any identifier that is linked but NOT in this set was matched
-		// only by a bare mention in the PR body ("Related MUL-1", "Follow up in
-		// MUL-1"). Those links are still recorded (auto-link stays generous so
+		// only by a bare mention in the PR body ("Related ENA-1", "Follow up in
+		// ENA-1"). Those links are still recorded (auto-link stays generous so
 		// close_intent can be tracked across edits) but are flagged
 		// reference_only and hidden from the issue's PR list — a passing mention
-		// should not surface the PR as a working PR for that issue (MUL-3739).
+		// should not surface the PR as a working PR for that issue (ENA-3739).
 		qualifyingIdents := map[string]struct{}{}
 		for _, id := range extractIdentifiers(p.PullRequest.Title, p.PullRequest.Head.Ref) {
 			qualifyingIdents[id] = struct{}{}
@@ -1615,10 +1615,10 @@ func (h *Handler) mirrorPullRequestForWorkspace(ctx context.Context, wsID pgtype
 		// after every link upsert in this event. Driving the gate off
 		// persisted state (instead of "did *this* webhook declare closing
 		// intent?") is what fixes the multi-PR sibling case: a PR with
-		// `Closes MUL-1` merges first while a link-only sibling is still
+		// `Closes ENA-1` merges first while a link-only sibling is still
 		// open, then the sibling closes later — its webhook has no closing
 		// keyword, but the earlier link row carries close_intent=true, so
-		// MUL-1 still advances.
+		// ENA-1 still advances.
 		reevalIssues := make([]db.Issue, 0, len(idents))
 		for _, id := range idents {
 			issue, ok := h.lookupIssueByIdentifier(ctx, wsID, prefix, id)
@@ -1662,14 +1662,14 @@ func (h *Handler) mirrorPullRequestForWorkspace(ctx context.Context, wsID pgtype
 		//   2. no linked PR is still `open` / `draft`;
 		//   3. at least one merged linked PR declared close_intent (a
 		//      "Closes/Fixes/Resolves" keyword on its link row).
-		// Rule (3) is what prevents "Follow up in MUL-2" / "Unblocks MUL-3"
-		// references from being treated the same as "Closes MUL-1", and
+		// Rule (3) is what prevents "Follow up in ENA-2" / "Unblocks ENA-3"
+		// references from being treated the same as "Closes ENA-1", and
 		// also prevents an "all closed-without-merge" sequence from
 		// silently auto-closing the issue — if nothing carrying closing
 		// intent was ever delivered, the user should decide manually.
 		if state == "merged" || state == "closed" {
 			for _, issue := range reevalIssues {
-				// A custom terminal status counts as terminal here. (MUL-6243)
+				// A custom terminal status counts as terminal here. (ENA-6243)
 				if s := issuestatus.Effective(ctx, h.Queries, issue.WorkspaceID, issue.Status); s == "done" || s == "cancelled" {
 					continue
 				}
@@ -1797,7 +1797,7 @@ func extractIdentifiers(parts ...string) []string {
 // appears immediately after a GitHub-style closing keyword in the supplied
 // fields, deduplicating in input order. Identifiers in branch names are
 // intentionally excluded — callers should pass only title and body — because
-// branch names are not natural-language fields and treating "mul-1/fix-login"
+// branch names are not natural-language fields and treating "ena-1/fix-login"
 // as a close declaration would silently re-open the bug this gate is meant
 // to fix.
 func extractClosingIdentifiers(parts ...string) []string {
@@ -1818,7 +1818,7 @@ func extractClosingIdentifiers(parts ...string) []string {
 
 // autoLinkPRsEnabledForWorkspace reports whether the workspace allows the
 // GitHub webhook to create issue ↔ PR link rows. Defaults to true so that
-// workspaces predating RFC MUL-2414 keep the historical "auto-link on"
+// workspaces predating RFC ENA-2414 keep the historical "auto-link on"
 // behavior, and short-circuits to false whenever the master GitHub switch
 // is explicitly off — mirroring the precedence used on the client side.
 //

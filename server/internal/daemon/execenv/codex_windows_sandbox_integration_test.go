@@ -7,7 +7,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/agent"
 )
 
-// TestWindowsSandboxHonorsShellQuotedCustomArg is the MUL-4957 round-3 must-fix
+// TestWindowsSandboxHonorsShellQuotedCustomArg is the ENA-4957 round-3 must-fix
 // 2 integration test. A `-c windows.sandbox=...` opt-in supplied shell-quoted
 // (as users commonly type custom_args) reaches Codex normalized by
 // agent.NormalizeCodexLaunchArgs; the Windows sandbox decision must consume the

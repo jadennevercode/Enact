@@ -73,7 +73,7 @@ func allowAllAgents(db.Agent) bool { return true }
 // start an agent run, and for whom". It is the one source of truth shared by
 // the issue update / batch-update write paths and the preview endpoint,
 // replacing the per-site copies that drifted (squad omitted, self-loop
-// omitted, four entry points inconsistent — see MUL-3375).
+// omitted, four entry points inconsistent — see ENA-3375).
 //
 // It is intentionally a distinct predicate from the comment trigger
 // (assignee fallback comment routing): issue writes park on backlog while comments fire
@@ -91,7 +91,7 @@ func allowAllAgents(db.Agent) bool { return true }
 //     index would coalesce away.
 //   - assign source (create / assignee change) skips the check: a create
 //     targets a fresh issue with no prior task, and a reassignment no longer
-//     cancels existing tasks (#4963 / MUL-4113) — in the rare case the new
+//     cancels existing tasks (#4963 / ENA-4113) — in the rare case the new
 //     assignee already holds a pending task the insert simply no-ops on the
 //     same unique index, so the assignee still ends up with one pending run.
 func (s *IssueService) WillEnqueueRun(ctx context.Context, in IssueTriggerInput, probe IssueTriggerProbe) (IssueRunTrigger, bool) {
@@ -109,14 +109,14 @@ func (s *IssueService) WillEnqueueRun(ctx context.Context, in IssueTriggerInput,
 	// `backlog` was always a category change, so the two were the same
 	// condition; now `backlog` → a custom status in the `backlog` category is a
 	// move within the parking lot, and starting a run on it would break the one
-	// promise backlog makes. (MUL-6463)
+	// promise backlog makes. (ENA-6463)
 	//
 	// Both sides of the transition are normalized to the canonical status they
 	// inherit, so a custom status in the `backlog` category parks exactly like
 	// Backlog and a custom status in the `todo` category starts a run exactly
 	// like Todo. Built-in keys resolve to themselves without a query, leaving
 	// this decision bit-identical for workspaces with no custom statuses —
-	// which is the whole set of them until an admin defines one. (MUL-6243)
+	// which is the whole set of them until an admin defines one. (ENA-6243)
 	currentStatus := issuestatus.Effective(ctx, s.Queries, issue.WorkspaceID, issue.Status)
 	prevStatus := issuestatus.Effective(ctx, s.Queries, issue.WorkspaceID, in.PrevStatus)
 

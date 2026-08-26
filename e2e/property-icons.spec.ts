@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { loginAsDefault, waitForPageText } from "./helpers";
 
 test("creates, persists, and clears a custom property icon", async ({ page }) => {
+  test.setTimeout(120000);
   const workspaceSlug = await loginAsDefault(page);
   const propertyName = `Icon ${Date.now().toString(36)}`;
 

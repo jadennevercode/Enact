@@ -875,7 +875,7 @@ func TestDispatchResultFromEngine(t *testing.T) {
 	res := dispatchResultFromEngine(engine.Result{
 		Outcome:            engine.OutcomeNeedsBinding,
 		Sender:             "ou_user",
-		IssueIdentifier:    "MUL-7",
+		IssueIdentifier:    "ENA-7",
 		IssueDuplicate:     true,
 		IssueUsageHadMedia: true,
 	})
@@ -885,7 +885,7 @@ func TestDispatchResultFromEngine(t *testing.T) {
 	if res.SenderOpenID != "ou_user" {
 		t.Fatalf("sender not mapped: %q", res.SenderOpenID)
 	}
-	if res.IssueIdentifier != "MUL-7" {
+	if res.IssueIdentifier != "ENA-7" {
 		t.Fatalf("issue identifier not mapped: %q", res.IssueIdentifier)
 	}
 	if !res.IssueDuplicate {

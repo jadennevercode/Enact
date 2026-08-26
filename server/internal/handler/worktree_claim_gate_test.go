@@ -836,7 +836,7 @@ func TestClaimTask_WorktreeGateCancelFailureRequeuesBatch(t *testing.T) {
 // The bug this gate was rebuilt for: a dev-built daemon reports a git-describe
 // version that the version floor deliberately exempts, so the old version-based
 // gate waved through a binary with no worktree implementation and two tasks ran
-// in the user's own directory (MUL-5707). The capability signal is immune to
+// in the user's own directory (ENA-5707). The capability signal is immune to
 // how the version string happens to be spelled.
 func TestWorktreeClaimGateIgnoresVersionStrings(t *testing.T) {
 	const daemon = "daemon-a"

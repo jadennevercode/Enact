@@ -80,7 +80,7 @@ func TestBuiltinSkillsConformToTemplate(t *testing.T) {
 	}
 }
 
-// TestBuiltinSkillsFrontmatterIsStrictYAML is the regression guard for MUL-3100
+// TestBuiltinSkillsFrontmatterIsStrictYAML is the regression guard for ENA-3100
 // / GitHub #3851: a built-in SKILL.md whose frontmatter is not valid YAML 1.2
 // (the canonical break is an unquoted `: ` inside the description) is silently
 // dropped by strict runtimes like Codex, so the agent runs without that
@@ -232,21 +232,21 @@ func TestWorkingOnIssuesSkillCoversIssueLoopContracts(t *testing.T) {
 		"This is a default, not",
 		"Use a routable issue key in the PR title, body, or branch",
 		"include the PR URL when a PR exists",
-		"Closes MUL-2759",
+		"Closes ENA-2759",
 		"--status backlog",
 		// The only sanctioned pr_url reference is the negative compatibility
 		// warning about pre-existing data — not a write recommendation
-		// (MUL-5442 owner ruling: no curated key vocabulary).
+		// (ENA-5442 owner ruling: no curated key vocabulary).
 		"`pr_url` metadata (which can be",
 		"references/working-on-issues-source-map.md",
-		// MUL-5442: the brief's Sub-issue Creation section is now a one-line
+		// ENA-5442: the brief's Sub-issue Creation section is now a one-line
 		// map pointing here. These anchors are the demoted playbook — if they
 		// leave the skill, the brief pointer dangles.
 		"`todo` starts work now, `backlog` parks it",
 		"`--stage <N>`",
 		"when a whole stage finishes",
 		"enact issue status <child-id> todo",
-		// MUL-5442: the brief's Issue Metadata section defers the full
+		// ENA-5442: the brief's Issue Metadata section defers the full
 		// write discipline here. Every relocated ban is anchored
 		// individually — both defining categories AND each example —
 		// so no single item or category boundary can be dropped while
@@ -270,7 +270,7 @@ func TestWorkingOnIssuesSkillCoversIssueLoopContracts(t *testing.T) {
 
 	mustNotContain := []string{
 		// A curated key list is the "recommended fields" concept the owner
-		// ruled out on MUL-5442 — it must not creep back into the skill
+		// ruled out on ENA-5442 — it must not creep back into the skill
 		// that loads exactly when an agent is about to write metadata.
 		"High-signal keys",
 		"reuse these names so queries stay consistent",
@@ -438,7 +438,7 @@ func TestSquadsSkillCoversLeaderRoutingContract(t *testing.T) {
 		"recording squad activity",
 		"references/squad-source-map.md",
 		// The debugging quick-start must stay a bounded two-step read
-		// (MUL-5442): a roots-only scan alone never returns reply bodies,
+		// (ENA-5442): a roots-only scan alone never returns reply bodies,
 		// where mention triggers and failure reasons usually live — and it
 		// must not regress to a --recent bulk pull either.
 		"--roots-only --summary",
@@ -451,7 +451,7 @@ func TestSquadsSkillCoversLeaderRoutingContract(t *testing.T) {
 		}
 	}
 
-	// MUL-5696: no unbounded comment pull anywhere in the skill. #6347 fixed
+	// ENA-5696: no unbounded comment pull anywhere in the skill. #6347 fixed
 	// the quick start's `--recent 10` but missed a second unbounded
 	// `issue comment list` in the CLI section; both shapes contradict the
 	// brief's "two bounded reads, never one bulk pull" doctrine.
@@ -460,7 +460,7 @@ func TestSquadsSkillCoversLeaderRoutingContract(t *testing.T) {
 		"--recent 10",
 	} {
 		if strings.Contains(body, banned) {
-			t.Errorf("squads skill carries the unbounded comment read %q (MUL-5696)", banned)
+			t.Errorf("squads skill carries the unbounded comment read %q (ENA-5696)", banned)
 		}
 	}
 

@@ -55,7 +55,7 @@ import (
 //     "remembers the transcript".
 //   - Skill-less Hermes agents still run against the host home unchanged.
 //     Tightening that would break the only workaround #6638's reporter has, and
-//     it belongs with the platform-wide memory_scope work (MUL-5969).
+//     it belongs with the platform-wide memory_scope work (ENA-5969).
 //
 // Known trade-off, shared with the host-passthrough behaviour it replaces: one
 // agent's concurrent tasks write the same files and Hermes rewrites them whole,

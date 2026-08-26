@@ -338,7 +338,7 @@ func TestRunRuntimeProfileSetPathPreservesExistingConfig(t *testing.T) {
 	t.Setenv("HOME", home)
 
 	// Seed an existing config with unrelated fields.
-	seed := cli.CLIConfig{ServerURL: "https://api.enact.ai", WorkspaceID: "ws-123", Token: "mul_xyz"}
+	seed := cli.CLIConfig{ServerURL: "https://api.enact.ai", WorkspaceID: "ws-123", Token: "enact_xyz"}
 	if err := cli.SaveCLIConfig(seed); err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ func TestRunRuntimeProfileSetPathPreservesExistingConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.ServerURL != "https://api.enact.ai" || cfg.WorkspaceID != "ws-123" || cfg.Token != "mul_xyz" {
+	if cfg.ServerURL != "https://api.enact.ai" || cfg.WorkspaceID != "ws-123" || cfg.Token != "enact_xyz" {
 		t.Errorf("set-path clobbered existing config: %#v", cfg)
 	}
 	if cfg.ProfileCommandOverrides["prof-1"] != "/opt/bin/company-codex" {
@@ -372,7 +372,7 @@ func TestRuntimeProfilePathMutationFailsClosedInTaskContext(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"profile_command_overrides\": {\"owner-prof\": \"/owner/bin\"},\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"profile_command_overrides\": {\"owner-prof\": \"/owner/bin\"},\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}

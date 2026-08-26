@@ -11,7 +11,7 @@ import (
 )
 
 // AgentInvocationTargetDTO is the wire shape of one invocation allow-list
-// entry (MUL-3963). target_id is null for team placeholders that a client
+// entry (ENA-3963). target_id is null for team placeholders that a client
 // omitted, but is always present for workspace (the workspace id) and member
 // (the user id) rows persisted by the backend.
 type AgentInvocationTargetDTO struct {
@@ -177,7 +177,7 @@ func parsePermissionInput(workspaceID pgtype.UUID, permissionMode *string, targe
 	}
 	// An empty public_to is a phantom: "shared with nobody" that the front-end
 	// would render as workspace-shared while the backend admits no one. Per the
-	// MUL-3963 ruling, a public_to with no resolvable targets is normalised to
+	// ENA-3963 ruling, a public_to with no resolvable targets is normalised to
 	// a single workspace target — this also makes `--permission-mode public_to`
 	// with no --public-to-* flags mean "public to workspace".
 	if len(res.targets) == 0 {
@@ -229,7 +229,7 @@ func (h *Handler) permissionInputChangesAgent(ctx context.Context, existing db.A
 	// visibility, NOT by expanding "private" into a real private permission.
 	// A member-only public_to agent derives to legacy "private", so an admin
 	// resubmitting visibility:"private" is a NO-OP, not a public_to→private
-	// downgrade. Only a real legacy change (e.g. "workspace") counts. (MUL-3963
+	// downgrade. Only a real legacy change (e.g. "workspace") counts. (ENA-3963
 	// review — this is the compatibility fix for PR #4853.)
 	if !hasPermissionMode && !hasTargets {
 		if req.Visibility == nil {

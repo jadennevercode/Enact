@@ -68,10 +68,10 @@ Enact가 에이전트의 [실행 태스크](/tasks)를 만듭니다. 온라인 �
 ## CLI 사용
 
 ```bash
-enact issue assign MUL-42 --to "Agent name"
-enact issue assign MUL-42 --to-id <agent-uuid> --no-start
-enact issue status MUL-42 in_progress --no-start
-enact issue assign MUL-42 --unassign
+enact issue assign ENA-42 --to "Agent name"
+enact issue assign ENA-42 --to-id <agent-uuid> --no-start
+enact issue status ENA-42 in_progress --no-start
+enact issue assign ENA-42 --unassign
 ```
 
 스크립트에서는 `--to-id <uuid>`를 사용하면 이름이 같은 객체를 잘못 매칭하는 일을 피할 수 있습니다. UUID는 `enact agent list --output json` 또는 `enact workspace member list --output json`으로 확인합니다.

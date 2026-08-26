@@ -5,8 +5,7 @@ import { vi } from "vitest";
 // with `// @vitest-environment node` and share this file, so there is no DOM to
 // patch there — bail out rather than guard each stub.
 if (typeof window !== "undefined") {
-  // jsdom doesn't provide ResizeObserver; stub it so components that rely on it
-  // (e.g. input-otp) can render in tests.
+  // jsdom doesn't provide ResizeObserver; stub it so responsive components can render in tests.
   if (typeof globalThis.ResizeObserver === "undefined") {
     globalThis.ResizeObserver = class ResizeObserver {
       observe() {}
@@ -15,7 +14,7 @@ if (typeof window !== "undefined") {
     } as unknown as typeof ResizeObserver;
   }
 
-  // jsdom doesn't implement elementFromPoint; input-otp uses it internally.
+  // Keep pointer-position helpers available to interactive component tests.
   if (typeof document.elementFromPoint !== "function") {
     document.elementFromPoint = () => null;
   }

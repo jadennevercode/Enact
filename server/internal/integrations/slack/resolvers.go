@@ -203,7 +203,7 @@ func (r *identityResolver) ResolveSender(ctx context.Context, inst engine.Resolv
 		}
 		// Not linked to THIS installation. Before prompting, reuse a link the same
 		// Slack user already made to another installation of the same team in this
-		// workspace (MUL-3911): one link per Slack workspace, not per app.
+		// workspace (ENA-3911): one link per Slack workspace, not per app.
 		cand, ok, ferr := r.reusableBinding(ctx, inst, senderID)
 		if ferr != nil {
 			return engine.ResolvedIdentity{}, ferr
@@ -251,7 +251,7 @@ func (r *identityResolver) ResolveSender(ctx context.Context, inst engine.Resolv
 
 // reusableBinding looks for a link the same Slack user already made to ANOTHER
 // installation of the SAME workspace + SAME Slack team, so a second app in one
-// Slack workspace need not re-prompt (MUL-3911). ok=false (nil error) means "no
+// Slack workspace need not re-prompt (ENA-3911). ok=false (nil error) means "no
 // reuse — prompt to link": the installation records no team (legacy), its
 // Platform is not a ChannelInstallation, or no matching binding exists.
 func (r *identityResolver) reusableBinding(ctx context.Context, inst engine.ResolvedInstallation, senderID string) (db.ChannelUserBinding, bool, error) {

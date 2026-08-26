@@ -115,7 +115,7 @@ func applySquadMemberSummary(resp *SquadResponse, summary *squadMemberSummary) {
 // they created. Squads stay creator-scoped for management while remaining
 // visible workspace-wide (ListSquads is unfiltered). Mirrors the front-end
 // per-squad `canManage` gate so the UI and API agree on who can rename / add
-// members / archive (MUL-4223).
+// members / archive (ENA-4223).
 func canManageSquad(member db.Member, squad db.Squad) bool {
 	if roleAllowed(member.Role, "owner", "admin") {
 		return true
@@ -131,7 +131,7 @@ func canManageSquad(member db.Member, squad db.Squad) bool {
 // agents on their allow-list and their own private agents pass, while other
 // members' private / non-allow-listed agents are rejected. This stops a
 // creator from smuggling an agent they cannot invoke into a squad and reaching
-// it through squad routing (MUL-4223).
+// it through squad routing (ENA-4223).
 func (h *Handler) memberCanWireAgent(ctx context.Context, member db.Member, agent db.Agent, workspaceID string) bool {
 	if roleAllowed(member.Role, "owner", "admin") {
 		return true
@@ -227,7 +227,7 @@ func (h *Handler) CreateSquad(w http.ResponseWriter, r *http.Request) {
 	workspaceID := workspaceIDFromURL(r, "workspaceId")
 	// Any workspace member can create a squad and becomes its creator
 	// (CreatorID below). This aligns squads with agents/projects, which are
-	// also member-creatable; management stays creator-scoped (MUL-4223).
+	// also member-creatable; management stays creator-scoped (ENA-4223).
 	member, ok := h.requireWorkspaceMember(w, r, workspaceID, "workspace not found")
 	if !ok {
 		return
@@ -271,7 +271,7 @@ func (h *Handler) CreateSquad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A non-admin creator may only lead their squad with an agent they can
-	// @-trigger; admins may wire any workspace agent (MUL-4223).
+	// @-trigger; admins may wire any workspace agent (ENA-4223).
 	if !h.memberCanWireAgent(r.Context(), member, leaderAgent, workspaceID) {
 		writeError(w, http.StatusForbidden, "you can only use an agent you have access to as leader")
 		return
@@ -513,7 +513,7 @@ func (h *Handler) DeleteSquad(w http.ResponseWriter, r *http.Request) {
 	// archived squad row and every subsequent dispatch would skip with
 	// "assignee squad is archived" — visible to ops but useless to the
 	// owner. Rewriting to the leader keeps the autopilot semantics
-	// unchanged (Path A from MUL-2429 is leader-only execution anyway).
+	// unchanged (Path A from ENA-2429 is leader-only execution anyway).
 	if err := h.Queries.TransferSquadAutopilotsToLeader(r.Context(), db.TransferSquadAutopilotsToLeaderParams{
 		AssigneeID:   squad.ID,
 		AssigneeID_2: squad.LeaderID,
@@ -599,7 +599,7 @@ type SquadMemberStatusListResponse struct {
 // runtime row or task — they should appear in the list but never look
 // like they're still working or merely offline (a leftover online
 // runtime row would otherwise read as "offline" and hide the fact that
-// the agent has been archived). Per the RFC decision (see MUL-2319), we
+// the agent has been archived). Per the RFC decision (see ENA-2319), we
 // surface archived agents in this endpoint rather than filtering them
 // out in the SQL.
 func deriveSquadMemberStatus(
@@ -802,7 +802,7 @@ func (h *Handler) AddSquadMember(w http.ResponseWriter, r *http.Request) {
 		}
 		// A non-admin creator may only add agents they can @-trigger (public
 		// or their own / allow-listed agents); admins may add any workspace
-		// agent (MUL-4223).
+		// agent (ENA-4223).
 		if !h.memberCanWireAgent(r.Context(), member, agent, workspaceID) {
 			writeError(w, http.StatusForbidden, "you can only add an agent you have access to")
 			return
@@ -1079,7 +1079,7 @@ func commentMentionsAnyone(content string) bool {
 }
 
 // The squad-leader assign/promotion readiness decision now lives in the single
-// service.IssueService.WillEnqueueRun predicate (MUL-3375), shared by the issue
+// service.IssueService.WillEnqueueRun predicate (ENA-3375), shared by the issue
 // write paths and the preview endpoint. The former handler-local mirrors
 // (shouldEnqueueSquadLeaderOnAssign / isSquadLeaderReady) were removed to stop
 // the four-entry-point drift. The squad enqueue side effect still flows through
@@ -1103,7 +1103,7 @@ func (h *Handler) enqueueSquadLeaderTask(ctx context.Context, issue db.Issue, tr
 
 	// The gate must judge the SAME top-of-chain human the enqueue path will
 	// persist on the leader task row, or it drifts: an agent-created issue that
-	// correctly inherits its originator (MUL-4305) would still be denied here
+	// correctly inherits its originator (ENA-4305) would still be denied here
 	// if the gate used an empty originator. Member authors are their own
 	// originator; for agent/system-triggered assigns we resolve the originator
 	// exactly like EnqueueTaskForSquadLeader* does (via the issue's origin
@@ -1135,7 +1135,7 @@ func (h *Handler) enqueueSquadLeaderTask(ctx context.Context, issue db.Issue, tr
 	// note rides its own task column, never trigger_comment_id.
 	_ = triggerCommentID
 	// The member who performed the assign/promote is the accountable human for the
-	// leader run (MUL-4302 §4) — the same principal the gate above judged. An agent
+	// leader run (ENA-4302 §4) — the same principal the gate above judged. An agent
 	// author is not a human, so only a member actor is threaded.
 	if _, err := h.TaskService.EnqueueTaskForSquadLeaderWithHandoff(ctx, issue, squad.LeaderID, squad.ID, handoffNote, memberActorUserID(authorType, authorID)); err != nil {
 		slog.Warn("enqueue squad leader task failed",

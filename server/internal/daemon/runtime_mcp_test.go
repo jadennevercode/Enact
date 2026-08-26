@@ -186,7 +186,7 @@ func TestMergeRuntimeAndAgentMcpConfigNullKeepsNativeInheritance(t *testing.T) {
 // CodeBuddy resolves its own config: `$CODEBUDDY_CONFIG_DIR` (default
 // `~/.codebuddy`), user-scope MCP from the first existing of
 // `<configDir>/.mcp.json` -> `<configDir>/mcp.json` -> `~/.codebuddy.json`,
-// parsed as JSONC. `~/.claude.json` is never consulted (MUL-5846).
+// parsed as JSONC. `~/.claude.json` is never consulted (ENA-5846).
 func TestCodebuddyUserMcpConfigPathPrecedence(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("CODEBUDDY_CONFIG_DIR", "")

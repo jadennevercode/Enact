@@ -7,7 +7,7 @@ import (
 )
 
 // TestRollupTaskUsageHourlyDoesNotLeakAdvisoryLockOnCancel pins the failure
-// mode behind MUL-5983: a cancelled rollup tick used to keep advisory lock
+// mode behind ENA-5983: a cancelled rollup tick used to keep advisory lock
 // 4246 forever.
 //
 // Migration 102 took the lock with the SESSION-scoped pg_try_advisory_lock and
@@ -27,7 +27,7 @@ func TestRollupTaskUsageHourlyDoesNotLeakAdvisoryLockOnCancel(t *testing.T) {
 	ctx := context.Background()
 
 	// The tick mutates the shared rollup singleton; serialise with every
-	// other test that touches it (MUL-3980).
+	// other test that touches it (ENA-3980).
 	lockRollupSingleton(t, pool)
 
 	// Blocker: hold task_usage_hourly_rollup_state row 1 so the tick's first
@@ -108,7 +108,7 @@ func TestRollupTaskUsageHourlyDoesNotLeakAdvisoryLockOnCancel(t *testing.T) {
 		t.Fatalf("inspect advisory locks: %v", err)
 	}
 	if held {
-		t.Fatal("cancelled rollup tick leaked advisory lock 4246 — every later tick reports no work and DeleteWorkspace blocks forever (MUL-5983)")
+		t.Fatal("cancelled rollup tick leaked advisory lock 4246 — every later tick reports no work and DeleteWorkspace blocks forever (ENA-5983)")
 	}
 
 	// And the lock must become available to the next waiter, which is what the

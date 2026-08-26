@@ -45,7 +45,7 @@ func newProjectResourceUpdateTestCmd() *cobra.Command {
 	return c
 }
 
-// TestBuildResourceRefFromFlagsGithubMergesHint pins the nit fix from MUL-2662
+// TestBuildResourceRefFromFlagsGithubMergesHint pins the nit fix from ENA-2662
 // review round 2: `enact project resource update <p> <r> --default-branch-hint x`
 // must rebuild the full github_repo payload by merging the existing `url` —
 // otherwise the server sees `{default_branch_hint: "x"}` and 400s.

@@ -19,7 +19,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Issue status catalog tests (MUL-6243).
+// Issue status catalog tests (ENA-6243).
 
 // seedTestCatalog makes the shared test workspace's catalog present. The
 // fixture creates its workspace with raw SQL, so it has no catalog rows —
@@ -1218,13 +1218,13 @@ func TestBackgroundEventCarriesCustomStatusCategory(t *testing.T) {
 
 	// Plain IssueToMap leaves a custom status uncategorized — that is why the
 	// publishers use the WithCategory form.
-	plain := service.IssueToMap(issue, "MUL")
+	plain := service.IssueToMap(issue, "ENA")
 	if plain["status_category"] != "" {
 		t.Errorf("IssueToMap custom status_category = %v, want empty (no catalog access)",
 			plain["status_category"])
 	}
 
-	authoritative := service.IssueToMapWithCategory(ctx, testHandler.Queries, issue, "MUL")
+	authoritative := service.IssueToMapWithCategory(ctx, testHandler.Queries, issue, "ENA")
 	if authoritative["status_category"] != "in_review" {
 		t.Errorf("IssueToMapWithCategory status_category = %v, want in_review",
 			authoritative["status_category"])
@@ -1235,7 +1235,7 @@ func TestBackgroundEventCarriesCustomStatusCategory(t *testing.T) {
 }
 
 // TestCatalogWritesAnnounceThemselves pins the realtime contract for the status
-// catalog (MUL-6458): every write that changes it publishes exactly one
+// catalog (ENA-6458): every write that changes it publishes exactly one
 // workspace-scoped event, and a write that changes nothing publishes none.
 //
 // One event type covers all four writes because every client answers them the

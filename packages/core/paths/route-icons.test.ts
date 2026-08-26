@@ -45,6 +45,7 @@ describe("pageForSegment", () => {
   it("maps a known segment to its page key", () => {
     expect(pageForSegment("projects")).toBe("projects");
     expect(pageForSegment("my-issues")).toBe("myIssues");
+    expect(pageForSegment("ontologies")).toBe("ontologies");
     expect(pageForSegment("settings")).toBe("settings");
   });
 
@@ -61,6 +62,7 @@ describe("resolveRouteIconName", () => {
     expect(resolveRouteIconName("/acme/chat")).toBe("MessageSquare");
     expect(resolveRouteIconName("/acme/squads")).toBe("Users");
     expect(resolveRouteIconName("/acme/usage")).toBe("BarChart3");
+    expect(resolveRouteIconName("/acme/ontologies")).toBe("Network");
     expect(resolveRouteIconName("/acme/my-issues")).toBe("CircleUser");
   });
 

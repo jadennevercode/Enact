@@ -247,7 +247,7 @@ func TestLoginTokenHelpOutputRendersCleanly(t *testing.T) {
 // TestLoginTokenFlagParsing exercises every documented invocation form
 // against a cobra command wired up exactly the same way as the production
 // loginCmd, then runs runAuthLogin's flag-resolution logic to confirm the
-// right downstream branch is taken: `--token mul_xxx` and `--token=mul_xxx`
+// right downstream branch is taken: `--token enact_xxx` and `--token=enact_xxx`
 // both consume the value (the bug from #1994), `--token` alone falls
 // through to the prompt sentinel (preserves the legacy headless form), and
 // no flag at all leaves the browser flow untouched.
@@ -265,13 +265,13 @@ func TestLoginTokenFlagParsing(t *testing.T) {
 	}{
 		{
 			name: "space-separated value (the form from #1994)",
-			argv: []string{"--token", "mul_xxx"},
-			want: want{changed: true, resolvedToken: "mul_xxx"},
+			argv: []string{"--token", "enact_xxx"},
+			want: want{changed: true, resolvedToken: "enact_xxx"},
 		},
 		{
 			name: "equals-separated value",
-			argv: []string{"--token=mul_yyy"},
-			want: want{changed: true, resolvedToken: "mul_yyy"},
+			argv: []string{"--token=enact_yyy"},
+			want: want{changed: true, resolvedToken: "enact_yyy"},
 		},
 		{
 			name: "no value falls through to prompt (legacy CLI_INSTALL.md form)",
@@ -381,7 +381,7 @@ func TestRunAuthStatusTaskContextRequiresTaskToken(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +399,7 @@ func TestRunAuthStatusTaskContextRequiresTaskToken(t *testing.T) {
 		token string
 	}{
 		{name: "missing token", token: ""},
-		{name: "human token", token: "mul_owner_sentinel"},
+		{name: "human token", token: "enact_owner_sentinel"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("ENACT_TOKEN", tc.token)
@@ -444,14 +444,14 @@ func TestHumanAuthCommandsFailClosedInTaskContext(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	loginCmd := testCmd()
-	loginCmd.Flags().String("token", "mul_fake_login", "")
-	_ = loginCmd.Flags().Set("token", "mul_fake_login")
+	loginCmd.Flags().String("token", "enact_fake_login", "")
+	_ = loginCmd.Flags().Set("token", "enact_fake_login")
 	for name, run := range map[string]func() error{
 		"login":  func() error { return runAuthLogin(loginCmd, nil) },
 		"logout": func() error { return runAuthLogout(testCmd(), nil) },
@@ -491,7 +491,7 @@ func TestNormalizeAPIBaseURL(t *testing.T) {
 }
 
 // TestValidateLoginTokenPrefix pins the accepted PAT prefix set for
-// `enact login --token`. The original implementation hardcoded `mul_`
+// `enact login --token`. The original implementation hardcoded `enact_`
 // only, which rejected legitimate Enact Cloud Node PATs (`mcn_`) at
 // the CLI even though the server's middleware would have accepted them.
 // If a future change drops `mcn_` from the list (or accidentally
@@ -502,14 +502,14 @@ func TestValidateLoginTokenPrefix(t *testing.T) {
 		token   string
 		wantErr bool
 	}{
-		{name: "mul_ PAT", token: "mul_abc123", wantErr: false},
+		{name: "enact_ PAT", token: "enact_abc123", wantErr: false},
 		{name: "mcn_ Cloud Node PAT", token: "mcn_abc123", wantErr: false},
 		{name: "empty token", token: "", wantErr: true},
 		{name: "no prefix", token: "abc123", wantErr: true},
 		{name: "wrong prefix mdt_", token: "mdt_abc123", wantErr: true},
 		{name: "wrong prefix mat_", token: "mat_abc123", wantErr: true},
-		{name: "case-sensitive: MUL_ rejected", token: "MUL_abc123", wantErr: true},
-		{name: "leading whitespace not allowed (callers TrimSpace first)", token: " mul_abc", wantErr: true},
+		{name: "case-sensitive: ENA_ rejected", token: "ENA_abc123", wantErr: true},
+		{name: "leading whitespace not allowed (callers TrimSpace first)", token: " enact_abc", wantErr: true},
 	}
 	for _, tc := range cases {
 		tc := tc
@@ -532,7 +532,7 @@ func TestValidateLoginTokenPrefix(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown prefix")
 	}
-	for _, p := range []string{"mul_", "mcn_"} {
+	for _, p := range []string{"enact_", "mcn_"} {
 		if !strings.Contains(err.Error(), p) {
 			t.Errorf("error %q does not mention prefix %q", err.Error(), p)
 		}

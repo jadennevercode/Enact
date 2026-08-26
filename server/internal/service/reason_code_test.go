@@ -36,7 +36,7 @@ func TestDispatchFailReasonCode(t *testing.T) {
 // deliberately distinct — an agent with NO runtime needs to be bound to one
 // (agent_runtime_required); a bound-but-offline runtime needs the machine back
 // (runtime_offline); a runtime whose CLI cannot be executed needs a reinstall
-// on a machine that is already connected (runtime_unusable, MUL-6164).
+// on a machine that is already connected (runtime_unusable, ENA-6164).
 // Collapsing any pair sends the user to fix the wrong thing.
 func TestAgentReadinessVerdict(t *testing.T) {
 	validRuntime := pgtype.UUID{Bytes: [16]byte{1}, Valid: true}

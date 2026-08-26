@@ -1,3 +1,4 @@
+export { formatFileSize } from "./file-size";
 export {
   collectImageSequence,
   indexOfImageKey,

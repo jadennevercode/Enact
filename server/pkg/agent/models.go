@@ -38,7 +38,7 @@ type Model struct {
 	// (or the daemon couldn't discover one); the UI hides its picker. The
 	// catalog is per-model because Codex's `codex debug models` is itself
 	// per-model and Claude's `--effort` superset has known per-model gaps
-	// (`xhigh` is Opus-only, `max` is session-only). See MUL-2339.
+	// (`xhigh` is Opus-only, `max` is session-only). See ENA-2339.
 	Thinking *ModelThinking `json:"thinking,omitempty"`
 }
 
@@ -91,7 +91,7 @@ type Catalog struct {
 	// every pick is an ID the CLI rejects. Callers must therefore never
 	// treat a fallback catalog as authoritative — in particular it must not
 	// enter the server's day-scale model-catalog cache, which would pin one
-	// transient failure as the answer for 24h (MUL-5549).
+	// transient failure as the answer for 24h (ENA-5549).
 	Fallback bool
 }
 
@@ -163,7 +163,7 @@ func ListModels(ctx context.Context, providerType string, runtimeCmd Command) (C
 		})
 	case "antigravity":
 		// agy 1.0.6 added a `--model` flag plus an `agy models` catalog
-		// command (MUL-3125). Enumerate it on demand like the other
+		// command (ENA-3125). Enumerate it on demand like the other
 		// dynamic-discovery backends.
 		return cachedDiscovery(discoveryCacheKey(providerType, runtimeCmd), func() (Catalog, error) {
 			return discovered(discoverAntigravityModels(ctx, runtimeCmd))
@@ -226,7 +226,7 @@ func ListModels(ctx context.Context, providerType string, runtimeCmd Command) (C
 	case "codebuddy":
 		// discoverCodebuddyModels owns the thinking annotation too, so the one
 		// `--help` capture feeds both catalogs. Annotating out here would run
-		// the command a second time (MUL-5549).
+		// the command a second time (ENA-5549).
 		return cachedDiscovery(discoveryCacheKey(providerType, runtimeCmd), func() (Catalog, error) {
 			return discoverCodebuddyModels(ctx, runtimeCmd)
 		})
@@ -274,9 +274,9 @@ func ListModels(ctx context.Context, providerType string, runtimeCmd Command) (C
 // decides one thing: whether the daemon has to read the runtime catalog before
 // launching a task that pins a model. That read costs a CLI subprocess with a
 // 15-30s ceiling which cachedDiscovery deliberately does not memoize when it
-// comes back empty or as a fallback (#3729, MUL-5549), so a logged-out runtime
+// comes back empty or as a fallback (#3729, ENA-5549), so a logged-out runtime
 // pays the ceiling on every read — worth spending only where the launch
-// genuinely fails without it (MUL-6471 review).
+// genuinely fails without it (ENA-6471 review).
 //
 // opencode's `run --model` and the DevEco fork of it resolve strictly through
 // `provider/model` and reject anything else — verified against opencode
@@ -357,7 +357,7 @@ func QualifyModelID(catalog Catalog, model string) (string, bool) {
 // `session/set_model` RPC before each prompt; Claude / Codex / Cursor /
 // Gemini / Copilot / Kimi / Reasonix / Kiro / OpenCode / OpenClaw / Pi / Antigravity
 // pass it via flag or session config (Antigravity gained `--model` in agy
-// 1.0.6 — MUL-3125).
+// 1.0.6 — ENA-3125).
 //
 // The hook is retained — rather than inlining `true` at the call sites — so
 // a model-less runtime can opt out in one place, which makes the UI
@@ -484,7 +484,7 @@ func cachedDiscovery(key string, fn func() (Catalog, error)) (Catalog, error) {
 	// but only because discovery failed and the provider substituted a static
 	// list. Caching it would hold the stand-in for the full TTL and stop the
 	// next request from retrying, which is exactly the recovery path we want
-	// to keep open (MUL-5549).
+	// to keep open (ENA-5549).
 	if len(catalog.Models) == 0 || catalog.Fallback {
 		return catalog, nil
 	}
@@ -496,11 +496,11 @@ func cachedDiscovery(key string, fn func() (Catalog, error)) (Catalog, error) {
 }
 
 // discoveryCacheKey scopes a discovery memo to the binary it enumerated.
-// A custom runtime profile (MUL-3284) runs a different executable under a
+// A custom runtime profile (ENA-3284) runs a different executable under a
 // built-in protocol family, so a provider-only key would let a built-in
 // runtime and a same-family profile runtime on one host serve each other's
 // catalog for the TTL — the same mismatch the daemon's path resolution
-// fixes, reintroduced at the cache layer (MUL-5789). An empty path keeps
+// fixes, reintroduced at the cache layer (ENA-5789). An empty path keeps
 // the bare provider key, which is what a built-in on PATH resolves to.
 //
 // The key spans the launch prefix too, not just the path: two profiles can
@@ -551,7 +551,7 @@ func codexStaticModels() []Model {
 	// empty (follow-CLI-config) model: that config can resolve to any model,
 	// so ValidateThinkingLevel fails an empty codex model closed rather than
 	// borrowing this entry's catalog (which alone advertises `ultra`) — see
-	// ValidateThinkingLevel and MUL-4347. Keep exactly one entry flagged.
+	// ValidateThinkingLevel and ENA-4347. Keep exactly one entry flagged.
 	standardThinking := func(defaultLevel string, includeMax, includeUltra bool) *ModelThinking {
 		levels := []ThinkingLevel{
 			{Value: "low", Label: "Low", Description: "Fast responses with lighter reasoning"},
@@ -1245,7 +1245,7 @@ func parsePiModels(output string) []Model {
 // `provider model` rows; without skipping them the field splitter coins bogus
 // models like `No/models`. See #3729.
 //
-// A pi-family custom runtime profile (MUL-3284) can point at a fork that has
+// A pi-family custom runtime profile (ENA-3284) can point at a fork that has
 // no `--list-models` at all. Those exit non-zero printing usage text —
 //
 //	Error: unknown flag: --list-models
@@ -1400,7 +1400,7 @@ func discoverHermesModels(ctx context.Context, runtimeCmd Command) ([]Model, err
 //
 // The ACP side is unchanged: Kimi ≤0.28 returns a `models` block
 // (`availableModels`/`currentModelId`) and 0.29 moved the same catalog into
-// `configOptions` (MUL-5239); the shared parser still accepts both, so the
+// `configOptions` (ENA-5239); the shared parser still accepts both, so the
 // discovery path stays identical. See parseACPConfigOptionModels.
 //
 // Effort selection is gated on the CLI build, because provider-list alone
@@ -1934,7 +1934,7 @@ func discoverACPModels(ctx context.Context, runtimeCmd Command, p acpDiscoveryPr
 	models := parseACPSessionNewModels(sessionResult)
 	if len(models) == 0 {
 		// session/new succeeded but carried no catalog we recognise. This
-		// is what upstream schema drift looks like from here (MUL-5239:
+		// is what upstream schema drift looks like from here (ENA-5239:
 		// kimi 0.29 moved the catalog from `models` to `configOptions`),
 		// and without this line it is indistinguishable from "the CLI
 		// really has no models". Log the top-level keys only — never the
@@ -2041,7 +2041,7 @@ func parseACPSessionNewModels(raw json.RawMessage) []Model {
 
 // parseACPConfigOptionModels extracts the model catalog from the ACP
 // `configOptions` list returned by `session/new`. Kimi Code 0.29 dropped
-// the top-level `models` block in favour of this shape (MUL-5239):
+// the top-level `models` block in favour of this shape (ENA-5239):
 //
 //	{
 //	  "sessionId": "...",
@@ -2563,7 +2563,7 @@ func isOpenclawIdentifier(s string) bool {
 // `models.availableModels` plus a `currentModelId`, which is what the shared
 // parseACPSessionNewModels reads.
 //
-// This replaces scraping the `--model` line out of `codebuddy --help` (MUL-5549).
+// This replaces scraping the `--model` line out of `codebuddy --help` (ENA-5549).
 // The help text carried IDs and nothing else, so labels had to be guessed from
 // the ID and produced names CodeBuddy does not use ("Kimi K3 1" for what the CLI
 // calls Kimi-K3, "Deepseek V3 2 Volc" for DeepSeek-V3.2), the default model was
@@ -2647,7 +2647,7 @@ func codebuddyFallbackCatalog() Catalog {
 // These IDs do not overlap CodeBuddy's real catalog at all, so this list is a
 // last-resort affordance to keep the picker usable, never an answer. It is
 // always returned marked Fallback so it cannot be cached as authoritative
-// (MUL-5549).
+// (ENA-5549).
 func codebuddyStaticModels() []Model {
 	return []Model{
 		{ID: "claude-sonnet-4.6", Label: "Claude Sonnet 4.6", Provider: "anthropic", Default: true},

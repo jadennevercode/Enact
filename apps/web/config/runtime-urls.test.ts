@@ -2,7 +2,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  deriveBrowserWsUrlFromPage,
   resolveBrowserApiBaseUrl,
+  resolveBrowserBackendPort,
   resolveBrowserWsUrl,
   resolveDevDocsUrl,
   resolveDevRemoteApiUrl,
@@ -10,6 +12,33 @@ import {
   resolveRemoteApiUrl,
   runtimeRewriteDestination,
 } from "./runtime-urls";
+
+describe("self-host browser websocket URL", () => {
+  it("uses the host-published backend port for plain HTTP loopback", () => {
+    expect(resolveBrowserBackendPort({ ENACT_BROWSER_BACKEND_PORT: "18080" })).toBe("18080");
+    expect(
+      deriveBrowserWsUrlFromPage("http://localhost:13000/acme/chat", "18080"),
+    ).toBe("ws://localhost:18080/ws");
+    expect(
+      deriveBrowserWsUrlFromPage("http://127.0.0.1:13000/acme/chat", "18080"),
+    ).toBe("ws://127.0.0.1:18080/ws");
+  });
+
+  it("keeps remote and HTTPS deployments on their same-origin reverse proxy", () => {
+    expect(
+      deriveBrowserWsUrlFromPage("https://app.example.com/acme/chat", "18080"),
+    ).toBe("wss://app.example.com/ws");
+    expect(
+      deriveBrowserWsUrlFromPage("http://192.0.2.10:13000/acme/chat", "18080"),
+    ).toBe("ws://192.0.2.10:13000/ws");
+  });
+
+  it("rejects invalid injected ports", () => {
+    expect(resolveBrowserBackendPort({ ENACT_BROWSER_BACKEND_PORT: "0" })).toBeUndefined();
+    expect(resolveBrowserBackendPort({ ENACT_BROWSER_BACKEND_PORT: "65536" })).toBeUndefined();
+    expect(resolveBrowserBackendPort({ ENACT_BROWSER_BACKEND_PORT: "8080/ws" })).toBeUndefined();
+  });
+});
 
 describe("resolveRemoteApiUrl", () => {
   it("prefers REMOTE_API_URL when explicitly configured", () => {
@@ -53,7 +82,7 @@ describe("resolveRemoteApiUrl", () => {
 
   // Same defect as the browser base, same fix: the rewrite target already
   // appends the full incoming pathname (`/api/**`, `/uploads/**`, `/ws`), so a
-  // configured `/api` suffix would double it (MUL-5922).
+  // configured `/api` suffix would double it (ENA-5922).
   it("strips a trailing /api from server-side rewrite targets", () => {
     expect(
       resolveRemoteApiUrl({ REMOTE_API_URL: "http://backend:8080/api" }),
@@ -213,7 +242,7 @@ describe("browser runtime URLs", () => {
 describe("runtimeRewriteDestination", () => {
   it("keeps same-origin fallback when no runtime upstreams are configured", () => {
     expect(runtimeRewriteDestination("/api/config", {})).toBeUndefined();
-    expect(runtimeRewriteDestination("/auth/send-code", {})).toBeUndefined();
+    expect(runtimeRewriteDestination("/auth/email-login", {})).toBeUndefined();
     expect(
       runtimeRewriteDestination("/uploads/workspaces/a.png", {}),
     ).toBeUndefined();
@@ -244,10 +273,10 @@ describe("runtimeRewriteDestination", () => {
       }),
     ).toBe("http://backend:8080/api/config");
     expect(
-      runtimeRewriteDestination("/auth/send-code", {
+      runtimeRewriteDestination("/auth/email-login", {
         REMOTE_API_URL: "http://backend:8080",
       }),
-    ).toBe("http://backend:8080/auth/send-code");
+    ).toBe("http://backend:8080/auth/email-login");
     expect(
       runtimeRewriteDestination("/uploads/workspaces/a.png", {
         REMOTE_API_URL: "http://backend:8080",

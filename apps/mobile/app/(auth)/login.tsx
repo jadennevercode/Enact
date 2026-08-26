@@ -11,7 +11,7 @@ import { useAuthStore } from "@/data/auth-store";
 import { mapAuthError } from "@/lib/auth-error";
 
 export default function Login() {
-  const sendCode = useAuthStore((s) => s.sendCode);
+  const loginWithEmail = useAuthStore((s) => s.loginWithEmail);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,11 +23,12 @@ export default function Login() {
     setSubmitting(true);
     setError(null);
     try {
-      await sendCode(trimmed);
-      router.push({ pathname: "/verify", params: { email: trimmed } });
+      await loginWithEmail(trimmed);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.replace("/");
     } catch (err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError(mapAuthError(err, "Couldn't send the code. Try again."));
+      setError(mapAuthError(err, "Couldn't sign in. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -47,7 +48,7 @@ export default function Login() {
                 Sign in to Enact
               </Text>
               <Text className="text-sm text-muted-foreground text-center">
-                Enter your email and we&apos;ll send you a verification code.
+                Enter your email to continue.
               </Text>
             </View>
           </View>
@@ -62,7 +63,7 @@ export default function Login() {
               value={email}
               onChangeText={setEmail}
               onSubmitEditing={onSubmit}
-              returnKeyType="send"
+              returnKeyType="go"
               editable={!submitting}
               invalid={!!error}
             />
@@ -76,7 +77,7 @@ export default function Login() {
             disabled={submitting || !email.trim()}
             onPress={onSubmit}
           >
-            <Text>{submitting ? "Sending..." : "Send code"}</Text>
+            <Text>{submitting ? "Signing in..." : "Continue"}</Text>
           </Button>
         </View>
       </KeyboardAvoidingView>

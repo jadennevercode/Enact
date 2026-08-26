@@ -279,8 +279,8 @@ func TestWarnTimelineTruncated(t *testing.T) {
 func TestRunIssueTimelineReportsTruncationOnStderr(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/issues/MUL-6253":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "MUL-6253"})
+		case "/api/issues/ENA-6253":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "ENA-6253"})
 		case "/api/issues/issue-uuid/timeline":
 			w.Header().Set("X-Timeline-Truncated", "activity")
 			_ = json.NewEncoder(w).Encode(timelineFixture())
@@ -301,7 +301,7 @@ func TestRunIssueTimelineReportsTruncationOnStderr(t *testing.T) {
 	errR, errW, _ := os.Pipe()
 	oldOut, oldErr := os.Stdout, os.Stderr
 	os.Stdout, os.Stderr = outW, errW
-	err := runIssueTimeline(cmd, []string{"MUL-6253"})
+	err := runIssueTimeline(cmd, []string{"ENA-6253"})
 	_ = outW.Close()
 	_ = errW.Close()
 	os.Stdout, os.Stderr = oldOut, oldErr
@@ -327,8 +327,8 @@ func TestRunIssueTimelineReportsTruncationOnStderr(t *testing.T) {
 func TestRunIssueTimelineSilentWhenNotTruncated(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/issues/MUL-6253":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "MUL-6253"})
+		case "/api/issues/ENA-6253":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "ENA-6253"})
 		case "/api/issues/issue-uuid/timeline":
 			_ = json.NewEncoder(w).Encode(timelineFixture())
 		default:
@@ -348,7 +348,7 @@ func TestRunIssueTimelineSilentWhenNotTruncated(t *testing.T) {
 	errR, errW, _ := os.Pipe()
 	oldOut, oldErr := os.Stdout, os.Stderr
 	os.Stdout, os.Stderr = outW, errW
-	err := runIssueTimeline(cmd, []string{"MUL-6253"})
+	err := runIssueTimeline(cmd, []string{"ENA-6253"})
 	_ = outW.Close()
 	_ = errW.Close()
 	os.Stdout, os.Stderr = oldOut, oldErr
@@ -415,10 +415,10 @@ func TestRunIssueTimelineRequestsFlatShapeAndFilters(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPaths = append(gotPaths, r.URL.Path)
 		switch r.URL.Path {
-		case "/api/issues/MUL-6253":
+		case "/api/issues/ENA-6253":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-uuid",
-				"identifier": "MUL-6253",
+				"identifier": "ENA-6253",
 				"title":      "timeline CLI",
 			})
 		case "/api/issues/issue-uuid/timeline":
@@ -441,7 +441,7 @@ func TestRunIssueTimelineRequestsFlatShapeAndFilters(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := runIssueTimeline(cmd, []string{"MUL-6253"})
+	err := runIssueTimeline(cmd, []string{"ENA-6253"})
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
@@ -452,7 +452,7 @@ func TestRunIssueTimelineRequestsFlatShapeAndFilters(t *testing.T) {
 	if gotRawQuery != "" {
 		t.Fatalf("timeline query = %q, want empty (any pagination param changes the response shape)", gotRawQuery)
 	}
-	want := []string{"/api/issues/MUL-6253", "/api/issues/issue-uuid/timeline"}
+	want := []string{"/api/issues/ENA-6253", "/api/issues/issue-uuid/timeline"}
 	if len(gotPaths) != len(want) || gotPaths[0] != want[0] || gotPaths[1] != want[1] {
 		t.Fatalf("paths = %v, want %v", gotPaths, want)
 	}
@@ -469,8 +469,8 @@ func TestRunIssueTimelineRequestsFlatShapeAndFilters(t *testing.T) {
 func TestRunIssueTimelineEmptyResultPrintsEmptyJSONArray(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/issues/MUL-6253":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "MUL-6253"})
+		case "/api/issues/ENA-6253":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "ENA-6253"})
 		case "/api/issues/issue-uuid/timeline":
 			_ = json.NewEncoder(w).Encode([]map[string]any{})
 		default:
@@ -489,7 +489,7 @@ func TestRunIssueTimelineEmptyResultPrintsEmptyJSONArray(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := runIssueTimeline(cmd, []string{"MUL-6253"})
+	err := runIssueTimeline(cmd, []string{"ENA-6253"})
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)

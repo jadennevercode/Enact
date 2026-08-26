@@ -75,7 +75,7 @@ func thinkingCatalogs() map[string]agent.Catalog {
 }
 
 // TestResolveTaskModelSelectionReadsTheCatalogAtMostOnce is the production
-// path the previous round left unguarded (MUL-6471 review): a task that both
+// path the previous round left unguarded (ENA-6471 review): a task that both
 // qualifies its model and validates a capability override must not pay for
 // discovery twice. It also pins the other half — the tasks that must not
 // reach discovery at all.

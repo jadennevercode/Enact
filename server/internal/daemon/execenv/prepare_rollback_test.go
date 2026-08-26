@@ -8,7 +8,7 @@ import (
 )
 
 // TestPrepareRollsBackSidecarsWhenPrepareFailsInPlace is the regression test for
-// MUL-6132: a local_directory Prepare that fails partway must not leave the
+// ENA-6132: a local_directory Prepare that fails partway must not leave the
 // daemon task marker (or any other sidecar) in the user's own repository.
 //
 // Before the fix, Prepare wrote the marker early and persisted the manifest that
@@ -79,9 +79,9 @@ func TestPrepareRollsBackSidecarsWhenPrepareFailsInPlace(t *testing.T) {
 // first act, then creates .agent_context, writes skills and writes project
 // resources — any of which can fail with the marker already on disk.
 //
-// The first version of the MUL-6132 fix armed the rollback only after
+// The first version of the ENA-6132 fix armed the rollback only after
 // writeContextFiles returned, so exactly these failures still stranded a marker
-// in the user's repository with nothing else beside it (MUL-6132 review). The
+// in the user's repository with nothing else beside it (ENA-6132 review). The
 // induced failure is a plain file where .agent_context must be a directory.
 func TestPrepareRollsBackWhenWriteContextFilesFailsAfterMarker(t *testing.T) {
 	workspacesRoot := t.TempDir()

@@ -502,6 +502,14 @@ export const EMPTY_USER: User = {
   updated_at: "",
 };
 
+export const LoginResponseSchema = z.object({
+  token: z.string().min(1),
+  user: UserSchema.and(z.object({
+    id: z.string().min(1),
+    email: z.email(),
+  })),
+}).loose();
+
 export const WorkspaceSchema: z.ZodType<Workspace> = z.object({
   id: z.string(),
   name: z.string().default(""),
@@ -617,7 +625,7 @@ export const AgentSchema: z.ZodType<Agent> = z.object({
   >,
   runtime_config: z.record(z.string(), z.unknown()).default({}),
   custom_args: z.array(z.string()).default([]),
-  // MUL-2600: agent resource shape no longer carries custom_env or
+  // ENA-2600: agent resource shape no longer carries custom_env or
   // custom_env_redacted. Mobile keeps only the coarse metadata that
   // mirrors web's expectations. Real env values are reachable via the
   // dedicated /env endpoint and we don't expose env editing on mobile.

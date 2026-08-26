@@ -6,7 +6,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/dispatch"
 )
 
-// Unified execution-admission contract (MUL-4525).
+// Unified execution-admission contract (ENA-4525).
 //
 // Every synchronous enqueue entry point (comment mention, autopilot manual
 // "run now", issue assign / promotion / batch, manual rerun, direct chat) needs

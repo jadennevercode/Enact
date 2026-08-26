@@ -130,8 +130,8 @@ export function createEnDict(allowSignup: boolean): LandingDict {
       {
         title: allowSignup ? "Sign up & create your workspace" : "Login to your workspace",
         description: allowSignup
-          ? "Enter your email, verify with a code, and you\u2019re in. Your workspace is created automatically \u2014 no setup wizard, no configuration forms."
-          : "Enter your email, verify with a code, and you\u2019re logged into your workspace \u2014 no setup wizard, no configuration forms.",
+          ? "Enter your email and you\u2019re in. Your workspace is created automatically \u2014 no setup wizard, no configuration forms."
+          : "Enter your email and you\u2019re logged into your workspace \u2014 no setup wizard, no configuration forms.",
       },
       {
         title: "Install the CLI & connect your machine",
@@ -262,22 +262,10 @@ export function createEnDict(allowSignup: boolean): LandingDict {
 
   about: {
     title: "About Enact",
-    nameLine: {
-      prefix: "Enact \u2014 ",
-      mul: "Mul",
-      tiplexed: "tiplexed ",
-      i: "I",
-      nformationAnd: "nformation and ",
-      c: "C",
-      omputing: "omputing ",
-      a: "A",
-      gent: "gent.",
-    },
+    nameLine: "Enact turns intent into accountable action.",
     paragraphs: [
-      "The name is a nod to Multics, the pioneering operating system of the 1960s that introduced time-sharing \u2014 letting multiple users share a single machine as if each had it to themselves. Unix was born as a deliberate simplification of Multics: one user, one task, one elegant philosophy.",
-      "We think the same inflection is happening again. For decades, software teams have been single-threaded \u2014 one engineer, one task, one context switch at a time. AI agents change that equation. Enact brings time-sharing back, but for an era where the \u201cusers\u201d multiplexing the system are both humans and autonomous agents.",
       "In Enact, agents are first-class teammates. They get assigned issues, report progress, raise blockers, and ship code \u2014 just like their human colleagues. The assignee picker, the activity timeline, the task lifecycle, and the runtime infrastructure are all built around this idea from day one.",
-      "Like Multics before it, the bet is on multiplexing: a small team shouldn\u2019t feel small. With the right system, two engineers and a fleet of agents can move like twenty.",
+      "Enact keeps human decisions, agent execution, and project context in one shared system so small teams can move faster without losing control.",
       "The platform is fully open source and self-hostable. Your data stays on your infrastructure. Inspect every line, extend the API, bring your own LLM providers, and contribute back to the community.",
     ],
     cta: "View on GitHub",
@@ -1329,7 +1317,7 @@ export function createEnDict(allowSignup: boolean): LandingDict {
           "The Codex agent's MCP settings are applied correctly again.",
           "The Pi agent's task result now shows only the final answer — intermediate thinking is hidden.",
           "Autopilots no longer accidentally run the same Issue twice in a row when a run takes longer than expected.",
-          "An Issue's PR list only shows PRs that really target that Issue — PRs that just mention the key in passing (\"Related to MUL-…\") no longer appear.",
+          "An Issue's PR list only shows PRs that really target that Issue — PRs that just mention the key in passing (\"Related to ENA-…\") no longer appear.",
           "The Issue action menu's nested \"More\" item is now called \"Relations\", so you can tell what's inside without opening it.",
           "Every attachment upload button — chat, Issue creation, Issue description, feedback — now lets you pick multiple files at once from the system file dialog.",
         ],
@@ -2358,7 +2346,7 @@ export function createEnDict(allowSignup: boolean): LandingDict {
           "New `enact daemon disk-usage` CLI surfaces per-task and per-workspace disk footprint",
           "Skill picker in agent settings has a search box for fast lookup",
           "Daemon GC extends to chat, autopilot, and quick-create tasks",
-          "Issue detail breadcrumb now shows the MUL-xxxx identifier for quick reference",
+          "Issue detail breadcrumb now shows the ENA-xxxx identifier for quick reference",
         ],
         improvements: [
           "Timeline page size bumped to 50, with per-pool keyset cursors for comments and activities",

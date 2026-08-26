@@ -585,7 +585,7 @@ describe("IntegrationsTab", () => {
   it("renders the bind entry (not coming-soon) when installs are unavailable but the agent is already bound", () => {
     // install_supported governs only NEW installs; an already-bound agent
     // must still surface its connected state instead of "coming soon"
-    // (regression for the must-fix on MUL-2988).
+    // (regression for the must-fix on ENA-2988).
     installationsRef.current = {
       installations: [{ agent_id: "agent-1", status: "active" }],
       configured: true,

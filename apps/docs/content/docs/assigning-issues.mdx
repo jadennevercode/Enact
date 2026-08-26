@@ -72,10 +72,10 @@ Changing the assignee, unassigning, or changing the issue status doesn't stop a 
 ## Use the CLI
 
 ```bash
-enact issue assign MUL-42 --to "Agent name"
-enact issue assign MUL-42 --to-id <agent-uuid> --no-start
-enact issue status MUL-42 in_progress --no-start
-enact issue assign MUL-42 --unassign
+enact issue assign ENA-42 --to "Agent name"
+enact issue assign ENA-42 --to-id <agent-uuid> --no-start
+enact issue status ENA-42 in_progress --no-start
+enact issue assign ENA-42 --unassign
 ```
 
 In scripts, use `--to-id <uuid>` to avoid matching the wrong object with the same name. Look up UUIDs with `enact agent list --output json` or `enact workspace member list --output json`.

@@ -13,7 +13,7 @@ const (
 	// managed cloud enables its matching billing.subscriptions capability.
 	BillingWorkspaceSubscriptions = "billing_workspace_subscriptions"
 	// ComposioMCPApps gates the Composio app management UI and — together with
-	// the MUL-3963 permission_mode / invocation_targets access model it depends
+	// the ENA-3963 permission_mode / invocation_targets access model it depends
 	// on — the aligned Private / Public-to picker in the agent create flow.
 	// The access model exists to gate Composio sharing, so the two ship on the
 	// same switch.
@@ -23,7 +23,7 @@ const (
 	// gate pinned Task/Run execution: disabling discovery and management must not
 	// mutate an immutable execution manifest that is already in flight.
 	PluginsV1 = "plugins_v1"
-	// CustomIssueStatuses gates CREATING a custom issue status (MUL-6243). It is
+	// CustomIssueStatuses gates CREATING a custom issue status (ENA-6243). It is
 	// a rollout gate, not a behavior switch, and it is deliberately one-way.
 	//
 	// The readers ship unconditionally and are safe to: issuestatus.Effective is

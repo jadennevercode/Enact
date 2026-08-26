@@ -13,7 +13,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/auth"
 )
 
-// Attachment download capabilities — MUL-5292.
+// Attachment download capabilities — ENA-5292.
 //
 // A native download is a browser-level request: Electron's
 // webContents.downloadURL (and an <img> in a cross-site webview) carries

@@ -74,7 +74,7 @@ Your responsibilities, in order:
 // leader was woken on is assigned to THIS squad. Only then does the leader own
 // the parent's status arc.
 //
-// Since MUL-6417 the runtime brief has no grant routing that consumes this
+// Since ENA-6417 the runtime brief has no grant routing that consumes this
 // section by name: the unified workflow writes status as the work changes it
 // (in_progress when a turn starts advancing the issue's ask, the reached
 // state at turn end), and the leader's only brief-side special case is that a
@@ -99,7 +99,7 @@ const squadParentStatusOwned = `6. **Own the parent issue status.** This issue i
    existing integrations (for example a PR with close intent that merges).`
 
 // squadParentStatusNotOwned is responsibility 6 for every other leader path:
-// an @squad mention on an issue owned by someone else (MUL-3724), and
+// an @squad mention on an issue owned by someone else (ENA-3724), and
 // quick-create, where no issue exists yet on this turn. Granting status
 // ownership there would let a squad that was merely pulled in to answer a
 // question push another assignee's in-flight issue to in_review.

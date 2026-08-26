@@ -22,10 +22,8 @@ test.describe("Settings", () => {
     const newName = "Renamed WS " + Date.now();
     await nameInput.fill(newName);
 
-    // Save
-    await page.locator("button", { hasText: "Save" }).click();
-
-    await expect(page.getByText("Workspace settings saved").first()).toBeVisible({ timeout: 5000 });
+    // Workspace settings auto-save after a short debounce.
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10000 });
 
     // Sidebar should reflect the new name WITHOUT page refresh
     await expect(page.getByRole("button", { name: new RegExp(newName) }).first()).toBeVisible();
@@ -33,8 +31,7 @@ test.describe("Settings", () => {
     // Restore original name so other tests aren't affected
     await nameInput.clear();
     await nameInput.fill(originalName.trim());
-    await page.locator("button", { hasText: "Save" }).click();
-    await expect(page.getByText("Workspace settings saved").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole("button", { name: new RegExp(originalName) }).first()).toBeVisible();
   });
 
@@ -42,7 +39,7 @@ test.describe("Settings", () => {
   // without a configured COMPOSIO_API_KEY or a live Composio project. The
   // backend redirect is simulated by pointing the init endpoint's redirect_url
   // straight back at the settings page with ?connected=<slug> — exercising the
-  // frontend's callback toast + connections refresh (MUL-3718) end to end.
+  // frontend's callback toast + connections refresh (ENA-3718) end to end.
   test("connecting a Composio toolkit shows a toast and refreshes the list", async ({
     page,
   }) => {
@@ -51,6 +48,23 @@ test.describe("Settings", () => {
 
     // Stateful: connections is empty until the (mocked) connect flow lands.
     let connected = false;
+
+    await page.route("**/api/config", async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as {
+        feature_flags?: Record<string, boolean>;
+      };
+      await route.fulfill({
+        response,
+        json: {
+          ...body,
+          feature_flags: {
+            ...body.feature_flags,
+            composio_mcp_apps: true,
+          },
+        },
+      });
+    });
 
     await page.route("**/api/integrations/composio/toolkits", (route) =>
       route.fulfill({

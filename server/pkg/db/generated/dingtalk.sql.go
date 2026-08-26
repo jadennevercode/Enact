@@ -343,14 +343,14 @@ const listDingTalkUserBindingsForMember = `-- name: ListDingTalkUserBindingsForM
 SELECT installation_id, channel_user_id
 FROM channel_user_binding
 WHERE workspace_id = $1
-  AND multica_user_id = $2
+  AND enact_user_id = $2
   AND channel_type = 'dingtalk'
 ORDER BY bound_at DESC, id ASC
 `
 
 type ListDingTalkUserBindingsForMemberParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	EnactUserID pgtype.UUID `json:"multica_user_id"`
+	EnactUserID pgtype.UUID `json:"enact_user_id"`
 }
 
 type ListDingTalkUserBindingsForMemberRow struct {

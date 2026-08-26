@@ -1,5 +1,5 @@
 // Package wecom is the WeCom (企业微信) smart-bot ("智能机器人" / aibot)
-// adapter for the channel-agnostic inbound engine (MUL-3620). It plugs into the
+// adapter for the channel-agnostic inbound engine (ENA-3620). It plugs into the
 // same engine.Router / ResolverSet as Feishu and Slack.
 //
 // Unlike the internal customer-service ("内部客服号") flow which is HTTP-callback

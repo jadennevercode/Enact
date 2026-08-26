@@ -35,7 +35,7 @@ describe("ApiClient edit guards", () => {
       id: "issue-1",
       workspace_id: "ws-1",
       number: 1,
-      identifier: "MUL-1",
+      identifier: "ENA-1",
       title: "Legacy issue",
       description: null,
       status: "todo",
@@ -75,6 +75,53 @@ describe("ApiClient edit guards", () => {
   });
 });
 
+describe("ApiClient email login", () => {
+  it("posts the email and validates the login response", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        token: "token-1",
+        user: {
+          id: "user-1",
+          name: "Alice",
+          email: "alice@example.com",
+          avatar_url: null,
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new ApiClient("https://api.example.test").emailLogin("alice@example.com");
+
+    expect(result).toMatchObject({ token: "token-1", user: { id: "user-1" } });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/auth/email-login",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ email: "alice@example.com" }),
+      }),
+    );
+  });
+
+  it("rejects a malformed login response instead of authenticating an empty user", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ token: "", user: {} }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(
+      new ApiClient("https://api.example.test").emailLogin("alice@example.com"),
+    ).rejects.toThrow();
+  });
+});
+
 describe("ApiClient pull-request response schema", () => {
   const validPR = {
     id: "pr-1",
@@ -83,10 +130,10 @@ describe("ApiClient pull-request response schema", () => {
     repo_owner: "acme",
     repo_name: "widget",
     number: 7,
-    title: "MUL-1: fix",
+    title: "ENA-1: fix",
     state: "open",
     html_url: "https://github.example/acme/widget/pull/7",
-    branch: "fix/mul-1",
+    branch: "fix/ena-1",
     author_login: "octocat",
     author_avatar_url: null,
     merged_at: null,
@@ -432,7 +479,7 @@ describe("ApiClient server Table query", () => {
                 parent: {
                   id: "parent-1",
                   number: 10,
-                  identifier: "MUL-10",
+                  identifier: "ENA-10",
                   title: "Parent",
                   status: "todo",
                 },
@@ -1742,7 +1789,7 @@ describe("ApiClient", () => {
       expect(body.get("comment_id")).toBeNull();
     });
 
-    it("threads an AbortSignal into fetch so the coordinator can cancel it (MUL-5181)", async () => {
+    it("threads an AbortSignal into fetch so the coordinator can cancel it (ENA-5181)", async () => {
       const fetchMock = vi.fn().mockResolvedValue(
         new Response(JSON.stringify({ id: "att-1", url: "https://cdn/x" }), {
           status: 200,
@@ -1991,7 +2038,7 @@ describe("ApiClient model discovery response schema", () => {
 });
 
 /**
- * Mixed-version contract for subtree unsubscribe (MUL-5483).
+ * Mixed-version contract for subtree unsubscribe (ENA-5483).
  *
  * Web/desktop staging deploys on merge while the backend is deployed by hand,
  * so this client routinely runs against an older server. Subtree unsubscribe
@@ -2337,7 +2384,7 @@ describe("clientErrorMessage", () => {
   });
 
   it("withholds a 5xx message, which carries internal server detail", () => {
-    // MUL-6472: the pre-fix body for a failed autopilot trigger looked like
+    // ENA-6472: the pre-fix body for a failed autopilot trigger looked like
     // this, and it was rendered verbatim in the run-now toast.
     const leaky = new ApiError(
       'failed to trigger autopilot: create run: ERROR: duplicate key value violates unique constraint "autopilot_run_pkey" (SQLSTATE 23505)',
@@ -2351,5 +2398,104 @@ describe("clientErrorMessage", () => {
   it("withholds a transport failure, whose message says nothing actionable", () => {
     expect(clientErrorMessage(new TypeError("Failed to fetch"))).toBeUndefined();
     expect(clientErrorMessage(undefined)).toBeUndefined();
+  });
+});
+
+describe("ApiClient project artifacts response schema", () => {
+  const validArtifact = {
+    id: "att-1",
+    workspace_id: "ws-1",
+    issue_id: "issue-1",
+    comment_id: null,
+    chat_session_id: null,
+    chat_message_id: null,
+    uploader_type: "agent",
+    uploader_id: "agent-1",
+    filename: "report.pdf",
+    url: "https://storage.test/report.pdf",
+    download_url: "/api/attachments/att-1/download",
+    markdown_url: "https://app.test/api/attachments/att-1/download",
+    content_type: "application/pdf",
+    size_bytes: 2048,
+    created_at: "2026-08-20T00:00:00Z",
+    owner_issue_id: "issue-1",
+    owner_issue_number: 42,
+    owner_issue_identifier: "ENC-42",
+    owner_issue_title: "Ship the report",
+  };
+
+  function respondWith(body: unknown) {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("returns the parsed listing and passes limit through as a query param", async () => {
+    const fetchMock = respondWith({
+      artifacts: [validArtifact],
+      total: 1,
+      truncated: false,
+    });
+
+    const client = new ApiClient("https://api.example.test");
+    await expect(client.listProjectArtifacts("proj-1", 25)).resolves.toEqual({
+      artifacts: [validArtifact],
+      total: 1,
+      truncated: false,
+    });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/projects/proj-1/artifacts?limit=25",
+    );
+  });
+
+  it("omits the query string when no limit is given", async () => {
+    const fetchMock = respondWith({ artifacts: [], total: 0, truncated: false });
+    await new ApiClient("https://api.example.test").listProjectArtifacts("proj-1");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/projects/proj-1/artifacts",
+    );
+  });
+
+  it("falls back to an empty listing when the response is malformed", async () => {
+    respondWith({ artifacts: "not-an-array", total: "lots" });
+
+    await expect(
+      new ApiClient("https://api.example.test").listProjectArtifacts("proj-1"),
+    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
+  });
+
+  // The owner-issue fields are the newest part of the contract, so a server
+  // that predates them must still yield a listing the browser can render —
+  // unfoldered, but never empty.
+  it("keeps files from a server that omits the owner-issue fields", async () => {
+    const { owner_issue_id, owner_issue_number, owner_issue_identifier, owner_issue_title, ...legacy } =
+      validArtifact;
+    respondWith({ artifacts: [legacy], total: 1 });
+
+    const result = await new ApiClient("https://api.example.test").listProjectArtifacts("proj-1");
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts[0]).toMatchObject({
+      id: "att-1",
+      filename: "report.pdf",
+      owner_issue_id: "",
+      owner_issue_identifier: "",
+      owner_issue_number: 0,
+    });
+    expect(result.truncated).toBe(false);
+  });
+
+  // A single malformed row must not take the rest of the listing with it —
+  // but it also must not be silently reshaped into a file that looks real.
+  it("degrades the whole listing rather than emitting a row with no id", async () => {
+    respondWith({ artifacts: [validArtifact, { filename: "no-id.pdf" }], total: 2 });
+
+    await expect(
+      new ApiClient("https://api.example.test").listProjectArtifacts("proj-1"),
+    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
   });
 });

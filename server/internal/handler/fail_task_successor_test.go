@@ -15,7 +15,7 @@ import (
 
 // TestFailTask_SkipsAutoRetryWhenManualRerunAlreadyQueued covers the interaction
 // opened up by letting a manual rerun queue BEHIND a running task instead of
-// cancelling it (MUL-6146).
+// cancelling it (ENA-6146).
 //
 // Sequence: a task is running, an operator reruns the issue (so a queued row now
 // sits behind it), and then the running task fails for a reason whose retry

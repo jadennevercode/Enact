@@ -386,7 +386,7 @@ func insertChatMessage(t *testing.T, sessionID, role, content string) {
 
 // The studio stopped deleting builder sessions on navigation, so this list is
 // the only route back to one. It must carry the carrier's runtime: the client
-// seeds its picker from it, and a wrong answer reintroduces MUL-5163 (picker
+// seeds its picker from it, and a wrong answer reintroduces ENA-5163 (picker
 // shows A while every message runs on B).
 func TestListAgentBuilderSessionsReturnsCarrierRuntime(t *testing.T) {
 	if testHandler == nil {

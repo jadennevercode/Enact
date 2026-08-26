@@ -30,7 +30,7 @@ type noRow struct{}
 func (noRow) Scan(...any) error { return pgx.ErrNoRows }
 
 // TestBroadcastIssueUpdated_EmitsStatusChange pins the realtime contract behind
-// #4648 / MUL-3782: when a background path resets an issue's status (e.g. the
+// #4648 / ENA-3782: when a background path resets an issue's status (e.g. the
 // failed-task handler flipping a stuck in_progress issue back to todo), it must
 // publish issue:updated with status_changed=true and the new status so the
 // frontend's onIssueUpdated reconcile moves the card between status columns /

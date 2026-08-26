@@ -132,6 +132,7 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     squads: () => "/acme/squads",
     usage: () => "/acme/usage",
     runtimes: () => "/acme/runtimes",
+    ontologies: () => "/acme/ontologies",
     skills: () => "/acme/skills",
     settings: () => "/acme/settings",
     issueDetail: (id: string) => `/acme/issues/${id}`,
@@ -211,10 +212,10 @@ describe("PinRow", () => {
   });
 
   it("renders loaded details", async () => {
-    detail.current = { isPending: false, isError: false, data: { identifier: "MUL-123", title: "Keep this pin", status: "todo" }, error: null };
+    detail.current = { isPending: false, isError: false, data: { identifier: "ENA-123", title: "Keep this pin", status: "todo" }, error: null };
     render(<AppSidebar />);
     expect(await screen.findByText("Keep this pin")).toBeInTheDocument();
-    expect(screen.queryByText("MUL-123 Keep this pin")).not.toBeInTheDocument();
+    expect(screen.queryByText("ENA-123 Keep this pin")).not.toBeInTheDocument();
   });
 
   it("does not also highlight the parent workspace nav for an active pin", async () => {
@@ -222,7 +223,7 @@ describe("PinRow", () => {
     detail.current = {
       isPending: false,
       isError: false,
-      data: { identifier: "MUL-123", title: "Keep this pin", status: "todo" },
+      data: { identifier: "ENA-123", title: "Keep this pin", status: "todo" },
       error: null,
     };
 
@@ -410,7 +411,7 @@ describe("personal nav — Chat", () => {
 
   it("counts the active session while the floating window is open but the app is backgrounded", () => {
     // A reply landing while the app is not in the foreground is NOT auto
-    // marked-read (MUL-4485), so its unread must still badge — otherwise the
+    // marked-read (ENA-4485), so its unread must still badge — otherwise the
     // notification is silently eaten while the user is away.
     chatSessions.current = [{ id: "a", unread_count: 2 }, { id: "b", unread_count: 3 }];
     navigation.current = { pathname: "/acme/issues" };
@@ -427,6 +428,26 @@ describe("personal nav — Chat", () => {
     appForeground.current = false;
     const { container } = render(<AppSidebar />);
     expect(chatBadge(container)).toHaveAttribute("aria-label", "5");
+  });
+});
+
+describe("configure navigation", () => {
+  it("places Ontology between Runtimes and Skills with its route icon", () => {
+    const { container } = render(<AppSidebar />);
+    const links = Array.from(
+      container.querySelectorAll<HTMLElement>("button[data-href]"),
+    );
+    const hrefs = links.map((link) => link.dataset.href);
+
+    expect(hrefs.indexOf("/acme/ontologies")).toBe(
+      hrefs.indexOf("/acme/runtimes") + 1,
+    );
+    expect(hrefs.indexOf("/acme/skills")).toBe(
+      hrefs.indexOf("/acme/ontologies") + 1,
+    );
+    expect(
+      container.querySelector('button[data-href="/acme/ontologies"] svg'),
+    ).not.toBeNull();
   });
 });
 

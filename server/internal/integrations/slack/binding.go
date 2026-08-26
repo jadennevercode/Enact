@@ -134,7 +134,7 @@ func (s *BindingTokenService) RedeemAndBind(ctx context.Context, raw string, ena
 		Config:         []byte(`{}`),
 	}); err != nil {
 		// pgx.ErrNoRows means the existing binding points at a different user —
-		// the ON CONFLICT DO UPDATE WHERE multica_user_id=… gating rejected it.
+		// the ON CONFLICT DO UPDATE WHERE enact_user_id=… gating rejected it.
 		if errors.Is(err, pgx.ErrNoRows) {
 			return RedeemedBindingToken{}, ErrBindingAlreadyAssigned
 		}

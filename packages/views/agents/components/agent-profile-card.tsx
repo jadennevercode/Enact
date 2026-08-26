@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Agent, AgentRuntime } from "@enact/core/types";
 import { useAgentPresenceDetail } from "@enact/core/agents";
 import { useWorkspaceId } from "@enact/core/hooks";
+import { isOntologySkill } from "@enact/core/skills";
 import {
   deriveRuntimeHealth,
   runtimeDisplayLabel,
@@ -123,8 +124,12 @@ export function AgentProfileCard({ agentId }: AgentProfileCardProps) {
       <div className="flex flex-col gap-1.5 text-caption">
         <RuntimeRow agent={agent} runtime={runtime} />
         <ModelRow model={agent.model} thinkingLevel={agent.thinking_level} />
-        {agent.skills.length > 0 && (
-          <SkillsRow skills={agent.skills.map((s) => s.name)} />
+        {agent.skills.some((skill) => !isOntologySkill(skill)) && (
+          <SkillsRow
+            skills={agent.skills
+              .filter((skill) => !isOntologySkill(skill))
+              .map((skill) => skill.name)}
+          />
         )}
         {owner && <MetaRow label={t(($) => $.profile_card.owner_label)} value={owner.name} />}
       </div>

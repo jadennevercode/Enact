@@ -214,7 +214,7 @@ func (s *IssueService) Create(ctx context.Context, p IssueCreateParams, opts Iss
 	// clean 400 but too early to be safe: an archive can commit in between.
 	// Re-checking under the lock is what makes the status provably active at
 	// the moment the row is written. Built-in statuses skip both — they can
-	// never be archived, so the common path is unchanged. (MUL-6243)
+	// never be archived, so the common path is unchanged. (ENA-6243)
 	if !issuestatus.IsBuiltIn(p.Status) {
 		if err := qtx.LockIssueStatusCatalogShared(ctx, p.WorkspaceID); err != nil {
 			return IssueCreateResult{}, err
@@ -610,7 +610,7 @@ func classifyOrigin(issue db.Issue, opts IssueCreateOpts) (source, taskID, autop
 	switch issue.OriginType.String {
 	case "quick_create", "agent_create":
 		// Both link the issue back to the agent_task_queue row that created it
-		// (agent_create is the ordinary agent `issue create` path, MUL-4305);
+		// (agent_create is the ordinary agent `issue create` path, ENA-4305);
 		// surface that task id and keep the manual source label.
 		return analytics.SourceManual, originID, ""
 	case "autopilot":
@@ -630,14 +630,14 @@ func (s *IssueService) maybeEnqueueOnAssign(ctx context.Context, issue db.Issue,
 	}
 	// Backlog is the parking lot: nothing runs from it, so nothing here needs
 	// explaining either. A custom status in the backlog category parks the
-	// same way. (MUL-6243)
+	// same way. (ENA-6243)
 	if issuestatus.Effective(ctx, s.Queries, issue.WorkspaceID, issue.Status) == "backlog" {
 		return pgtype.UUID{}
 	}
 	verdict, admitted := agentAssigneeVerdict(ctx, s.Queries, issue)
 	if !admitted && verdict.Reason == dispatch.ReasonRuntimeUnusable {
 		// Assignment has no response the assigner reads for this outcome, so the
-		// refusal explains itself on the issue instead of vanishing (MUL-6164).
+		// refusal explains itself on the issue instead of vanishing (ENA-6164).
 		// Only here, not in the create-with-assignee path above: that one runs
 		// inside the issue's transaction, and a notice about a machine has no
 		// business deciding whether the issue itself commits.
@@ -676,7 +676,7 @@ func (s *IssueService) maybeEnqueueOnAssign(ctx context.Context, issue db.Issue,
 // self-contained, since both code paths must move together.
 func (s *IssueService) shouldEnqueueAgentTaskWithQueries(ctx context.Context, q *db.Queries, issue db.Issue) bool {
 	// Resolved through q, not s.Queries: this runs inside the create
-	// transaction and must see the same snapshot as the rest of it. (MUL-6243)
+	// transaction and must see the same snapshot as the rest of it. (ENA-6243)
 	if issuestatus.Effective(ctx, q, issue.WorkspaceID, issue.Status) == "backlog" {
 		return false
 	}

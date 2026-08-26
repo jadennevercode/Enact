@@ -249,7 +249,7 @@ func TestChannelOverviewLimitClamp(t *testing.T) {
 
 // TestThreadRecoversBotAttachmentText covers alerting/webhook bots (Grafana
 // cards, incoming webhooks): the body lives in attachments with an empty
-// top-level Text. The root must be recovered, not dropped (MUL-3931 / #4803).
+// top-level Text. The root must be recovered, not dropped (ENA-3931 / #4803).
 func TestThreadRecoversBotAttachmentText(t *testing.T) {
 	q := &fakeHistoryQueries{binding: groupBinding("50.000000"), inst: activeSlackInstall()}
 	root := slack.Message{Msg: slack.Msg{

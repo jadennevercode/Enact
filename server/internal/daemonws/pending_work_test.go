@@ -13,7 +13,7 @@ import (
 )
 
 // TestNotifyPendingWork pins the hint that removes the up-to-one-heartbeat
-// wait before a queued model-list request is picked up (MUL-5444): daemons
+// wait before a queued model-list request is picked up (ENA-5444): daemons
 // watching the runtime must receive a runtime-scoped daemon:pending_work frame.
 func TestNotifyPendingWork(t *testing.T) {
 	M.Reset()

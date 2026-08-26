@@ -119,7 +119,7 @@ type ReplyCtx struct {
 // InboundMessage is the single normalized shape the core consumes. Every
 // adapter translates its platform's raw payload into this struct; the
 // core's router, dedup, identity check, and persistence read ONLY these
-// fields. Per the boundary rule (MUL-3515 §2) the struct holds only
+// fields. Per the boundary rule (ENA-3515 §2) the struct holds only
 // cross-platform-true fields; everything platform-specific lives in Raw.
 type InboundMessage struct {
 	// EventID is the platform's delivery/event identifier and MessageID
@@ -190,7 +190,7 @@ type InboundMessage struct {
 // OutboundMessage is the minimal outbound reply the core can ask any
 // Channel to deliver: a text body into a chat, optionally threaded or
 // quoting a specific message. Rich cards, media uploads, and outbound
-// webhooks are deliberately NOT modeled here (MUL-3515 decision §6) — an
+// webhooks are deliberately NOT modeled here (ENA-3515 decision §6) — an
 // adapter that supports richer output exposes it on its own type, not on
 // this cross-platform envelope.
 type OutboundMessage struct {

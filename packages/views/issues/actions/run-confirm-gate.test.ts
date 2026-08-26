@@ -4,7 +4,7 @@ import { buildIssueStatusCatalog } from "@enact/core/issue-statuses";
 import type { IssueStatusEntry } from "@enact/core/types";
 import { runConfirmIntent, resolveStatusCategory, type GateIssue } from "./run-confirm-gate";
 
-// The canonical matrix for "does this write need confirming" (MUL-6463). The
+// The canonical matrix for "does this write need confirming" (ENA-6463). The
 // hook and table suites only prove they route on this answer.
 function entry(key: string, category: string): IssueStatusEntry {
   return {

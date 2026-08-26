@@ -14,7 +14,7 @@ import (
 )
 
 // fakeIdentityQueries implements identityQueries so the cross-installation
-// account-link reuse path (MUL-3911) is exercised without a database.
+// account-link reuse path (ENA-3911) is exercised without a database.
 type fakeIdentityQueries struct {
 	binding     db.ChannelUserBinding
 	bindErr     error

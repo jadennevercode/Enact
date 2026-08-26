@@ -222,6 +222,8 @@
     "archive": "보관",
     "unarchive": "보관 해제",
     "archived_title": "보관됨",
+    "pinned_segment": "고정됨",
+    "no_project_segment": "프로젝트 없음",
     "row_actions_aria": "채팅 작업"
   },
   "header": {

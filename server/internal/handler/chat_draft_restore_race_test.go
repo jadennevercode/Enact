@@ -14,7 +14,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// chat_draft_restore has no FK to chat_session (MUL-3515), so an INSERT into it
+// chat_draft_restore has no FK to chat_session (ENA-3515), so an INSERT into it
 // takes no lock on the session, and a deleter's prune only sees what committed
 // before its snapshot. Prune-then-delete alone therefore leaves a window: a
 // restore committed inside it outlives its cascade-deleted session, unreachable
@@ -247,7 +247,7 @@ func TestDeleteWorkspace_SweepsRestoreCommittedByAConcurrentFinalizer(t *testing
 // the workspace row FOR UPDATE, and every session creator takes a conflicting
 // FOR KEY SHARE on it (LockWorkspaceForChatSessionCreate) inside its own tx before
 // inserting — so the block does not lean on the chat_session.workspace_id FK's
-// implicit lock, which the codebase is moving off of (MUL-3515).
+// implicit lock, which the codebase is moving off of (ENA-3515).
 //
 // This drives the REAL creator entry point (Handler.CreateChatSession), not a raw
 // INSERT: holding the workspace row FOR UPDATE (the exact lock DeleteWorkspace

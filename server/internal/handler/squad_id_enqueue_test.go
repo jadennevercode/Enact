@@ -11,7 +11,7 @@ import (
 )
 
 // TestCreateComment_SquadMentionStampsSquadIDOnLeaderTask locks the enqueue
-// side of the MUL-3730 fix: when a comment @mentions a squad, the leader task
+// side of the ENA-3730 fix: when a comment @mentions a squad, the leader task
 // it enqueues must carry squad_id on the task row, so the daemon claim handler
 // can locate the squad and inject the briefing (keyed off is_leader_task +
 // squad_id, not issue assignee). The issue here is NOT assigned to the squad —
@@ -85,7 +85,7 @@ func TestCreateComment_SquadMentionStampsSquadIDOnLeaderTask(t *testing.T) {
 }
 
 // TestCreateRetryTask_InheritsSquadID locks the retry-clone contract for the
-// MUL-3730 fix: a retried leader task must inherit squad_id from its parent so
+// ENA-3730 fix: a retried leader task must inherit squad_id from its parent so
 // the squad-leader briefing keeps being injected across retries. Parallels
 // TestCreateRetryTask_InheritsIsLeaderTask.
 func TestCreateRetryTask_InheritsSquadID(t *testing.T) {

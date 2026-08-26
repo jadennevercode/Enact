@@ -1627,7 +1627,7 @@ func TestParseHermesSessionNewModelsGarbage(t *testing.T) {
 	}
 }
 
-// MUL-5239: kimi-code 0.29 dropped the `models` block and advertises the
+// ENA-5239: kimi-code 0.29 dropped the `models` block and advertises the
 // same catalog through ACP `configOptions`. Without this the picker showed
 // an empty catalog for an online kimi runtime.
 func TestParseACPSessionNewModelsFromConfigOptions(t *testing.T) {
@@ -1772,7 +1772,7 @@ func TestHermesModelSelectionSupported(t *testing.T) {
 
 // TestAntigravityModelSelectionSupported pins that the antigravity provider
 // now reports model selection as supported: agy 1.0.6 added a `--model` flag
-// (MUL-3125) and buildAntigravityArgs wires opts.Model through, so the UI
+// (ENA-3125) and buildAntigravityArgs wires opts.Model through, so the UI
 // must render the live picker rather than a disabled "Managed by runtime"
 // label.
 func TestAntigravityModelSelectionSupported(t *testing.T) {

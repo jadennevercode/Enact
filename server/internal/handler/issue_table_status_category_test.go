@@ -13,7 +13,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Board, list and swimlane columns are CATEGORIES, not status keys (MUL-6243).
+// Board, list and swimlane columns are CATEGORIES, not status keys (ENA-6243).
 // These tests pin the server half of that contract: a custom status must land
 // in its category's column, count toward it, and be reachable through the
 // paginated row query — the exact path where the first cut of the UI dropped
@@ -295,7 +295,7 @@ type countingCatalogQuerier struct {
 	categoryReads int
 	// keyReads counts point lookups. A caller resolving many statuses should
 	// read the catalog ONCE (entryReads) rather than once per key — the
-	// difference between the two is the N+1. (MUL-6243)
+	// difference between the two is the N+1. (ENA-6243)
 	keyReads int
 }
 

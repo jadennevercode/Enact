@@ -128,7 +128,7 @@ func TestGetLastTaskSessionExcludesPoisonedFailures(t *testing.T) {
 }
 
 // TestGetLastTaskSessionFallsBackWhenLatestSessionBlanked is the claim-side
-// half of MUL-5305: when the most recent task recorded NO session_id (the
+// half of ENA-5305: when the most recent task recorded NO session_id (the
 // daemon withheld an unresumable Codex session so it would not poison the next
 // follow-up), the resume lookup skips that row via `session_id IS NOT NULL`
 // and falls back to the most recent task that does have a session — so the next
@@ -317,7 +317,7 @@ func TestGetLastTaskSessionKeepsSessionOnAuthAdjacentError(t *testing.T) {
 }
 
 // TestCompletedTaskRolloutMissingWithholdsAndDisclosesGap is the cross-layer
-// regression for MUL-5305 Must-fix 1: a COMPLETED follow-up whose Codex rollout
+// regression for ENA-5305 Must-fix 1: a COMPLETED follow-up whose Codex rollout
 // is missing (the #5934 case — the user waits for each turn to finish) must (1)
 // NOT be handed to the next follow-up as its resume pointer, and (2) NOT be
 // resumed silently — the next claim must still disclose the continuity gap. It
@@ -403,7 +403,7 @@ func TestCompletedTaskRolloutMissingWithholdsAndDisclosesGap(t *testing.T) {
 }
 
 // TestFailedTaskRolloutMissingForcesNullOverMidFlightPin covers the failure-path
-// half of MUL-5305 Must-fix 1: FailAgentTask normally COALESCE-preserves a
+// half of ENA-5305 Must-fix 1: FailAgentTask normally COALESCE-preserves a
 // mid-flight-pinned session, which would let an auto-retry created in the SAME
 // transaction inherit a rollout-missing pointer. With session_rollout_missing
 // the terminal UPDATE forces session_id NULL and flags the row in ONE statement,
@@ -479,7 +479,7 @@ func TestGetLastTaskSessionFallbackPoisonedClassifier(t *testing.T) {
 	requireSessionExcluded(t, prior.SessionID, err)
 }
 
-// TestGetLastTaskSessionExcludesAPIInvalidRequest covers the MUL-1921
+// TestGetLastTaskSessionExcludesAPIInvalidRequest covers the ENA-1921
 // case: an Anthropic 400 invalid_request_error (e.g. an oversized or
 // malformed image baked into the conversation) bakes the bad message
 // into the session history, so resuming would replay the same 400
@@ -638,13 +638,13 @@ func TestCreateRetryTaskKeepsOrdinaryTimeoutSession(t *testing.T) {
 	}
 }
 
-// TestGetLastTaskSessionExcludesLegacyAPI400 is the MUL-1921 legacy
+// TestGetLastTaskSessionExcludesLegacyAPI400 is the ENA-1921 legacy
 // regression: pre-fix rows are tagged failure_reason='agent_error' even
 // though their error text contains the canonical Anthropic 400
 // invalid_request_error marker. The daemon-side classifier only fires
 // on new failures, so without a defensive ILIKE clause the resume query
 // would happily return one of those rows on the next claim and
-// re-poison every retry of an already-broken issue (e.g. MUL-1918,
+// re-poison every retry of an already-broken issue (e.g. ENA-1918,
 // which already has three poisoned 'agent_error' rows when this PR
 // merges). The SQL must skip the bad row on text shape alone.
 func TestGetLastTaskSessionExcludesLegacyAPI400(t *testing.T) {
@@ -695,8 +695,8 @@ func TestGetLastTaskSessionExcludesLegacyAPI400(t *testing.T) {
 // TestGetLastTaskSessionKeepsBenignAgentErrorWithSession asserts the
 // ILIKE clause is narrow enough that ordinary 'agent_error' failures
 // (timeouts, tool errors, transient glue failures) still let the next
-// task resume the prior session. Without this guard rail, the MUL-1921
-// fix would regress MUL-1128's resume contract for everything else.
+// task resume the prior session. Without this guard rail, the ENA-1921
+// fix would regress ENA-1128's resume contract for everything else.
 func TestGetLastTaskSessionKeepsBenignAgentErrorWithSession(t *testing.T) {
 	if testPool == nil {
 		t.Skip("no database connection")
@@ -764,7 +764,7 @@ func TestRerunIssueSetsForceFreshSession(t *testing.T) {
 // that ran that specific past task — not the issue's current assignee.
 // Without this, clicking retry on a row whose agent has since been displaced
 // (squad worker, @-mention agent, or a prior assignee) re-fires the new
-// assignee instead, which is the MUL-2457 bug.
+// assignee instead, which is the ENA-2457 bug.
 func TestRerunIssueTargetsSourceTaskAgent(t *testing.T) {
 	if testPool == nil {
 		t.Skip("no database connection")
@@ -908,7 +908,7 @@ func TestRerunIssueRejectsCrossIssueTask(t *testing.T) {
 // task must carry the original trigger_comment_id through to the new task.
 // Otherwise the daemon's buildCommentPrompt path (which keys on
 // TriggerCommentID) is skipped and the rerun degrades into a generic
-// issue run that has lost the original comment context — see MUL-2457
+// issue run that has lost the original comment context — see ENA-2457
 // review feedback.
 func TestRerunIssueInheritsTriggerCommentFromSourceTask(t *testing.T) {
 	if testPool == nil {
@@ -980,7 +980,7 @@ func TestRerunIssueInheritsTriggerCommentFromSourceTask(t *testing.T) {
 // TestEnqueueTaskForIssueDoesNotForceFreshSession is the negative control
 // for the rerun flag: the normal enqueue path must leave the flag false so
 // auto-retry / comment-triggered tasks keep resuming the prior session
-// (MUL-1128 contract).
+// (ENA-1128 contract).
 func TestEnqueueTaskForIssueDoesNotForceFreshSession(t *testing.T) {
 	if testPool == nil {
 		t.Skip("no database connection")
@@ -1210,7 +1210,7 @@ func TestGetLastTaskSessionKeepsDimensionPhraseWithoutImageMarker(t *testing.T) 
 }
 
 // TestGetLastTaskSessionExcludesOverflowedResumeFromOlderCompletedRow is the
-// MUL-5722 topology, and the one the first attempt at the fix got wrong.
+// ENA-5722 topology, and the one the first attempt at the fix got wrong.
 //
 // A codex thread/resume that overflows the reader fails BEFORE any turn runs,
 // so the backend has no session id to report and the failed row lands with

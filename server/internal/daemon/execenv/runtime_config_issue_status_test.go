@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// legacyStatusLine is the pre-MUL-6460 status bullet. Workspaces without
+// legacyStatusLine is the pre-ENA-6460 status bullet. Workspaces without
 // custom statuses — including every deployment behind an old server — must
 // keep rendering it byte-identical: it is part of the prompt-cache prefix and
-// the no-custom-statuses path is the compatibility contract of MUL-6460.
+// the no-custom-statuses path is the compatibility contract of ENA-6460.
 const legacyStatusLine = "- `enact issue status <id> <status> [--no-start]` — flip status (todo / in_progress / in_review / done / blocked / backlog / cancelled).\n"
 
 // catalogBridgeBullet is the workflow-section bridge from category rules to a

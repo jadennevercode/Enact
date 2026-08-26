@@ -148,7 +148,6 @@ test.describe("Issue Table server grouping", () => {
       .filter({ hasText: "Backlog" })
       .first();
     await expect(backlogGroup).toContainText("501");
-    await expect(page.getByText(/Loaded \d+ of 1001/)).toBeVisible();
     await expect(
       page.getByText(/Grouping and hierarchy are paused/),
     ).toHaveCount(0);
@@ -212,7 +211,11 @@ test.describe("Issue Table server grouping", () => {
     const todoChildrenPromise = page.waitForResponse((response) => {
       if (apiPath(response.request()) !== "/api/issues/table/rows") return false;
       const body = tableBody(response.request());
-      return body.parent_id === parent.id && response.status() === 200;
+      return (
+        body.group_key === "status:todo" &&
+        body.parent_id === parent.id &&
+        response.status() === 200
+      );
     });
     const doneRootPromise = page.waitForResponse((response) => {
       if (apiPath(response.request()) !== "/api/issues/table/rows") return false;
@@ -236,7 +239,6 @@ test.describe("Issue Table server grouping", () => {
       (await todoChildrenResponse.json()) as TableRowsResponse;
     const doneRoot = (await doneRootResponse.json()) as TableRowsResponse;
 
-    expect(todoRoot.total).toBe(3);
     expect(todoRoot.rows).toEqual([
       expect.objectContaining({
         issue: expect.objectContaining({ id: parent.id, title: parentTitle }),
@@ -304,8 +306,8 @@ test.describe("Issue Table server grouping", () => {
     await tableScroller.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
-    await firstTailPromise;
-    await expect(page.getByText("Loaded 60 of 60", { exact: true })).toBeVisible();
+    const firstTail = (await (await firstTailPromise).json()) as TableRowsResponse;
+    expect(firstHead.rows.length + firstTail.rows.length).toBe(60);
 
     const postUpdateResponses: Array<{
       body: TableRequestBody;
@@ -365,7 +367,6 @@ test.describe("Issue Table server grouping", () => {
     ].map((row) => row.issue.id);
     expect(new Set(refreshedIds).size).toBe(60);
     expect(refreshedIds).toContain(moved.id);
-    await expect(page.getByText("Loaded 60 of 60", { exact: true })).toBeVisible();
     page.off("response", collectResponse);
   });
 

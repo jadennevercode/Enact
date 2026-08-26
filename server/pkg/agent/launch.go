@@ -42,7 +42,7 @@ func newAgentCommandLogArgs(invocationArgs []string, trustedPositionals ...trust
 // the argv prefix that belongs to the command itself rather than to any single
 // invocation.
 //
-// A custom runtime profile (MUL-3284) is configured as `command_name` plus
+// A custom runtime profile (ENA-3284) is configured as `command_name` plus
 // `fixed_args`, and for a wrapper like `ccms start q36` those two fixed_args
 // tokens are part of *what the program is*, not options passed to it. The
 // wrapper only reaches the real Claude binary after its `start` subcommand has

@@ -63,7 +63,7 @@ func TestBuildSearchQuery_MultiTerm(t *testing.T) {
 }
 
 func TestBuildSearchQuery_WithNumber(t *testing.T) {
-	query, args := buildSearchQuery("MUL-42", []string{"MUL-42"}, 42, true, false, nil)
+	query, args := buildSearchQuery("ENA-42", []string{"ENA-42"}, 42, true, false, nil)
 
 	_ = args
 	// Number match should be in WHERE.
@@ -257,7 +257,7 @@ func TestBuildSearchQuery_SingleTermNoAllTermTiers(t *testing.T) {
 }
 
 // TestBuildSearchQuery_CommentSubqueryWorkspaceScope regressions the
-// MUL-4059 fix: every EXISTS / correlated subquery over `comment` MUST
+// ENA-4059 fix: every EXISTS / correlated subquery over `comment` MUST
 // filter by c.workspace_id = $wsParam. Without this, Postgres rewrites
 // the correlated subquery into a hashed subplan that materializes every
 // comment in the entire table matching the LIKE — on prd this was
@@ -280,7 +280,7 @@ func TestBuildSearchQuery_CommentSubqueryWorkspaceScope(t *testing.T) {
 		t.Fatalf("single-term query has no comment subquery — did buildSearchQuery drop it?")
 	}
 	if scopedCount < fromCount {
-		t.Errorf("single-term query has %d comment subqueries but only %d workspace_id filters — %d unscoped subquery(ies) will trigger the MUL-4059 global-hash plan",
+		t.Errorf("single-term query has %d comment subqueries but only %d workspace_id filters — %d unscoped subquery(ies) will trigger the ENA-4059 global-hash plan",
 			fromCount, scopedCount, fromCount-scopedCount)
 	}
 
@@ -295,7 +295,7 @@ func TestBuildSearchQuery_CommentSubqueryWorkspaceScope(t *testing.T) {
 	}
 }
 
-// --- MUL-5824: cancelled work must not outrank live work ---
+// --- ENA-5824: cancelled work must not outrank live work ---
 
 // orderByClause returns everything after the final ORDER BY, so ranking-order
 // assertions cannot be satisfied by an expression that merely appears in the
@@ -352,9 +352,9 @@ func TestBuildSearchQuery_CancelledDirectHitExempt(t *testing.T) {
 		t.Errorf("non-numeric query should not reference i.number in the demotion:\n%s", textOnly)
 	}
 
-	withNumber := orderByClause(t, buildSearchQueryForTest(t, "MUL-42", []string{"MUL-42"}, 42, true, true))
+	withNumber := orderByClause(t, buildSearchQueryForTest(t, "ENA-42", []string{"ENA-42"}, 42, true, true))
 	if !strings.Contains(withNumber, "LOWER(i.title) = $1 OR i.number = ") {
-		t.Errorf("identifier lookup is not exempt from the cancelled demotion, so MUL-42 sinks below every fuzzy match:\n%s", withNumber)
+		t.Errorf("identifier lookup is not exempt from the cancelled demotion, so ENA-42 sinks below every fuzzy match:\n%s", withNumber)
 	}
 }
 

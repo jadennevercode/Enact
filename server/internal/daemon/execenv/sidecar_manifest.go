@@ -216,7 +216,7 @@ func skillSlugCandidate(baseSlug string, attempt int) string {
 // the GC can do without, so Prepare logs and continues. For an in-place
 // local_directory run it is the only record of what was written into the user's
 // own repository, so Prepare treats the failure as fatal and rolls back while
-// it still holds the in-memory manifest (MUL-6132).
+// it still holds the in-memory manifest (ENA-6132).
 func writeSidecarManifest(envRoot string, m *sidecarManifest) error {
 	if envRoot == "" {
 		return nil
@@ -370,7 +370,7 @@ func rollBackManifest(m sidecarManifest, manifestPath string) error {
 // persists the manifest at the very end; every error return in between leaves
 // that tree on disk with no on-disk record of it, and the caller never receives
 // an Environment, so no teardown defer downstream knows there is anything to
-// clean (MUL-6132). For a local_directory task the workdir is the user's own
+// clean (ENA-6132). For a local_directory task the workdir is the user's own
 // repository, so "left on disk" means a marker that disables every enact
 // command in that directory tree until someone deletes it by hand.
 //

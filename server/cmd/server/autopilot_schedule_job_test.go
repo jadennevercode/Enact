@@ -98,7 +98,7 @@ func setupAutopilotScheduleJob(t *testing.T, cron string) (db.AutopilotTrigger, 
 // happy path: one tick of the JobSpec produces exactly one
 // sys_cron_executions row (SUCCESS) and exactly one autopilot_run
 // row tagged with the canonical UTC planned_at. This is the
-// occurrence-level idempotency contract from MUL-3551 §1.
+// occurrence-level idempotency contract from ENA-3551 §1.
 func TestAutopilotScheduleJobDispatchesOnce(t *testing.T) {
 	ctx := context.Background()
 
@@ -162,7 +162,7 @@ func TestAutopilotScheduleJobDispatchesOnce(t *testing.T) {
 	}
 }
 
-// TestAutopilotScheduleJobMissedSchedulesCollapse covers MUL-3551 §4:
+// TestAutopilotScheduleJobMissedSchedulesCollapse covers ENA-3551 §4:
 // when many occurrences are due (e.g. server was offline for a long
 // stretch), the CatchUpLatestOnly hook should fire ONCE per tick — not
 // replay every missed occurrence.
@@ -208,7 +208,7 @@ func TestAutopilotScheduleJobMissedSchedulesCollapse(t *testing.T) {
 	}
 }
 
-// TestAutopilotScheduleJobCrashRecovery covers MUL-3551 §5: a runner
+// TestAutopilotScheduleJobCrashRecovery covers ENA-3551 §5: a runner
 // that crashes after claiming a plan_time and creating its
 // downstream issue/task — but before writing terminal SUCCESS — must
 // be recovered on the next tick. The stale lease is swept to FAILED
@@ -336,7 +336,7 @@ func TestAutopilotScheduleJobCrashRecovery(t *testing.T) {
 }
 
 // TestAutopilotScheduleJobTwoRunnersSingleWinner covers the
-// multi-replica claim race from MUL-3551 §1. Two scheduler.Manager
+// multi-replica claim race from ENA-3551 §1. Two scheduler.Manager
 // instances tick concurrently against the same trigger; exactly one
 // should win the claim, the other no-ops via the sys_cron_executions
 // uniqueness key.
@@ -648,7 +648,7 @@ func seedColdStartTrigger(t *testing.T, cron string) (db.AutopilotTrigger, *db.Q
 }
 
 // TestAutopilotScheduleJobColdStartHonorsLastFiredAt is the regression
-// for the post-deploy spurious-fire reported on MUL-3551:
+// for the post-deploy spurious-fire reported on ENA-3551:
 //
 //	Trigger fired by the legacy goroutine at Mon 17:10 Beijing
 //	(last_fired_at written then). Deploy switches to the new

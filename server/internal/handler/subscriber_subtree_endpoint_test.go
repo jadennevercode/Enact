@@ -9,7 +9,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Mixed-version contract for subtree unsubscribe (MUL-5483 review round 6,
+// Mixed-version contract for subtree unsubscribe (ENA-5483 review round 6,
 // finding 1).
 //
 // Web/desktop staging deploys automatically when a PR merges; the backend is

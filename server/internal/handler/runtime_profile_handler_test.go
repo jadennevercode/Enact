@@ -57,7 +57,7 @@ func insertProfileRuntimeFixture(t *testing.T, ctx context.Context, profileID, n
 // per-runtime teardown the DELETE on agent_runtime would raise a raw FK error and
 // the handler would 500.
 //
-// Since MUL-5559 the teardown unbinds that agent instead of hard-deleting it, so
+// Since ENA-5559 the teardown unbinds that agent instead of hard-deleting it, so
 // this test also pins what must NOT happen: the agent survives with its channel
 // installation intact. Sweeping the installation of a surviving agent would take
 // a working bot away from it — the mirror of the #4810 orphan problem.

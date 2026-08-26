@@ -75,7 +75,7 @@ const baseIssue = {
   id: "11111111-1111-1111-1111-111111111111",
   workspace_id: "ws-1",
   number: 1,
-  identifier: "MUL-1",
+  identifier: "ENA-1",
   title: "Test",
   description: null,
   status: "todo",
@@ -285,7 +285,7 @@ describe("IssuePropertySchema (via ListPropertiesResponseSchema)", () => {
 
 // POST /api/issues/preview-trigger feeds this schema through parseWithFallback
 // in client.previewIssueTrigger with fallback { triggers: [], total_count: 0 }
-// (MUL-3375). The four entry points read it to decide "will this start a run",
+// (ENA-3375). The four entry points read it to decide "will this start a run",
 // so malformed / missing / null drift must degrade to "nothing will start"
 // rather than throw into the picker/modal.
 const PREVIEW_FALLBACK = { triggers: [], total_count: 0 };
@@ -674,10 +674,10 @@ describe("CreateFeedbackResponseSchema", () => {
 describe("DuplicateIssueErrorBodySchema", () => {
   const valid = {
     code: "active_duplicate_issue",
-    error: "An active issue with this title already exists: MUL-12 – Login bug",
+    error: "An active issue with this title already exists: ENA-12 – Login bug",
     issue: {
       id: "11111111-1111-1111-1111-111111111111",
-      identifier: "MUL-12",
+      identifier: "ENA-12",
       title: "Login bug",
     },
   };
@@ -962,7 +962,7 @@ describe("AppConfigSchema local_worktree_supported drift", () => {
 });
 
 describe("AppConfigSchema cdn_signed drift", () => {
-  it("defaults cdn_signed to false when the server omits it (pre-MUL-3254 servers)", () => {
+  it("defaults cdn_signed to false when the server omits it (pre-ENA-3254 servers)", () => {
     const parsed = AppConfigSchema.parse({ cdn_domain: "cdn.example.com" });
     expect(parsed.cdn_signed).toBe(false);
   });
@@ -1175,7 +1175,7 @@ describe("SearchProjectsResponseSchema date drift", () => {
 });
 
 // The "run now" flow branches on run.status/reason_code to avoid a false-success
-// toast (MUL-4525), so the trigger response must survive backend drift.
+// toast (ENA-4525), so the trigger response must survive backend drift.
 describe("AutopilotRunSchema", () => {
   const ENDPOINT = { endpoint: "POST /api/autopilots/:id/trigger" };
   const baseRun = {
@@ -1252,7 +1252,7 @@ describe("AutopilotQuotaUsageSchema", () => {
 });
 
 // The comment composer branches on preview.blocked to warn before sending
-// (MUL-4525 §2), so the additive field must parse and degrade gracefully.
+// (ENA-4525 §2), so the additive field must parse and degrade gracefully.
 describe("CommentTriggerPreviewSchema.blocked", () => {
   it("parses blocked mention outcomes alongside agents", () => {
     const parsed = CommentTriggerPreviewSchema.parse({
@@ -1345,7 +1345,7 @@ describe("RuntimeModelListRequestSchema", () => {
     expect(parsed.cached_at).toBe("2026-07-29T00:00:00Z");
   });
 
-  // A backend that predates MUL-5444 sends neither marker; an even older one
+  // A backend that predates ENA-5444 sends neither marker; an even older one
   // may omit `supported`. Both must stay usable rather than reading as
   // "runtime manages the model itself" off an undefined.
   it("defaults supported to true on an older backend that omits it", () => {
@@ -1672,7 +1672,7 @@ describe("Plugin schemas", () => {
   });
 });
 
-// Issue status catalog (MUL-6243). The catalog drives how every status renders,
+// Issue status catalog (ENA-6243). The catalog drives how every status renders,
 // so a drifting or malformed response must degrade to the built-ins rather than
 // leaving the UI with no statuses at all.
 describe("issue status catalog schemas", () => {
@@ -1727,7 +1727,7 @@ describe("issue status catalog schemas", () => {
 
   // PATCH /api/issue-statuses/reorder returns the same catalog shape as the
   // list endpoint, so a malformed reorder response degrades the same way rather
-  // than leaving the settings page holding an unparsed blob. (MUL-6243)
+  // than leaving the settings page holding an unparsed blob. (ENA-6243)
   it("falls back on a malformed reorder response", () => {
     const parsed = parseWithFallback(
       { statuses: [{ id: 1 }], total: "many" },

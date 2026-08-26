@@ -222,6 +222,8 @@
     "archive": "アーカイブ",
     "unarchive": "アーカイブ解除",
     "archived_title": "アーカイブ済み",
+    "pinned_segment": "ピン留め済み",
+    "no_project_segment": "プロジェクトなし",
     "row_actions_aria": "チャットの操作"
   },
   "header": {

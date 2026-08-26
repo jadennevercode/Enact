@@ -34,7 +34,7 @@ func createPrivateAgentOwnedBy(t *testing.T, name, ownerID string) string {
 }
 
 // TestAgentCreateOriginator_E2E_CreateAssignSquad_PrivateWorkerTriggered walks
-// the exact line failure shape from MUL-4305 end to end, deliberately NOT
+// the exact line failure shape from ENA-4305 end to end, deliberately NOT
 // re-testing the resolver in isolation but locking the real wiring between the
 // handler create stamp, the create-time squad gate, the squad-leader task's
 // stored originator, the comment source-task stamp, and the private-worker
@@ -59,12 +59,12 @@ func TestAgentCreateOriginator_E2E_CreateAssignSquad_PrivateWorkerTriggered(t *t
 	workerJID, ownerH, _ := privateAgentTestFixture(t)
 
 	// Private squad leader L, owned by the same human H.
-	leaderID := createPrivateAgentOwnedBy(t, "mul4305-e2e-private-leader", ownerH)
+	leaderID := createPrivateAgentOwnedBy(t, "ena4305-e2e-private-leader", ownerH)
 
 	var squadID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO squad (workspace_id, name, description, leader_id, creator_id)
-		VALUES ($1, 'MUL-4305 E2E Squad', '', $2, $3)
+		VALUES ($1, 'ENA-4305 E2E Squad', '', $2, $3)
 		RETURNING id
 	`, testWorkspaceID, leaderID, testUserID).Scan(&squadID); err != nil {
 		t.Fatalf("create squad: %v", err)
@@ -74,7 +74,7 @@ func TestAgentCreateOriginator_E2E_CreateAssignSquad_PrivateWorkerTriggered(t *t
 	// Creator agent A, running a task on behalf of the human H. resolveActor
 	// validates the (A, task) pair; the handler then trusts X-Task-ID as A's
 	// acting task and inherits H from it.
-	creatorAID := createHandlerTestAgent(t, "mul4305-e2e-creator-agent", nil)
+	creatorAID := createHandlerTestAgent(t, "ena4305-e2e-creator-agent", nil)
 	var creatorTaskID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO agent_task_queue (agent_id, runtime_id, status, priority, originator_user_id, accountable_user_id)
@@ -91,7 +91,7 @@ func TestAgentCreateOriginator_E2E_CreateAssignSquad_PrivateWorkerTriggered(t *t
 	// assigns it to the private-leader squad in the same call.
 	w := httptest.NewRecorder()
 	r := newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":         "MUL-4305 E2E agent-created + squad-assigned",
+		"title":         "ENA-4305 E2E agent-created + squad-assigned",
 		"assignee_type": "squad",
 		"assignee_id":   squadID,
 	})
@@ -161,7 +161,7 @@ func TestAgentCreateOriginator_E2E_CreateAssignSquad_PrivateWorkerTriggered(t *t
 		t.Fatalf("count worker tasks: %v", err)
 	}
 	if queuedForHuman == 0 {
-		t.Fatalf("private worker got 0 queued tasks attributed to H; the A2A mention was denied (MUL-4305 regression)")
+		t.Fatalf("private worker got 0 queued tasks attributed to H; the A2A mention was denied (ENA-4305 regression)")
 	}
 }
 
@@ -189,14 +189,14 @@ func TestAgentCreateOriginator_E2E_UpdateAssignSquad_HandlerGateAdmitsPrivateLea
 	var squadID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO squad (workspace_id, name, description, leader_id, creator_id)
-		VALUES ($1, 'MUL-4305 E2E Update-Assign Squad', '', $2, $3)
+		VALUES ($1, 'ENA-4305 E2E Update-Assign Squad', '', $2, $3)
 		RETURNING id
 	`, testWorkspaceID, leaderID, testUserID).Scan(&squadID); err != nil {
 		t.Fatalf("create squad: %v", err)
 	}
 	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM squad WHERE id = $1`, squadID) })
 
-	creatorAID := createHandlerTestAgent(t, "mul4305-e2e-update-creator", nil)
+	creatorAID := createHandlerTestAgent(t, "ena4305-e2e-update-creator", nil)
 	var creatorTaskID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO agent_task_queue (agent_id, runtime_id, status, priority, originator_user_id, accountable_user_id)
@@ -212,7 +212,7 @@ func TestAgentCreateOriginator_E2E_UpdateAssignSquad_HandlerGateAdmitsPrivateLea
 	// Agent A creates an unassigned issue via the ordinary path.
 	w := httptest.NewRecorder()
 	r := newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "MUL-4305 E2E unassigned then squad-assigned",
+		"title": "ENA-4305 E2E unassigned then squad-assigned",
 	})
 	r.Header.Set("X-Agent-ID", creatorAID)
 	r.Header.Set("X-Task-ID", creatorTaskID)
@@ -253,6 +253,6 @@ func TestAgentCreateOriginator_E2E_UpdateAssignSquad_HandlerGateAdmitsPrivateLea
 		t.Fatalf("count leader tasks: %v", err)
 	}
 	if leaderCount == 0 {
-		t.Fatalf("private squad leader got 0 tasks attributed to H after agent-triggered assign; the enqueue gate denied it (MUL-4305 gate regression)")
+		t.Fatalf("private squad leader got 0 tasks attributed to H after agent-triggered assign; the enqueue gate denied it (ENA-4305 gate regression)")
 	}
 }

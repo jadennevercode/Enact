@@ -75,7 +75,7 @@ type AttachmentResponse struct {
 	// a presigned URL) and therefore MUST NOT be persisted, and it is emitted
 	// ONLY by the single-attachment endpoint (GetAttachmentByID), never in list
 	// responses. Empty when the server cannot mint one for the object's storage
-	// mode; clients fall back to DownloadURL. (MUL follow-up to #6092 / #6713.)
+	// mode; clients fall back to DownloadURL. (follow-up to #6092 / #6713.)
 	AttachmentDownloadURL string `json:"attachment_download_url,omitempty"`
 	// MarkdownURL is the durable, absolute-when-possible URL the client
 	// SHOULD persist into markdown bodies (issue descriptions, comments,
@@ -99,7 +99,7 @@ type AttachmentResponse struct {
 	//     beyond the cookies/credentials the client already has on the
 	//     resolved host).
 	//
-	// MUL-3192 — fixes the Desktop / mobile-webview regression where the
+	// ENA-3192 — fixes the Desktop / mobile-webview regression where the
 	// previous site-relative `/api/attachments/<id>/download` link only
 	// resolved when the document origin proxied /api to the API host.
 	MarkdownURL string `json:"markdown_url"`
@@ -110,7 +110,7 @@ type AttachmentResponse struct {
 
 // attachmentURLMode selects how DownloadURL is rendered on a response.
 //
-// MUL-5372 / GitHub #5999. A CloudFront-signed DownloadURL is ~800 chars, of
+// ENA-5372 / GitHub #5999. A CloudFront-signed DownloadURL is ~800 chars, of
 // which ~630 are a Policy+Signature pair that is re-minted on every request
 // (the policy embeds now+TTL at second granularity). Emitting it for every
 // attachment of every list response is expensive three times over: raw payload,
@@ -203,7 +203,7 @@ func attachmentDownloadPath(id string) string {
 
 // buildMarkdownURL chooses the durable URL the client persists into
 // markdown bodies. The contract is "absolute, no TTL, loadable as a native
-// browser resource fetch on every supported client" (MUL-3192).
+// browser resource fetch on every supported client" (ENA-3192).
 //
 // Decision:
 //
@@ -219,7 +219,7 @@ func attachmentDownloadPath(id string) string {
 //     - `a.Url` is itself an absolute http(s) URL with no signature
 //     query — defends against legacy rows backfilled while baseURL
 //     was unset, and against a freshly-signed `download_url` ever
-//     leaking into `a.Url` (the original MUL-3130 bug).
+//     leaking into `a.Url` (the original ENA-3130 bug).
 //
 //  2. Every other shape — CloudFront-signed mode, S3 presign /proxy
 //     against a private bucket without a CDN domain, raw S3 / R2 /
@@ -232,7 +232,7 @@ func attachmentDownloadPath(id string) string {
 //  3. Last-resort fallback (no `ENACT_PUBLIC_URL` configured): emit
 //     the site-relative path. Web's Next.js rewrite handles this; non-
 //     web clients on a deployment without `PublicURL` configured were
-//     already broken before MUL-3192 and stay broken here, but we
+//     already broken before ENA-3192 and stay broken here, but we
 //     don't make them worse.
 func (h *Handler) buildMarkdownURL(a db.Attachment, id string) string {
 	relPath := attachmentDownloadPath(id)
@@ -511,7 +511,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 			// chat_history.go:chatHistorySession). X-Task-ID is only trustworthy
 			// when the auth middleware set it from a task-scoped `mat_` token —
 			// that path is also the ONLY one that stamps X-Actor-Source=task_token
-			// and strips a client-forged X-Task-ID. A normal JWT / `mul_` PAT
+			// and strips a client-forged X-Task-ID. A normal JWT / `enact_` PAT
 			// leaves X-Actor-Source empty and does NOT strip a forged X-Task-ID,
 			// and resolveActor's fallback will accept a real X-Agent-ID +
 			// X-Task-ID pair. So without this gate a member who learns a task ID
@@ -711,7 +711,7 @@ func (h *Handler) GetAttachmentByID(w http.ResponseWriter, r *http.Request) {
 		// Proxy mode has no signed storage URL to offer, so this response
 		// would otherwise hand back the auth-gated API path — which a
 		// native download on a token-mode client cannot authenticate,
-		// leaving the user with no file (MUL-5292). Mint a
+		// leaving the user with no file (ENA-5292). Mint a
 		// single-attachment, 60-second capability instead, so the same
 		// "replace the auth-gated path with something a native loader can
 		// fetch" contract holds in all three modes.
@@ -939,7 +939,7 @@ func shouldProxyAttachmentURL(rawURL string) bool {
 // frontend/backend origins — can inline-render images and iframe-preview
 // documents (PDF/HTML) fetched straight from the static route. Without these
 // headers the global "frame-ancestors 'none'" policy blocks those previews.
-// See MUL-3821 / #4477.
+// See ENA-3821 / #4477.
 func (h *Handler) ServeLocalUpload(w http.ResponseWriter, r *http.Request) {
 	local, ok := h.Storage.(*storage.LocalStorage)
 	if !ok {

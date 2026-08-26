@@ -597,7 +597,7 @@ func TestLoadConfig_SkipsEnactHooksFromLoginShellFallback(t *testing.T) {
 }
 
 // TestLoadConfig_AutoUpdateDefault_SelfHostOff is the regression guard for
-// MUL-2381: a daemon pointed at any non-cloud server URL must default
+// ENA-2381: a daemon pointed at any non-cloud server URL must default
 // AutoUpdateEnabled to false, because self-host operators frequently run a
 // fork and the upstream GitHub release would silently overwrite it.
 func TestLoadConfig_AutoUpdateDefault_SelfHostOff(t *testing.T) {
@@ -877,7 +877,7 @@ func TestLoadConfig_AutoUpdate_NoFlagWinsOverCloudDefault(t *testing.T) {
 // TestLoadConfig_AutoReload_DefaultsOnEvenForSelfHost is the review's first
 // product decision, encoded: "don't pull new versions from GitHub" and "follow
 // the binary I replaced myself" are separate concerns. Self-host defaults
-// auto-update OFF (MUL-2381) because upgrading a fork from an upstream release
+// auto-update OFF (ENA-2381) because upgrading a fork from an upstream release
 // would clobber it — an argument that says nothing about a binary the operator
 // installed by hand.
 func TestLoadConfig_AutoReload_DefaultsOnEvenForSelfHost(t *testing.T) {
@@ -892,7 +892,7 @@ func TestLoadConfig_AutoReload_DefaultsOnEvenForSelfHost(t *testing.T) {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if cfg.AutoUpdateEnabled {
-		t.Fatalf("AutoUpdateEnabled = true for self-host, want false (MUL-2381)")
+		t.Fatalf("AutoUpdateEnabled = true for self-host, want false (ENA-2381)")
 	}
 	if !cfg.AutoReloadEnabled {
 		t.Fatalf("AutoReloadEnabled = false for self-host; the on-disk watcher must not ride on the auto-update default")

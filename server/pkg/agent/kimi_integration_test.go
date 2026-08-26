@@ -99,7 +99,7 @@ func kimiSmokeModel() string {
 // and asserts the server is actually connected and callable.
 //
 // Users reported that MCP configured in Enact "never reaches kimi", pointing
-// at the bare `kimi acp` launch line as evidence (MUL-5846). That line carries
+// at the bare `kimi acp` launch line as evidence (ENA-5846). That line carries
 // no MCP flags because the CLI has none — kimi takes MCP over ACP session/new
 // instead — so only an end-to-end run against the real binary can settle it.
 // The oracle is the MCP server process itself: it appends to a log when spawned

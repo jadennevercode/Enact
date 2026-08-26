@@ -56,6 +56,7 @@ func TestGetConfigIncludesRuntimeAuthConfig(t *testing.T) {
 	defer func() { testHandler.Storage = origStorage }()
 
 	t.Setenv("ALLOW_SIGNUP", "false")
+	t.Setenv("APP_ENV", "dev")
 	t.Setenv("GOOGLE_CLIENT_ID", "google-client-id")
 	t.Setenv("POSTHOG_API_KEY", "phc_test")
 	t.Setenv("POSTHOG_HOST", "https://eu.i.posthog.com")

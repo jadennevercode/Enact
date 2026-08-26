@@ -1,17 +1,19 @@
 ---
 title: 로그인과 가입
-description: 이메일 인증 코드, Google 로그인, 신규 사용자 가입 범위를 설정합니다.
+description: 이메일 직접 로그인, Google 로그인, 신규 사용자 가입 범위를 설정합니다.
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-Enact는 기본적으로 이메일 인증 코드로 로그인하며 Google OAuth를 추가할 수도 있습니다. 기존 사용자는 언제든 다시 로그인할 수 있습니다. 가입 제한은 새 계정을 만들 수 있는지만 결정합니다.
+Enact는 기본적으로 이메일 주소로 직접 로그인하며 Google OAuth를 추가할 수도 있습니다. 기존 사용자는 언제든 다시 로그인할 수 있습니다. 가입 제한은 새 계정을 만들 수 있는지만 결정합니다.
 
-## 이메일 인증 코드
+## 이메일 직접 로그인
 
-사용자가 이메일을 입력하면 Enact가 6자리 인증 코드를 보냅니다. 코드는 10분 동안 유효하며 인증에 성공하면 브라우저에 로그인 cookie가 발급됩니다.
+사용자가 이메일을 입력하고 계속하면 Enact가 해당 계정을 만들거나 재사용하고 즉시 로그인 cookie를 발급합니다. 인증 코드 단계는 없습니다.
 
-이메일은 Resend 또는 SMTP로 보낼 수 있습니다. 둘 다 설정하면 `SMTP_HOST`가 우선합니다.
+## 초대 이메일 전송
+
+Resend 또는 SMTP는 워크스페이스 초대를 보낼 때만 필요합니다. 둘 다 설정하면 `SMTP_HOST`가 우선합니다.
 
 ### Resend 사용
 
@@ -57,24 +59,9 @@ SMTP_EHLO_NAME=mail.example.com
 
 ### 이메일 서비스가 없을 때의 동작
 
-서버는 계속 시작되지만 인증 코드와 초대 링크가 이메일로 전송되지 않고 로그에만 기록됩니다. 로컬 개발에는 적합하지만 프로덕션 환경에는 적합하지 않습니다.
+서버는 계속 시작되지만 초대 링크가 이메일로 전송되지 않고 로그에만 기록됩니다. 로컬 개발에는 적합하지만 프로덕션 환경에는 적합하지 않습니다.
 
 시작 로그에는 현재 `Resend API`, `SMTP relay`, `DEV mode` 중 무엇을 사용하는지 표시됩니다.
-
-## 로컬 고정 인증 코드
-
-로컬 자동화 테스트에서는 고정 인증 코드를 설정할 수 있습니다.
-
-```dotenv
-APP_ENV=development
-ENACT_DEV_VERIFICATION_CODE=888888
-```
-
-인증 코드는 6자리 숫자여야 합니다. `APP_ENV=production`에서는 고정 코드가 무시됩니다.
-
-<Callout type="warning">
-공개 인터넷에 노출된 인스턴스에서 고정 인증 코드를 사용하지 마세요. 프로덕션 환경에서는 `APP_ENV=production`을 사용하고 `ENACT_DEV_VERIFICATION_CODE`를 비워 둡니다.
-</Callout>
 
 ## Google 로그인
 

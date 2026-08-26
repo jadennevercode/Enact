@@ -26,7 +26,7 @@ var attachmentDownloadCmd = &cobra.Command{
   $ enact attachment download abc123
 
   # Download to a directory inside the working directory (keep agent
-  # downloads out of /tmp and other machine-shared paths, MUL-4252)
+  # downloads out of /tmp and other machine-shared paths, ENA-4252)
   $ enact attachment download abc123 -o ./attachments`,
 	Args: exactArgs(1),
 	RunE: runAttachmentDownload,

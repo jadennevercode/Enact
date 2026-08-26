@@ -147,7 +147,7 @@ func TestResolveWorkspaceIDFromRequest(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			// MUL-2600: a mat_ task token authenticates the request and
+			// ENA-2600: a mat_ task token authenticates the request and
 			// the auth middleware writes the token-bound workspace into
 			// X-Workspace-ID along with X-Actor-Source=task_token. Any
 			// other workspace identifier the agent puts on the wire — a

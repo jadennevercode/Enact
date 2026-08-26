@@ -14,10 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/cloudruntime"
@@ -43,6 +39,10 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/featureflag"
 	"github.com/enact-ai/enact/server/pkg/llm"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // randomID returns a random 16-byte hex string used as a request ID for
@@ -115,10 +115,10 @@ type Config struct {
 	// frontend/CORS origin allowlist so split app/api self-hosted deployments
 	// can frame API-hosted PDFs without allowing arbitrary third-party frames.
 	AttachmentFrameAncestors []string
-	// LLM* configure the basic LLM API layer (MUL-4238). They back the
+	// LLM* configure the basic LLM API layer (ENA-4238). They back the
 	// server-internal LLM helpers in pkg/llm (e.g. chat title generation).
 	// The generic OpenAI-compatible passthrough endpoints were removed in
-	// MUL-4309; LLM access is internal-only now. When both LLMAPIKey and
+	// ENA-4309; LLM access is internal-only now. When both LLMAPIKey and
 	// LLMBaseURL are empty the layer is disabled and callers fall back
 	// silently (see maybeGenerateChatTitleAsync).
 	//   - LLMAPIKey       -> ENACT_LLM_API_KEY
@@ -139,6 +139,12 @@ type Config struct {
 	// Surfaced through /api/config so self-hosted operators can confirm which
 	// server build is deployed. Empty in dev builds.
 	ServerVersion string
+	// Capability Hub stays behind the Enact server so private service URLs and
+	// the optional API key never enter a browser bundle. CapHubURL is the
+	// user-facing web origin used by "Open in CapHub" links.
+	CapHubAPIURL string
+	CapHubURL    string
+	CapHubAPIKey string
 }
 
 type cloudRuntimeProxy interface {
@@ -156,7 +162,7 @@ type WorkspaceSetRefreshNotifier interface {
 
 // DaemonPendingWorkNotifier pushes a runtime-scoped "heartbeat now" hint to the
 // daemon so a queued heartbeat-carried request (model discovery) is picked up
-// immediately instead of on the daemon's next scheduled tick (MUL-5444).
+// immediately instead of on the daemon's next scheduled tick (ENA-5444).
 // Satisfied by both *daemonws.Hub (single-node) and *daemonws.RelayNotifier
 // (multi-node, fans out through Redis).
 type DaemonPendingWorkNotifier interface {
@@ -193,7 +199,7 @@ type Handler struct {
 	// Queries; a test can substitute a counting wrapper to assert HOW MANY
 	// catalog reads a request performs, which is the only property that
 	// distinguishes the current one-read derivation from the N+1 it replaced.
-	// (MUL-6243)
+	// (ENA-6243)
 	IssueStatusCatalog issuestatus.Querier
 	LivenessStore      LivenessStore
 	HeartbeatScheduler HeartbeatScheduler
@@ -201,13 +207,13 @@ type Handler struct {
 	CFSigner           *auth.CloudFrontSigner
 	Analytics          analytics.Client
 	// DaemonPendingWork pushes "heartbeat now" hints for queued
-	// heartbeat-carried requests (MUL-5444). Optional: when nil,
+	// heartbeat-carried requests (ENA-5444). Optional: when nil,
 	// requestDaemonPendingWork falls back to the local DaemonHub, which is the
 	// correct delivery scope for a single-node deployment.
 	DaemonPendingWork DaemonPendingWorkNotifier
 	// ModelCatalogCache serves the last known good model list for a runtime so
 	// the picker can render without waiting for a daemon round trip
-	// (stale-while-revalidate, MUL-5444). Nil-safe: every call site treats a nil
+	// (stale-while-revalidate, ENA-5444). Nil-safe: every call site treats a nil
 	// cache as a permanent miss and falls back to the full discovery flow.
 	ModelCatalogCache ModelCatalogCache
 	// Metrics is the shared business-metrics collector built by main.go.
@@ -246,13 +252,13 @@ type Handler struct {
 	// UI consults IsConfigured() to decide whether to surface install
 	// entry points.
 	LarkAPIClient lark.APIClient
-	// Composio integration (MUL-3720). Nil when COMPOSIO_API_KEY is unset;
+	// Composio integration (ENA-3720). Nil when COMPOSIO_API_KEY is unset;
 	// the composio HTTP handlers return 503 in that case. Wired in
 	// cmd/server/router.go after handler.New.
 	Composio *composio.Service
 	// ChannelSupervisor owns the per-installation supervisor goroutines
 	// that hold the §4.4 WS lease and drive each channel.Channel
-	// (MUL-3620 generalized the Feishu-only Hub into this channel-agnostic
+	// (ENA-3620 generalized the Feishu-only Hub into this channel-agnostic
 	// engine). The router constructs it independently of platform secrets — it
 	// drives any channel type, not just Feishu. It remains nil when lease
 	// configuration is unsafe or a selected Redis backend fails its startup
@@ -277,10 +283,10 @@ type Handler struct {
 	ChannelMediaReconciler *service.ChannelMediaReconciler
 	// SlackInstall owns the bring-your-own-app Slack install lifecycle (register
 	// pasted tokens / list / revoke) and the at-rest encryption of each app's bot
-	// + app tokens (MUL-3666). Nil unless ENACT_SLACK_SECRET_KEY is set.
+	// + app tokens (ENA-3666). Nil unless ENACT_SLACK_SECRET_KEY is set.
 	SlackInstall *slack.InstallService
 	// SlackBindingTokens mints/redeems the user-binding tokens behind the
-	// "link your Slack account" prompt (MUL-3666). Nil unless Slack is
+	// "link your Slack account" prompt (ENA-3666). Nil unless Slack is
 	// configured (ENACT_SLACK_SECRET_KEY set).
 	SlackBindingTokens *slack.BindingTokenService
 	// DingTalkInstall owns the bring-your-own-app DingTalk lifecycle. It is nil
@@ -289,7 +295,7 @@ type Handler struct {
 	// DingTalkBindingTokens mints and redeems the single-use account-link tokens.
 	DingTalkBindingTokens *dingtalk.BindingTokenService
 	// SlackHistory backs the agent-facing `enact chat history` command: it
-	// reads a chat session's bound Slack conversation on demand (MUL-3871). Nil
+	// reads a chat session's bound Slack conversation on demand (ENA-3871). Nil
 	// unless Slack is configured; GetChatChannelHistory then reports "no channel
 	// integration". A future platform satisfies the same reader interface.
 	SlackHistory ChatChannelHistoryReader
@@ -332,7 +338,7 @@ type Handler struct {
 	// either "run `enact attachment upload`" or "describe the file in words"
 	// (daemon/prompt.go). Not the brief: the brief is the prompt cache prefix and
 	// this is a per-turn verdict, so stating it there made one session render two
-	// briefs (MUL-5377).
+	// briefs (ENA-5377).
 	//
 	// It is a deployment fact, not a property of the channel type, and that
 	// distinction is the whole reason it lives here. Whether the file arrives
@@ -347,10 +353,10 @@ type Handler struct {
 	// cannot drift), read-only from then on. Nil means no channel delivers
 	// files, which is what a deployment with no storage configured gets.
 	channelFileDelivery map[string]bool
-	// LLM is the basic LLM API layer (MUL-4238): a thin wrapper over the
+	// LLM is the basic LLM API layer (ENA-4238): a thin wrapper over the
 	// OpenAI Go SDK backing server-internal one-shot LLM helpers such as chat
 	// title generation. The generic passthrough endpoints were removed in
-	// MUL-4309, so it is internal-only now. Always non-nil (New builds it from
+	// ENA-4309, so it is internal-only now. Always non-nil (New builds it from
 	// Config); when unconfigured its Enabled() reports false and callers fall
 	// back silently.
 	LLM *llm.Client
@@ -361,7 +367,7 @@ type Handler struct {
 	// error rather than silently storing plaintext. Wired in
 	// cmd/server/router.go after New.
 	VCSSecretBox *secretbox.Box
-	// PRRefresh drives the GitHub API snapshot pipeline for PR cards (MUL-5265):
+	// PRRefresh drives the GitHub API snapshot pipeline for PR cards (ENA-5265):
 	// webhook / page-visit / TTL triggers → authenticated GraphQL fetch →
 	// head-SHA-guarded atomic snapshot write. Always non-nil, but inert (every
 	// trigger is a no-op) when GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY are unset,
@@ -409,7 +415,7 @@ func New(queries *db.Queries, txStarter txStarter, hub *realtime.Hub, bus *event
 	})
 	// Report the effective retry policy so an operator can confirm from the
 	// boot log alone what a misbehaving upstream will cost, instead of inferring
-	// it from an env var whose semantics used to be unguessable (MUL-6364).
+	// it from an env var whose semantics used to be unguessable (ENA-6364).
 	// Read off the client, not off cfg, so the line cannot drift from what the
 	// SDK actually enforces. Counts and an enum only — never the key or the base
 	// URL, since a self-hosted gateway URL routinely embeds a token.
@@ -464,7 +470,7 @@ func New(queries *db.Queries, txStarter txStarter, hub *realtime.Hub, bus *event
 	}
 	h.WebhookDeliveryWorker = NewWebhookDeliveryWorker(h)
 
-	// GitHub API snapshot pipeline for PR cards (MUL-5265). Built
+	// GitHub API snapshot pipeline for PR cards (ENA-5265). Built
 	// unconditionally but inert (every trigger no-ops) when the App private key
 	// is unconfigured, so the feature degrades cleanly. main.go calls
 	// h.PRRefresh.Start(ctx) to launch its worker pool + TTL sweeper.
@@ -576,7 +582,7 @@ func uuidToPtr(u pgtype.UUID) *string { return util.UUIDToPtr(u) }
 
 // uuidsToStrings maps a UUID array column to string ids, skipping NULL/invalid
 // entries. Returns nil (not an empty slice) when there is nothing to emit so
-// `omitempty` JSON fields drop out cleanly (MUL-4195).
+// `omitempty` JSON fields drop out cleanly (ENA-4195).
 func uuidsToStrings(us []pgtype.UUID) []string {
 	if len(us) == 0 {
 		return nil
@@ -758,7 +764,7 @@ func requestUserID(r *http.Request) string {
 // authenticated via an `mat_` task-scoped token. The auth middleware sets
 // that header (and stripped any client-supplied value first), so it is
 // authoritative — the bound (agent_id, task_id) cannot be forged or
-// stripped by the agent process. This is the path MUL-2600 relies on to
+// stripped by the agent process. This is the path ENA-2600 relies on to
 // reject agent-process traffic on owner-only endpoints.
 //
 // Fallback signal (legacy CLI / member-token paths): the request MUST
@@ -1078,7 +1084,7 @@ func splitIdentifier(id string) *identifierParts {
 // reuse the rule.
 //
 // The empty-prefix fallback stays on the FROZEN name-based derivation, not the
-// slug-based one new workspaces get (MUL-6050): identifiers are computed at
+// slug-based one new workspaces get (ENA-6050): identifiers are computed at
 // read time, so switching this path would rewrite the identifier of every
 // issue in those legacy workspaces. New workspaces always persist a prefix at
 // creation, so they never reach this branch.

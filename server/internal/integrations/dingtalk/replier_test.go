@@ -11,7 +11,7 @@ import (
 
 func TestIssueCreatedText(t *testing.T) {
 	issueID := pgtype.UUID{Valid: true}
-	if got := issueCreatedText(engine.Result{IssueID: issueID, IssueIdentifier: "MUL-42", IssueTitle: "Fix login"}); got != "✅ Created MUL-42 — Fix login" {
+	if got := issueCreatedText(engine.Result{IssueID: issueID, IssueIdentifier: "ENA-42", IssueTitle: "Fix login"}); got != "✅ Created ENA-42 — Fix login" {
 		t.Fatalf("got %q", got)
 	}
 	if got := issueCreatedText(engine.Result{IssueID: issueID, IssueNumber: 7}); got != "✅ Created #7" {
@@ -22,9 +22,9 @@ func TestIssueCreatedText(t *testing.T) {
 func TestIssueDuplicateText(t *testing.T) {
 	issueID := pgtype.UUID{Bytes: [16]byte{9}, Valid: true}
 	got := issueDuplicateText(engine.Result{
-		IssueID: issueID, IssueIdentifier: "MUL-42", IssueTitle: "Fix login", IssueDuplicate: true,
+		IssueID: issueID, IssueIdentifier: "ENA-42", IssueTitle: "Fix login", IssueDuplicate: true,
 	})
-	if got != "⚠️ Not created — active issue MUL-42 already exists: Fix login" {
+	if got != "⚠️ Not created — active issue ENA-42 already exists: Fix login" {
 		t.Fatalf("duplicate text = %q", got)
 	}
 }

@@ -196,7 +196,7 @@ func TestReply_PostsIssueCreatedConfirmation(t *testing.T) {
 	r.Reply(context.Background(), inst, channel.InboundMessage{Source: channel.Source{ChatID: "C1", ChatType: channel.ChatTypeP2P}}, engine.Result{
 		Outcome:         engine.OutcomeIngested,
 		IssueID:         mustTestUUID(t),
-		IssueIdentifier: "MUL-9",
+		IssueIdentifier: "ENA-9",
 		IssueTitle:      "Ship it",
 	})
 	if len(conn.frames) != 1 {
@@ -207,8 +207,8 @@ func TestReply_PostsIssueCreatedConfirmation(t *testing.T) {
 	if md == nil || md["content"] == nil {
 		t.Fatalf("no markdown content in confirmation: %v", body)
 	}
-	if content, _ := md["content"].(string); content == "" || !strings.Contains(content, "MUL-9") {
-		t.Errorf("confirmation = %q, want it to name MUL-9", md["content"])
+	if content, _ := md["content"].(string); content == "" || !strings.Contains(content, "ENA-9") {
+		t.Errorf("confirmation = %q, want it to name ENA-9", md["content"])
 	}
 }
 

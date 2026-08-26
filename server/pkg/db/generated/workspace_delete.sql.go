@@ -472,7 +472,7 @@ WHERE channel_media_pending_object.workspace_id = $1
 // a token whose workspace_id points at a neighbour while its task or agent lives
 // here is still removed by this teardown rather than by the FK cascade. The
 // former single statement combined all three with OR, which cost a full scan of
-// task_token (MUL-5999); split, each path is an index scan.
+// task_token (ENA-5999); split, each path is an index scan.
 // Same no-FK chore as chat_draft_restore above. Matched on workspace_id rather
 // than the session set because that column exists precisely so this statement
 // does not have to join through chat_session, which it deletes in this same CTE.
@@ -662,7 +662,7 @@ type ListTaskIDsByAgentPageParams struct {
 // estimate a proportional share of the global table and fall back to a Seq Scan
 // on agent_task_queue. A single-key equality is the only form whose row estimate
 // stays small enough to be index-driven regardless of how the workspace's tasks
-// are distributed (MUL-5999).
+// are distributed (ENA-5999).
 //
 // `id > $2 ORDER BY id LIMIT $3` against idx_agent_task_queue_agent_id_keyset
 // (migration 278) bounds the SCAN, not just the result: each page is an index
@@ -1063,7 +1063,7 @@ SELECT pg_advisory_xact_lock(4246)
 // per session. An in-flight rollup finishes first, then no new rollup can
 // write the workspace's aggregates until this delete commits. The caller
 // bounds this wait with SET LOCAL lock_timeout — batch jobs hold 4246 for
-// minutes, and an unbounded wait here hangs the delete request (MUL-5983).
+// minutes, and an unbounded wait here hangs the delete request (ENA-5983).
 func (q *Queries) LockTaskUsageRollupForWorkspaceDelete(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, lockTaskUsageRollupForWorkspaceDelete)
 	return err

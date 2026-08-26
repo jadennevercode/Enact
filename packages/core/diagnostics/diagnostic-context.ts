@@ -57,6 +57,7 @@ const WORKSPACE_ROUTES: readonly RoutePattern[] = [
   ["issues", ":id"],
   ["projects"],
   ["projects", ":id"],
+  ["projects", ":id", "artifacts"],
   ["autopilots"],
   ["autopilots", ":id"],
   ["agents"],
@@ -76,6 +77,7 @@ const WORKSPACE_ROUTES: readonly RoutePattern[] = [
   ["runtimes"],
   ["runtimes", ":id"],
   ["runtimes", ":id", "runtime", ":runtimeId"],
+  ["ontologies"],
   ["skills"],
   ["skills", ":id"],
   ["settings"],
@@ -97,7 +99,7 @@ const WORKSPACE_SECTIONS = new Set(WORKSPACE_ROUTES.map((route) => route[0]!));
 const GLOBAL_SECTIONS = new Set(GLOBAL_ROUTES.map((route) => route[0]!));
 
 /**
- * Collapse a concrete path to its route template: `/acme/issues/MUL-12` becomes
+ * Collapse a concrete path to its route template: `/acme/issues/ENA-12` becomes
  * `/:slug/issues/:id`. Diagnostics only need to know which screen the user was
  * on, and a template keeps workspace slugs and resource ids out of telemetry
  * while making the field groupable in one query.

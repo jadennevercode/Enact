@@ -44,7 +44,7 @@ func withPendingWorkHintMinInterval(t *testing.T, d time.Duration) {
 	t.Cleanup(func() { pendingWorkHintMinInterval = prev })
 }
 
-// TestHandlePendingWorkHint_SendsImmediateHeartbeat is the core of MUL-5444:
+// TestHandlePendingWorkHint_SendsImmediateHeartbeat is the core of ENA-5444:
 // a server-pushed hint must produce a heartbeat right now instead of leaving the
 // queued model-list request to wait for the next scheduled tick (up to a full
 // HeartbeatInterval, 15s by default).

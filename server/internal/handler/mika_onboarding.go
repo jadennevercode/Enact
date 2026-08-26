@@ -20,7 +20,7 @@ type startMikaOnboardingResponse struct {
 	Started bool `json:"started"`
 	// MessageID / CreatedAt describe the opening this call wrote. They replace
 	// the task id this endpoint used to return: nothing is enqueued any more,
-	// so there is no pending task for a client to await (MUL-5827). An older
+	// so there is no pending task for a client to await (ENA-5827). An older
 	// build reading the absent task_id simply seeds no pending state and finds
 	// the opening already in the transcript it fetches next.
 	MessageID string `json:"message_id,omitempty"`
@@ -43,7 +43,7 @@ var mikaOnboardingLanguages = map[string]string{
 // round trips before reading a word — and a run that failed introduced Mika as
 // an error bubble. Nothing in that reply needed an agent: the skill already
 // fixed its four beats, and every input it personalizes on is already in this
-// request (MUL-5827).
+// request (ENA-5827).
 //
 // The kickoff row is written WITHOUT a task, and the member's first real
 // message adopts it into that turn's input batch. That is what carries the
@@ -240,7 +240,7 @@ var mikaOnboardingUseCaseLabels = map[string]string{
 //     starter play schedules a recurring autopilot. Without it the skill would
 //     be proposing "every morning at 09:00" while the CLI defaults the trigger
 //     to UTC, so anyone outside UTC could confirm a morning digest and receive
-//     an afternoon one (MUL-5765).
+//     an afternoon one (ENA-5765).
 func buildMikaOnboardingKickoff(
 	languageName string,
 	workspaceName string,

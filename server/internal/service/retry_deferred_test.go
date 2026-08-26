@@ -12,7 +12,7 @@ import (
 )
 
 // TestCreateRetryTaskFireAtControlsDeferral locks in the SQL half of the
-// three-tier provider_network schedule (MUL-4910): CreateRetryTask inserts a
+// three-tier provider_network schedule (ENA-4910): CreateRetryTask inserts a
 // 'deferred' child carrying fire_at when the fire_at param is set (the final,
 // backed-off attempt) and an immediately-claimable 'queued' child when it is
 // NULL (every other retry). Both continue the resume chain — force_fresh_session
@@ -169,7 +169,7 @@ func TestRuntimeOfflineRetryWaitsForHealthyRuntime(t *testing.T) {
 }
 
 // TestFailTaskProviderNetworkBudget is the end-to-end guard for Elon's must-fix
-// (MUL-4910): FailTask must (1) grant provider_network its raised budget and
+// (ENA-4910): FailTask must (1) grant provider_network its raised budget and
 // persist a self-consistent child (attempt=3, max_attempts=3), and (2) still
 // honour max_attempts=1 as "auto-retry disabled" — no child at all.
 func TestFailTaskProviderNetworkBudget(t *testing.T) {

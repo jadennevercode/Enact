@@ -37,7 +37,7 @@ type AutopilotResponse struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
 	ProjectID   *string `json:"project_id"`
-	// AssigneeType is "agent" or "squad". Path A from MUL-2429: when set
+	// AssigneeType is "agent" or "squad". Path A from ENA-2429: when set
 	// to "squad", AssigneeID points at squad(id) rather than agent(id) and
 	// dispatch resolves to squad.leader_id at run time.
 	AssigneeType       string  `json:"assignee_type"`
@@ -68,13 +68,13 @@ type AutopilotResponse struct {
 	// managing triggers/webhook secrets (creator, workspace owner/admin, or an
 	// explicit collaborator). Nil on responses built without a caller in
 	// context (older servers omit it; clients must treat absence as "unknown"
-	// and fall back to attempting the action). See MUL-3807.
+	// and fall back to attempting the action). See ENA-3807.
 	CanWrite *bool `json:"can_write,omitempty"`
 
 	// CanManageAccess reports whether the caller may manage the collaborator
 	// (access) list — a narrower right held only by the creator and workspace
 	// owners/admins, NOT by granted collaborators (who can write but cannot
-	// re-grant). Nil when built without a caller in context. See MUL-3807.
+	// re-grant). Nil when built without a caller in context. See ENA-3807.
 	CanManageAccess *bool `json:"can_manage_access,omitempty"`
 }
 
@@ -182,7 +182,7 @@ type AutopilotRunResponse struct {
 func autopilotToResponse(a db.Autopilot, subscribers []db.AutopilotSubscriber) AutopilotResponse {
 	assigneeType := a.AssigneeType
 	if assigneeType == "" {
-		// Older rows pre-MUL-2429 may surface as "" against an out-of-date
+		// Older rows pre-ENA-2429 may surface as "" against an out-of-date
 		// schema view; default to "agent" so the API contract stays
 		// non-null.
 		assigneeType = "agent"
@@ -325,7 +325,7 @@ type CreateAutopilotRequest struct {
 	Description *string `json:"description"`
 	ProjectID   *string `json:"project_id"`
 	// AssigneeType is optional and defaults to "agent" — preserves backward
-	// compatibility with desktop clients shipped before MUL-2429.
+	// compatibility with desktop clients shipped before ENA-2429.
 	AssigneeType       *string           `json:"assignee_type"`
 	AssigneeID         string            `json:"assignee_id"`
 	ExecutionMode      string            `json:"execution_mode"`
@@ -476,13 +476,13 @@ func (h *Handler) GetAutopilot(w http.ResponseWriter, r *http.Request) {
 	// the permission system), so only writers — the creator, a workspace
 	// owner/admin, or a granted collaborator — get the live token/URL; every
 	// other member sees the trigger metadata with the secret fields stripped
-	// (MUL-3807).
+	// (ENA-3807).
 	canWrite := false
 	canManageAccess := false
 	if member, err := h.getWorkspaceMember(r.Context(), requestUserID(r), workspaceID); err == nil {
 		canWrite = h.memberCanWriteAutopilot(r.Context(), autopilot, member)
 		// Managing the access list is narrower than write: collaborators can
-		// write but cannot re-grant (MUL-3807).
+		// write but cannot re-grant (ENA-3807).
 		canManageAccess = autopilotWriteByOwnership(autopilot, member)
 	}
 	resp.CanWrite = &canWrite
@@ -546,7 +546,7 @@ func (h *Handler) loadAutopilotInWorkspace(w http.ResponseWriter, r *http.Reques
 // autopilotWriteByOwnership is the implicit, query-free part of the write
 // predicate: the autopilot's creator and workspace owners/admins always have
 // write access. Explicit collaborator grants (memberCanWriteAutopilot) layer
-// on top of this (MUL-3807).
+// on top of this (ENA-3807).
 func autopilotWriteByOwnership(ap db.Autopilot, member db.Member) bool {
 	if roleAllowed(member.Role, "owner", "admin") {
 		return true
@@ -594,7 +594,7 @@ func (h *Handler) requireAutopilotWrite(w http.ResponseWriter, r *http.Request, 
 // keeps its own write/execute rights (edit, trigger, manage triggers/secrets)
 // but cannot manage the access list — this stops a collaborator from
 // re-granting access to others or revoking peers (privilege escalation).
-// See MUL-3807.
+// See ENA-3807.
 func (h *Handler) requireAutopilotAccessManagement(w http.ResponseWriter, r *http.Request, ap db.Autopilot, workspaceID string) bool {
 	member, ok := h.workspaceMember(w, r, workspaceID)
 	if !ok {
@@ -705,7 +705,7 @@ func (h *Handler) CreateAutopilot(w http.ResponseWriter, r *http.Request) {
 
 	// Creating an autopilot IS a substantive publish: append rule-version v1 with
 	// the creating member as publisher, so every autopilot has an accountable
-	// human at dispatch time (MUL-4302 §3.4).
+	// human at dispatch time (ENA-4302 §3.4).
 	if err := h.recordAutopilotRuleVersion(r.Context(), qtx, autopilot, "member", parseUUID(userID)); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create autopilot")
 		return
@@ -962,7 +962,7 @@ func (h *Handler) UpdateAutopilot(w http.ResponseWriter, r *http.Request) {
 	// rule: append a new version with THIS member as publisher, so a later run
 	// attributes to whoever last changed what the rule does — not the original
 	// creator. Cosmetic edits (title / description / template) write no version and
-	// leave accountability with the previous publisher (MUL-4302 §3.4).
+	// leave accountability with the previous publisher (ENA-4302 §3.4).
 	if autopilotRuleSubstantiveChange(prev, autopilot) {
 		if err := h.recordAutopilotRuleVersion(r.Context(), qtx, autopilot, "member", parseUUID(userID)); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to update autopilot")
@@ -1015,7 +1015,7 @@ func (h *Handler) UpdateAutopilot(w http.ResponseWriter, r *http.Request) {
 // autopilotRuleSubstantiveChange reports whether a substantive (publish-worthy)
 // field of the autopilot ROW changed between prev and next — a change that alters
 // WHAT the automation instructs the agent to do, or WHO / WHETHER it runs, and so
-// transfers accountability to the editor (MUL-4302 §3.4; boundary pinned with Elon):
+// transfers accountability to the editor (ENA-4302 §3.4; boundary pinned with Elon):
 //
 //   - assignee_type / assignee_id — who (agent / squad leader) executes;
 //   - status — enabled state (active / paused / archived);
@@ -1044,7 +1044,7 @@ func autopilotRuleSubstantiveChange(prev, next db.Autopilot) bool {
 }
 
 // recordAutopilotRuleVersion appends one rule-version snapshot for a substantive
-// publish (MUL-4302 §3.4). Thin handler wrapper over service.RecordAutopilotRuleVersion
+// publish (ENA-4302 §3.4). Thin handler wrapper over service.RecordAutopilotRuleVersion
 // (shared with the failure monitor); callers pass their tx-scoped Queries so the
 // version is atomic with the autopilot write.
 func (h *Handler) recordAutopilotRuleVersion(ctx context.Context, q *db.Queries, ap db.Autopilot, publishedByType string, publishedByID pgtype.UUID) error {
@@ -1107,7 +1107,7 @@ func (h *Handler) DeleteAutopilot(w http.ResponseWriter, r *http.Request) {
 	// Product "delete" is archival: stop future triggers and hide the
 	// autopilot from default lists while preserving runs, tasks, webhook
 	// deliveries, subscribers, and collaborators as execution history.
-	// Archiving is a substantive status change (MUL-4302 §3.4), so republish the
+	// Archiving is a substantive status change (ENA-4302 §3.4), so republish the
 	// rule version with this member as publisher, atomically with the archive.
 	tx, err := h.TxStarter.Begin(r.Context())
 	if err != nil {
@@ -1157,7 +1157,7 @@ func (h *Handler) writeAutopilotCollaborators(w http.ResponseWriter, r *http.Req
 // AddAutopilotCollaborator grants a workspace member explicit write access to
 // the autopilot. Only the autopilot's creator or a workspace owner/admin can
 // manage the access list; a granted collaborator cannot re-grant to others
-// (privilege escalation). See MUL-3807.
+// (privilege escalation). See ENA-3807.
 func (h *Handler) AddAutopilotCollaborator(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	workspaceID := h.resolveWorkspaceID(r)
@@ -1267,7 +1267,7 @@ func (h *Handler) CreateAutopilotTrigger(w http.ResponseWriter, r *http.Request)
 	}
 	// A new trigger changes what / when the rule fires — a substantive publish, so
 	// the acting member republishes the rule version ATOMICALLY with the trigger
-	// create (MUL-4302 §3.4). Resolved here so both the webhook and schedule create
+	// create (ENA-4302 §3.4). Resolved here so both the webhook and schedule create
 	// paths can write the version inside the same tx as the INSERT — a failed
 	// version write must roll the trigger back, never leave future dispatches
 	// attributed to the previous publisher.
@@ -1408,7 +1408,7 @@ func (h *Handler) CreateAutopilotTrigger(w http.ResponseWriter, r *http.Request)
 		WebhookToken:   webhookToken,
 		// Seed the responsible publisher = creator; a later substantive edit re-stamps
 		// it to the editor so runs attribute to whoever last shaped this trigger
-		// (source=trigger_owner, MUL-4302).
+		// (source=trigger_owner, ENA-4302).
 		PublishedByType: pgtype.Text{String: "member", Valid: publisherID.Valid},
 		PublishedByID:   publisherID,
 	})
@@ -1441,7 +1441,7 @@ func (h *Handler) CreateAutopilotTrigger(w http.ResponseWriter, r *http.Request)
 //
 // Each attempt runs in its OWN transaction so the trigger INSERT and the
 // rule-version republish (a webhook trigger is a substantive change to what fires,
-// MUL-4302 §3.4, published by publisherID) commit together — a version-write failure
+// ENA-4302 §3.4, published by publisherID) commit together — a version-write failure
 // rolls the trigger back rather than leaving future dispatches attributed to the
 // previous publisher. Retries on the unique-index collision case with a fresh token
 // (the collided attempt's tx is already rolled back), so a vanishingly-rare RNG
@@ -1474,7 +1474,7 @@ func (h *Handler) createWebhookTriggerWithMintedToken(
 			Provider:     pgtype.Text{String: provider, Valid: provider != ""},
 			EventFilters: eventFilters,
 			// Seed the responsible publisher = creator; re-stamped to the editor on a
-			// later substantive edit (source=trigger_owner, MUL-4302).
+			// later substantive edit (source=trigger_owner, ENA-4302).
 			PublishedByType: pgtype.Text{String: "member", Valid: publisherID.Valid},
 			PublishedByID:   publisherID,
 		})
@@ -1737,7 +1737,7 @@ func (h *Handler) UpdateAutopilotTrigger(w http.ResponseWriter, r *http.Request)
 	// Only a substantive edit republishes the rule version and transfers this
 	// trigger's accountability to the editor. cron / timezone / enabled / event_filters
 	// change WHAT or WHEN the trigger fires; label is a cosmetic display field, and a
-	// no-op PATCH changes nothing — neither should move responsibility (MUL-4302; the
+	// no-op PATCH changes nothing — neither should move responsibility (ENA-4302; the
 	// over-transfer Elon flagged). Comparing the persisted before/after rows captures a
 	// real change and ignores label-only / no-op PATCHes (next_run_at is derived from
 	// cron/timezone, so it is not an independent signal).
@@ -1816,7 +1816,7 @@ func (h *Handler) DeleteAutopilotTrigger(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Removing a trigger changes what fires — a substantive publish (MUL-4302 §3.4).
+	// Removing a trigger changes what fires — a substantive publish (ENA-4302 §3.4).
 	// Republish the rule version with this member as publisher, atomically with the
 	// delete.
 	tx, err := h.TxStarter.Begin(r.Context())
@@ -2084,7 +2084,7 @@ func (h *Handler) TriggerAutopilot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// A manual "run now" is a direct human action, so the run is attributed
-	// direct_human to the triggering member (MUL-4302 §4). Resolve the actor the
+	// direct_human to the triggering member (ENA-4302 §4). Resolve the actor the
 	// same way assign/promote does; only a member actor is a human — an agent
 	// triggering via A2A yields an invalid actor and falls back to rule_owner.
 	userID, ok := requireUserID(w, r)
@@ -2121,7 +2121,7 @@ func (h *Handler) TriggerAutopilot(w http.ResponseWriter, r *http.Request) {
 		// whose chain carries pgx constraint/table names and internal ids. Any
 		// workspace member can reach "run now", so the detail stays in the log
 		// and the response is the same fixed 5xx string the rest of this file
-		// returns (MUL-6472).
+		// returns (ENA-6472).
 		slog.Error("trigger autopilot failed",
 			"error", err,
 			"autopilot_id", uuidToString(autopilot.ID),
@@ -2130,7 +2130,7 @@ func (h *Handler) TriggerAutopilot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Carry the typed admission reason (decided at its source, MUL-4525) straight
+	// Carry the typed admission reason (decided at its source, ENA-4525) straight
 	// into the response — no reverse-engineering from failure_reason text. The
 	// UI branches on run status + this code for the "run now" toast.
 	resp := runToResponse(*run)

@@ -11,7 +11,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/testutil"
 )
 
-// A move WITHIN the backlog category must not start a run (MUL-6463).
+// A move WITHIN the backlog category must not start a run (ENA-6463).
 //
 // Before custom statuses, leaving the `backlog` key was always leaving the
 // backlog category, so the trigger could key on the key change alone. Once a

@@ -8,7 +8,7 @@ SELECT * FROM agent_runtime
 WHERE id = $1;
 
 -- name: GetAgentRuntimes :many
--- Batch variant of GetAgentRuntime (MUL-4257): loads every runtime in the
+-- Batch variant of GetAgentRuntime (ENA-4257): loads every runtime in the
 -- input set in one round trip so the machine-level batch claim handler can
 -- resolve+authorize all of a daemon's runtimes without one point query per
 -- runtime. Rows are returned only for ids that exist; the caller matches them
@@ -114,7 +114,7 @@ WHERE id = @id
 RETURNING *;
 
 -- name: UpdateAgentRuntimeCustomName :one
--- Sets or clears a runtime's user-facing custom name (MUL-4217). custom_name
+-- Sets or clears a runtime's user-facing custom name (ENA-4217). custom_name
 -- overrides the daemon-proposed `name` for display; passing NULL reverts to
 -- the default. Kept separate from the registration upserts above (which do
 -- name = EXCLUDED.name on every heartbeat) so a custom name is never
@@ -125,7 +125,7 @@ WHERE id = @id
 RETURNING *;
 
 -- name: UpdateAgentRuntimeCustomNameByDaemon :many
--- Machine-level rename (MUL-4217): applies one custom name to every runtime
+-- Machine-level rename (ENA-4217): applies one custom name to every runtime
 -- sharing a daemon_id in the workspace, since a single machine hosts one
 -- runtime per provider. @owner_id is NULL for workspace owners/admins (rename
 -- the whole machine) or the actor's user id otherwise (only their own
@@ -140,7 +140,7 @@ RETURNING *;
 
 -- name: ListDaemonCustomNames :many
 -- Lists the custom_name of every OTHER runtime on (workspace_id, daemon_id)
--- (MUL-4217). @exclude_id drops the just-registered row. The caller derives
+-- (ENA-4217). @exclude_id drops the just-registered row. The caller derives
 -- the machine-level name in Go — the same "all runtimes share one non-null
 -- name" rule the frontend applies in sharedCustomName — so a freshly-added
 -- runtime on an already-named machine can inherit that name and keep the
@@ -199,7 +199,7 @@ WHERE id = $1;
 
 -- name: SetAgentRuntimeOfflineWithReason :exec
 -- Takes a runtime offline and records WHY, for the one class of cause the user
--- has to repair before the runtime can come back (MUL-6164). Everything that
+-- has to repair before the runtime can come back (ENA-6164). Everything that
 -- merely stops — daemon shutdown, laptop asleep — uses SetAgentRuntimeOffline
 -- and leaves no reason, because "wait for it" needs no explanation.
 --
@@ -307,7 +307,7 @@ RETURNING id, workspace_id, owner_id, daemon_id, provider;
 -- The status list must cover EVERY non-terminal status, not just the ones the
 -- daemon is actively working: 'deferred' (migration 128, comment-routing
 -- escalation) was missing here and only went unnoticed because the runtime
--- delete used to cascade those rows away. Since MUL-5559 the runtime delete
+-- delete used to cascade those rows away. Since ENA-5559 the runtime delete
 -- unbinds history rows instead, and agent_task_queue_active_requires_runtime
 -- rejects an active row without a runtime — so a missed status now surfaces as
 -- a failed delete (runtime_delete_not_drained) instead of silent data loss.
@@ -344,7 +344,7 @@ SET runtime_id = NULL
 WHERE runtime_id = $1 AND completed_at IS NOT NULL;
 
 -- name: UnbindUserAgentsFromRuntime :many
--- MUL-5559: the runtime-delete replacement for archive-then-hard-delete. Every
+-- ENA-5559: the runtime-delete replacement for archive-then-hard-delete. Every
 -- user agent bound to this runtime becomes unbound (runtime_id IS NULL) and
 -- keeps its row, chats, labels, channel installations and autopilot config.
 --
@@ -403,7 +403,7 @@ WHERE runtime_id = @old_runtime_id;
 -- write takes (lock_task_owner_rows, migration 284): the workspace row, FOR KEY
 -- SHARE. Taking it here rather than relying on the fence inside the reassignment
 -- keeps the merge's lock order identical to the writers' — workspaces before owner
--- rows — so the two can never hold each other's next lock (MUL-5999).
+-- rows — so the two can never hold each other's next lock (ENA-5999).
 SELECT 1 FROM workspace w
 WHERE w.id IN (
     SELECT r.workspace_id FROM agent_runtime r WHERE r.id = ANY(@runtime_ids::uuid[])
@@ -437,7 +437,7 @@ FOR UPDATE;
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- Re-points every queued/running/completed task referencing old_runtime_id.
 -- Required before deleting the old runtime row because agent_task_queue has
 -- an ON DELETE CASCADE FK that would otherwise drop historical tasks.

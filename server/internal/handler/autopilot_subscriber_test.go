@@ -45,7 +45,7 @@ FOR EACH ROW EXECUTE FUNCTION %s();
 // TestCreateAutopilotPersistsMemberSubscribers covers the happy path:
 // supplying a non-empty `subscribers` array on POST /api/autopilots stores
 // the rows and the response echoes them back. This is the create half of the
-// MUL-2533 RFC ("autopilot default subscriber template").
+// ENA-2533 RFC ("autopilot default subscriber template").
 func TestCreateAutopilotPersistsMemberSubscribers(t *testing.T) {
 	ctx := context.Background()
 	var autopilotID string

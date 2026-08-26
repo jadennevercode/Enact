@@ -27,7 +27,7 @@ import (
 //
 // All mutations are single-key atomic. UpdateIssue does NOT touch metadata —
 // any whole-blob overwrite would race with concurrent agent writes (see the
-// design discussion on MUL-2017).
+// design discussion on ENA-2017).
 const (
 	maxIssueMetadataKeys = 50
 )

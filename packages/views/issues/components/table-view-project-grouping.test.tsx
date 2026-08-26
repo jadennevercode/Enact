@@ -126,7 +126,7 @@ function makeIssue(id: string, projectId: string | null): Issue {
     id,
     workspace_id: "ws-1",
     number: 1,
-    identifier: `MUL-${id}`,
+    identifier: `ENA-${id}`,
     title: `Task ${id}`,
     description: null,
     status: "todo",
@@ -316,7 +316,7 @@ describe("Table grouped by project", () => {
 
   it("lands each row under its own project group", async () => {
     render();
-    await screen.findByText("MUL-acme");
-    await screen.findByText("MUL-loose");
+    await screen.findByText("ENA-acme");
+    await screen.findByText("ENA-loose");
   });
 });

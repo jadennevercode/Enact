@@ -13,7 +13,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// These are the regressions for MUL-5559. Deleting a runtime used to archive its
+// These are the regressions for ENA-5559. Deleting a runtime used to archive its
 // agents and then hard-delete the rows, so the agents, their conversations and
 // their task history all disappeared — while the confirmation dialog said
 // "archive". Each test below pins one thing that must now survive, plus the two

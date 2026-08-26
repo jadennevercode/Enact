@@ -109,7 +109,7 @@ const (
 	EventPropertyUpdated        = "property:updated"
 	EventIssuePropertiesChanged = "issue_properties:changed"
 
-	// Issue status catalog events (MUL-6243). ONE event for all four writes
+	// Issue status catalog events (ENA-6243). ONE event for all four writes
 	// — create, edit, archive, reorder — rather than a verb per write, because
 	// the catalog is read as a whole table and every client answers all four
 	// the same way: re-read it. Splitting it would mint four contracts that no
@@ -152,12 +152,12 @@ const (
 	// request (today: model-list discovery) is queued for that runtime. Without
 	// it the daemon only learns about the request on its next scheduled
 	// heartbeat, which adds up to one HeartbeatInterval (15s by default) of
-	// dead wait to an interactive UI flow (MUL-5444). The hint carries no work
+	// dead wait to an interactive UI flow (ENA-5444). The hint carries no work
 	// itself: the daemon still pulls the request through the normal heartbeat
 	// claim, so a lost or duplicated hint is harmless.
 	EventDaemonPendingWork = "daemon:pending_work"
 	// Generic daemon→server request/response over the WebSocket control
-	// connection (MUL-4257). The daemon sends EventDaemonRPCRequest with a
+	// connection (ENA-4257). The daemon sends EventDaemonRPCRequest with a
 	// correlation id + method + body; the server replies EventDaemonRPCResponse
 	// with the same request id. This is the transport for WS-first claim (with
 	// HTTP fallback) and any future daemon→server RPC.
@@ -184,7 +184,7 @@ const (
 	EventLarkInstallationCreated = "lark_installation:created"
 	EventLarkInstallationRevoked = "lark_installation:revoked"
 
-	// Slack installation lifecycle (MUL-3666). Same semantics as the Lark
+	// Slack installation lifecycle (ENA-3666). Same semantics as the Lark
 	// events: `created` covers both first install and OAuth re-install (the
 	// UNIQUE on (workspace_id, agent_id, channel_type) means at most one row
 	// per agent), `revoked` flips status without deleting the row. Front-ends

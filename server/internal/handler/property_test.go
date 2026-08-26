@@ -682,7 +682,7 @@ func TestParsePropertiesFilterNoValueUnit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Actor property types (MUL-6286)
+// Actor property types (ENA-6286)
 // ---------------------------------------------------------------------------
 
 // decodePropertiesBag reads the `{"properties": {...}}` envelope the value

@@ -46,15 +46,15 @@ func rejectTemporarilyDisabledUser(w http.ResponseWriter, r *http.Request, userI
 // cloudPAT is optional; when non-nil, tokens with the mcn_ prefix are
 // validated by calling the Enact Cloud Fleet service rather than the
 // local DB. When nil (Fleet URL unset) mcn_ tokens are rejected at the
-// prefix branch — we don't fall through to the mul_ / JWT paths, since
-// an mcn_ string is by construction not a valid mul_ PAT or JWT.
+// prefix branch — we don't fall through to the enact_ / JWT paths, since
+// an mcn_ string is by construction not a valid enact_ PAT or JWT.
 func Auth(queries *db.Queries, patCache *auth.PATCache, cloudPAT *auth.CloudPATVerifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// X-Actor-Source is server-set only — any value supplied by
 			// the client is untrusted and discarded before the auth
 			// branches run. Only the mat_ branch below re-sets it. This
-			// is what prevents a client from sending a normal mul_ PAT
+			// is what prevents a client from sending a normal enact_ PAT
 			// plus a forged `X-Actor-Source: member` (or anything else)
 			// to convince a downstream handler that its request came
 			// from a non-task-token path.
@@ -83,7 +83,7 @@ func Auth(queries *db.Queries, patCache *auth.PATCache, cloudPAT *auth.CloudPATV
 			// tricked by a client that strips or forges X-Agent-ID /
 			// X-Task-ID. Human-only endpoints (e.g. agent env
 			// management) reject requests authenticated this way; see
-			// `actorSourceFromRequest`. MUL-2600.
+			// `actorSourceFromRequest`. ENA-2600.
 			if strings.HasPrefix(tokenString, "mat_") {
 				if queries == nil {
 					http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
@@ -119,7 +119,7 @@ func Auth(queries *db.Queries, patCache *auth.PATCache, cloudPAT *auth.CloudPATV
 			// authoritative owner of the token's status and owner_id
 			// binding. We never look at the local
 			// personal_access_tokens table for this prefix; an mcn_
-			// string is not a valid mul_ value, so falling through
+			// string is not a valid enact_ value, so falling through
 			// would just be a redundant DB miss. When the verifier
 			// is unconfigured (no ENACT_CLOUD_FLEET_URL) we reject
 			// at this branch rather than treating the token as a
@@ -165,7 +165,7 @@ func Auth(queries *db.Queries, patCache *auth.PATCache, cloudPAT *auth.CloudPATV
 				// stamp of "task_token" — both are server-set,
 				// authoritative, and stripped from any client-
 				// supplied value at the top of this middleware. Same
-				// rationale as MUL-2600: a machine credential
+				// rationale as ENA-2600: a machine credential
 				// (running agent or running cloud node) must not be
 				// treated as the owner having approved an account-
 				// level action.
@@ -174,8 +174,8 @@ func Auth(queries *db.Queries, patCache *auth.PATCache, cloudPAT *auth.CloudPATV
 				return
 			}
 
-			// PAT: tokens starting with "mul_"
-			if strings.HasPrefix(tokenString, "mul_") {
+			// PAT: tokens starting with "enact_"
+			if strings.HasPrefix(tokenString, "enact_") {
 				hash := auth.HashToken(tokenString)
 
 				// Cache hit: TTL has not expired, the token was valid the

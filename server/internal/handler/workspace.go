@@ -31,7 +31,7 @@ var issuePrefixPattern = regexp.MustCompile(`^[A-Z0-9]{1,10}$`)
 // from its slug: alphanumerics only, first 4 chars, uppercased.
 // Examples: "acme" → "ACME", "front-end" → "FRON", "team-2" → "TEAM".
 //
-// The slug — not the name — is the derivation source on purpose (MUL-6050).
+// The slug — not the name — is the derivation source on purpose (ENA-6050).
 // Name is the one field in the create flow that accepts non-ASCII, so deriving
 // an ASCII-only prefix from it forced every CJK/emoji-named workspace onto the
 // same "WS" fallback. Slug is validated as `^[a-z0-9]+(-[a-z0-9]+)*$` and
@@ -53,7 +53,7 @@ func defaultIssuePrefixFromSlug(slug string) string {
 	return strings.ToUpper(head)
 }
 
-// legacyIssuePrefixFromName is the pre-MUL-6050 derivation: first 3 ASCII
+// legacyIssuePrefixFromName is the pre-ENA-6050 derivation: first 3 ASCII
 // letters of the workspace name, uppercased, "WS" when the name has none.
 //
 // FROZEN — do not "fix" this to match defaultIssuePrefixFromSlug. Its only
@@ -286,7 +286,7 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 
 	// Seed the 7 built-in issue statuses inside the same transaction, so a
 	// workspace is never visible without its status catalog — an issue cannot
-	// be created before its status can be resolved. (MUL-6243)
+	// be created before its status can be resolved. (ENA-6243)
 	if err := issuestatus.Ensure(r.Context(), qtx, ws.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to seed issue statuses: "+err.Error())
 		return
@@ -825,7 +825,7 @@ func (h *Handler) LeaveWorkspace(w http.ResponseWriter, r *http.Request) {
 // Waiting on that lock without a cap is what the user sees as "delete does
 // nothing": the request never returns, and no layer above it times out — the
 // browser/Electron fetch in packages/core/api/client.ts has no deadline and
-// the delete dialog stays in its "Deleting…" state forever (MUL-5983). A
+// the delete dialog stays in its "Deleting…" state forever (ENA-5983). A
 // bounded wait turns the same contention into a retryable error.
 //
 // 10 s is far above the millisecond-scale waits an uncontended teardown sees,
@@ -880,7 +880,7 @@ func failWorkspaceDelete(w http.ResponseWriter, r *http.Request, workspaceID, st
 // the array parameter sent back to Postgres, and the row count of a single
 // DELETE. A whole workspace's task set is not bounded by anything — one busy
 // agent can own millions of historical rows — so it must never be materialized at
-// once (MUL-5999 review).
+// once (ENA-5999 review).
 const workspaceDeleteTaskPageSize = 1000
 
 // workspaceDeleteOwnerPageSize bounds owner enumeration the same way. A workspace
@@ -1153,7 +1153,7 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	// are still held when DeleteWorkspace sweeps chat_draft_restore. Without
 	// them, FinalizeDeferredCancelledChat could commit a restore for one of
 	// these sessions after the sweep's snapshot was taken: the session cascades
-	// away, the restore has no FK to follow it (MUL-3515) and no reaper, and the
+	// away, the restore has no FK to follow it (ENA-3515) and no reaper, and the
 	// user's prompt is stranded forever (#5219). The finalizer takes the same
 	// lock before inserting, so it either blocks until the session is gone and
 	// skips the insert, or commits first and the sweep sees its row.
@@ -1271,7 +1271,7 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			// issue_status carries no foreign key by project rule, so its rows
 			// are swept explicitly. Placed after the issue deletes so no issue
 			// row outlives the catalog its status key resolves against.
-			// (MUL-6243)
+			// (ENA-6243)
 			name: "delete issue statuses",
 			run: func() error {
 				return qtx.DeleteIssueStatusEntriesForWorkspace(ctx, requester.WorkspaceID)

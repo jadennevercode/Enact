@@ -76,9 +76,9 @@ func markerIsTaskScoped(markerPath string) bool {
 //
 // All three refusals have the same cause and the same remedy, so they say the
 // same thing. Keeping the wording in one place is what stops them from drifting
-// again — before MUL-6132 only the API path named the file, so whether a user
+// again — before ENA-6132 only the API path named the file, so whether a user
 // could act on the error depended on which command they happened to run first
-// (MUL-6132 review).
+// (ENA-6132 review).
 //
 // The CLI deliberately stops at naming the file rather than deleting it.
 // Removing the marker is removing a fail-closed guard, and no check the CLI can

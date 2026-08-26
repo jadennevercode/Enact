@@ -299,7 +299,7 @@ jobs:
       # TO PROMOTE TO BLOCKING: once this step has run clean for a full cycle
       # on main, drop `continue-on-error`. The findings it reports today are
       # pre-existing dead code left out of the cleanup that introduced it
-      # (MUL-6353) — clear those first, or the flip turns them into a red main.
+      # (ENA-6353) — clear those first, or the flip turns them into a red main.
       - name: Check for dead code and phantom dependencies (knip)
         if: ${{ needs.changes.outputs.frontend == 'true' }}
         continue-on-error: true
@@ -698,7 +698,7 @@ jobs:
       - name: Test Windows directory-junction link safety
         if: ${{ needs.changes.outputs.backend == 'true' }}
         working-directory: server
-        # MUL-6000: the per-task codex-home links the user's real skills into
+        # ENA-6000: the per-task codex-home links the user's real skills into
         # the task directory instead of copying them. On Windows that link is a
         # directory junction whenever os.Symlink is denied (no Developer Mode),
         # and a junction is the one link shape a ModeSymlink check misses:
@@ -746,7 +746,7 @@ jobs:
         run: go build ./cmd/enact
 
   image-budget:
-    # Soft gate against the 21.7MB of raw PNG/JPG that MUL-6352 cleared out:
+    # Soft gate against the 21.7MB of raw PNG/JPG that ENA-6352 cleared out:
     # a bitmap added or grown past 300KB fails until the PR description says
     # why. Pull requests only — a push to main has no description to read,
     # and the branch it came from was already checked.

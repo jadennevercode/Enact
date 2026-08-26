@@ -84,7 +84,7 @@ func fakeExecutable(t *testing.T, name string) string {
 }
 
 // TestHandleModelList_CustomProfileEnumeratesProfileBinary pins the core of
-// MUL-5789: a profile-backed runtime must have its models discovered from the
+// ENA-5789: a profile-backed runtime must have its models discovered from the
 // binary the profile pinned, not from the built-in CLI of the same protocol
 // family that happens to also be installed. Enumerating the built-in advertises
 // a catalog the launched binary never agreed to.

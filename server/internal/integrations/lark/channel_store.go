@@ -1,7 +1,7 @@
 package lark
 
 // ChannelStore is the production data layer for the Feishu integration after
-// MUL-3515 generalized lark_* into channel_*. It embeds *db.Queries (so every
+// ENA-3515 generalized lark_* into channel_*. It embeds *db.Queries (so every
 // generic query — chat_session, chat_message, member, workspace, agent — is
 // available unchanged) and adds the feishu-specific store methods, each backed
 // by a channel_* query and translating at the JSONB-config boundary (store.go).
@@ -47,7 +47,7 @@ func (s *ChannelStore) WithTx(tx pgx.Tx) *ChannelStore {
 
 // IsWorkspaceMember reports whether userID is currently a member of
 // workspaceID. With the lark_user_binding -> member foreign key removed
-// (MUL-3515 §4), a binding row no longer proves membership, so the inbound
+// (ENA-3515 §4), a binding row no longer proves membership, so the inbound
 // identity step calls this to re-check it explicitly. ErrNoRows -> not a member.
 func (s *ChannelStore) IsWorkspaceMember(ctx context.Context, workspaceID, userID pgtype.UUID) (bool, error) {
 	_, err := s.Queries.GetMemberByUserAndWorkspace(ctx, db.GetMemberByUserAndWorkspaceParams{

@@ -19,7 +19,7 @@ type RegistryOptions struct {
 	Commit   string
 
 	// BusinessSampler, when non-nil, opts the registry into the
-	// scrape-time SQL sampler from PR4 (MUL-2947). It is intentionally
+	// scrape-time SQL sampler from PR4 (ENA-2947). It is intentionally
 	// separate from Pool so existing tests (and any deployment without
 	// METRICS_ADDR) cannot accidentally start hitting the database on
 	// every /metrics scrape.

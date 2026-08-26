@@ -65,7 +65,7 @@ interface RunConfirmData {
   // confirm. `assign` gives the issue an agent/squad owner; `promote` moves an
   // already-owned issue out of the backlog category, which starts the run on
   // its own (RunSourceStatus). Batch status changes still apply directly
-  // (MUL-4155) — `promote` is the single-issue picker path only (MUL-6463).
+  // (ENA-4155) — `promote` is the single-issue picker path only (ENA-6463).
   mode?: "assign" | "promote";
   /** promote only: the status KEY the issue is moving to. */
   status?: IssueStatus;
@@ -79,7 +79,7 @@ interface RunConfirmData {
  * Handoff confirmation for the issue writes that start agent runs.
  *
  * The rule is "dialog = you are handing this to an agent", NOT "you are
- * confirming N runs" (MUL-5010). It therefore does no pre-flight prediction:
+ * confirming N runs" (ENA-5010). It therefore does no pre-flight prediction:
  * opening it fires no request, so the note box and buttons are usable on the
  * first frame. Previously it called POST /api/issues/preview-trigger on open
  * and blocked the whole dialog behind a "检查中…" spinner; because that query is
@@ -151,7 +151,7 @@ export function RunConfirmModal({
   }, [d.assigneeType, d.assigneeId, agents, runtimes, squads]);
 
   // Soft gate: an old runtime can't render the note. Disable the box but let
-  // the assignment proceed (MUL-3375 §6.3).
+  // the assignment proceed (ENA-3375 §6.3).
   const noteDisabled = localHandoff === false;
 
   // A promotion carries the status and nothing else: the owner is already on
@@ -210,7 +210,7 @@ export function RunConfirmModal({
 
   /**
    * The configured `send` chord confirms the assignment, the same chord that
-   * creates from the issue composer (MUL-5694).
+   * creates from the issue composer (ENA-5694).
    *
    * Bound on the dialog, not on the note box, because the chord means "run the
    * primary action" no matter which control has focus — and the note box is

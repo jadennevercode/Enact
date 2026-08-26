@@ -11,7 +11,7 @@ import (
 // actually lost. See the constants in execenv for the full reasoning; the
 // question is whether the conversation is still READABLE, not whether it is a
 // chat — an issue's comments, a Slack channel's history, and a web chat's /
-// Feishu's / WeCom's / DingTalk's chat_message transcript all are (MUL-5722).
+// Feishu's / WeCom's / DingTalk's chat_message transcript all are (ENA-5722).
 func sessionContinuityNoticeFor(task Task) string {
 	if task.ChatSessionID == "" {
 		return execenv.SessionContinuityNoticeIssue
@@ -35,7 +35,7 @@ func sessionContinuityNoticeFor(task Task) string {
 // Only one notice may reach a turn. Two paths can produce it — the daemon,
 // which appends it to the prompt whenever it already knows the resume is gone,
 // and the backend, which is the only one that can see a live resume RPC being
-// rejected mid-run. Before MUL-5722 both fired on the codex overflow retry, so
+// rejected mid-run. Before ENA-5722 both fired on the codex overflow retry, so
 // the same paragraph was paid for twice in one turn and maintained as two
 // hand-written strings. Deriving the backend's copy from the daemon's, and
 // suppressing it exactly when the prompt already said it, makes a duplicate
@@ -57,7 +57,7 @@ func backendResumeContinuityNotice(task Task) string {
 // messages[0], ahead of the entire conversation, so rendering these there threw
 // away the prompt cache for the whole history on every resume. Appending them
 // to the per-turn user message puts them after the cached prefix instead, where
-// changing them costs only this turn's own tokens (MUL-5377).
+// changing them costs only this turn's own tokens (ENA-5377).
 //
 // Returns "" when none of the blocks apply.
 func perTurnContextBlocks(task Task, opts promptOpts) string {
@@ -149,7 +149,7 @@ func buildActiveSiblingRunsBlock(currentIssueID string, runs []ActiveSiblingRunD
 // through to comment-triggered tasks' per-turn reply template; that template
 // is provider-agnostic AND host-agnostic now (every OS → write a UTF-8 file,
 // post with `--content-file`) because the shell-layer corruption it guards
-// against is not specific to any one provider or host (MUL-2904, #4182).
+// against is not specific to any one provider or host (ENA-2904, #4182).
 func BuildPrompt(task Task, provider string, options ...PromptOption) string {
 	var opts promptOpts
 	for _, apply := range options {
@@ -158,7 +158,7 @@ func BuildPrompt(task Task, provider string, options ...PromptOption) string {
 	body := buildPromptBody(task, provider)
 	// Run-scoped context is appended, never prepended: everything ahead of it
 	// is stable across runs of a resumed session, and appending keeps it after
-	// the cached prefix (MUL-5377).
+	// the cached prefix (ENA-5377).
 	if blocks := perTurnContextBlocks(task, opts); blocks != "" {
 		if !strings.HasSuffix(body, "\n\n") {
 			body += "\n"
@@ -184,7 +184,7 @@ func buildPromptBody(task Task, provider string) string {
 	var b strings.Builder
 	b.WriteString("You are running as a local coding agent for a Enact workspace.\n\n")
 	fmt.Fprintf(&b, "Your assigned issue ID is: %s\n\n", task.IssueID)
-	// Assignment handoff (MUL-3375): a free-text instruction the person who
+	// Assignment handoff (ENA-3375): a free-text instruction the person who
 	// assigned/promoted this issue left for you. Frame it as a handoff, not a
 	// comment to reply to — there is no comment thread to answer here.
 	if task.HandoffNote != "" {
@@ -220,7 +220,7 @@ func buildQuickCreatePrompt(task Task) string {
 	b.WriteString("     CC exception: `enact issue create` has no `--subscriber` flag, and the platform auto-subscribes members whose `[@Name](mention://member/<uuid>)` link appears in the description. When the user wrote \"cc @Y\", strip the verbal \"cc\" wrapper from the User request body and append a final `CC: <mention link(s)>` line to the description so the cc routing still fires.\n\n")
 	b.WriteString("  2. **Context** — include ONLY when the input cited external resources AND you successfully fetched them AND they produced verifiable facts worth recording. Summarize facts only (e.g. \"PR #45 changes auth to JWT\"), not interpretation or unsolicited reference implementations. If you have nothing factual to add, omit the section entirely — never use it as an apology log for resources you could not fetch.\n\n")
 	b.WriteString("  Hard rules: never invent requirements, implementation details, or acceptance criteria the user did not express; never reduce multi-sentence input to a single vague sentence; never echo the title.\n\n")
-	b.WriteString("  Passing the description: a short, single-line body with no code, quotes, backticks, `$()`, or other special characters may go inline via `--description \"...\"`. Anything multi-line, or containing code snippets / file paths / quotes / backticks / `$()` / special characters, or otherwise long — which quick-create descriptions usually are — MUST be written to `./description.md` and passed with `--description-file ./description.md`; passing rich text inline lets the shell rewrite or truncate it (MUL-2904). That file MUST live inside your current working directory (e.g. `./description.md`) — never `/tmp` or any machine-shared path, where a different run may have left a stale file that would silently become this issue's description. If the file write fails for any reason, stop and fix it; never run `--description-file` against a file whose write did not succeed.\n\n")
+	b.WriteString("  Passing the description: a short, single-line body with no code, quotes, backticks, `$()`, or other special characters may go inline via `--description \"...\"`. Anything multi-line, or containing code snippets / file paths / quotes / backticks / `$()` / special characters, or otherwise long — which quick-create descriptions usually are — MUST be written to `./description.md` and passed with `--description-file ./description.md`; passing rich text inline lets the shell rewrite or truncate it (ENA-2904). That file MUST live inside your current working directory (e.g. `./description.md`) — never `/tmp` or any machine-shared path, where a different run may have left a stale file that would silently become this issue's description. If the file write fails for any reason, stop and fix it; never run `--description-file` against a file whose write did not succeed.\n\n")
 
 	// priority
 	if task.QuickCreatePriority != "" {
@@ -293,7 +293,7 @@ func buildQuickCreatePrompt(task Task) string {
 	// output format
 	b.WriteString("Output format:\n")
 	b.WriteString("- Run exactly one `enact issue create --output json` invocation. Do not retry for any reason — even on non-zero exit. The issue may already exist; another attempt would create a duplicate.\n")
-	b.WriteString("- Parse the JSON response to read the created issue's `identifier` (preferred) or `id` (fallback). Do not scrape human output and do not assume any workspace issue prefix such as `MUL-`; workspaces can use custom prefixes.\n")
+	b.WriteString("- Parse the JSON response to read the created issue's `identifier` (preferred) or `id` (fallback). Do not scrape human output and do not assume any workspace issue prefix such as `ENA-`; workspaces can use custom prefixes.\n")
 	b.WriteString("- After success, print exactly one line: `Created <identifier-or-id>: <title>` and exit. No commentary, no follow-up tool calls.\n")
 	b.WriteString("- Do NOT call `enact issue get` or `enact issue comment add` — there is no issue to query or comment on.\n")
 	b.WriteString("- On CLI error or JSON parse error, exit with the error as the only output. The platform writes a failure notification automatically.\n")
@@ -323,7 +323,7 @@ func buildCommentPrompt(task Task, provider string) string {
 		}
 		fmt.Fprintf(&b, "[NEW COMMENT] %s just left a new comment. Focus on THIS comment — do not confuse it with previous ones:\n\n", authorLabel)
 		fmt.Fprintf(&b, "> %s\n\n", task.TriggerCommentContent)
-		// MUL-4195: comments that arrived before this run started were folded
+		// ENA-4195: comments that arrived before this run started were folded
 		// into it rather than dropped. The trigger above is the newest; the
 		// agent must ALSO address these earlier ones so no deliberate user
 		// instruction is silently lost. Prefer the embedded detail so the agent
@@ -360,13 +360,13 @@ func buildCommentPrompt(task Task, provider string) string {
 			}
 			fmt.Fprintf(&b, "\nIf you need the surrounding discussion for any of them, fetch its thread with `enact issue comment list %s --thread <thread-id> --tail 30 --compact --output json` using the thread id shown above.\n\n", task.IssueID)
 		} else if len(task.CoalescedCommentIDs) > 0 {
-			// MUL-5442: this fallback used to send the agent at `--recent 30`.
+			// ENA-5442: this fallback used to send the agent at `--recent 30`.
 			// That flag caps THREADS, not comments, and every returned thread
 			// carries all of its descendants — so on an issue with fewer than 30
 			// root threads it returned the entire comment history to locate a
 			// handful of ids. It also contradicted the brief's own catch-up step,
 			// which tells the agent to read in two bounded steps and never make
-			// one bulk pull (MUL-5372): the platform was recommending exactly the
+			// one bulk pull (ENA-5372): the platform was recommending exactly the
 			// shape it forbids elsewhere.
 			//
 			// The replacement is a per-id lookup, which is what makes it
@@ -417,7 +417,7 @@ func buildCommentPrompt(task Task, provider string) string {
 	}
 	// Reply routing. When this run coalesced comments spanning MORE THAN ONE
 	// root thread, answer each thread in its own thread instead of dumping one
-	// merged comment (MUL-4348). Same-thread follow-ups collapse to a single
+	// merged comment (ENA-4348). Same-thread follow-ups collapse to a single
 	// group upstream, so they keep the ordinary single-parent path below and can
 	// never be split into duplicate replies.
 	if targets := commentReplyThreads(task); len(targets) >= 2 {
@@ -434,7 +434,7 @@ func buildCommentPrompt(task Task, provider string) string {
 // yields a single group, so same-thread follow-ups get exactly one consolidated
 // reply and can never be split into duplicates; comments from different root
 // threads yield one group each so the agent replies inside each thread instead
-// of merging them into one blob (MUL-4348).
+// of merging them into one blob (ENA-4348).
 //
 // The reply for each thread targets the NEWEST comment that triggered this run
 // in that thread (coalesced comments arrive oldest-first and the trigger is the
@@ -514,7 +514,7 @@ func buildChatPrompt(task Task) string {
 	default:
 		b.WriteString("Audience: direct room.\n\n")
 	}
-	// Channel awareness (MUL-3871). When the session is backed by an IM channel,
+	// Channel awareness (ENA-3871). When the session is backed by an IM channel,
 	// the agent must KNOW it is operating inside that channel — otherwise an ask
 	// like "what did you just talk about" sends it to read Enact instead of the
 	// channel conversation. A web-only chat session gets no such block — its
@@ -526,7 +526,7 @@ func buildChatPrompt(task Task) string {
 	// and DingTalk can all read the conversation back. Slack additionally has
 	// `enact chat thread` (thread expansion); the transcript surfaces have no
 	// thread reader, so they get the transcript command without the thread
-	// drill-down (MUL-4899).
+	// drill-down (ENA-4899).
 	//
 	// WHERE the conversation lives is therefore per-branch, not shared: only the
 	// unconditional "don't go looking in issues/comments" survives up top. Saying
@@ -537,7 +537,7 @@ func buildChatPrompt(task Task) string {
 	//
 	// The no-narration rule is a THIRD axis and belongs to neither half: it is a
 	// property of delivering to an IM channel at all, so it is emitted for every
-	// channel type. #4776 introduced it that way; the MUL-4899 split moved it into
+	// channel type. #4776 introduced it that way; the ENA-4899 split moved it into
 	// the Slack branch along with the read commands it happened to mention, which
 	// silently dropped it for Feishu/Lark (GH #6006).
 	if task.ChatChannelType != "" {
@@ -617,7 +617,7 @@ func buildChatPrompt(task Task) string {
 	}
 	// Outbound attachments: how the agent puts an image/file INTO its reply.
 	// This is the DELIVERY layer of the channel policy, and it has three
-	// answers, not two (MUL-4899). `attachment upload` binds a file to the
+	// answers, not two (ENA-4899). `attachment upload` binds a file to the
 	// Enact chat reply on every surface; what differs is whether anything
 	// goes back for it. Web/mobile renders it as a card in the browser. A
 	// channel-backed chat gets the upload guidance only where the server said
@@ -631,7 +631,7 @@ func buildChatPrompt(task Task) string {
 	// section carries the web/mobile answer, which is fixed, and for a
 	// channel-backed chat points here instead of answering — the verdict flips
 	// under a resumed session, and the brief is the prompt-cache prefix
-	// (MUL-5377). So a channel chat learns how to deliver a file only from the
+	// (ENA-5377). So a channel chat learns how to deliver a file only from the
 	// line below, which means one must be emitted on every turn.
 	switch {
 	case task.ChatChannelType == "":
@@ -686,7 +686,7 @@ func buildAutopilotPrompt(task Task) string {
 	// The issue-command boundary (execenv.AutopilotIssueCommandsGuard) is NOT
 	// restated here: the brief's autopilot workflow section is its single
 	// emission point, and a second hand-maintained per-turn copy is exactly
-	// how the two surfaces drifted into conflict before (MUL-5696).
+	// how the two surfaces drifted into conflict before (ENA-5696).
 	return b.String()
 }
 
@@ -719,7 +719,7 @@ const squadBriefingMarker = "## Squad Operating Protocol"
 // therefore means "this server never authoritatively answered the question",
 // and the legacy text inference — exactly today's behavior against both
 // groups — is the only correct read. Drop this branch once a minimum server
-// version is enforced (MUL-5811).
+// version is enforced (ENA-5811).
 func taskIsSquadLeader(task Task) bool {
 	if !task.LeaderRoleResolved {
 		return task.Agent != nil && strings.Contains(task.Agent.Instructions, squadBriefingMarker)

@@ -339,7 +339,7 @@ func TestPreviewCommentTriggers_PlainReplyToMultiAgentRootRoutesFirstMentionedOw
 }
 
 // TestPreviewCommentTriggers_SquadAssigneePlainReplyKeepsRootMentionOwner is the
-// cascade replacement for the old MUL-3744 inherited-mention scenario:
+// cascade replacement for the old ENA-3744 inherited-mention scenario:
 //
 //   - Issue is assigned to a SQUAD (leader L).
 //   - Member root comment @mentions another agent (Kim).
@@ -356,7 +356,7 @@ func TestPreviewCommentTriggers_SquadAssigneePlainReplyKeepsRootMentionOwner(t *
 	leaderID := createHandlerTestAgent(t, "Preview Squad Leader L", nil)
 	kimID := createHandlerTestAgent(t, "Preview Squad Mention Kim", nil)
 	squadID := createCommentTriggerPreviewSquad(t, "Preview Squad Reply Routing", leaderID)
-	issueID := createCommentTriggerPreviewIssue(t, "squad reply mention inheritance MUL-3744", "squad", squadID)
+	issueID := createCommentTriggerPreviewIssue(t, "squad reply mention inheritance ENA-3744", "squad", squadID)
 
 	// Sanity: a plain top-level "hello" by a member on this squad-assigned
 	// issue wakes the leader (no @mention is routing the work).
@@ -1102,7 +1102,7 @@ func TestPreviewCommentTriggers_AssigneeAndSuppress(t *testing.T) {
 }
 
 // TestPreviewCommentTriggers_AllPlusExplicitAgentMentionStillTriggers pins
-// MUL-5411: `@all` only suppresses the IMPLICIT assignee auto-trigger. A comment
+// ENA-5411: `@all` only suppresses the IMPLICIT assignee auto-trigger. A comment
 // that carries `@all` AND an explicit `@agent` must still enqueue that agent —
 // the old ordering short-circuited on `@all` and dropped every trigger, so a
 // "[@all] ... [@Preflight]" comment silently ran nothing.
@@ -1134,7 +1134,7 @@ func TestPreviewCommentTriggers_AllPlusExplicitAgentMentionStillTriggers(t *test
 }
 
 // TestPreviewCommentTriggers_AllPlusExplicitSquadMentionStillTriggers is the
-// squad half of MUL-5411: an `@all` broadcast must not swallow an explicit
+// squad half of ENA-5411: an `@all` broadcast must not swallow an explicit
 // `@squad` mention either — the squad leader still wakes.
 func TestPreviewCommentTriggers_AllPlusExplicitSquadMentionStillTriggers(t *testing.T) {
 	if testHandler == nil || testPool == nil {
@@ -1159,7 +1159,7 @@ func TestPreviewCommentTriggers_AllPlusExplicitSquadMentionStillTriggers(t *test
 }
 
 // TestPreviewCommentTriggers_AllPlusMemberMentionStaysSuppressed guards the
-// other side of the MUL-5411 reorder: `@all` alongside a `@member` mention (no
+// other side of the ENA-5411 reorder: `@all` alongside a `@member` mention (no
 // agent/squad named) still triggers nothing.
 func TestPreviewCommentTriggers_AllPlusMemberMentionStaysSuppressed(t *testing.T) {
 	if testHandler == nil || testPool == nil {
@@ -1190,7 +1190,7 @@ func TestPreviewCommentTriggers_AllPlusMemberMentionStaysSuppressed(t *testing.T
 // blocked mentions, never as an error response.
 //
 // The reason is target_unavailable on BOTH the agent and the squad path
-// (MUL-5548): a string that is not a UUID cannot name an entity in any
+// (ENA-5548): a string that is not a UUID cannot name an entity in any
 // workspace, so it conceals no existence and must not be blamed on invoke
 // permission. This is deliberately NOT the well-formed-but-unresolved case,
 // which stays invocation_not_allowed so a blocked reason can never confirm a

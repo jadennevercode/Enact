@@ -100,7 +100,7 @@ function makeIssue(id: string, projectId: string | null): Issue {
     id,
     workspace_id: "ws-1",
     number: 1,
-    identifier: `MUL-${id}`,
+    identifier: `ENA-${id}`,
     title: `Task ${id}`,
     description: null,
     status: "todo",
@@ -287,7 +287,7 @@ describe("Board grouped by project", () => {
     render();
 
     const acmeColumn = screen.getByText("Acme Corp").closest("div.flex-col")!;
-    expect(acmeColumn.textContent).toContain("MUL-acme");
-    expect(acmeColumn.textContent).not.toContain("MUL-loose");
+    expect(acmeColumn.textContent).toContain("ENA-acme");
+    expect(acmeColumn.textContent).not.toContain("ENA-loose");
   });
 });

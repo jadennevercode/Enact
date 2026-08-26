@@ -58,11 +58,11 @@ type UpdateAgentEnvRequest struct {
 //     by an agent token — even one whose backing member is a workspace
 //     owner, or the very human who owns the target agent — is rejected.
 //     This is the key fix for the impersonation/lateral-movement risk
-//     that motivated MUL-2600: an agent running in the workspace cannot
+//     that motivated ENA-2600: an agent running in the workspace cannot
 //     use its host's owner credentials to reveal another agent's
 //     secrets.
 //  2. The member must be a workspace owner/admin, or the agent's own
-//     human owner (MUL-5438).
+//     human owner (ENA-5438).
 //
 // Rule 2 used to be workspace-role-only, which made env the single
 // endpoint in the agent permission model that ignored agent ownership:
@@ -134,7 +134,7 @@ func canManageAgentEnv(agent db.Agent, member db.Member) bool {
 // Audit semantics are fail-closed: if we cannot persist the audit row
 // we MUST NOT serve the plaintext. A reveal we cannot record is
 // indistinguishable from an unaudited reveal, which would silently
-// break the MUL-2600 promise of "every reveal leaves a queryable
+// break the ENA-2600 promise of "every reveal leaves a queryable
 // trail". Operators who hit a 500 here see the audit-log outage and
 // can fix it; the alternative — quietly handing out secrets — is
 // invisible.

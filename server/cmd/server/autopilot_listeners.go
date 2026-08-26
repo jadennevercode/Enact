@@ -36,7 +36,7 @@ func registerAutopilotListeners(bus *events.Bus, svc *service.AutopilotService) 
 		// literal comparison for built-in keys. A custom status carries the
 		// behavior of the canonical status it inherits, but resolving that
 		// needs a catalog read — so let non-built-in keys through and let
-		// SyncRunFromIssue normalize once it has the issue. (MUL-6243)
+		// SyncRunFromIssue normalize once it has the issue. (ENA-6243)
 		if issuestatus.IsBuiltIn(issue.Status) &&
 			issue.Status != "done" && issue.Status != "in_review" &&
 			issue.Status != "cancelled" && issue.Status != "blocked" {

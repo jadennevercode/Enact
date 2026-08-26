@@ -30,6 +30,7 @@ import { cn } from "@enact/ui/lib/utils";
 import { ActivityTab } from "./tabs/activity-tab";
 import { InstructionsTab } from "./tabs/instructions-tab";
 import { SkillsTab } from "./tabs/skills-tab";
+import { OntologiesTab } from "./tabs/ontologies-tab";
 import { EnvTab } from "./tabs/env-tab";
 import { CustomArgsTab } from "./tabs/custom-args-tab";
 import { McpConfigTab } from "./tabs/mcp-config-tab";
@@ -50,6 +51,7 @@ export type DetailTab =
   | "work"
   | "instructions"
   | "skills"
+  | "ontologies"
   | "mcp_config"
   | "composio_mcp"
   | "integrations"
@@ -64,6 +66,7 @@ type SecondaryTab = {
   labelKey:
     | "instructions"
     | "skills"
+    | "ontologies"
     | "mcp_config"
     | "composio_mcp"
     | "integrations"
@@ -77,6 +80,7 @@ type SecondaryTab = {
 const CAPABILITY_TABS: SecondaryTab[] = [
   { id: "instructions", labelKey: "instructions" },
   { id: "skills", labelKey: "skills" },
+  { id: "ontologies", labelKey: "ontologies" },
   { id: "mcp_config", labelKey: "mcp_config" },
   { id: "composio_mcp", labelKey: "composio_mcp" },
   { id: "integrations", labelKey: "integrations" },
@@ -222,7 +226,7 @@ export function AgentOverviewPane({
       SETTINGS_TABS.filter((tab) => {
         // Env is the only settings tab backed by a secret-bearing endpoint.
         // GET/PUT /api/agents/{id}/env admits the agent owner or a workspace
-        // owner/admin (MUL-5438) — the same rule `canEdit` encodes — so
+        // owner/admin (ENA-5438) — the same rule `canEdit` encodes — so
         // showing the tab to anyone else guarantees a 403 on "Reveal & edit".
         // The server stays the boundary; this only removes a dead entry point.
         if (tab.id === "env") return canEdit;
@@ -383,7 +387,7 @@ export function AgentOverviewPane({
         {secondaryTabs.length > 0 && activeSecondaryTab && (
           <div className="flex min-h-full flex-col md:h-full md:flex-row">
             {/* Content-surface color, no shell tint — same rule as the settings
-                nav: in-card panels must not break the desktop tab merge (MUL-4439). */}
+                nav: in-card panels must not break the desktop tab merge (ENA-4439). */}
             <aside className="shrink-0 overflow-x-auto border-b border-surface-border p-2 md:w-52 md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
               <div
                 className="flex w-max min-w-full items-center gap-1 md:w-full md:flex-col md:items-stretch"
@@ -438,6 +442,9 @@ export function AgentOverviewPane({
                       runtime={runtime}
                       canEdit={canEdit}
                     />
+                  )}
+                  {effectiveView === "ontologies" && (
+                    <OntologiesTab agent={agent} canEdit={canEdit} />
                   )}
                   {effectiveView === "mcp_config" && (
                     <McpConfigTab

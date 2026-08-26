@@ -242,13 +242,9 @@ We release most weekdays, so `main` moves quickly — pull often.
 
 ## Why "Enact"?
 
-**Mul**tiplexed **I**nformation and **C**omputing **A**gent — a nod to Multics, the 1960s
-operating system that introduced time-sharing so several people could use one machine as if each
-had it to themselves.
-
-Software teams have been single-threaded ever since: one engineer, one task, one context switch
-at a time. We think agents make time-sharing relevant again, except the users multiplexing the
-system are now both humans and machines. A small team shouldn't feel small.
+Enact means turning intent into action. It reflects the product's purpose: helping people and AI
+agents move shared work from a decision to a visible, accountable result. A small team shouldn't
+feel small.
 
 The longer argument, and where we think this goes: **[VISION.md](VISION.md)**.
 

@@ -24,7 +24,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Avatar URLs (MUL-5393 / #6024)
+// Avatar URLs (ENA-5393 / #6024)
 // ---------------------------------------------------------------------------
 //
 // `avatar_url` columns (user / agent / squad / workspace) store the raw
@@ -43,7 +43,7 @@ import (
 //
 //   - What is PERSISTED stays the durable object reference (the raw storage
 //     URL). Nothing with a TTL is ever written to the database — that is the
-//     MUL-3130 regression this deliberately avoids — and avatars already
+//     ENA-3130 regression this deliberately avoids — and avatars already
 //     saved by an older build are fixed without a backfill.
 //   - What is SERVED is `/api/avatars/<sig>/<key>`, a stable URL this server
 //     resolves per request into a presigned redirect (or a proxied body)

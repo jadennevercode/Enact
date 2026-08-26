@@ -25,7 +25,7 @@ const (
 	// DefaultAgentTimeout is the optional absolute wall-clock cap on a single
 	// agent run. 0 = no cap: a run is bounded only by the inactivity watchdogs
 	// (DefaultAgentIdleWatchdog / DefaultAgentToolWatchdog), so a session that keeps emitting events is
-	// never killed merely for running long (MUL-3064). Operators who want a
+	// never killed merely for running long (ENA-3064). Operators who want a
 	// hard ceiling for cost/resource control can set ENACT_AGENT_TIMEOUT.
 	DefaultAgentTimeout                   = 0
 	DefaultCodexSemanticInactivityTimeout = 10 * time.Minute
@@ -45,7 +45,7 @@ const (
 	// forever, so this watchdog is its sole liveness net. The previous 5 min default
 	// killed legitimate long assistant outputs (e.g. RFC-length writeups)
 	// where the model streams a single message for many minutes without any
-	// daemon-visible activity — see MUL-2300. 30 min keeps the safety net for
+	// daemon-visible activity — see ENA-2300. 30 min keeps the safety net for
 	// truly stuck runs (dockerd hang) while leaving headroom for long writes.
 	// Set ENACT_AGENT_IDLE_WATCHDOG=0 to disable.
 	DefaultAgentIdleWatchdog = 30 * time.Minute
@@ -56,7 +56,7 @@ const (
 	// legitimately runs silently for many minutes — but with no wall-clock cap
 	// (DefaultAgentTimeout = 0) a backend that emits tool_use and never the
 	// matching tool_result would otherwise run forever. This is the backstop for
-	// that stuck-tool case (MUL-3064). Set ENACT_AGENT_TOOL_WATCHDOG=0 to
+	// that stuck-tool case (ENA-3064). Set ENACT_AGENT_TOOL_WATCHDOG=0 to
 	// disable, in which case an in-flight tool never force-stops the run.
 	DefaultAgentToolWatchdog              = 2 * time.Hour
 	DefaultRuntimeName                    = "Local Agent"
@@ -148,7 +148,7 @@ type Config struct {
 	QwenpawArgs                     []string
 
 	// ProfileCommandOverrides maps a custom runtime profile_id -> the absolute
-	// executable path to use for that profile on THIS machine (MUL-3284).
+	// executable path to use for that profile on THIS machine (ENA-3284).
 	// Sourced from the local CLI config (cli.CLIConfig.ProfileCommandOverrides),
 	// written by `enact runtime profile set-path`. appendProfileRuntimes
 	// prefers a matching, executable override over resolving the profile's
@@ -235,7 +235,7 @@ func LoadConfig(overrides Overrides) (Config, error) {
 		if oc := openclawOverrideFrom(cliCfg); oc != nil {
 			applyOpenclawOverride(oc)
 		}
-		// Per-machine custom-runtime command path overrides (MUL-3284).
+		// Per-machine custom-runtime command path overrides (ENA-3284).
 		// Copy into our own map so later mutation of the loaded config can't
 		// alias daemon state, and so an empty map normalizes to nil.
 		if len(cliCfg.ProfileCommandOverrides) > 0 {
@@ -250,7 +250,7 @@ func LoadConfig(overrides Overrides) (Config, error) {
 	}
 
 	// Discover installed agent CLIs. Extracted so the periodic workspace sync
-	// can re-run the same discovery on a live daemon (MUL-5439).
+	// can re-run the same discovery on a live daemon (ENA-5439).
 	agents := probeAgentCLIs()
 	if len(agents) == 0 && !overrides.AllowNoAgents {
 		return Config{}, fmt.Errorf("no agent CLI found: install claude, codebuddy, codex, copilot, opencode, deveco, openclaw, hermes, pi, omp, cursor-agent, kimi, reasonix, dsh, kiro-cli, agy, qodercli, qoderclicn, traecli, grok, qwen, qwenpaw, mcode, or dim and ensure it is on PATH")
@@ -507,7 +507,7 @@ func LoadConfig(overrides Overrides) (Config, error) {
 	// their own patches, and silently upgrading their daemon to an upstream
 	// GitHub release would clobber that work; they also commonly stay on an
 	// older server build, which a fresh CLI may no longer talk to. Keeping
-	// auto-update off by default for self-host avoids both footguns (MUL-2381).
+	// auto-update off by default for self-host avoids both footguns (ENA-2381).
 	// Operators on either side can flip the default with ENACT_DAEMON_AUTO_UPDATE.
 	autoUpdateEnabled := boolFromEnv("ENACT_DAEMON_AUTO_UPDATE", isOfficialCloudServer(serverBaseURL))
 	if overrides.DisableAutoUpdate {
@@ -759,7 +759,7 @@ func resolveAgentExecutablePath(cmd string) (string, error) {
 // executable, using the exact check the agent backends apply at launch
 // (exec.LookPath). A pinned AgentEntry.Path that fails this has vanished from
 // disk — typically because a version manager did an in-place upgrade and
-// deleted the old versioned directory the path pointed into (MUL-4486).
+// deleted the old versioned directory the path pointed into (ENA-4486).
 func agentExecutablePresent(path string) bool {
 	if path == "" {
 		return false

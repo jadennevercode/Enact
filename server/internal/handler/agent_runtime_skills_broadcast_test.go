@@ -11,7 +11,7 @@ import (
 )
 
 // TestSetAgentRuntimeSkillEnabledBroadcastsAgentStatus guards the realtime
-// invalidation path for runtime-skill toggles (Howard review on MUL-5101):
+// invalidation path for runtime-skill toggles (Howard review on ENA-5101):
 // persisting a disabled_runtime_skills override must publish an "agent:status"
 // event so every other open web/desktop/mobile client invalidates
 // workspaceKeys.agents and drops its stale toggle state — mirroring the

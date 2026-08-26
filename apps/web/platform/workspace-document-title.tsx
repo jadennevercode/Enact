@@ -8,7 +8,7 @@ import { SITE_TITLE, formatDocumentTitle } from "./document-title";
 
 /**
  * Names the browser tab after whatever the workspace route has open, e.g.
- * `MUL-123: Fix login | Enact` (MUL-6222). Without it every open dashboard
+ * `ENA-123: Fix login | Enact` (ENA-6222). Without it every open dashboard
  * tab renders the root metadata title, so several issues side by side are
  * indistinguishable until you click into each one.
  *

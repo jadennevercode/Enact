@@ -311,7 +311,7 @@ func (r *Router) processClaimed(ctx context.Context, set ResolverSet, msg channe
 	}
 
 	// 4. Identity check: map the platform sender to a Enact user and
-	//    re-verify workspace membership (no binding->member FK; MUL-3515 §4).
+	//    re-verify workspace membership (no binding->member FK; ENA-3515 §4).
 	identity, err := set.Identity.ResolveSender(ctx, inst, msg)
 	if err != nil {
 		switch {
@@ -492,7 +492,7 @@ func (r *Router) processClaimed(ctx context.Context, set ResolverSet, msg channe
 	//    with no TaskID — the task row is created at flush. identity.UserID is
 	//    THIS message's sender (the task initiator), deliberately not the
 	//    session creator (group sessions are creator=installer). Latest sender
-	//    in a window wins (MUL-2645).
+	//    in a window wins (ENA-2645).
 	//
 	//    SkipAgentRun lets an adapter opt this message out of the agent turn —
 	//    used by wecom for standalone /issue commands where the engine has
@@ -834,14 +834,14 @@ func (r *Router) createIssue(ctx context.Context, inst ResolvedInstallation, ori
 		BroadcastPayload: func(issue db.Issue, _ []db.Attachment, _ []db.IssueLabel) map[string]any {
 			// Plain IssueToMap is authoritative here: this path always creates
 			// with the built-in "todo" above, and a built-in status IS its own
-			// category, so no catalog read is possible or needed. (MUL-6243)
+			// category, so no catalog read is possible or needed. (ENA-6243)
 			return map[string]any{"issue": service.IssueToMap(issue, issuePrefix)}
 		},
 	}
 	return r.issues.Create(ctx, params, opts)
 }
 
-// issuePrefix reads the workspace's issue key (the "MUL" in MUL-42). A read
+// issuePrefix reads the workspace's issue key (the "ENA" in ENA-42). A read
 // failure is not worth failing issue creation over, so it degrades to empty
 // and only the rendered identifier suffers.
 func (r *Router) issuePrefix(ctx context.Context, workspaceID pgtype.UUID) string {

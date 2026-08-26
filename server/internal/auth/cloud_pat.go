@@ -24,10 +24,10 @@ import (
 const CloudPATPrefix = "mcn_"
 
 // cloudPATCachePrefix namespaces cloud-PAT cache keys away from
-// mul_/mdt_ caches so the three token kinds can't accidentally share
+// enact_/mdt_ caches so the three token kinds can't accidentally share
 // keys. The trailing slash mirrors the existing patCachePrefix /
 // daemonTokenCachePrefix conventions.
-const cloudPATCachePrefix = "mul:auth:mcn:"
+const cloudPATCachePrefix = "enact:auth:mcn:"
 
 // cloudPATCacheTTL bounds how long a verified mcn_ token stays cached
 // before we re-ask Fleet. The Cloud doc explicitly recommends 30–60s

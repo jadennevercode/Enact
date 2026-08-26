@@ -13,12 +13,12 @@ import (
 
 // TestCanUseRuntimeForAgent_Pure exercises the pure predicate behind the
 // CreateAgent / UpdateAgent runtime gate. The truth table is the single
-// product contract shared with the clients (MUL-6126): a private runtime is
+// product contract shared with the clients (ENA-6126): a private runtime is
 // usable only by its owner — workspace owners and admins included, since a
 // private runtime is another member's own machine — while a public runtime is
 // usable by anyone in the workspace. An ownerless runtime is usable by nobody,
 // public included: it cannot run tasks either (task claim requires a runtime
-// owner to mint the agent token, MUL-3292), so the gate refuses it up front
+// owner to mint the agent token, ENA-3292), so the gate refuses it up front
 // instead of letting the binding succeed and every task on it fail.
 func TestCanUseRuntimeForAgent_Pure(t *testing.T) {
 	ownerUserID := "11111111-1111-1111-1111-111111111111"
@@ -56,7 +56,7 @@ func TestCanUseRuntimeForAgent_Pure(t *testing.T) {
 		{"plain member on someone else's private runtime", otherUserID, "member", privateRT, false},
 		{"plain member with empty role on private runtime", otherUserID, "", privateRT, false},
 		// ownerless runtimes are refused whatever their visibility — nobody
-		// can be issued a task token for them (MUL-3292)
+		// can be issued a task token for them (ENA-3292)
 		{"workspace owner on an ownerless private runtime", otherUserID, "owner", ownerlessPrivateRT, false},
 		{"plain member on an ownerless public runtime", otherUserID, "member", ownerlessPublicRT, false},
 		{"workspace admin on an ownerless public runtime", otherUserID, "admin", ownerlessPublicRT, false},
@@ -145,7 +145,7 @@ func runtimeVisibilityFixture(t *testing.T) (runtimeID, runtimeOwnerID, plainMem
 // TestCreateAgent_RejectsPrivateRuntimeForNonOwner walks the gate end-to-end:
 // the runtime is private and owned by a plain member, so only that owner can
 // create agents on it. Neither a plain workspace member nor the workspace
-// owner may — the admin override is gone (MUL-6126), which is what keeps the
+// owner may — the admin override is gone (ENA-6126), which is what keeps the
 // API/CLI answer identical to the disabled runtime row the web UI renders.
 func TestCreateAgent_RejectsPrivateRuntimeForNonOwner(t *testing.T) {
 	if testHandler == nil {
@@ -171,7 +171,7 @@ func TestCreateAgent_RejectsPrivateRuntimeForNonOwner(t *testing.T) {
 	}
 
 	// Workspace owner (testUserID): refused. This is the API/CLI half of
-	// MUL-6126 — the web UI has always disabled this row, and an admin who
+	// ENA-6126 — the web UI has always disabled this row, and an admin who
 	// needs the machine flips its visibility to public instead.
 	w := httptest.NewRecorder()
 	testHandler.CreateAgent(w, newRequest(http.MethodPost, "/api/agents", body("runtime-visibility-test-admin")))
@@ -186,7 +186,7 @@ func TestCreateAgent_RejectsPrivateRuntimeForNonOwner(t *testing.T) {
 		t.Fatalf("CreateAgent as runtime owner: expected 201, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Plain member: this is the hole MUL-2062 closes — must be 403.
+	// Plain member: this is the hole ENA-2062 closes — must be 403.
 	w = httptest.NewRecorder()
 	testHandler.CreateAgent(w, newRequestAs(plainMemberID, http.MethodPost, "/api/agents", body("runtime-visibility-test-plain-member")))
 	if w.Code != http.StatusForbidden {
@@ -289,7 +289,7 @@ func TestUpdateAgent_RejectsRebindToPrivateRuntime(t *testing.T) {
 }
 
 // TestUpdateAgent_WorkspaceAdminCannotRebindToMemberPrivateRuntime walks the
-// whole MUL-6126 contract as one story: a workspace owner cannot move an agent
+// whole ENA-6126 contract as one story: a workspace owner cannot move an agent
 // onto a member's private runtime, cannot open that runtime up either, and
 // only once the runtime's own owner shares it does the same rebind go through.
 // Together those three steps are what makes owner-only real — a visibility
@@ -366,7 +366,7 @@ func TestUpdateAgent_WorkspaceAdminCannotRebindToMemberPrivateRuntime(t *testing
 // TestCanSetRuntimeVisibility_Pure pins the narrower gate: only the runtime
 // owner may flip private↔public. Workspace owners/admins keep canEditRuntime
 // for rename and delete, but sharing a machine is the owner's call — otherwise
-// the MUL-6126 bind rule would be one PATCH away from being bypassed.
+// the ENA-6126 bind rule would be one PATCH away from being bypassed.
 func TestCanSetRuntimeVisibility_Pure(t *testing.T) {
 	ownerUserID := "11111111-1111-1111-1111-111111111111"
 	otherUserID := "22222222-2222-2222-2222-222222222222"
@@ -498,7 +498,7 @@ func TestUpdateAgentRuntime_InvalidVisibilityReturns400(t *testing.T) {
 
 // TestUpdateAgentRuntime_VisibilityToggle covers the PATCH endpoint: the
 // runtime owner can flip private↔public; nobody else can — a workspace owner
-// is refused exactly like a plain member (MUL-6126) — and an unknown value is
+// is refused exactly like a plain member (ENA-6126) — and an unknown value is
 // rejected with 400.
 func TestUpdateAgentRuntime_VisibilityToggle(t *testing.T) {
 	if testHandler == nil {

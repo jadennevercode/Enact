@@ -278,12 +278,11 @@ func TestConfigRouteIsPublic(t *testing.T) {
 
 // ---- Auth ----
 
-func TestSendCodeAndVerify(t *testing.T) {
-	const email = "integration-sendcode@enact.ai"
+func TestEmailLogin(t *testing.T) {
+	const email = "integration-email-login@enact.ai"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
 		var userID string
 		err := testPool.QueryRow(ctx, `SELECT id FROM "user" WHERE email = $1`, email).Scan(&userID)
 		if err == nil {
@@ -303,34 +302,15 @@ func TestSendCodeAndVerify(t *testing.T) {
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	})
 
-	// Step 1: Send code
 	body, _ := json.Marshal(map[string]string{"email": email})
-	resp, err := http.Post(testServer.URL+"/auth/send-code", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(testServer.URL+"/auth/email-login", "application/json", bytes.NewReader(body))
 	if err != nil {
-		t.Fatalf("send-code failed: %v", err)
-	}
-	if resp.StatusCode != 200 {
-		t.Fatalf("send-code: expected 200, got %d", resp.StatusCode)
-	}
-	resp.Body.Close()
-
-	// Read code from DB
-	var code string
-	err = testPool.QueryRow(ctx, `SELECT code FROM verification_code WHERE email = $1 ORDER BY created_at DESC LIMIT 1`, email).Scan(&code)
-	if err != nil {
-		t.Fatalf("failed to read code from DB: %v", err)
-	}
-
-	// Step 2: Verify code
-	body, _ = json.Marshal(map[string]string{"email": email, "code": code})
-	resp, err = http.Post(testServer.URL+"/auth/verify-code", "application/json", bytes.NewReader(body))
-	if err != nil {
-		t.Fatalf("verify-code failed: %v", err)
+		t.Fatalf("email-login failed: %v", err)
 	}
 	if resp.StatusCode != 200 {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		t.Fatalf("verify-code: expected 200, got %d: %s", resp.StatusCode, respBody)
+		t.Fatalf("email-login: expected 200, got %d: %s", resp.StatusCode, respBody)
 	}
 
 	var loginResp struct {
@@ -361,40 +341,23 @@ func TestSendCodeAndVerify(t *testing.T) {
 	meResp.Body.Close()
 }
 
-func TestVerifyCodeNewUserHasNoWorkspace(t *testing.T) {
-	const email = "new-integration-verify@enact.ai"
+func TestEmailLoginNewUserHasNoWorkspace(t *testing.T) {
+	const email = "new-integration-email-login@enact.ai"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	})
 
 	testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 
-	// Send code
 	body, _ := json.Marshal(map[string]string{"email": email})
-	resp, err := http.Post(testServer.URL+"/auth/send-code", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(testServer.URL+"/auth/email-login", "application/json", bytes.NewReader(body))
 	if err != nil {
-		t.Fatalf("send-code failed: %v", err)
-	}
-	resp.Body.Close()
-
-	// Read code from DB
-	var code string
-	err = testPool.QueryRow(ctx, `SELECT code FROM verification_code WHERE email = $1 ORDER BY created_at DESC LIMIT 1`, email).Scan(&code)
-	if err != nil {
-		t.Fatalf("failed to read code from DB: %v", err)
-	}
-
-	// Verify code
-	body, _ = json.Marshal(map[string]string{"email": email, "code": code})
-	resp, err = http.Post(testServer.URL+"/auth/verify-code", "application/json", bytes.NewReader(body))
-	if err != nil {
-		t.Fatalf("verify-code failed: %v", err)
+		t.Fatalf("email-login failed: %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("verify-code: expected 200, got %d", resp.StatusCode)
+		t.Fatalf("email-login: expected 200, got %d", resp.StatusCode)
 	}
 
 	var loginResp struct {
@@ -1051,7 +1014,7 @@ func TestInboxUnreadSummaryThroughRouter(t *testing.T) {
 	}
 }
 
-// ---- Archived inbox (MUL-3736) ----
+// ---- Archived inbox (ENA-3736) ----
 
 type inboxItemJSON struct {
 	ID       string  `json:"id"`
@@ -1373,7 +1336,7 @@ func TestUnarchiveInboxRejectsForeignItem(t *testing.T) {
 // An issue's inbox notifications are deduplicated per issue: opening the issue
 // marks only the NEWEST item read, leaving older siblings unread. The summary
 // must mirror the inbox UI (issue is read when its newest item is read), so a
-// read-newest / unread-older issue must NOT light the switcher dot (MUL-3695).
+// read-newest / unread-older issue must NOT light the switcher dot (ENA-3695).
 func TestInboxUnreadSummaryDedupesByIssue(t *testing.T) {
 	ctx := context.Background()
 

@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { configureShortcutPlatform } from "@enact/core/shortcuts";
 import { GlobalShortcuts } from "./global-shortcuts";
 
-// The floating chat overlay is reachable from the keyboard (MUL-5522). What
+// The floating chat overlay is reachable from the keyboard (ENA-5522). What
 // matters is not just "the chord calls toggle", but that it stays a no-op —
 // without swallowing the keypress — everywhere the overlay cannot exist.
 const h = vi.hoisted(() => ({
@@ -37,6 +37,7 @@ vi.mock("@enact/core/paths", () => ({
     squads: () => "/acme/squads",
     usage: () => "/acme/usage",
     runtimes: () => "/acme/runtimes",
+    ontologies: () => "/acme/ontologies",
     skills: () => "/acme/skills",
     settings: () => "/acme/settings",
   }),

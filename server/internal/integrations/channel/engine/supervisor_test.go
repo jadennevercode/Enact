@@ -341,7 +341,7 @@ func TestSupervisorAcquiresLeaseAndConnects(t *testing.T) {
 	}
 }
 
-// TestSupervisorSkipsUnregisteredChannelType covers the B2 (MUL-3666) guard:
+// TestSupervisorSkipsUnregisteredChannelType covers the B2 (ENA-3666) guard:
 // an active installation whose channel_type has no registered Factory must be
 // left alone — never leased, never Built — because it is driven outside the
 // Supervisor (Slack's app-level connector owns one shared connection for all

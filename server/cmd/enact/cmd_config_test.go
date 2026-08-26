@@ -106,7 +106,7 @@ func TestRunConfigCommandsUseTaskLocalConfigWithoutTouchingOwner(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"workspace_id\": \"owner-workspace-sentinel\",\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"workspace_id\": \"owner-workspace-sentinel\",\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestRunConfigCommandsUseTaskLocalConfigWithoutTouchingOwner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runConfigShow: %v", err)
 	}
-	for _, forbidden := range []string{ownerHome, "https://owner.invalid", "owner-workspace-sentinel", "mul_owner_sentinel"} {
+	for _, forbidden := range []string{ownerHome, "https://owner.invalid", "owner-workspace-sentinel", "enact_owner_sentinel"} {
 		if strings.Contains(out, forbidden) {
 			t.Fatalf("task config output exposed owner sentinel %q:\n%s", forbidden, out)
 		}
@@ -159,7 +159,7 @@ func TestRunConfigCommandsFailClosedWithoutTaskRoot(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}

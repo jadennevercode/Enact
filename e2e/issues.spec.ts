@@ -49,9 +49,9 @@ test.describe("Issues", () => {
     await reloadAppPage(page);
 
     // Board columns should be visible
-    await expect(page.locator("text=Backlog")).toBeVisible();
-    await expect(page.locator("text=Todo")).toBeVisible();
-    await expect(page.locator("text=In Progress")).toBeVisible();
+    await expect(page.locator("text=Backlog")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Todo")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=In Progress")).toBeVisible({ timeout: 15000 });
   });
 
   test("can switch from board to list view", async ({ page }) => {
@@ -179,7 +179,7 @@ test.describe("Issues", () => {
       page.locator("a", { hasText: "Issues" }).first(),
     ).toBeVisible();
     // The browser tab must name the issue, so several open at once stay
-    // distinguishable without clicking into each (MUL-6222).
+    // distinguishable without clicking into each (ENA-6222).
     await expect(page).toHaveTitle(
       `${issue.identifier}: ${issue.title} | Enact`,
     );

@@ -56,7 +56,7 @@ func (f candidateFailDBTX) QueryRow(ctx context.Context, sql string, args ...int
 }
 
 // TestClaimTasksForRuntimes_PartialSuccessOnSecondAgentClaimFailure is the
-// MUL-4257 review regression: ClaimTask runs per agent in its own transaction,
+// ENA-4257 review regression: ClaimTask runs per agent in its own transaction,
 // so when a later agent's claim fails the already-committed (dispatched) tasks
 // must be RETURNED, not dropped with an error. Dropping them would 500 the
 // handler and make the daemon HTTP-fall-back and double-claim the same slots.
@@ -91,7 +91,7 @@ func TestClaimTasksForRuntimes_PartialSuccessOnSecondAgentClaimFailure(t *testin
 // TestClaimTasksForRuntimes_PartialSuccessOnCandidateQueryFailureAfterReclaim
 // covers the other partial-commit path: step-2 reclaims a stale dispatched task
 // (committed), then the step-4 candidate SELECT errors. The reclaimed task must
-// be returned, not dropped — same double-claim risk otherwise (MUL-4257).
+// be returned, not dropped — same double-claim risk otherwise (ENA-4257).
 func TestClaimTasksForRuntimes_PartialSuccessOnCandidateQueryFailureAfterReclaim(t *testing.T) {
 	ctx := context.Background()
 	pool := newTaskClaimRacePool(t)

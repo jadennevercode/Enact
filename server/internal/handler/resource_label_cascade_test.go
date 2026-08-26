@@ -77,7 +77,7 @@ func countSkillLabelAssignments(t *testing.T, ctx context.Context, skillID strin
 	return n
 }
 
-// TestDeleteAgentRuntime_KeepsUnboundAgentLabelAssignments: since MUL-5559 the
+// TestDeleteAgentRuntime_KeepsUnboundAgentLabelAssignments: since ENA-5559 the
 // strict runtime delete unbinds the archived agent instead of hard-deleting it,
 // so its label links must SURVIVE. Clearing them by runtime — which is what the
 // old sweep did — would strip labels off an agent that is still there.
@@ -299,7 +299,7 @@ func TestDeleteWorkspace_RollsBackResourceLabelCleanup(t *testing.T) {
 		t.Skip("database not available")
 	}
 	ctx := context.Background()
-	// The teardown transaction sets its own lock_timeout (MUL-5983); shorten
+	// The teardown transaction sets its own lock_timeout (ENA-5983); shorten
 	// it so the blocked administration step fails while the test is young.
 	setWorkspaceDeleteLockTimeoutForTest(t, 100*time.Millisecond)
 	wsID, agentID, skillID := seedWorkspaceResourceLabelFixture(t, ctx, "handler-tests-delete-labels-rollback")

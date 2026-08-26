@@ -151,7 +151,7 @@ var (
 		"reasonix":      "reasonix",
 		"dim":           "dim",
 		"mcode":         "mcode",
-		"multica_agent": "multica_agent",
+		"enact_agent": "enact_agent",
 		"openclaw":      "openclaw",
 		"opencode":      "opencode",
 		"deveco":        "deveco",

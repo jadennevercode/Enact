@@ -23,7 +23,7 @@ func TestPersistSelfHostConfigIfReachable(t *testing.T) {
 			ServerURL:   "https://api.old.example",
 			AppURL:      "https://old.example",
 			WorkspaceID: "ws-1",
-			Token:       "mul_existing_token",
+			Token:       "enact_existing_token",
 		}
 		if err := cli.SaveCLIConfig(existing); err != nil {
 			t.Fatalf("seed config: %v", err)
@@ -44,7 +44,7 @@ func TestPersistSelfHostConfigIfReachable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("load config: %v", err)
 		}
-		if got.Token != "mul_existing_token" {
+		if got.Token != "enact_existing_token" {
 			t.Fatalf("token: want preserved, got %q", got.Token)
 		}
 		if got.ServerURL != "https://api.old.example" {
@@ -447,7 +447,7 @@ func TestSetupCommandsFailClosedInTaskContext(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"mul_owner_sentinel\"\n}\n")
+	ownerBytes := []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"token\": \"enact_owner_sentinel\"\n}\n")
 	if err := os.WriteFile(ownerPath, ownerBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}

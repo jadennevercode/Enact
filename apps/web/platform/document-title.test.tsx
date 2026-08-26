@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * MUL-6222 — the web half of the tab-title contract.
+ * ENA-6222 — the web half of the tab-title contract.
  *
  * What a URL is *named* is resolved by `@enact/core/paths` +
  * `useTabPresentation` and tested there; mocked out here so these cover only
@@ -47,8 +47,8 @@ beforeEach(() => {
 
 describe("formatDocumentTitle", () => {
   it("puts the page name in front of the product name", () => {
-    expect(formatDocumentTitle("MUL-123: Fix login")).toBe(
-      "MUL-123: Fix login | Enact",
+    expect(formatDocumentTitle("ENA-123: Fix login")).toBe(
+      "ENA-123: Fix login | Enact",
     );
   });
 
@@ -60,10 +60,10 @@ describe("formatDocumentTitle", () => {
   });
 
   it("clips an over-long title and keeps the identifying prefix", () => {
-    const title = `MUL-123: ${"long ".repeat(60)}`;
+    const title = `ENA-123: ${"long ".repeat(60)}`;
     const formatted = formatDocumentTitle(title);
 
-    expect(formatted.startsWith("MUL-123: long")).toBe(true);
+    expect(formatted.startsWith("ENA-123: long")).toBe(true);
     expect(formatted.endsWith("… | Enact")).toBe(true);
     // Ellipsis replaces the clipped remainder, and no trailing space survives.
     expect(formatted).not.toContain(" … ");
@@ -86,22 +86,22 @@ describe("formatDocumentTitle", () => {
 
 describe("WorkspaceDocumentTitle", () => {
   it("names the tab after the open issue", () => {
-    open("/acme/issues/MUL-123");
-    presentation.title = "MUL-123: Fix login";
+    open("/acme/issues/ENA-123");
+    presentation.title = "ENA-123: Fix login";
 
     render(<WorkspaceDocumentTitle />);
 
-    expect(document.title).toBe("MUL-123: Fix login | Enact");
+    expect(document.title).toBe("ENA-123: Fix login | Enact");
   });
 
   it("resolves against the full URL so a container's selection titles the tab", () => {
     open("/acme/inbox", "issue=abc&view=archived");
-    presentation.title = "MUL-9: Ping";
+    presentation.title = "ENA-9: Ping";
 
     render(<WorkspaceDocumentTitle />);
 
     expect(presentation.urls).toContain("/acme/inbox?issue=abc&view=archived");
-    expect(document.title).toBe("MUL-9: Ping | Enact");
+    expect(document.title).toBe("ENA-9: Ping | Enact");
   });
 
   it("keeps the site title on an unrecognized route", () => {

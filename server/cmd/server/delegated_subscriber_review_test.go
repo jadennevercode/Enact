@@ -11,7 +11,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Regressions for the MUL-5483 code review. Each test pins one behavior that
+// Regressions for the ENA-5483 code review. Each test pins one behavior that
 // the first cut got wrong.
 
 // countSubscriberAddedEvents subscribes to the bus and counts subscriber:added

@@ -329,6 +329,27 @@
       "billing": "账单与套餐"
     }
   },
+  "ontology": {
+    "title": "Ontology",
+    "description": "浏览 CapHub 中当前可供该工作区使用的 Ontology。",
+    "loading": "正在加载 Ontology…",
+    "load_failed": "无法从 CapHub 加载 Ontology。",
+    "empty": "CapHub 中暂无可用的 Ontology。",
+    "retry": "重试",
+    "version": "版本 {{version}}",
+    "entities": "实体",
+    "actions": "动作",
+    "policies": "策略",
+    "capabilities": "能力",
+    "layered": "分层模式",
+    "unified": "统一模式",
+    "open_caphub": "在 CapHub 中打开",
+    "details_title": "Ontology 详情",
+    "overview_tab": "概览",
+    "preview_tab": "Ontology 预览",
+    "no_items": "暂无定义",
+    "preview_empty": "暂无 Ontology 预览。"
+  },
   "plugins": {
     "title": "Plugins",
     "description": "在这个工作区里发布插件，然后安装某个具体版本，并逐条确认它能访问什么。",
@@ -691,7 +712,7 @@
     "connection_description_prefix": "自动把任务关联到 Pull Request。当 PR 的分支、标题或正文中包含",
     "connection_description_suffix": "并被合并时，对应的任务会自动转为",
     "connection_description_done": "已完成",
-    "connection_identifier_example": "MUL-123",
+    "connection_identifier_example": "ENA-123",
     "connected_to": "已连接到 {{login}}",
     "connect_github": "连接 GitHub",
     "connect_opening": "正在打开…",

@@ -16,7 +16,7 @@ import (
 // and DingTalk adapters word for word wherever they say the same thing.
 //
 // The language is chosen per channel by who is on the other end, and this is
-// the decision record so the next person does not "fix" it back (MUL-6509,
+// the decision record so the next person does not "fix" it back (ENA-6509,
 // #7349). WeCom and Lark are Chinese-market products — WeCom is China-only
 // and their adapters keep Chinese copy on purpose. Telegram is blocked in
 // mainland China and reaches everyone else, so a Chinese-first bot there

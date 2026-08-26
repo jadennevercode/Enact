@@ -12,9 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/events"
 	"github.com/enact-ai/enact/server/internal/realtime"
@@ -22,6 +19,9 @@ import (
 	"github.com/enact-ai/enact/server/internal/testutil"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var testHandler *Handler
@@ -154,7 +154,7 @@ func setupHandlerTestFixture(ctx context.Context, pool *pgxpool.Pool) (string, s
 	`, workspaceID, "Handler Test Agent", runtimeID, userID).Scan(&seededAgentID); err != nil {
 		return "", "", err
 	}
-	// MUL-3963: the seeded workspace-visible agent is invocable by workspace
+	// ENA-3963: the seeded workspace-visible agent is invocable by workspace
 	// members and A2A triggers, so seed its workspace invocation target.
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO agent_invocation_target (agent_id, target_type, target_id)
@@ -238,7 +238,7 @@ func createHandlerTestAgent(t *testing.T, name string, mcpConfig []byte) string 
 		"custom_args":     testutil.Raw("'[]'::jsonb"),
 		"mcp_config":      mcpConfig,
 	})
-	// Generic test agents are workspace-invocable (MUL-3963): seed the
+	// Generic test agents are workspace-invocable (ENA-3963): seed the
 	// matching workspace invocation target so canInvokeAgent admits workspace
 	// members and A2A triggers, mirroring the pre-permission-model behavior
 	// where a workspace-visible agent could be triggered by anyone in the
@@ -430,7 +430,7 @@ func TestIssueCRUD(t *testing.T) {
 
 // TestDeleteIssueByIdentifier guards against #1661 — DELETE /api/issues/{id}
 // must actually delete the row when the path segment is a human-readable
-// identifier ("HAN-42") rather than a UUID. Before the PR #1680 + MUL-1410
+// identifier ("HAN-42") rather than a UUID. Before the PR #1680 + ENA-1410
 // refactor, parseUUID(rawString) silently produced a zero UUID, the SQL
 // DELETE matched nothing, and the handler still returned 204.
 //
@@ -1569,7 +1569,7 @@ func TestCommentWritePathsPreserveIssueIdentifiers(t *testing.T) {
 		t.Skip("requires DB")
 	}
 
-	setWorkspaceIssuePrefixForTest(t, "MUL")
+	setWorkspaceIssuePrefixForTest(t, "ENA")
 
 	issueID := dbfx.Insert(t, "issue", testutil.Cols{
 		"workspace_id": testWorkspaceID,
@@ -1579,11 +1579,11 @@ func TestCommentWritePathsPreserveIssueIdentifiers(t *testing.T) {
 		"number":       3310,
 	})
 
-	explicitMention := fmt.Sprintf("[MUL-3310](mention://issue/%s)", issueID)
+	explicitMention := fmt.Sprintf("[ENA-3310](mention://issue/%s)", issueID)
 	createCases := []string{
-		"MUL-3310",
-		"issue/MUL-3310",
-		"feature/MUL-3310",
+		"ENA-3310",
+		"issue/ENA-3310",
+		"feature/ENA-3310",
 		explicitMention,
 	}
 
@@ -1608,7 +1608,7 @@ func TestCommentWritePathsPreserveIssueIdentifiers(t *testing.T) {
 		}
 	}
 
-	updatedContent := "updated MUL-3310 issue/MUL-3310 feature/MUL-3310 " + explicitMention
+	updatedContent := "updated ENA-3310 issue/ENA-3310 feature/ENA-3310 " + explicitMention
 	req := newRequest("PUT", "/api/comments/"+firstCommentID, map[string]any{
 		"content": updatedContent,
 	})
@@ -2111,362 +2111,65 @@ func TestCreateWorkspaceInvalidSlugReturnsBadRequest(t *testing.T) {
 	testutil.Call(t, testHandler.CreateWorkspace, req).Want(http.StatusBadRequest)
 }
 
-func TestSendCode(t *testing.T) {
-	w := httptest.NewRecorder()
-	body := map[string]string{"email": "sendcode-test@enact.ai"}
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(body)
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("SendCode: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var resp map[string]string
-	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["message"] == "" {
-		t.Fatal("SendCode: expected non-empty message")
-	}
-
-	t.Cleanup(func() {
-		testPool.Exec(context.Background(), `DELETE FROM verification_code WHERE email = $1`, "sendcode-test@enact.ai")
-	})
-}
-
-func TestSendCodeDbError(t *testing.T) {
-	// We can't easily mock the DB here without changing architecture,
-	// but we can simulate a DB error by closing the pool temporarily or
-	// using a cancelled context if the query respects it.
-
-	// Create a handler with a "broken" queries object is hard because it's a struct.
-	// Instead, let's use a context that is already cancelled.
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	w := httptest.NewRecorder()
-	body := map[string]string{"email": "dberror-test@enact.ai"}
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(body)
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(ctx)
-
-	testHandler.SendCode(w, req)
-
-	// If the DB query respects the cancelled context, it should return an error.
-	// pgx usually returns context.Canceled which is not what isNotFound checks for.
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("SendCode (db error): expected 500, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var resp map[string]string
-	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error"] != "failed to lookup user" {
-		t.Fatalf("SendCode (db error): expected error message 'failed to lookup user', got '%s'", resp["error"])
-	}
-}
-
-func TestSendCodeRateLimit(t *testing.T) {
-	const email = "ratelimit-test@enact.ai"
-	t.Cleanup(func() {
-		testPool.Exec(context.Background(), `DELETE FROM verification_code WHERE email = $1`, email)
-	})
-
-	// First request should succeed
-	w := httptest.NewRecorder()
-	body := map[string]string{"email": email}
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(body)
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("SendCode (first): expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	// Second request within 60s should be rate limited
-	w = httptest.NewRecorder()
-	buf.Reset()
-	json.NewEncoder(&buf).Encode(body)
-	req = httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-	if w.Code != http.StatusTooManyRequests {
-		t.Fatalf("SendCode (second): expected 429, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCode(t *testing.T) {
-	const email = "verify-test@enact.ai"
+func TestEmailLoginCreatesUserAndReturnsToken(t *testing.T) {
+	const email = "email-login-new@enact.ai"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-		user, err := testHandler.Queries.GetUserByEmail(ctx, email)
-		if err == nil {
-			workspaces, listErr := testHandler.Queries.ListWorkspaces(ctx, user.ID)
-			if listErr == nil {
-				for _, workspace := range workspaces {
-					_ = testHandler.Queries.DeleteWorkspace(ctx, workspace.ID)
-				}
-			}
-		}
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	})
 
-	// Send code first
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email})
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("SendCode: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	// Read code from DB
-	dbCode, err := testHandler.Queries.GetLatestVerificationCode(ctx, email)
-	if err != nil {
-		t.Fatalf("GetLatestVerificationCode: %v", err)
-	}
-
-	// Verify with correct code
-	w = httptest.NewRecorder()
-	buf.Reset()
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": dbCode.Code})
-	req = httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("VerifyCode: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
+	req := newRequest("POST", "/auth/email-login", map[string]string{"email": email})
 	var resp LoginResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusOK).JSON(&resp)
+
 	if resp.Token == "" {
-		t.Fatal("VerifyCode: expected non-empty token")
+		t.Fatal("EmailLogin: expected non-empty token")
 	}
 	if resp.User.Email != email {
-		t.Fatalf("VerifyCode: expected email '%s', got '%s'", email, resp.User.Email)
-	}
-}
-
-func createVerificationCodeForTest(t *testing.T, email, code string) {
-	t.Helper()
-
-	_, err := testPool.Exec(context.Background(), `
-		INSERT INTO verification_code (email, code, expires_at)
-		VALUES ($1, $2, now() + interval '10 minutes')
-	`, email, code)
-	if err != nil {
-		t.Fatalf("create verification code: %v", err)
-	}
-}
-
-func TestVerifyCodeRejectsDevCodeUnlessExplicitlyConfigured(t *testing.T) {
-	t.Setenv(devVerificationCodeEnv, "")
-	t.Setenv("APP_ENV", "")
-
-	const email = "dev-code-disabled-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-	})
-
-	createVerificationCodeForTest(t, email, "123456")
-
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": "888888"})
-	req := httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("VerifyCode (disabled dev code): expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCodeAcceptsConfiguredDevCodeOutsideProduction(t *testing.T) {
-	t.Setenv(devVerificationCodeEnv, "888888")
-	t.Setenv("APP_ENV", "development")
-
-	const email = "dev-code-enabled-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
-	})
-
-	createVerificationCodeForTest(t, email, "123456")
-
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": "888888"})
-	req := httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("VerifyCode (enabled dev code): expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCodeRejectsConfiguredDevCodeInProduction(t *testing.T) {
-	t.Setenv(devVerificationCodeEnv, "888888")
-	t.Setenv("APP_ENV", "production")
-
-	const email = "dev-code-production-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-	})
-
-	createVerificationCodeForTest(t, email, "123456")
-
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": "888888"})
-	req := httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("VerifyCode (production dev code): expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCodeWrongCode(t *testing.T) {
-	t.Setenv(devVerificationCodeEnv, "")
-
-	const email = "wrong-code-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-	})
-
-	// Send code
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email})
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-
-	// Verify with wrong code
-	w = httptest.NewRecorder()
-	buf.Reset()
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": "000000"})
-	req = httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("VerifyCode (wrong code): expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCodeBruteForceProtection(t *testing.T) {
-	t.Setenv(devVerificationCodeEnv, "")
-
-	const email = "bruteforce-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-	})
-
-	// Send code
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email})
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("SendCode: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	// Read actual code so we can try it after lockout
-	dbCode, err := testHandler.Queries.GetLatestVerificationCode(ctx, email)
-	if err != nil {
-		t.Fatalf("GetLatestVerificationCode: %v", err)
-	}
-
-	// Exhaust all 5 attempts with wrong codes
-	for i := 0; i < 5; i++ {
-		w = httptest.NewRecorder()
-		buf.Reset()
-		json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": "000000"})
-		req = httptest.NewRequest("POST", "/auth/verify-code", &buf)
-		req.Header.Set("Content-Type", "application/json")
-		testHandler.VerifyCode(w, req)
-		if w.Code != http.StatusBadRequest {
-			t.Fatalf("attempt %d: expected 400, got %d", i+1, w.Code)
-		}
-	}
-
-	// Now even the correct code should be rejected (code is locked out)
-	w = httptest.NewRecorder()
-	buf.Reset()
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": dbCode.Code})
-	req = httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("after lockout: expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestVerifyCodeNewUserHasNoWorkspace(t *testing.T) {
-	const email = "workspace-verify-test@enact.ai"
-	ctx := context.Background()
-
-	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM verification_code WHERE email = $1`, email)
-		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
-	})
-
-	// Send code
-	w := httptest.NewRecorder()
-	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email})
-	req := httptest.NewRequest("POST", "/auth/send-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.SendCode(w, req)
-
-	// Read code from DB
-	dbCode, err := testHandler.Queries.GetLatestVerificationCode(ctx, email)
-	if err != nil {
-		t.Fatalf("GetLatestVerificationCode: %v", err)
-	}
-
-	// Verify
-	w = httptest.NewRecorder()
-	buf.Reset()
-	json.NewEncoder(&buf).Encode(map[string]string{"email": email, "code": dbCode.Code})
-	req = httptest.NewRequest("POST", "/auth/verify-code", &buf)
-	req.Header.Set("Content-Type", "application/json")
-	testHandler.VerifyCode(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("VerifyCode: expected 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("EmailLogin: email = %q, want %q", resp.User.Email, email)
 	}
 
 	user, err := testHandler.Queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		t.Fatalf("GetUserByEmail: %v", err)
 	}
-
-	// New users should have no workspaces (/workspaces/new creates one)
 	workspaces, err := testHandler.Queries.ListWorkspaces(ctx, user.ID)
 	if err != nil {
 		t.Fatalf("ListWorkspaces: %v", err)
 	}
 	if len(workspaces) != 0 {
-		t.Fatalf("ListWorkspaces: expected 0 workspaces for new user, got %d", len(workspaces))
+		t.Fatalf("ListWorkspaces: got %d workspaces, want 0", len(workspaces))
 	}
+}
+
+func TestEmailLoginReusesExistingUser(t *testing.T) {
+	const email = "email-login-existing@enact.ai"
+	ctx := context.Background()
+
+	created, err := testHandler.Queries.CreateUser(ctx, db.CreateUserParams{
+		Name:  "Existing",
+		Email: email,
+	})
+	if err != nil {
+		t.Fatalf("CreateUser: %v", err)
+	}
+	t.Cleanup(func() {
+		testPool.Exec(ctx, `DELETE FROM "user" WHERE id = $1`, created.ID)
+	})
+
+	req := newRequest("POST", "/auth/email-login", map[string]string{"email": email})
+	var resp LoginResponse
+	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusOK).JSON(&resp)
+
+	if resp.User.ID != uuidToString(created.ID) {
+		t.Fatalf("EmailLogin: user id = %q, want %q", resp.User.ID, uuidToString(created.ID))
+	}
+}
+
+func TestEmailLoginRejectsInvalidEmail(t *testing.T) {
+	req := newRequest("POST", "/auth/email-login", map[string]string{"email": "not-an-email"})
+	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusBadRequest)
 }
 
 func TestResolveActor(t *testing.T) {
@@ -3223,7 +2926,7 @@ func TestRootMentionOwnerRoutesMemberReplyButNotAgentReply(t *testing.T) {
 }
 
 // TestMemberReplyToAgentRootDoesNotInheritParentMentions is the regression
-// for MUL-1535. When an agent posts a comment that @mentions another agent
+// for ENA-1535. When an agent posts a comment that @mentions another agent
 // (e.g. J posting a PR completion that @mentions a reviewer agent), a later
 // member reply in the same thread with no explicit mentions must NOT inherit
 // the @reviewer mention. The reviewer was a one-shot delegation; subsequent

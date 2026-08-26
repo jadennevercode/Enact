@@ -111,10 +111,10 @@ export function BatchActionToolbar({
     }
   };
 
-  // Batch status changes apply directly — no run-confirm modal (MUL-4155).
+  // Batch status changes apply directly — no run-confirm modal (ENA-4155).
   // done/cancelled can never start a run, and a backlog → active promotion now
   // starts its run the same way a single-issue status change or the CLI does,
-  // without an extra confirmation step (product decision on MUL-4155). The
+  // without an extra confirmation step (product decision on ENA-4155). The
   // status change was previously routed through the pre-trigger modal, which for
   // the common done/cancelled case only rendered a misleading "现在开始处理？ →
   // 不会开始处理" box. Agent/squad assignment still confirms via
@@ -133,7 +133,7 @@ export function BatchActionToolbar({
       // circuit. A mixed selection still routes through the modal: the non-backlog
       // issues will trigger and need confirmation.
       // Category, not key: a custom status in the backlog category is a parking
-      // lot too, and assigning into it never starts a run. (MUL-6243)
+      // lot too, and assigning into it never starts a run. (ENA-6243)
       const allBacklog = selectedIssues.every((i) => issueBehavesAs(i, "backlog"));
       if (!allBacklog) {
         openModal("issue-run-confirm", {

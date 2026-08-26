@@ -112,7 +112,7 @@ func (d *Daemon) runGC(ctx context.Context) {
 
 	// Reclaim per-issue Codex session stores idle past their TTL. These live
 	// under the shared ~/.codex home (outside WorkspacesRoot) so resume survives
-	// the task GC, which means they need their own bounded lifecycle (MUL-4424).
+	// the task GC, which means they need their own bounded lifecycle (ENA-4424).
 	if storesRemoved, storeBytes := execenv.PruneCodexSessionStores(d.cfg.Profile, d.cfg.GCCodexSessionTTL, time.Now(), d.reserveStoreForDeletion, d.logger); storesRemoved > 0 {
 		stats.storesReclaimed += storesRemoved
 		stats.bytesReclaimed += storeBytes
@@ -523,7 +523,7 @@ func (d *Daemon) gcDecisionIssueResult(taskDir string, meta *execenv.GCMeta, res
 
 	// result.Status is a CATEGORY, normalized server-side, so this literal
 	// comparison covers custom statuses too — an issue on a `done`-category
-	// custom status is terminal here. (MUL-6243)
+	// custom status is terminal here. (ENA-6243)
 	if (result.Status == "done" || result.Status == "cancelled") &&
 		time.Since(result.UpdatedAt) > d.cfg.GCTTL {
 		d.logger.Info("gc: eligible for cleanup",
@@ -596,7 +596,7 @@ func (d *Daemon) gcDecisionIssueResult(taskDir string, meta *execenv.GCMeta, res
 // server. Full task cleanup must fail closed when an older daemon receives a
 // future status or a malformed response from the GC check endpoint.
 //
-// The 7 names below stay correct after custom statuses (MUL-6243) because the
+// The 7 names below stay correct after custom statuses (ENA-6243) because the
 // gc-check endpoints answer with the status's CATEGORY, not the stored key —
 // see BatchIssueGCCheck / GetIssueGCCheck, which resolve through
 // issuestatus.Effective. Do not teach this function about custom statuses: an

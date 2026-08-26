@@ -16,7 +16,7 @@ type AgentEntry struct {
 	// (Homebrew Cask, nvm/fnm) does an in-place upgrade that deletes the old
 	// versioned directory Path points into. Empty for synthesized entries
 	// (custom runtime profiles) that carry an absolute path directly. See
-	// Daemon.resolveAgentEntry and MUL-4486.
+	// Daemon.resolveAgentEntry and ENA-4486.
 	Command string
 	Model   string // model override (optional)
 }
@@ -28,7 +28,7 @@ type Runtime struct {
 	Provider string `json:"provider"`
 	Status   string `json:"status"`
 	// ProfileID is non-empty when this runtime was registered from a
-	// workspace custom runtime profile (MUL-3284). It links the runtime row
+	// workspace custom runtime profile (ENA-3284). It links the runtime row
 	// back to the profile so the daemon can resolve the profile's
 	// command_name to the executable to launch. Built-in (provider-detected)
 	// runtimes leave this empty.
@@ -69,7 +69,7 @@ type ActiveSiblingRunData struct {
 }
 
 // IssueStatusData mirrors one active custom workspace status from the claim
-// payload (MUL-6460). Mirror field: internal/handler/agent.go
+// payload (ENA-6460). Mirror field: internal/handler/agent.go
 // TaskIssueStatusData, same JSON names.
 type IssueStatusData struct {
 	Key         string `json:"key"`
@@ -100,7 +100,7 @@ type Task struct {
 	// into the brief. Empty when the owner hasn't set one.
 	WorkspaceContext string `json:"workspace_context,omitempty"`
 	// IssueStatuses mirrors the claim payload's active CUSTOM status catalog
-	// (MUL-6460): key/name/category/description per status, already in catalog
+	// (ENA-6460): key/name/category/description per status, already in catalog
 	// order. Rendered into the brief's status-command line; empty (including on
 	// old servers that never send the field) keeps the brief byte-identical to
 	// the built-in-only form. IssueStatusesOmitted is the cap overflow count.
@@ -116,13 +116,13 @@ type Task struct {
 	ProjectDescription            string                 `json:"project_description,omitempty"`              // durable project-level context injected into the brief
 	ProjectResources              []ProjectResourceData  `json:"project_resources,omitempty"`                // project-scoped resources to expose to the agent
 	IsLeaderTask                  bool                   `json:"is_leader_task,omitempty"`                   // true when executing in the squad-leader coordinator role
-	LeaderRoleResolved            bool                   `json:"leader_role_resolved,omitempty"`             // server capability: IsLeaderTask/SquadID authoritatively answer "is this a leader run". Absent on servers predating it — those before #4951 never sent is_leader_task at all, later ones send it without this guarantee — so taskIsSquadLeader falls back to the briefing marker for both (MUL-5811)
+	LeaderRoleResolved            bool                   `json:"leader_role_resolved,omitempty"`             // server capability: IsLeaderTask/SquadID authoritatively answer "is this a leader run". Absent on servers predating it — those before #4951 never sent is_leader_task at all, later ones send it without this guarantee — so taskIsSquadLeader falls back to the briefing marker for both (ENA-5811)
 	PriorSessionID                string                 `json:"prior_session_id,omitempty"`                 // Claude session ID from a previous task on this issue
 	PriorWorkDir                  string                 `json:"prior_work_dir,omitempty"`                   // work_dir from a previous task on this issue
-	PriorSessionResumeUnavailable bool                   `json:"prior_session_resume_unavailable,omitempty"` // MUL-5305: server signals a more recent Codex session was withheld (rollout missing) and PriorSessionID (if any) is an older fallback; the run must disclose the continuity gap even if that older session resumes cleanly. Absent/false on old servers.
+	PriorSessionResumeUnavailable bool                   `json:"prior_session_resume_unavailable,omitempty"` // ENA-5305: server signals a more recent Codex session was withheld (rollout missing) and PriorSessionID (if any) is an older fallback; the run must disclose the continuity gap even if that older session resumes cleanly. Absent/false on old servers.
 	TriggerCommentID              string                 `json:"trigger_comment_id,omitempty"`               // comment that triggered this task
-	CoalescedCommentIDs           []string               `json:"coalesced_comment_ids,omitempty"`            // MUL-4195: earlier comments folded into this run while it was still queued; the agent must address these in addition to the (newest) triggering comment. Empty for old servers / non-merged runs
-	CoalescedComments             []CoalescedCommentData `json:"coalesced_comments,omitempty"`               // MUL-4195: full detail of the folded comments (thread_id/author/created_at/content) so the prompt can address each without assuming a shared thread. Empty for old servers / non-merged runs
+	CoalescedCommentIDs           []string               `json:"coalesced_comment_ids,omitempty"`            // ENA-4195: earlier comments folded into this run while it was still queued; the agent must address these in addition to the (newest) triggering comment. Empty for old servers / non-merged runs
+	CoalescedComments             []CoalescedCommentData `json:"coalesced_comments,omitempty"`               // ENA-4195: full detail of the folded comments (thread_id/author/created_at/content) so the prompt can address each without assuming a shared thread. Empty for old servers / non-merged runs
 	TriggerThreadID               string                 `json:"trigger_thread_id,omitempty"`                // root comment ID for the triggering thread; falls back to trigger_comment_id on old servers
 	TriggerCommentContent         string                 `json:"trigger_comment_content,omitempty"`          // content of the triggering comment
 	TriggerAuthorType             string                 `json:"trigger_author_type,omitempty"`              // "agent" or "member" — author kind for the triggering comment
@@ -131,13 +131,13 @@ type Task struct {
 	NewCommentsSince              string                 `json:"new_comments_since,omitempty"`               // RFC3339 anchor (last run's started_at) the count is measured from; empty on cold start
 	ChatSessionID                 string                 `json:"chat_session_id,omitempty"`                  // non-empty for chat tasks
 	ChatChannelType               string                 `json:"chat_channel_type,omitempty"`                // "slack" when the chat session is backed by an IM channel; empty for a web-only chat. Drives the channel-awareness block in the prompt
-	ChatChannelDeliversFiles      bool                   `json:"chat_channel_delivers_files,omitempty"`      // server capability: this deployment carries a file the agent produces the last hop into this conversation. Absent on a server predating it, which reads as false — the run is told to describe its file in words, and the worst case is a delivery that could have happened did not. Must never be re-derived from chat_channel_type: whether the hop exists depends on the SERVER's storage and adapter wiring, which no daemon can see (MUL-4899)
+	ChatChannelDeliversFiles      bool                   `json:"chat_channel_delivers_files,omitempty"`      // server capability: this deployment carries a file the agent produces the last hop into this conversation. Absent on a server predating it, which reads as false — the run is told to describe its file in words, and the worst case is a delivery that could have happened did not. Must never be re-derived from chat_channel_type: whether the hop exists depends on the SERVER's storage and adapter wiring, which no daemon can see (ENA-4899)
 	ChatType                      string                 `json:"chat_type,omitempty"`                        // "group" when the channel conversation is a shared room, "p2p" for a 1:1 with the bot. Empty for a web chat or an old server; the per-turn prompt then reports unknown rather than guessing 1:1
 	ChatInThread                  bool                   `json:"chat_in_thread,omitempty"`                   // true when the latest @mention was a thread reply; selects which read command the prompt tells the agent to start with
 	ChatMessage                   string                 `json:"chat_message,omitempty"`                     // user message content for chat tasks
 	ChatMessageAttachments        []ChatAttachmentMeta   `json:"chat_message_attachments,omitempty"`         // attachments linked to the chat message; agent uses these to `enact attachment download <id>`
 	ChatIntro                     bool                   `json:"chat_intro,omitempty"`                       // legacy compatibility for historical is_agent_intro sessions; new agent creation no longer creates these chats
-	RegenerateQuickActionsFor     string                 `json:"regenerate_quick_actions_for,omitempty"`     // set only by servers predating server-side quick-actions generation (MUL-5573). Read as a REFUSAL marker, never executed: see the guard in runTask
+	RegenerateQuickActionsFor     string                 `json:"regenerate_quick_actions_for,omitempty"`     // set only by servers predating server-side quick-actions generation (ENA-5573). Read as a REFUSAL marker, never executed: see the guard in runTask
 	AutopilotRunID                string                 `json:"autopilot_run_id,omitempty"`                 // non-empty for autopilot run_only tasks
 	AutopilotID                   string                 `json:"autopilot_id,omitempty"`                     // autopilot that spawned this run
 	AutopilotTitle                string                 `json:"autopilot_title,omitempty"`                  // autopilot title used as task context
@@ -153,7 +153,7 @@ type Task struct {
 	SquadID               string `json:"squad_id,omitempty"`                // when the picker was a squad, the squad's UUID; Agent is still the resolved leader
 	SquadName             string `json:"squad_name,omitempty"`              // display name for the picker squad, used in prompt text
 	ParentIssueID         string `json:"parent_issue_id,omitempty"`         // for quick-create tasks opened from "Add sub issue" — UUID of the parent issue the new issue should be filed under
-	ParentIssueIdentifier string `json:"parent_issue_identifier,omitempty"` // human-readable identifier (e.g. MUL-123) of the quick-create parent issue, used in prompt context
+	ParentIssueIdentifier string `json:"parent_issue_identifier,omitempty"` // human-readable identifier (e.g. ENA-123) of the quick-create parent issue, used in prompt context
 	// RequestingUserName + RequestingUserProfileDescription describe the human
 	// the agent is working on behalf of. v1 sources them from the runtime
 	// owner (the user who registered the daemon). Empty when the runtime has
@@ -172,7 +172,7 @@ type Task struct {
 	// daemon emits these into the brief under `## Task Initiator` so a
 	// workspace-visible agent can attribute the request per person. The
 	// agent's effective credentials stay owner-scoped — this is an attested
-	// identity, not a credential. See MUL-2645.
+	// identity, not a credential. See ENA-2645.
 	InitiatorType  string `json:"initiator_type,omitempty"`
 	InitiatorID    string `json:"initiator_id,omitempty"`
 	InitiatorName  string `json:"initiator_name,omitempty"`
@@ -181,7 +181,7 @@ type Task struct {
 	// The daemon injects it into the spawned agent as ENACT_TOKEN so the
 	// agent never sees the daemon's own (often workspace-owner) credential.
 	// Empty or non-task-scoped values are fatal for writable agent tasks; the
-	// daemon must not fall back to its own token. See MUL-3292.
+	// daemon must not fall back to its own token. See ENA-3292.
 	AuthToken string `json:"auth_token,omitempty"`
 }
 
@@ -198,7 +198,7 @@ type ChatAttachmentMeta struct {
 
 // CoalescedCommentData mirrors the server-side struct (handler.CoalescedCommentData):
 // the full detail of a comment folded into this run while it was still queued
-// (MUL-4195). The prompt embeds each one directly so the agent addresses every
+// (ENA-4195). The prompt embeds each one directly so the agent addresses every
 // folded comment without assuming they all live in the triggering thread.
 type CoalescedCommentData struct {
 	ID         string `json:"id"`
@@ -307,7 +307,7 @@ type TaskResult struct {
 	EnvRoot        string `json:"-"` // env root dir for writing GC metadata (not sent to server)
 	FailureReason  string `json:"-"` // classifier forwarded to FailTask on the blocked path; empty falls back to 'agent_error'
 	// SessionRolloutMissing is set when the daemon withheld this task's Codex
-	// session because its rollout was not in the store (MUL-5305). Forwarded to
+	// session because its rollout was not in the store (ENA-5305). Forwarded to
 	// the terminal report so the server clears the resume pointer and flags the
 	// continuity gap for the next claim. Not part of the wire result itself.
 	SessionRolloutMissing bool `json:"-"`

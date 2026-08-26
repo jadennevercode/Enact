@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { Agent, SkillSummary } from "@enact/core/types";
 import { api } from "@enact/core/api";
 import { useWorkspaceId } from "@enact/core/hooks";
+import { isOntologySkill } from "@enact/core/skills";
 import {
   skillListOptions,
   workspaceKeys,
@@ -57,7 +58,10 @@ export function SkillAddDialog({
   // If a user wants to see what's already on the agent, the SkillsTab
   // list above shows it.
   const availableSkills = useMemo(
-    () => workspaceSkills.filter((s) => !attachedIds.has(s.id)),
+    () =>
+      workspaceSkills.filter(
+        (skill) => !isOntologySkill(skill) && !attachedIds.has(skill.id),
+      ),
     [workspaceSkills, attachedIds],
   );
 

@@ -774,6 +774,102 @@ func (q *Queries) ListAttachmentsByIssue(ctx context.Context, arg ListAttachment
 	return items, nil
 }
 
+const listAttachmentsByProject = `-- name: ListAttachmentsByProject :many
+SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+JOIN comment c ON c.id = a.comment_id
+JOIN issue i ON i.id = c.issue_id
+WHERE i.project_id = $2
+  AND a.workspace_id = $3
+  AND a.issue_id IS NULL
+UNION ALL
+SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+JOIN issue i ON i.id = a.issue_id
+WHERE i.project_id = $2
+  AND a.workspace_id = $3
+ORDER BY owner_issue_number ASC, filename ASC, created_at ASC
+LIMIT $1
+`
+
+type ListAttachmentsByProjectParams struct {
+	RowLimit    int32       `json:"row_limit"`
+	ProjectID   pgtype.UUID `json:"project_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+type ListAttachmentsByProjectRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	IssueID          pgtype.UUID        `json:"issue_id"`
+	CommentID        pgtype.UUID        `json:"comment_id"`
+	UploaderType     string             `json:"uploader_type"`
+	UploaderID       pgtype.UUID        `json:"uploader_id"`
+	Filename         string             `json:"filename"`
+	Url              string             `json:"url"`
+	ContentType      string             `json:"content_type"`
+	SizeBytes        int64              `json:"size_bytes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ChatSessionID    pgtype.UUID        `json:"chat_session_id"`
+	ChatMessageID    pgtype.UUID        `json:"chat_message_id"`
+	TaskID           pgtype.UUID        `json:"task_id"`
+	OwnerIssueID     pgtype.UUID        `json:"owner_issue_id"`
+	OwnerIssueNumber int32              `json:"owner_issue_number"`
+	OwnerIssueTitle  string             `json:"owner_issue_title"`
+}
+
+// Project artifacts. An attachment carries no project_id of its own; project
+// membership is derived through its owning issue (directly, or through the
+// comment it hangs off). Deriving rather than denormalising keeps the listing
+// correct for free when an issue moves between projects.
+//
+// Chat-only attachments (chat_session_id set, no issue/comment owner) are
+// absent by construction: a chat session belongs to no project, so there is no
+// edge to follow.
+func (q *Queries) ListAttachmentsByProject(ctx context.Context, arg ListAttachmentsByProjectParams) ([]ListAttachmentsByProjectRow, error) {
+	rows, err := q.db.Query(ctx, listAttachmentsByProject, arg.RowLimit, arg.ProjectID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAttachmentsByProjectRow{}
+	for rows.Next() {
+		var i ListAttachmentsByProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.IssueID,
+			&i.CommentID,
+			&i.UploaderType,
+			&i.UploaderID,
+			&i.Filename,
+			&i.Url,
+			&i.ContentType,
+			&i.SizeBytes,
+			&i.CreatedAt,
+			&i.ChatSessionID,
+			&i.ChatMessageID,
+			&i.TaskID,
+			&i.OwnerIssueID,
+			&i.OwnerIssueNumber,
+			&i.OwnerIssueTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockAttachmentsForIssueLink = `-- name: LockAttachmentsForIssueLink :many
 SELECT id FROM attachment
 WHERE workspace_id = $1

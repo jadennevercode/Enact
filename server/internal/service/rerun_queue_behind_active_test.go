@@ -82,7 +82,7 @@ func TestRerunIssueQueuesBehindActiveTaskWithoutCancelling(t *testing.T) {
 				t.Fatalf("the rerun row must wait its turn as queued, got %q", task.Status)
 			}
 			if !task.ForceFreshSession {
-				t.Fatal("a rerun row must carry force_fresh_session (MUL-4869)")
+				t.Fatal("a rerun row must carry force_fresh_session (ENA-4869)")
 			}
 		})
 	}
@@ -93,7 +93,7 @@ func TestRerunIssueQueuesBehindActiveTaskWithoutCancelling(t *testing.T) {
 // lost by doing so (no agent was working), the unique index leaves no choice for
 // queued/dispatched, and replacing rather than reusing is what keeps the new run
 // attributed to the rerunning member instead of inheriting the attribution of
-// whoever created the pending row (MUL-4302 §5).
+// whoever created the pending row (ENA-4302 §5).
 func TestRerunIssueReplacesNotYetStartedTask(t *testing.T) {
 	for _, pendingStatus := range []string{"queued", "dispatched"} {
 		t.Run(pendingStatus, func(t *testing.T) {

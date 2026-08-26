@@ -56,14 +56,14 @@ durations and "first entered <status>" cannot be concluded from a truncated
 read, because the transition you are looking for may be the one that fell off.
 
 Examples:
-  # How long has MUL-123 been in its current status?
-  enact issue timeline MUL-123 --action status_changed
+  # How long has ENA-123 been in its current status?
+  enact issue timeline ENA-123 --action status_changed
 
   # Every state change, no comment bodies
-  enact issue timeline MUL-123 --activity-only --output json
+  enact issue timeline ENA-123 --activity-only --output json
 
   # What changed since yesterday?
-  enact issue timeline MUL-123 --since 2026-08-19T00:00:00Z`,
+  enact issue timeline ENA-123 --since 2026-08-19T00:00:00Z`,
 	Args: exactArgs(1),
 	RunE: runIssueTimeline,
 }

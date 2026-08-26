@@ -86,7 +86,7 @@ func NewBindingTokenService(queries *db.Queries, tx TxStarter) *BindingTokenServ
 
 // NewBindingTokenServiceWithClock is the seam for tests; production
 // callers should use NewBindingTokenService. queries is wrapped in a
-// ChannelStore so lark_* calls resolve to channel_* rows (MUL-3515).
+// ChannelStore so lark_* calls resolve to channel_* rows (ENA-3515).
 func NewBindingTokenServiceWithClock(queries *db.Queries, tx TxStarter, now func() time.Time) *BindingTokenService {
 	return &BindingTokenService{queries: NewChannelStore(queries), tx: tx, now: now}
 }
@@ -163,7 +163,7 @@ func (s *BindingTokenService) RedeemAndBind(ctx context.Context, raw string, ena
 	}
 
 	// Explicit membership gate. The lark_user_binding -> member FK that
-	// used to reject a non-member redeemer is gone (MUL-3515 §4), so we
+	// used to reject a non-member redeemer is gone (ENA-3515 §4), so we
 	// check it here. Returning before Commit rolls the consume back, so
 	// a non-member's attempt does not burn the token — same outcome the
 	// FK violation produced.
@@ -183,7 +183,7 @@ func (s *BindingTokenService) RedeemAndBind(ctx context.Context, raw string, ena
 	})
 	if err != nil {
 		// pgx.ErrNoRows here means the conflict row exists but its
-		// multica_user_id differs from ours, so the WHERE clause on
+		// enact_user_id differs from ours, so the WHERE clause on
 		// the ON CONFLICT DO UPDATE rejected the rebind. See the
 		// comment on CreateChannelUserBinding in queries/channel.sql.
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -226,7 +226,7 @@ func (s *BindingTokenService) RedeemAndBind(ctx context.Context, raw string, ena
 //     inventing one would only widen the attack surface.
 //
 // The underlying CreateLarkUserBinding query is idempotent on
-// (installation_id, lark_open_id) when multica_user_id matches (the
+// (installation_id, lark_open_id) when enact_user_id matches (the
 // ON CONFLICT DO UPDATE gating spelled out on the SQL), so a
 // re-install by the same user is a no-op metadata refresh. A
 // re-install by a DIFFERENT user surfaces as ErrBindingAlreadyAssigned
@@ -240,7 +240,7 @@ func (s *BindingTokenService) BindInstallerTx(ctx context.Context, qtx *ChannelS
 		q = s.queries
 	}
 	// Explicit membership gate, replacing the removed member FK
-	// (MUL-3515 §4): the installer must be a member of the workspace
+	// (ENA-3515 §4): the installer must be a member of the workspace
 	// they are binding into.
 	isMember, err := q.IsWorkspaceMember(ctx, p.WorkspaceID, p.EnactUserID)
 	if err != nil {
@@ -282,7 +282,7 @@ var ErrBindingAlreadyAssigned = errors.New("lark open_id is already bound to a d
 // ErrBindingNotWorkspaceMember is returned by RedeemAndBind and
 // BindInstallerTx when the user is not (or no longer) a member of the
 // target workspace, detected by an explicit IsWorkspaceMember check
-// (MUL-3515 §4 removed the member FK that used to enforce this).
+// (ENA-3515 §4 removed the member FK that used to enforce this).
 // Translated to 403 at the HTTP boundary.
 var ErrBindingNotWorkspaceMember = errors.New("redeemer is not a workspace member")
 

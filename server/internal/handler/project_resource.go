@@ -178,7 +178,7 @@ func (h *Handler) requireWorktreeCapableDaemon(w http.ResponseWriter, r *http.Re
 	// Same signal the claim gate uses: what the daemon advertised, recorded on
 	// its runtime row at registration. Version numbers cannot answer this — a
 	// dev-built daemon reports a git-describe string that the version floor
-	// deliberately exempts (MUL-5707).
+	// deliberately exempts (ENA-5707).
 	if daemonAdvertisesWorktree(runtimes, ref.DaemonID) {
 		return true
 	}

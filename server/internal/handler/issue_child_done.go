@@ -19,7 +19,7 @@ import (
 // issue when a child issue transitions from non-done into done. This replaces
 // the agent-prompt rule that previously made child agents post the
 // notification themselves (PR #2918 user feedback — the agent rule caused
-// self-mention loops, planner ping-pong, and accidental `MUL-` prefix
+// self-mention loops, planner ping-pong, and accidental `ENA-` prefix
 // hardcoding because the agent did not always know the workspace prefix).
 //
 // Guards on whether the comment fires at all:
@@ -34,14 +34,14 @@ import (
 //   - parent must not be "backlog" — a parent parked in backlog is being
 //     deliberately held for later; waking its assignee (which can then
 //     promote sibling backlog sub-issues into todo) is exactly the
-//     unwanted auto-activation reported in #4320 / MUL-3497. A parked
+//     unwanted auto-activation reported in #4320 / ENA-3497. A parked
 //     parent stays inert until the user explicitly moves it out of backlog.
 //   - parent assignee must not be a member (human). Humans read their
 //     issues manually; an automated system comment is pure noise for them
 //     and there is nothing to "trigger" on a human assignee. Skipping the
-//     comment entirely (Bohan's call on MUL-2538) also sidesteps the
+//     comment entirely (Bohan's call on ENA-2538) also sidesteps the
 //     mention question — no comment, no mention, no inbox row.
-//   - the completion must close a STAGE barrier (MUL-3508). Sub-issues under
+//   - the completion must close a STAGE barrier (ENA-3508). Sub-issues under
 //     a parent can be grouped into ordered stages via issue.stage; the
 //     notification + wake fire only when every sibling in the lowest
 //     unfinished stage is terminal (stageBarrierClosed). An unstaged sibling
@@ -55,7 +55,7 @@ import (
 // CreateComment HTTP handler) so it bypasses the generic on_comment trigger
 // path. When the parent has an agent or squad assignee, the comment body
 // embeds a single `mention://{agent,squad}/<id>` link that targets the
-// parent assignee — Bohan's product call on MUL-2538 ("system child-done
+// parent assignee — Bohan's product call on ENA-2538 ("system child-done
 // comment 无脑 mention parent assignee，member/squad/agent 都覆盖", later
 // narrowed to skip member assignees outright). To keep the platform in
 // control of side effects, the cmd/server notification + subscriber
@@ -80,7 +80,7 @@ func (h *Handler) notifyParentOfChildDone(ctx context.Context, prev, issue db.Is
 	// avoids a lagging duplicate wake.
 	// Both sides of the transition are resolved to the canonical status they
 	// inherit, so a move into a custom done/cancelled status fires the barrier
-	// exactly like a move into Done or Cancelled. (MUL-6243)
+	// exactly like a move into Done or Cancelled. (ENA-6243)
 	prevTerminal := isTerminalChildStatus(issuestatus.Effective(ctx, h.Queries, prev.WorkspaceID, prev.Status))
 	nowTerminal := isTerminalChildStatus(issuestatus.Effective(ctx, h.Queries, issue.WorkspaceID, issue.Status))
 	if prevTerminal || !nowTerminal {
@@ -96,7 +96,7 @@ func (h *Handler) notifyParentOfChildDone(ctx context.Context, prev, issue db.Is
 	}
 	// Custom statuses inherit the canonical status they name, so a custom
 	// terminal status closes this out and a custom backlog status parks it,
-	// exactly like Done/Cancelled and Backlog do. (MUL-6243)
+	// exactly like Done/Cancelled and Backlog do. (ENA-6243)
 	parentStatus := issuestatus.Effective(ctx, h.Queries, parent.WorkspaceID, parent.Status)
 	if parentStatus == "done" || parentStatus == "cancelled" {
 		return
@@ -104,19 +104,19 @@ func (h *Handler) notifyParentOfChildDone(ctx context.Context, prev, issue db.Is
 	// A parent parked in backlog is deliberately held for later. Posting the
 	// system comment would wake its assignee, and the woken agent can then
 	// promote sibling backlog sub-issues into todo — the surprise auto-
-	// activation reported in #4320 / MUL-3497. Skip the whole notification so
+	// activation reported in #4320 / ENA-3497. Skip the whole notification so
 	// a backlog parent stays inert until the user explicitly promotes it.
 	if parentStatus == "backlog" {
 		return
 	}
 	// Human-assigned parents read their own timeline; an automated system
 	// comment is just noise and there is no agent task to trigger. Skip the
-	// whole notification (comment + mention + inbox row) — MUL-2538.
+	// whole notification (comment + mention + inbox row) — ENA-2538.
 	if parent.AssigneeType.Valid && parent.AssigneeType.String == "member" {
 		return
 	}
 
-	// Stage barrier (MUL-3508 / discussion #4320). The notification + assignee
+	// Stage barrier (ENA-3508 / discussion #4320). The notification + assignee
 	// wake fire only when this completion *closes a stage* — i.e. every sibling
 	// in the lowest unfinished stage is now terminal. An unstaged sibling set is
 	// one implicit stage, so this collapses to "wake once when the last
@@ -155,7 +155,7 @@ func (h *Handler) notifyParentOfChildDone(ctx context.Context, prev, issue db.Is
 // fired one comment per intermediate stage: the first (stale) comment pinned the
 // parent assignee's wake to an already-superseded "advance Stage N+1"
 // instruction while the accurate final wake was swallowed by the pending-task
-// dedup, and the outcome depended on issue_ids order (MUL-4155). Aggregating
+// dedup, and the outcome depended on issue_ids order (ENA-4155). Aggregating
 // here makes the result order-independent — each affected parent gets at most
 // one comment built from the final state, plus one wake pinned to that comment.
 //
@@ -364,7 +364,7 @@ func isTerminalChildStatus(status string) bool {
 // terminalChildPredicate returns the terminal test for a sibling set, resolving
 // each child's status to the canonical status it inherits. Built-in keys
 // resolve to themselves without a query, so this is free for every workspace
-// that has not defined a custom status. (MUL-6243)
+// that has not defined a custom status. (ENA-6243)
 //
 // A predicate rather than a rewritten []db.Issue on purpose: the same slice is
 // also rendered into the stage-progress comment, and mutating Status there
@@ -481,7 +481,7 @@ func stageProgressSummary(children []db.Issue, closedStage int32, isTerminal fun
 //     such a pipeline reaches nextStage == 0 exactly like a true final stage
 //     does. The old wording ("This was the final stage. Wrap up the parent")
 //     asserted a finality the server cannot know and pushed leaders to wrap up
-//     mid-workflow (MUL-4062 / #4927). The message now names both possibilities
+//     mid-workflow (ENA-4062 / #4927). The message now names both possibilities
 //     and hands the create-next-vs-wrap-up decision back to the leader.
 func stageAdvanceInstruction(nextStage int32, parentID string) string {
 	if nextStage > 0 {
@@ -608,8 +608,8 @@ func sanitizeMentionLabel(name string) string {
 //     parent into sub-issues assigned to its own squad: the stage-barrier
 //     system comment lands on the PARENT carrying the "advance the next stage /
 //     wrap up" instruction, which a child-side wake never delivers — so the
-//     parent silently stalled in in_progress (MUL-3969). The squad path now
-//     mirrors the agent path (MUL-2808): always dispatch, bounded only by
+//     parent silently stalled in in_progress (ENA-3969). The squad path now
+//     mirrors the agent path (ENA-2808): always dispatch, bounded only by
 //     idempotency.
 //   - Idempotency: HasPendingTaskForIssueAndAgent dedupes rapid-fire enqueues
 //     for the same parent (e.g. two children finishing back-to-back). It also
@@ -640,7 +640,7 @@ func (h *Handler) dispatchParentAssigneeTrigger(ctx context.Context, parent db.I
 // isAgentRunningOnIssue); only re-entering the SAME issue is a loop. A lone
 // agent that decomposes its parent into sub-issues it owns itself has no
 // other wake path, so the old "child owner == parent agent" guard silently
-// stranded those parents (MUL-2808). Runaway re-triggering is prevented by
+// stranded those parents (ENA-2808). Runaway re-triggering is prevented by
 // the HasPendingTaskForIssueAndAgent dedup below, exactly as the @mention
 // self-trigger path relies on it (see computeMentionedAgentCommentTriggers).
 func (h *Handler) triggerChildDoneAgent(ctx context.Context, parent db.Issue, triggerCommentID pgtype.UUID) {
@@ -680,7 +680,7 @@ func (h *Handler) triggerChildDoneAgent(ctx context.Context, parent db.Issue, tr
 //     the child via its own coordination cycle, but that wake lands on the
 //     CHILD and never carries the parent-level stage-barrier instruction, so it
 //     stranded the common "squad decomposes its parent into sub-issues assigned
-//     to its own squad" pattern (MUL-3969).
+//     to its own squad" pattern (ENA-3969).
 //   - NO leader-invocation gate. Waking the parent's OWN squad leader on
 //     child-done is a coordination handoff on an issue the leader already owns,
 //     not a fresh invocation — invocation permission was already enforced when
@@ -689,7 +689,7 @@ func (h *Handler) triggerChildDoneAgent(ctx context.Context, parent db.Issue, tr
 //     completer — an agent/system actor with no resolvable human originator —
 //     failed closed for the DEFAULT private leader, silently stranding every
 //     process-squad pipeline after its first stage while direct-to-leader-agent
-//     parents advanced fine (MUL-4063 / GH #4928). Removed so agent and squad
+//     parents advanced fine (ENA-4063 / GH #4928). Removed so agent and squad
 //     child-done follow one path; if invocation permission is ever reintroduced
 //     it must be added to BOTH paths together.
 //

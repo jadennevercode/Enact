@@ -222,6 +222,8 @@
     "archive": "归档",
     "unarchive": "取消归档",
     "archived_title": "已归档",
+    "pinned_segment": "已置顶",
+    "no_project_segment": "无项目",
     "row_actions_aria": "聊天操作"
   },
   "header": {

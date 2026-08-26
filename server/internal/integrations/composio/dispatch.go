@@ -54,7 +54,7 @@ type mcpOverlayPayload struct {
 // `agent`, or a zero result when ANY of the gates below trip — meaning no
 // Composio session is created and no token is provisioned.
 //
-// MUL-3963: Composio MCP now FOLLOWS the agent invocation permission instead
+// ENA-3963: Composio MCP now FOLLOWS the agent invocation permission instead
 // of requiring originator == owner. The security boundary is upstream —
 // canInvokeAgent decides who may enqueue a run for this agent at all — so any
 // task that reaches dispatch has already been authorised to run the agent, and

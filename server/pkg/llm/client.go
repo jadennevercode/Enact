@@ -2,7 +2,7 @@
 // (github.com/openai/openai-go). It exists so the rest of the server has a
 // single, well-typed entry point for "just call an LLM" needs that do NOT
 // require the full agent runtime — currently chat auto-titling and chat
-// follow-up questions (MUL-4238).
+// follow-up questions (ENA-4238).
 //
 // # Scope: the assist layer, not every model call in the product
 //
@@ -124,7 +124,7 @@ type Config struct {
 	//   - Retries(N)     — at most N retries, so at most N+1 upstream requests.
 	//
 	// It is a pointer to a validated type rather than a bare int for two
-	// reasons (MUL-6364). A bare int made 0 indistinguishable from the zero
+	// reasons (ENA-6364). A bare int made 0 indistinguishable from the zero
 	// value, so asking for no retries silently produced the SDK default
 	// instead; and it let a negative — which option.WithMaxRetries panics on —
 	// reach this layer, where the only options were to panic or to quietly

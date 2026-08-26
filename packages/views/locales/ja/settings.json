@@ -329,6 +329,27 @@
       "billing": "請求とプラン"
     }
   },
+  "ontology": {
+    "title": "オントロジー",
+    "description": "このワークスペースで利用できる CapHub のオントロジーカタログを表示します。",
+    "loading": "オントロジーを読み込み中…",
+    "load_failed": "CapHub からオントロジーを読み込めませんでした。",
+    "empty": "CapHub に利用可能なオントロジーがありません。",
+    "retry": "再試行",
+    "version": "バージョン {{version}}",
+    "entities": "エンティティ",
+    "actions": "アクション",
+    "policies": "ポリシー",
+    "capabilities": "機能",
+    "layered": "レイヤー型",
+    "unified": "統合型",
+    "open_caphub": "CapHub で開く",
+    "details_title": "オントロジー詳細",
+    "overview_tab": "概要",
+    "preview_tab": "オントロジープレビュー",
+    "no_items": "定義なし",
+    "preview_empty": "オントロジープレビューはありません。"
+  },
   "plugins": {
     "title": "Plugins",
     "description": "このワークスペースにプラグインを公開し、特定のバージョンをインストールして、何にアクセスできるかを確認します。",
@@ -691,7 +712,7 @@
     "connection_description_prefix": "タスクを Pull request に自動でリンクします。ブランチ、タイトル、または本文に",
     "connection_description_suffix": "を含む PR がマージされると、対応するタスクが次のステータスに移動します:",
     "connection_description_done": "完了",
-    "connection_identifier_example": "MUL-123",
+    "connection_identifier_example": "ENA-123",
     "connected_to": "{{login}} に接続済み",
     "connect_github": "GitHub を接続",
     "connect_opening": "開いています…",

@@ -340,7 +340,7 @@ func TestUnbindAgentsAndDeleteRuntime_HappyPath(t *testing.T) {
 		t.Fatalf("expected runtime row to be deleted, found %d", rtRows)
 	}
 	// The agent must SURVIVE, unbound and un-archived. This is the whole point
-	// of MUL-5559: the old flow archived it and then hard-deleted the row, taking
+	// of ENA-5559: the old flow archived it and then hard-deleted the row, taking
 	// its chat sessions with it, while the dialog promised an archive.
 	var (
 		agentRows  int

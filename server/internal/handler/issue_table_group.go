@@ -75,7 +75,7 @@ type resolvedIssueTableGroup struct {
 	// categoryKeys maps each of the 7 categories to the concrete status keys
 	// that belong to it, resolved ONCE per request. Category predicates expand
 	// through this into `i.status = ANY(...)` so the (workspace_id, status)
-	// index stays usable — see issuestatus.ExpandCategories. (MUL-6243)
+	// index stays usable — see issuestatus.ExpandCategories. (ENA-6243)
 	categoryKeys map[string][]string
 	// statusCustomKeys is the CUSTOM key -> category map behind
 	// statusCategoryExpr. Empty for a workspace with no custom statuses.
@@ -85,7 +85,7 @@ type resolvedIssueTableGroup struct {
 // statusCategoryExpr builds the scalar `status key -> category` rewrite used as
 // a GROUP BY expression. Built-ins fall through the ELSE untouched because a
 // built-in key IS its own category, so a workspace with no custom statuses gets
-// exactly `i.status`. (MUL-6243)
+// exactly `i.status`. (ENA-6243)
 func statusCategoryExpr(customKeys map[string]string, addArg func(any) string) string {
 	if len(customKeys) == 0 {
 		return "i.status"
@@ -171,7 +171,7 @@ func (h *Handler) resolveIssueTableGroup(w http.ResponseWriter, r *http.Request,
 	case "status_category":
 		// Board / list / swimlane columns are CATEGORIES, so a custom status
 		// groups into the column it behaves as instead of getting a column of
-		// its own — that is what keeps the fan-out pinned at 7. (MUL-6243)
+		// its own — that is what keeps the fan-out pinned at 7. (ENA-6243)
 		customKeys, categoryKeys, err := h.resolveStatusCategoryMaps(r.Context(), workspaceID)
 		if err != nil {
 			slog.Warn("resolve status category group failed", append(logger.RequestAttrs(r), "error", err)...)
@@ -459,7 +459,7 @@ func (group resolvedIssueTableGroup) descriptor(raw string, count int64, context
 	descriptor := issueTableGroupDescriptorResponse{Count: count}
 	switch group.kind {
 	case "status":
-		// Any non-empty status KEY, not just the 7 built-ins. Since MUL-6243 a
+		// Any non-empty status KEY, not just the 7 built-ins. Since ENA-6243 a
 		// workspace can hold custom statuses, and rejecting one here failed the
 		// WHOLE grouped response with a 500 — one custom status made "group by
 		// status" unusable for the entire workspace.
@@ -476,7 +476,7 @@ func (group resolvedIssueTableGroup) descriptor(raw string, count int64, context
 		// value.kind stays "status": a category's value IS its canonical status
 		// key, so this is exact rather than a compatibility shim, and every
 		// existing consumer of a status group keeps working. The KEY is what
-		// distinguishes the two contracts. (MUL-6243)
+		// distinguishes the two contracts. (ENA-6243)
 		descriptor.Value = issueTableGroupValueResponse{Kind: "status", Status: raw}
 	case "assignee":
 		descriptor.Value.Kind = "assignee"
@@ -831,7 +831,7 @@ func (h *Handler) ListIssueTableGroups(w http.ResponseWriter, r *http.Request) {
 	if group.kind == "compound" {
 		// The secondary axis is either the status key itself or the CATEGORY it
 		// behaves as. In the category case a custom status counts into the cell
-		// of the column it renders in, never a cell of its own. (MUL-6243)
+		// of the column it renders in, never a cell of its own. (ENA-6243)
 		secondaryExpr := "i.status"
 		if group.secondaryCategory {
 			secondaryExpr = statusCategoryExpr(group.statusCustomKeys, addArg)

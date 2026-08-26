@@ -14,7 +14,7 @@ import (
 // them to the UI without hard-coding (and getting wrong) what's installed
 // locally.
 //
-// MUL-2339: we deliberately do not flatten Claude's `low|medium|high|
+// ENA-2339: we deliberately do not flatten Claude's `low|medium|high|
 // xhigh|max` and Codex's `none|minimal|low|medium|high|xhigh|max|ultra`
 // onto a shared enum. OpenCode exposes provider-specific model variants through
 // `opencode run --variant`, and those names can be extended by local
@@ -535,7 +535,7 @@ var codebuddyFlagEffortValues = map[string]bool{
 // annotateCodebuddyThinkingFromACP fills in each model's effort catalog from the
 // `thought_level` config option carried by the SAME `session/new` response the
 // models came from — so the effort catalog costs no extra process at all. It
-// replaces a second regex pass over `codebuddy --help` (MUL-5549).
+// replaces a second regex pass over `codebuddy --help` (ENA-5549).
 //
 // CodeBuddy advertises one effort set for the whole CLI rather than per model,
 // so every entry shares it. Levels the `--effort` flag would reject are dropped,
@@ -613,7 +613,7 @@ func catalogLoader(ctx context.Context, providerType string, cmd Command) func()
 //     file's Codex header for why that's avoided), so an empty codex model
 //     fails closed: the daemon drops the level rather than injecting one that
 //     may not fit. Users who need a specific effort must pick an explicit
-//     model. (MUL-4347 review.)
+//     model. (ENA-4347 review.)
 //   - other providers: empty model resolves to the catalog's Default entry
 //     so a default-model task with a valid thinking_level isn't misjudged as
 //     "unknown model → reject" (the misjudgement flagged in an earlier
@@ -638,8 +638,8 @@ func ValidateThinkingLevel(ctx context.Context, providerType string, cmd Command
 // qualification and both capability checks share one discovery round. That
 // matters because discovery is a CLI subprocess with a 15-30s ceiling and
 // cachedDiscovery deliberately does not memoize an empty or fallback result
-// (#3729, MUL-5549), so each read costs the ceiling again on a logged-out or
-// timing-out runtime (MUL-6471 review).
+// (#3729, ENA-5549), so each read costs the ceiling again on a logged-out or
+// timing-out runtime (ENA-6471 review).
 func ValidateThinkingLevelWith(loadCatalog func() (Catalog, error), providerType, model, value string) (bool, error) {
 	if value == "" {
 		return true, nil
@@ -846,7 +846,7 @@ var acpCatalogThinkingProviders = map[string]bool{
 	//     catalog, no picker, and no set_config_option call. Re-verified
 	//     against v0.20.0 on 2026-08-11: session/new still returns only
 	//     `_meta`, `models`, `modes`, `sessionId` — unchanged from the v0.18.2
-	//     finding in MUL-5770.
+	//     finding in ENA-5770.
 	//
 	// That split is why this feature is catalog-driven rather than gated on a
 	// version string: one provider, two binaries, and the session answers the

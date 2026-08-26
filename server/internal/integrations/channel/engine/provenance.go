@@ -17,7 +17,7 @@ type ChannelProvenanceQueries interface {
 // TaskInputIsChannelIngested reports whether a completed chat task took its
 // input from the channel, so its reply (or failure notice) belongs on the
 // external platform. Direct (web/mobile) tasks can reuse a channel-bound
-// session, but their replies stay in Enact (MUL-4988).
+// session, but their replies stay in Enact (ENA-4988).
 //
 // chat_input_task_id alone cannot discriminate: sealed channel tasks own an
 // input batch exactly like direct tasks do. The verdict is the immutable
@@ -25,7 +25,7 @@ type ChannelProvenanceQueries interface {
 // auto-retry clone (which inherits chat_input_task_id while its messages stay
 // tagged with the parent) reaches the same verdict as its parent. A NULL owner
 // is a pre-sealing channel task — direct tasks have owned their batch since
-// MUL-4351 — so it keeps the deliver-by-default behavior #5645 shipped with.
+// ENA-4351 — so it keeps the deliver-by-default behavior #5645 shipped with.
 func TaskInputIsChannelIngested(ctx context.Context, q ChannelProvenanceQueries, task db.AgentTaskQueue) (bool, error) {
 	if !task.ChatInputTaskID.Valid {
 		return true, nil

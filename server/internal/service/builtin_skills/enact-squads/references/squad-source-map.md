@@ -98,13 +98,13 @@ Contracts:
   (`squadParentStatusNotOwned`). Quick-create passes `false` — no issue exists
   yet. Injection is broader than authority on purpose: it is keyed off
   `is_leader_task`, which also fires for `@squad` mentions on issues owned by
-  someone else (MUL-3724);
+  someone else (ENA-3724);
 - when the claim's defensive gate withholds the briefing (NULL `squad_id`,
   squad hard-deleted, leader swapped after enqueue), the handler also clears
   `is_leader_task` on the claim response, so the wire flag means "briefing
   injected" and the run degrades to an ordinary agent turn. The daemon derives
   the leader role from that flag (plus `squad_id` for quick-create), never from
-  the briefing text (MUL-5811);
+  the briefing text (ENA-5811);
 - every claim response carries `leader_role_resolved: true`, the capability
   that tells the daemon those fields are authoritative. Servers predating it
   omit it, and a daemon seeing it absent falls back to the legacy
@@ -142,7 +142,7 @@ Contracts:
   enqueue-time via `canEnqueueSquadLeader` (squad.go:1037);
 - archived squad / archived leader rejected at assign-time (issue.go:2622-2627);
 - pending task dedup is applied (squad.go:1042-1048);
-- parent status is agent-managed: since MUL-6417 the brief's status rule is a
+- parent status is agent-managed: since ENA-6417 the brief's status rule is a
   fact judgment written when the work changes it (`writeWorkflowIssue`), and the
   leader variant adds one bullet — dispatching members is not delivery, so a dispatch
   turn leaves the parent `in_progress` and `in_review` waits for the re-trigger
@@ -153,9 +153,9 @@ Contracts:
   writes nothing not because it lacks a grant but because a turn that did not
   move the issue's state has nothing to record.
 - status names are category rules: custom statuses inherit their category's
-  behavior in full (MUL-6243, `server/internal/issuestatus/issuestatus.go`
+  behavior in full (ENA-6243, `server/internal/issuestatus/issuestatus.go`
   `Effective`/`Resolve`); the brief lists the workspace catalog when any custom
-  statuses exist (MUL-6460, `writeIssueStatusCommand` in
+  statuses exist (ENA-6460, `writeIssueStatusCommand` in
   `server/internal/daemon/execenv/runtime_config_sections.go`).
 
 ## Comment / Mention
@@ -223,8 +223,8 @@ Contracts:
   member fan-out (triggerChildDoneSquad / dispatchParentAssigneeTrigger);
 - no self-trigger guard: a same-squad or shared-leader child still wakes the
   parent squad leader — the wake is a serial handoff onto the PARENT and is the
-  only carrier of the stage-barrier "advance / wrap up" instruction (MUL-3969,
-  mirrors the agent path from MUL-2808). Re-triggering is bounded only by
+  only carrier of the stage-barrier "advance / wrap up" instruction (ENA-3969,
+  mirrors the agent path from ENA-2808). Re-triggering is bounded only by
   `HasPendingTaskForIssueAndAgent` (idempotent per parent issue + agent).
 - no leader-invocation gate: child-done does NOT re-check whether the child's
   completer can invoke the leader. The parent was already permission-checked at
@@ -233,14 +233,14 @@ Contracts:
   closed for the DEFAULT private leader (the child's completer is an
   agent/system actor with no resolvable human originator), stranding every
   process-squad pipeline after stage 1 while direct-to-leader-agent parents
-  advanced fine (MUL-4063 / GH #4928). Agent and squad child-done now share one
+  advanced fine (ENA-4063 / GH #4928). Agent and squad child-done now share one
   ungated path; any future invocation gate must be added to BOTH together.
 - parent status is not auto-advanced by the barrier: the system comment asks the
   leader to continue or — when the overall goal is met — run
   `enact issue status <parent-id> in_review`. The Squad Operating Protocol's
   standing "Own the parent issue status" responsibility (present exactly when
   the issue is assigned to this squad) states the same expectation; the system
-  comment marks the wrap-up moment. Since MUL-6417 the write itself needs no
+  comment marks the wrap-up moment. Since ENA-6417 the write itself needs no
   grant — the brief's fact judgment covers it — but `done` remains
   human / integration owned.
 
@@ -253,7 +253,7 @@ server/internal/handler/agent_access.go           # canInvokeAgent ~48-108, canE
 server/internal/handler/squad.go                   # enqueueSquadLeaderTask gate ~955-974
 ```
 
-Contracts (invocation gate, MUL-3963 — this is the *trigger* gate, distinct from
+Contracts (invocation gate, ENA-3963 — this is the *trigger* gate, distinct from
 the view gate `canAccessPrivateAgent`):
 
 - `canEnqueueSquadLeader` loads the leader and delegates to `canInvokeAgent`
@@ -272,7 +272,7 @@ the view gate `canAccessPrivateAgent`):
   assign/promote path denies the enqueue when the actor cannot invoke the leader
   (member authors are their own originator; agent-authored triggers pass `""`).
 - NOTE: the child-done wake does NOT use this gate anymore — see "Child-done
-  Parent Trigger" above (MUL-4063).
+  Parent Trigger" above (ENA-4063).
 
 ## Tests
 

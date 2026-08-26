@@ -15,9 +15,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
-	"github.com/enact-ai/enact/server/internal/auth"
 )
 
 // MembershipChecker verifies a user belongs to a workspace.
@@ -156,11 +156,37 @@ func firstForwardedHost(h string) string {
 	return strings.TrimSpace(h)
 }
 
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	addr, err := netip.ParseAddr(host)
+	return err == nil && addr.IsLoopback()
+}
+
+func isAllowedLoopbackAlias(originURL *url.URL, requestHost, allowedOrigin string) bool {
+	requestHostname, _, err := net.SplitHostPort(requestHost)
+	if err != nil {
+		requestHostname = strings.Trim(requestHost, "[]")
+	}
+	if !isLoopbackHost(requestHostname) || !isLoopbackHost(originURL.Hostname()) {
+		return false
+	}
+
+	allowedURL, err := url.Parse(allowedOrigin)
+	if err != nil || !isLoopbackHost(allowedURL.Hostname()) {
+		return false
+	}
+	return strings.EqualFold(originURL.Scheme, allowedURL.Scheme) &&
+		originURL.Port() == allowedURL.Port()
+}
+
 func checkOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
 		return true
 	}
+	originURL, originErr := url.Parse(origin)
 	// Same-origin: native clients (mobile, CLI) have no real page host, so
 	// their WebSocket library fills Origin with the connection target —
 	// which equals the server's own Host. They authenticate via bearer
@@ -168,7 +194,7 @@ func checkOrigin(r *http.Request) bool {
 	// allowlist below defends against) does not apply. This matches the
 	// gorilla/websocket default CheckOrigin behavior; the allowlist exists
 	// in addition to support cross-origin browser clients (web/desktop).
-	if u, err := url.Parse(origin); err == nil && strings.EqualFold(u.Host, r.Host) {
+	if originErr == nil && strings.EqualFold(originURL.Host, r.Host) {
 		return true
 	}
 	// Reverse-proxy support: when sitting behind a proxy the Host header
@@ -177,13 +203,13 @@ func checkOrigin(r *http.Request) bool {
 	// same-origin in that case too. SECURITY: Only trust X-Forwarded-Host
 	// if the request comes from a trusted proxy to prevent header spoofing.
 	if fwdHost := firstForwardedHost(r.Header.Get("X-Forwarded-Host")); fwdHost != "" && isTrustedProxy(r.RemoteAddr) {
-		if u, err := url.Parse(origin); err == nil && strings.EqualFold(u.Host, fwdHost) {
+		if originErr == nil && strings.EqualFold(originURL.Host, fwdHost) {
 			return true
 		}
 	}
 	origins := allowedWSOrigins.Load().([]string)
 	for _, allowed := range origins {
-		if origin == allowed {
+		if origin == allowed || originErr == nil && isAllowedLoopbackAlias(originURL, r.Host, allowed) {
 			return true
 		}
 	}
@@ -677,7 +703,7 @@ func (h *Hub) Snapshot() map[string]any {
 
 // authenticateToken validates a JWT or PAT string and returns the user ID.
 func authenticateToken(tokenStr string, pr PATResolver, ctx context.Context) (string, string) {
-	if strings.HasPrefix(tokenStr, "mul_") {
+	if strings.HasPrefix(tokenStr, "enact_") {
 		if pr == nil {
 			return "", `{"error":"invalid token"}`
 		}

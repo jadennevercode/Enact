@@ -76,8 +76,8 @@ func TestRouter_IssueCommand_BroadcastPayloadCarriesIdentityFields(t *testing.T)
 	}
 	// The workspace issue prefix must come from the workspace row, matching the
 	// identifier the chat reply already shows.
-	if got, _ := issue["identifier"].(string); got != "MUL-42" {
-		t.Errorf("issue[\"identifier\"] = %q; want MUL-42", got)
+	if got, _ := issue["identifier"].(string); got != "ENA-42" {
+		t.Errorf("issue[\"identifier\"] = %q; want ENA-42", got)
 	}
 }
 

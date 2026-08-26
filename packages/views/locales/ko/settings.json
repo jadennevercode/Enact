@@ -329,6 +329,27 @@
       "billing": "결제 및 요금제"
     }
   },
+  "ontology": {
+    "title": "온톨로지",
+    "description": "이 워크스페이스에서 사용할 수 있는 CapHub 온톨로지 카탈로그를 확인합니다.",
+    "loading": "온톨로지 불러오는 중…",
+    "load_failed": "CapHub에서 온톨로지를 불러올 수 없습니다.",
+    "empty": "CapHub에 사용 가능한 온톨로지가 없습니다.",
+    "retry": "다시 시도",
+    "version": "버전 {{version}}",
+    "entities": "엔터티",
+    "actions": "작업",
+    "policies": "정책",
+    "capabilities": "기능",
+    "layered": "계층형",
+    "unified": "통합형",
+    "open_caphub": "CapHub에서 열기",
+    "details_title": "온톨로지 상세",
+    "overview_tab": "개요",
+    "preview_tab": "온톨로지 미리보기",
+    "no_items": "정의 없음",
+    "preview_empty": "온톨로지 미리보기가 없습니다."
+  },
   "plugins": {
     "title": "Plugins",
     "description": "이 워크스페이스에 플러그인을 게시하고 특정 버전을 설치하며, 무엇에 접근할 수 있는지 확인합니다.",
@@ -691,7 +712,7 @@
     "connection_description_prefix": "태스크를 Pull request에 자동으로 연결합니다. 브랜치, 제목 또는 본문에",
     "connection_description_suffix": "이(가) 있는 PR이 병합되면 해당 태스크가",
     "connection_description_done": "완료",
-    "connection_identifier_example": "MUL-123",
+    "connection_identifier_example": "ENA-123",
     "connected_to": "{{login}}에 연결됨",
     "connect_github": "GitHub 연결",
     "connect_opening": "여는 중...",

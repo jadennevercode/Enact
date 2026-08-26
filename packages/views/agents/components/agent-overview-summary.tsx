@@ -1,12 +1,13 @@
 "use client";
 
-import { Bot, Server } from "lucide-react";
+import { Bot, Network, Server } from "lucide-react";
 import type {
   Agent,
   AgentRuntime,
   MemberWithUser,
 } from "@enact/core/types";
 import { runtimeDisplayLabel } from "@enact/core/runtimes";
+import { isOntologySkill } from "@enact/core/skills";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { useT } from "../../i18n";
 import { VisibilityBadge } from "./visibility-badge";
@@ -30,6 +31,8 @@ export function AgentOverviewSummary({
 }: AgentOverviewSummaryProps) {
   const { t } = useT("agents");
   const runtimeOnline = runtime?.status === "online";
+  const skills = agent.skills.filter((skill) => !isOntologySkill(skill));
+  const ontologies = agent.skills.filter(isOntologySkill);
 
   return (
     <aside className="self-start rounded-xl border border-surface-border bg-surface p-5 shadow-[var(--surface-shadow)] xl:sticky xl:top-6">
@@ -91,12 +94,12 @@ export function AgentOverviewSummary({
             {t(($) => $.inspector.section_skills)}
           </h2>
           <span className="font-mono text-caption tabular-nums text-muted-foreground">
-            {agent.skills.length}
+            {skills.length}
           </span>
         </div>
-        {agent.skills.length > 0 ? (
+        {skills.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {agent.skills.map((skill) => (
+            {skills.map((skill) => (
               <span
                 key={skill.id}
                 className="max-w-full truncate rounded-md border border-surface-border bg-surface-hover px-2 py-1 text-caption text-muted-foreground"
@@ -111,6 +114,30 @@ export function AgentOverviewSummary({
           </p>
         )}
       </section>
+
+      {ontologies.length > 0 ? (
+        <section className="mt-5 border-t pt-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-body font-medium">
+              <Network className="size-4 text-muted-foreground" />
+              {t(($) => $.tabs.ontologies)}
+            </h2>
+            <span className="font-mono text-caption tabular-nums text-muted-foreground">
+              {ontologies.length}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {ontologies.map((ontology) => (
+              <span
+                key={ontology.id}
+                className="max-w-full truncate rounded-md border border-surface-border bg-surface-hover px-2 py-1 text-caption text-muted-foreground"
+              >
+                {ontology.ontology_domain ?? ontology.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <AgentPerformanceSummary agent={agent} />
     </aside>

@@ -28,7 +28,7 @@ import (
 // meant every description autosave broadcast TWO full copies of the description
 // (the new one inside `issue`, plus prev_description) to every connection in the
 // workspace, including users who did not have the issue open. The DB write is
-// O(1); the fanout was O(workspace connections × description size) (MUL-5492).
+// O(1); the fanout was O(workspace connections × description size) (ENA-5492).
 //
 // This is a table rather than an `if` on one event type because the bug was
 // structural, not a typo: the next large field added to a published payload
@@ -75,7 +75,7 @@ func projectOutbound(eventType string, payload any) any {
 // interface (not *realtime.Hub) so that this layer can later be swapped out
 // for a Redis-backed relay or a feature-flagged dual-write implementation
 // without touching any of the event listeners below. This is Phase 0 of the
-// horizontal-scaling plan tracked in MUL-1138.
+// horizontal-scaling plan tracked in ENA-1138.
 func registerListeners(bus *events.Bus, b realtime.Broadcaster) {
 	// Personal events should NOT be broadcast to the whole workspace.
 	personalEvents := map[string]bool{
@@ -222,7 +222,7 @@ func registerListeners(bus *events.Bus, b realtime.Broadcaster) {
 			return
 		}
 
-		// Phase 1 (MUL-1138): the per-resource scope routing for high-frequency
+		// Phase 1 (ENA-1138): the per-resource scope routing for high-frequency
 		// task/chat events is intentionally NOT enabled yet. The server-side
 		// pieces — Hub.subscribe/unsubscribe protocol, ScopeAuthorizer, Redis
 		// Streams relay — have all landed, but the client (WSClient + the

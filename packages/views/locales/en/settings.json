@@ -329,6 +329,27 @@
       "billing": "Billing"
     }
   },
+  "ontology": {
+    "title": "Ontologies",
+    "description": "Browse the ontology catalog available from CapHub for this workspace.",
+    "loading": "Loading ontologies…",
+    "load_failed": "Couldn't load ontologies from CapHub.",
+    "empty": "No ontologies are available in CapHub.",
+    "retry": "Try again",
+    "version": "Version {{version}}",
+    "entities": "Entities",
+    "actions": "Actions",
+    "policies": "Policies",
+    "capabilities": "Capabilities",
+    "layered": "Layered",
+    "unified": "Unified",
+    "open_caphub": "Open in CapHub",
+    "details_title": "Ontology details",
+    "overview_tab": "Overview",
+    "preview_tab": "Ontology preview",
+    "no_items": "None defined",
+    "preview_empty": "No ontology preview is available."
+  },
   "plugins": {
     "title": "Plugins",
     "description": "Publish plugins into this workspace, then install a specific version and review exactly what it is allowed to reach.",
@@ -692,7 +713,7 @@
     "connection_description_prefix": "Link issues to pull requests automatically. When a PR with",
     "connection_description_suffix": "in its branch, title, or body is merged, the corresponding issue moves to",
     "connection_description_done": "Done",
-    "connection_identifier_example": "MUL-123",
+    "connection_identifier_example": "ENA-123",
     "connected_to": "Connected to {{login}}",
     "connect_github": "Connect GitHub",
     "connect_opening": "Opening…",

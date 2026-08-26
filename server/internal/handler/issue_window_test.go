@@ -343,7 +343,7 @@ func TestIssueCreationWindowPreservesUnreadInboxSemantics(t *testing.T) {
 		})
 	}
 	// The visible issue's newest row is read, so its older unread sibling must
-	// not light the cross-workspace summary (MUL-3695).
+	// not light the cross-workspace summary (ENA-3695).
 	insertInbox("visible older unread", visibleIssueID, false, "now() - interval '2 minutes'")
 	insertInbox("visible newest read", visibleIssueID, true, "now() - interval '1 minute'")
 	insertInbox("hidden newest unread", hiddenIssueID, false, "now()")

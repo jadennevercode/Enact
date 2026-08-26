@@ -191,7 +191,7 @@ type DaemonRegisterRequest struct {
 		Version string `json:"version"` // agent CLI version (claude/codex)
 		Status  string `json:"status"`
 		// ProfileID, when non-empty, marks this as an instance of a custom
-		// runtime_profile (MUL-3284). Empty = built-in runtime (legacy path).
+		// runtime_profile (ENA-3284). Empty = built-in runtime (legacy path).
 		// Type carries the protocol family for both built-in and custom rows
 		// so task routing (agent.New) is unchanged.
 		ProfileID string `json:"profile_id"`
@@ -277,7 +277,7 @@ func normalizeProvider(s string) string {
 }
 
 // inheritMachineCustomName gives a freshly-inserted runtime the machine's
-// shared custom name (MUL-4217) when the machine is already named, so adding a
+// shared custom name (ENA-4217) when the machine is already named, so adding a
 // provider — or recording a failed custom-runtime profile — on a named machine
 // doesn't leave a custom_name = NULL row that makes the machine title revert to
 // its hostname. Both the normal runtime path and the failed-profile path write
@@ -463,7 +463,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		// Persist what this daemon advertised, so surfaces that cannot see the
 		// live request — the resource-save gate and the UI — decide from the
 		// same signal the claim path uses, instead of re-deriving it from a
-		// version string (MUL-5707).
+		// version string (ENA-5707).
 		metadata, _ := json.Marshal(map[string]any{
 			"version":      runtime.Version,
 			"cli_version":  req.CLIVersion,
@@ -593,7 +593,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 
 		// A brand-new runtime on an already-named machine inherits the machine's
 		// shared custom name so the machine title stays stable as providers come
-		// and go (MUL-4217). Shared with the failed-profile path below.
+		// and go (ENA-4217). Shared with the failed-profile path below.
 		registered = h.inheritMachineCustomName(r.Context(), registered, inserted)
 
 		// Inserted is false for normal daemon reconnects/upserts, so
@@ -700,7 +700,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		// Keep the failed-profile row consistent with the machine's name so it
-		// doesn't drag the machine title back to the hostname (MUL-4217).
+		// doesn't drag the machine title back to the hostname (ENA-4217).
 		h.inheritMachineCustomName(r.Context(), db.AgentRuntime{
 			ID:          prow.ID,
 			WorkspaceID: prow.WorkspaceID,
@@ -794,7 +794,7 @@ var errRuntimeMergeFenced = errors.New("runtime merge refused by the task-write 
 // with no history looks like, and treating a fenced refusal as success would take
 // us straight to DeleteAgentRuntime below — where agent_task_queue's
 // ON DELETE CASCADE would delete the history this merge is supposed to carry
-// forward (MUL-5999 review).
+// forward (ENA-5999 review).
 //
 // One transaction, because the fence's workspace lock lives only as long as the
 // statement that took it. Run as four autocommit statements, the merge had two
@@ -921,7 +921,7 @@ func (h *Handler) DaemonDeregister(w http.ResponseWriter, r *http.Request) {
 		RuntimeIDs []string `json:"runtime_ids"`
 		// OfflineReasons is optional and keyed by runtime id. Present only for
 		// causes the user must repair — a daemon shutting down sends none, so an
-		// older daemon simply keeps today's behaviour (MUL-6164).
+		// older daemon simply keeps today's behaviour (ENA-6164).
 		OfflineReasons map[string]json.RawMessage `json:"offline_reasons"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1535,7 +1535,7 @@ func parseRuntimeConnectedAppsForClaim(raw []byte, taskID pgtype.UUID) []runtime
 // repair (failure==nil) or a hard failure (failure!=nil, carrying the
 // status/message/outcome the per-runtime endpoint renders). handled=false means
 // proceed with a normal claim. Shared by the per-runtime and batch claim
-// handlers so the batch path can't silently drop surviving comments (MUL-4257).
+// handlers so the batch path can't silently drop surviving comments (ENA-4257).
 func (h *Handler) repairStaleCommentPlanIfNeeded(ctx context.Context, task *db.AgentTaskQueue, runtimeWorkspaceID string) (handled bool, failure *claimBuildFailure) {
 	if task.TriggerCommentID.Valid || len(task.CoalescedCommentIds) == 0 {
 		return false, nil
@@ -1568,7 +1568,7 @@ func (h *Handler) repairStaleCommentPlanIfNeeded(ctx context.Context, task *db.A
 // daemon never asks for more than its free execution-slot count anyway.
 const claimBatchMaxTasksCap = 32
 
-// ClaimTasksByRuntime is the machine-level (MUL-4257) batch claim endpoint. A
+// ClaimTasksByRuntime is the machine-level (ENA-4257) batch claim endpoint. A
 // daemon posts every runtime_id it hosts plus its free execution-slot count and
 // receives up to max_tasks already-claimed tasks in ONE round trip — each
 // carrying its runtime_id so the daemon routes it to the matching runtime
@@ -1594,7 +1594,7 @@ func (h *Handler) ClaimTasksByRuntime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Machine-level ownership (MUL-4257 review): the batch claim is scoped to a
+	// Machine-level ownership (ENA-4257 review): the batch claim is scoped to a
 	// single daemon. daemon_id is required so the server can reject any
 	// runtime_id that belongs to a different machine (guards against a stale /
 	// crossed runtime set claiming another daemon's tasks — which would land
@@ -1610,7 +1610,7 @@ func (h *Handler) ClaimTasksByRuntime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// max_tasks semantics (MUL-4257 review): a negative count is malformed; zero
+	// max_tasks semantics (ENA-4257 review): a negative count is malformed; zero
 	// is a valid "no free slots" poll that must claim nothing — never coerce to
 	// 1, which would dispatch a task the daemon cannot run and strand it until
 	// stale reclaim. Positive counts are capped so one request can't build an
@@ -1628,7 +1628,7 @@ func (h *Handler) ClaimTasksByRuntime(w http.ResponseWriter, r *http.Request) {
 		maxTasks = claimBatchMaxTasksCap
 	}
 
-	// Parse + de-dup requested ids with the NON-panicking parser (MUL-4257
+	// Parse + de-dup requested ids with the NON-panicking parser (ENA-4257
 	// review): the handler-local parseUUID panics on malformed input, which
 	// would turn a single bad id into a 500. Invalid ids are skipped, matching
 	// this endpoint's "unknown id skipped" semantics. Key by the canonical uuid
@@ -1884,7 +1884,7 @@ func claimResponseAgentIdentityMatches(resp AgentTaskResponse) bool {
 // single already-claimed task and computes the exact comment ids embedded in
 // it (deliveredCommentIDs). Shared by the per-runtime handler
 // (ClaimTaskByRuntime) and the machine-level batch handler
-// (ClaimTasksByRuntime, MUL-4257) so both build byte-identical payloads and
+// (ClaimTasksByRuntime, ENA-4257) so both build byte-identical payloads and
 // feed the same delivery receipt into FinalizeTaskClaim. A non-nil failure
 // means the task must not be dispatched; the builder has already cancelled it
 // where the failure semantics require it.
@@ -1925,7 +1925,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	// wire (is_leader_task / squad_id), so the daemon must not re-derive it
 	// from the briefing text. Set unconditionally — on every claim, leader or
 	// not — because its absence is what tells an upgraded daemon it is talking
-	// to a server too old to have answered the question (MUL-5811).
+	// to a server too old to have answered the question (ENA-5811).
 	resp.LeaderRoleResolved = true
 	// Agent-trigger plugin hooks, as tools. A failure here degrades to no
 	// tools rather than failing the claim: a plugin that cannot be listed must
@@ -2121,7 +2121,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	// the daemon can render `## Task Initiator`. Comment-triggered tasks instead
 	// resolve their initiator from the triggering comment's author below; the
 	// two paths are mutually exclusive (a task is either chat or issue-bound).
-	// See MUL-2645.
+	// See ENA-2645.
 	if task.InitiatorUserID.Valid {
 		resp.InitiatorType = "member"
 		resp.InitiatorID = uuidToString(task.InitiatorUserID)
@@ -2149,7 +2149,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// enqueue time and is true for every ISSUE-BOUND path that routes
 			// work to a squad leader: direct assign-to-squad, comment
 			// @squad-mention (even when the issue itself is assigned to a
-			// plain agent — the MUL-3724 case), sub-issue done callback,
+			// plain agent — the ENA-3724 case), sub-issue done callback,
 			// autopilot squad-assignee, and retry-clone inheritance. The old
 			// issue.AssigneeType=="squad" gate missed the comment-mention
 			// path, so the leader booted with zero squad context and
@@ -2188,7 +2188,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					}); err == nil && uuidToString(squad.LeaderID) == resp.Agent.ID {
 						// Parent-status authority is deliberately NARROWER than
 						// briefing injection. Injection is keyed off is_leader_task
-						// (see above) and therefore also fires on the MUL-3724 path,
+						// (see above) and therefore also fires on the ENA-3724 path,
 						// where the issue belongs to a plain agent and this squad was
 						// only @mentioned for help. Granting status ownership there
 						// would let a guest squad push someone else's in-flight issue
@@ -2216,7 +2216,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 				// swapped after enqueue) leaves a task the daemon must NOT run
 				// as a leader: it has no roster to delegate to and no protocol
 				// to follow. The daemon derives its leader role from this flag
-				// (MUL-5811), so clearing it here is what keeps
+				// (ENA-5811), so clearing it here is what keeps
 				// "is_leader_task on the wire ⇔ briefing injected" true, and the
 				// run degrades to an ordinary agent turn exactly as it did when
 				// the daemon inferred the role from the briefing text itself.
@@ -2287,7 +2287,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		// intentionally absent and remain eligible for reconciliation. A stable
 		// payload budget always keeps the primary trigger, then admits an oldest-
 		// first prefix of additional comments; overflow is reconciled later.
-		// Workspace-scoped load (MUL-4252) so a foreign comment UUID resolves to
+		// Workspace-scoped load (ENA-4252) so a foreign comment UUID resolves to
 		// "missing" instead of leaking another tenant's text into the prompt.
 		plannedCommentIDs := append([]pgtype.UUID{}, task.CoalescedCommentIds...)
 		if task.TriggerCommentID.Valid {
@@ -2346,7 +2346,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// Scope by the runtime's workspace so a task row carrying a foreign
 			// comment UUID can never pull another workspace's comment text into
 			// this agent's prompt. The task's issue workspace is asserted equal
-			// to runtime.WorkspaceID below, so this is the right tenant (MUL-4252).
+			// to runtime.WorkspaceID below, so this is the right tenant (ENA-4252).
 			if comment, err := h.Queries.GetCommentInWorkspace(r.Context(), db.GetCommentInWorkspaceParams{
 				ID:          effectiveTriggerUUID,
 				WorkspaceID: runtime.WorkspaceID,
@@ -2362,7 +2362,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 				// plus email for members) so a workspace-visible agent can
 				// attribute the request to the right person instead of to the
 				// runtime owner. Same lookups as the display name above; we just
-				// also capture the id and email. See MUL-2645.
+				// also capture the id and email. See ENA-2645.
 				resp.InitiatorType = comment.AuthorType
 				if comment.AuthorID.Valid {
 					resp.InitiatorID = uuidToString(comment.AuthorID)
@@ -2435,7 +2435,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		if task.RerunOfTaskID.Valid {
 			// Manual retry: resume precisely from the source task the user
 			// clicked, NOT the most-recent (agent, issue) row — a parallel task
-			// on the same issue must never hijack the resume (MUL-4869). The
+			// on the same issue must never hijack the resume (ENA-4869). The
 			// workdir is ALWAYS reused when it still exists; the session is
 			// resumed only when the source failure did not poison the
 			// conversation AND the source ran on this runtime.
@@ -2463,7 +2463,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					src.SessionID.Valid && src.RuntimeID == task.RuntimeID {
 					resp.PriorSessionID = src.SessionID.String
 				}
-				// MUL-5305: if the source task withheld its Codex session because
+				// ENA-5305: if the source task withheld its Codex session because
 				// the rollout was missing, this rerun has nothing resumable from it
 				// — disclose the gap rather than silently starting fresh.
 				if src.SessionRolloutMissing {
@@ -2497,7 +2497,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					resp.PriorWorkDir = prior.WorkDir.String
 				}
 			}
-			// MUL-5305: if the most recent terminal task withheld its Codex
+			// ENA-5305: if the most recent terminal task withheld its Codex
 			// session because the rollout was missing, GetLastTaskSession fell
 			// back to an older session (or none). Disclose the continuity gap so
 			// the next run tells the user the most recent turn's context could not
@@ -2521,11 +2521,11 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// Legacy compatibility: agent creation no longer creates intro chats,
 			// but historical is_agent_intro sessions can still be resumed. Such a
 			// session carries no user message on its opening turn, so flag it for
-			// the historical self-introduction prompt (MUL-4230). The column stays true for the
+			// the historical self-introduction prompt (ENA-4230). The column stays true for the
 			// session's whole life, so gate the intro prompt on the session still
 			// having zero human messages — otherwise every follow-up turn after the
 			// creator replies would re-run the "introduce yourself" prompt and the
-			// agent keeps repeating the same introduction (MUL-4259).
+			// agent keeps repeating the same introduction (ENA-4259).
 			if cs.IsAgentIntro {
 				if hasUser, herr := h.Queries.ChatSessionHasUserMessage(r.Context(), cs.ID); herr != nil {
 					slog.Warn("chat intro gate: has-user-message check failed",
@@ -2536,14 +2536,14 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			}
 			// Flag a channel-backed session so the daemon makes the agent aware it
 			// is operating inside an IM conversation and not the Enact web app
-			// (MUL-3871). Empty for a web-only chat session.
+			// (ENA-3871). Empty for a web-only chat session.
 			//
 			// The binding is read WITHOUT naming a channel. Every channel writes
 			// the same channel_chat_session_binding row and differs only in
 			// channel_type, and UNIQUE (chat_session_id) allows at most one, so
 			// the row itself is the answer. Enumerating candidate channels here
 			// was the bug twice over: the Slack-only lookup reported a Feishu
-			// chat as web-backed (MUL-4899), and the {slack, feishu} list that
+			// chat as web-backed (ENA-4899), and the {slack, feishu} list that
 			// replaced it did the same to WeCom. Downstream that mis-flag makes
 			// the brief inject `enact attachment upload` guidance into a
 			// conversation that cannot carry attachments at all.
@@ -2653,12 +2653,12 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// task (chat_input_task_id set) reads exactly the user messages
 			// tagged with its own input owner, so a message that arrived after
 			// this turn was sealed can never be absorbed here. Direct-chat
-			// tasks have owned their single message since MUL-4351; channel
+			// tasks have owned their single message since ENA-4351; channel
 			// (Slack/Lark) tasks now seal their trailing batch at enqueue too.
 			// Only legacy tasks created before that deploy carry a NULL owner
 			// and keep the trailing-message selector — the run of user messages
 			// after the last assistant row, which also covers a debounced burst
-			// (MUL-2968: "看上海天气" then "还有青岛" must both be delivered) —
+			// (ENA-2968: "看上海天气" then "还有青岛" must both be delivered) —
 			// so a rolling deploy never replays their history. Attachments are
 			// collected per included message so the agent can
 			// `enact attachment download <id>` (the inline markdown URL is
@@ -2675,7 +2675,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// A read failure must NOT masquerade as "zero input". Preserve the
 			// just-dispatched task (the stale-dispatched reclaim redelivers it)
 			// and reject the claim with 5xx, rather than cancelling a valid direct
-			// task on a transient DB error (MUL-4351 review).
+			// task on a transient DB error (ENA-4351 review).
 			if inputLoadErr != nil {
 				slog.Error("chat claim: load chat input messages failed; preserving task for redelivery",
 					"task_id", uuidToString(task.ID),
@@ -2720,7 +2720,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					}
 				}
 
-				// MUL-5305: continuity-gap disclosure is independent of whether
+				// ENA-5305: continuity-gap disclosure is independent of whether
 				// either pointer field needed fallback, so this query stays
 				// unconditional for non-force-fresh chat claims.
 				started := time.Now()
@@ -2756,7 +2756,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// empty prompt. The send path creates the owning user message in the
 			// same transaction as the task, so this only fires on genuinely
 			// corrupt state — cancel the just-dispatched task and reject the claim
-			// rather than run the agent with nothing to answer (MUL-4351).
+			// rather than run the agent with nothing to answer (ENA-4351).
 			if task.ChatInputTaskID.Valid && !resp.ChatIntro && strings.TrimSpace(resp.ChatMessage) == "" {
 				slog.Error("chat claim: task-owned direct task has no user input; cancelling",
 					"task_id", uuidToString(task.ID),
@@ -2811,7 +2811,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		}
 	}
 
-	// Handoff note (MUL-3375) is populated by taskToResponse (the shared mapper
+	// Handoff note (ENA-3375) is populated by taskToResponse (the shared mapper
 	// resp came from above), so the daemon's prompt + issue_context.md render the
 	// assignment-handoff branch. Empty for all other task kinds.
 
@@ -2888,7 +2888,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			// Parent-issue resolution for quick-create tasks opened from
 			// "Add sub issue". The handler already verified workspace
 			// membership at submit time; here we re-fetch to pull the
-			// human-readable identifier (e.g. MUL-123) the agent will
+			// human-readable identifier (e.g. ENA-123) the agent will
 			// reference in the prompt. If the parent was deleted between
 			// submit and claim we surface the UUID anyway — the agent
 			// still passes `--parent <uuid>` and the server-side create
@@ -3030,7 +3030,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		)
 	}
 
-	// Workspace status catalog (MUL-6460): active CUSTOM statuses only, so the
+	// Workspace status catalog (ENA-6460): active CUSTOM statuses only, so the
 	// daemon can render them into the brief's status-command line. Not gated on
 	// the custom_issue_statuses flag — the flag only guards creation, and a
 	// catalog written before a flag flip must stay visible to agents as long as
@@ -3138,7 +3138,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 // in place, editing the working copy the user asked to isolate. Version strings
 // could not answer that reliably: the git-describe dev-build exemption that
 // keeps `make daemon` unblocked let a v0.4.23-era daemon straight through, and
-// two tasks silently ran in the user's own directory (MUL-5707).
+// two tasks silently ran in the user's own directory (ENA-5707).
 //
 // Only resources bound to the claiming runtime's own daemon are considered: a
 // project may carry one local_directory per machine, and another machine's
@@ -3263,7 +3263,7 @@ func (h *Handler) ClaimTaskByRuntime(w http.ResponseWriter, r *http.Request) {
 	// path on human-only endpoints (e.g. `/api/agents/{id}/env`). Runtime
 	// owner is required because task tokens are still bound to an owning user;
 	// without one, fail the claim explicitly instead of letting the daemon
-	// fall back to a member/owner credential. MUL-3292.
+	// fall back to a member/owner credential. ENA-3292.
 	// Token expires after the queue/runtime upper bound (24h) so it survives
 	// long-running tasks but cannot outlive a forgotten one.
 	if !runtime.OwnerID.Valid {
@@ -3417,7 +3417,7 @@ func (h *Handler) ResolveTaskSkillBundles(w http.ResponseWriter, r *http.Request
 // assistant message in a chronologically-ordered chat history — the set the
 // agent has NOT yet replied to. The agent resumes its prior session and only
 // learns of new input through the claim response's chat_message, so a single
-// run that covers a debounced burst (MUL-2968) must deliver every one of
+// run that covers a debounced burst (ENA-2968) must deliver every one of
 // these, not just the latest. Every completed or failed run writes an
 // assistant row, so the anchor advances one turn at a time; the result is the
 // whole slice on the first turn and exactly the new message(s) thereafter.
@@ -3609,7 +3609,7 @@ type TaskCompleteRequest struct {
 	// only pointer to where the changes went. Empty for every other task kind.
 	BranchName string `json:"branch_name,omitempty"`
 	// SessionRolloutMissing: the daemon withheld this task's Codex session
-	// because its rollout was missing (MUL-5305). Clear the resume pointer and
+	// because its rollout was missing (ENA-5305). Clear the resume pointer and
 	// flag the continuity gap for the next claim.
 	SessionRolloutMissing bool `json:"session_rollout_missing,omitempty"`
 	// RetiredSessionID: a session this run proved unresumable and abandoned
@@ -3679,7 +3679,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 	// dead session pinned as the resume pointer, which is a permanently stuck
 	// (agent, issue) pair rather than a mislabelled row. Same argument, and the
 	// same shared classifier, as taskfailure.NormalizeDaemonReason on the fail
-	// boundary (MUL-5370). A current daemon classifies this before it ever calls
+	// boundary (ENA-5370). A current daemon classifies this before it ever calls
 	// /complete, so this branch is dead weight for it — by design.
 	if taskfailure.ContextExhaustedCompletion(req.Output) {
 		slog.Warn("complete task: output is a provider context-exhaustion notice, recording as failed",
@@ -3703,7 +3703,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, _ := json.Marshal(req)
-	// MUL-5305: SessionRolloutMissing is applied inside CompleteTask's terminal
+	// ENA-5305: SessionRolloutMissing is applied inside CompleteTask's terminal
 	// transaction (force session_id NULL + flag the row), so an auto-retry the
 	// same commit creates and wakes can never observe the withheld pointer or a
 	// missing continuity-gap flag.
@@ -3713,7 +3713,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 		// assistant-outcome write), not a bad request: an already-finalized
 		// callback is treated as idempotent success and returns no error. Return
 		// 5xx so the daemon retries the terminal callback and the completion —
-		// including the single chat outcome row — lands exactly once (MUL-4351).
+		// including the single chat outcome row — lands exactly once (ENA-4351).
 		slog.Warn("complete task failed", "task_id", taskID, "error", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -3721,7 +3721,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 
 	h.emitIssueExecutedOnFirstCompletion(r, task)
 
-	// MUL-4195: guarantee at-least-once processing. If a member posted a
+	// ENA-4195: guarantee at-least-once processing. If a member posted a
 	// deliberate comment while this run was executing (or one was merged into
 	// it after its context was built), schedule a single follow-up so the
 	// input is never silently dropped. Loop-safe: member-authored only, capped
@@ -3790,7 +3790,7 @@ func (h *Handler) emitIssueExecutedOnFirstCompletion(r *http.Request, task *db.A
 }
 
 // reconcileCommentsOnCompletion closes the at-least-once gap for member
-// comments a completing run did NOT deliver (MUL-4195).
+// comments a completing run did NOT deliver (ENA-4195).
 //
 // The merge path (mergeCommentIntoPendingTask) folds a comment into a task only
 // while it is still PRE-CLAIM (queued/deferred). Those planned ids are not
@@ -3800,7 +3800,7 @@ func (h *Handler) emitIssueExecutedOnFirstCompletion(r *http.Request, task *db.A
 // this run's lifetime that is NOT in that receipt must earn a follow-up.
 //
 // Anchor = created_at + delivered-set exclusion, NOT a dispatch/start timestamp
-// (MUL-4195 review round-3 must-fix). A timestamp anchor cannot tell a
+// (ENA-4195 review round-3 must-fix). A timestamp anchor cannot tell a
 // delivered comment from an undelivered one, and there is a race it structurally
 // misses: a comment created while the task was still queued, but whose merge
 // lost the race to the daemon claiming the task (queued→dispatched) — the merge
@@ -3821,7 +3821,7 @@ func (h *Handler) emitIssueExecutedOnFirstCompletion(r *http.Request, task *db.A
 //     — is intentionally excluded, so a plain agent reply / acknowledgement
 //     earns no follow-up here regardless of issue assignment. That is the
 //     anti-loop boundary the old member-only filter protected.
-//     This closes MUL-4304: an explicit agent→agent @mention that landed while
+//     This closes ENA-4304: an explicit agent→agent @mention that landed while
 //     the target already had a DISPATCHED task is dropped by the create-time
 //     enqueue path — merge only folds a comment into a QUEUED task, so a
 //     dispatched target hits the merge-miss + active-task `continue` and is
@@ -3906,7 +3906,7 @@ func (h *Handler) reconcileCommentsOnCompletion(ctx context.Context, task *db.Ag
 		if c.ParentID.Valid {
 			// Scope to the issue's workspace; a comment's parent is always in the
 			// same workspace, so this only fails closed against a stray foreign
-			// UUID rather than changing behavior (MUL-4252).
+			// UUID rather than changing behavior (ENA-4252).
 			if parent, err := h.Queries.GetCommentInWorkspace(ctx, db.GetCommentInWorkspaceParams{
 				ID:          c.ParentID,
 				WorkspaceID: issue.WorkspaceID,
@@ -3922,14 +3922,14 @@ func (h *Handler) reconcileCommentsOnCompletion(ctx context.Context, task *db.Ag
 		// originator. For an agent author, the originator is the human at the
 		// top of that agent's trigger chain (resolved from the comment's source
 		// task); canInvokeAgent judges an agent→agent (A2A) mention by that
-		// originator, not the immediate agent principal (MUL-3963).
+		// originator, not the immediate agent principal (ENA-3963).
 		actorType := c.AuthorType
 		actorID := uuidToString(c.AuthorID)
 		originatorUserID := actorID
 		var delegationAuthority string
 		if actorType != "member" {
 			originatorUserID = uuidToString(h.TaskService.ResolveOriginatorFromTriggerComment(ctx, issue.WorkspaceID, c.ID))
-			// MUL-4857: this is the deferred replay of an already-accepted delegation
+			// ENA-4857: this is the deferred replay of an already-accepted delegation
 			// (e.g. the mentioned target was busy at create time). Restore the SAME
 			// verified authorization context from the comment's stored source_task_id,
 			// so an unattributed autopilot delegation's follow-up still fires once the
@@ -3949,7 +3949,7 @@ func (h *Handler) reconcileCommentsOnCompletion(ctx context.Context, task *db.Ag
 		// replayed here. Restricting to the explicit-mention sources keeps the
 		// invariant unconditional — a plain agent reply / acknowledgement earns
 		// no follow-up regardless of issue assignment — which is the anti-loop
-		// boundary the old member-only filter protected (MUL-4304). Member
+		// boundary the old member-only filter protected (ENA-4304). Member
 		// comments are unaffected: they keep their full routing.
 		if actorType != "member" {
 			triggers = keepExplicitMentionTriggers(triggers)
@@ -4000,7 +4000,7 @@ func (h *Handler) reconcileCommentsOnCompletion(ctx context.Context, task *db.Ag
 }
 
 // keepExplicitMentionTriggers filters a computed trigger set down to the ones
-// produced by an EXPLICIT @agent / @squad mention (MUL-4304). It is applied to
+// produced by an EXPLICIT @agent / @squad mention (ENA-4304). It is applied to
 // agent-authored comments during completion reconcile so that only a
 // deliberately-targeted mention earns a replay — the assigned-squad-leader
 // fallback, thread-parent / conversation continuation, and issue-assignee
@@ -4022,7 +4022,7 @@ func keepExplicitMentionTriggers(triggers []commentAgentTrigger) []commentAgentT
 }
 
 // buildCoalescedCommentData loads the full detail of each comment that was
-// folded into a not-yet-started run (MUL-4195) so the claim response can embed
+// folded into a not-yet-started run (ENA-4195) so the claim response can embed
 // them and the prompt can address each without assuming they share the
 // triggering thread (review should-fix #3). Thread id follows the same rule as
 // the triggering comment (parent id when the comment is a reply, else the
@@ -4046,7 +4046,7 @@ func (h *Handler) buildCoalescedCommentData(ctx context.Context, workspaceID pgt
 		seen[idString] = struct{}{}
 		// Workspace-scoped so a foreign comment UUID resolves to "missing"
 		// (skipped) instead of leaking another tenant's text into the prompt
-		// (MUL-4252). Matches this function's documented skip-on-missing rule.
+		// (ENA-4252). Matches this function's documented skip-on-missing rule.
 		comment, err := h.Queries.GetCommentInWorkspace(ctx, db.GetCommentInWorkspaceParams{
 			ID:          id,
 			WorkspaceID: workspaceID,
@@ -4315,7 +4315,7 @@ func (h *Handler) ReportTaskUsage(w http.ResponseWriter, r *http.Request) {
 		// observable in logs, not just queryable from runtime_usage. The ratio
 		// is cached input over total input-side tokens; a persistently low
 		// value flags a prompt prefix that is not being reused across runs
-		// (e.g. volatile values poisoning the cacheable prefix). MUL-3887.
+		// (e.g. volatile values poisoning the cacheable prefix). ENA-3887.
 		if totalInput := u.InputTokens + u.CacheReadTokens + u.CacheWriteTokens; totalInput > 0 {
 			slog.Info("task prompt-cache usage",
 				"task_id", taskID,
@@ -4360,7 +4360,7 @@ type TaskFailRequest struct {
 	// it so a partially-successful run is still findable.
 	BranchName string `json:"branch_name,omitempty"`
 	// SessionRolloutMissing: the daemon withheld this task's Codex session
-	// because its rollout was missing (MUL-5305). Clear the resume pointer and
+	// because its rollout was missing (ENA-5305). Clear the resume pointer and
 	// flag the continuity gap for the next claim.
 	SessionRolloutMissing bool `json:"session_rollout_missing,omitempty"`
 	// RetiredSessionID: a session this run proved unresumable and abandoned
@@ -4398,7 +4398,7 @@ func (h *Handler) FailTask(w http.ResponseWriter, r *http.Request) {
 // transaction, token revocation and runtime wake-up as one the daemon reported
 // as failed itself.
 func (h *Handler) failTask(w http.ResponseWriter, r *http.Request, taskID, workspaceID string, req TaskFailRequest) {
-	// MUL-5305: SessionRolloutMissing is applied inside FailTask's terminal
+	// ENA-5305: SessionRolloutMissing is applied inside FailTask's terminal
 	// transaction — forcing session_id NULL (overriding the COALESCE that would
 	// keep a stale mid-flight pin) and flagging the row in the same commit that
 	// creates and wakes the auto-retry, so the retry can never claim the withheld
@@ -4411,7 +4411,7 @@ func (h *Handler) failTask(w http.ResponseWriter, r *http.Request, taskID, works
 		// request. Return 5xx so the daemon's terminal callback — which treats a
 		// 400 as permanent and bails without retrying (postJSONWithRetry /
 		// isTransientError) — retries and the fail, gap flag, and retry land
-		// exactly once (MUL-5305). An invalid request body still returns 400 above.
+		// exactly once (ENA-5305). An invalid request body still returns 400 above.
 		slog.Warn("fail task failed", "task_id", taskID, "error", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -4465,7 +4465,7 @@ func (h *Handler) ReportTaskMessages(w http.ResponseWriter, r *http.Request) {
 	// it from there instead of re-running GetIssue / GetChatSession: this
 	// endpoint fires every 500ms for every running task, and that second
 	// lookup was a whole extra query per batch on the hottest write path in
-	// the system (MUL-6523).
+	// the system (ENA-6523).
 	task, wsID, ok := h.requireDaemonTaskAccessWithWorkspace(w, r, taskID)
 	if !ok {
 		return
@@ -4484,7 +4484,7 @@ func (h *Handler) ReportTaskMessages(w http.ResponseWriter, r *http.Request) {
 	// strings were just decoded out of the request, and re-encoding content /
 	// output into JSON would make the server escape every byte a second time
 	// and Postgres parse the envelope back out — measurably worse on exactly
-	// the large messages that are already the most expensive (MUL-6523). Empty
+	// the large messages that are already the most expensive (ENA-6523). Empty
 	// string means SQL NULL, applied by the query's NULLIF.
 	n := len(req.Messages)
 	params := db.CreateTaskMessagesParams{
@@ -5033,7 +5033,7 @@ func (h *Handler) BatchIssueGCCheck(w http.ResponseWriter, r *http.Request) {
 	// catalog queries per request — on an endpoint whose entire purpose is to
 	// replace per-issue requests, and which every installed daemon runs on a
 	// timer. The resolver reads the catalog lazily and at most once, so an
-	// all-built-in batch still costs zero. (MUL-6243)
+	// all-built-in batch still costs zero. (ENA-6243)
 	resolver := issuestatus.NewResolver(workspaceUUID)
 	items := make([]batchIssueGCCheckItem, 0, len(req.IssueIDs))
 	for i, issueID := range req.IssueIDs {
@@ -5044,7 +5044,7 @@ func (h *Handler) BatchIssueGCCheck(w http.ResponseWriter, r *http.Request) {
 			// issue terminal, so its workdir can be reclaimed?") and has no
 			// database of its own, so the canonical status is resolved here.
 			// Normalizing server-side also means daemons that predate custom
-			// statuses keep making correct GC decisions. (MUL-6243)
+			// statuses keep making correct GC decisions. (ENA-6243)
 			item.Status = resolver.Effective(r.Context(), h.issueStatusCatalog(), row.Status)
 			updatedAt := row.UpdatedAt.Time
 			item.UpdatedAt = &updatedAt
@@ -5073,7 +5073,7 @@ func (h *Handler) GetIssueGCCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		// Same reasoning as BatchIssueGCCheck: normalize server-side so the
-		// daemon's terminal-status test stays correct. (MUL-6243)
+		// daemon's terminal-status test stays correct. (ENA-6243)
 		"status":     issuestatus.Effective(r.Context(), h.issueStatusCatalog(), issue.WorkspaceID, issue.Status),
 		"updated_at": issue.UpdatedAt.Time,
 	})

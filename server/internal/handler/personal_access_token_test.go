@@ -158,7 +158,7 @@ func TestRenewPAT_RejectsNonPATAuthHeader(t *testing.T) {
 		header string
 	}{
 		{"empty", ""},
-		{"missing bearer prefix", "mul_abc123"},
+		{"missing bearer prefix", "enact_abc123"},
 		{"wrong prefix", "Bearer mdt_abc123"},
 		{"jwt", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.sig"},
 	}
@@ -241,7 +241,7 @@ func TestRenewPAT_ConcurrentRenewIsIdempotent(t *testing.T) {
 }
 
 // TestRenewPAT_ParallelRenewExtendsExactlyOnce locks in the SQL-level
-// idempotency that the MUL-2744 review flagged: when N callers race to
+// idempotency that the ENA-2744 review flagged: when N callers race to
 // renew the same in-window PAT, the WHERE clause must ensure only one
 // UPDATE actually bumps the row. The previous condition (`expires_at < $2`)
 // silently let every caller win — each computed a slightly larger

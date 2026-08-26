@@ -225,7 +225,7 @@ func TestRandomSessionIDUnique(t *testing.T) {
 }
 
 // TestRegistrationServicePublishInstalledEmitsCreatedEvent pins the
-// MUL-3059 fix: a completed install must publish lark_installation:created
+// ENA-3059 fix: a completed install must publish lark_installation:created
 // at the row-write point so every workspace client refreshes its
 // connection badge without a page reload. The bug was that this event only
 // fired from the HTTP status-poll handler, so any surface that wasn't the

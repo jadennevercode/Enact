@@ -175,7 +175,7 @@ type CreateAutopilotRuleVersionParams struct {
 }
 
 // =====================
-// Autopilot Rule Version (rule_owner attribution, MUL-4302 §3.4)
+// Autopilot Rule Version (rule_owner attribution, ENA-4302 §3.4)
 // =====================
 // Append one immutable rule-version snapshot on a substantive publish (create /
 // enable / resume / target / execution-mode change). published_by_* is the acting
@@ -243,7 +243,7 @@ type CreateAutopilotRunParams struct {
 // which have no canonical occurrence. Combined with the partial unique
 // index uq_autopilot_run_trigger_planned, this gives dispatch-layer
 // idempotency: a stale-steal retry at the same plan_time cannot create
-// a second run for the same (trigger_id, planned_at) pair (MUL-3551).
+// a second run for the same (trigger_id, planned_at) pair (ENA-3551).
 func (q *Queries) CreateAutopilotRun(ctx context.Context, arg CreateAutopilotRunParams) (AutopilotRun, error) {
 	row := q.db.QueryRow(ctx, createAutopilotRun,
 		arg.AutopilotID,
@@ -324,19 +324,19 @@ type CreateAutopilotTaskParams struct {
 // Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 // locks the owners' workspace rows in the writer's own transaction and returns
 // false once they are gone, so this statement writes no row instead of stranding
-// a task in a workspace that has just been deleted (MUL-5999).
+// a task in a workspace that has just been deleted (ENA-5999).
 // run_only autopilot dispatch. Attribution depends on the trigger:
 //   - schedule / webhook / api: no human authorized the run, so originator_user_id
 //     stays NULL and accountable_user_id is the rule_owner (the publisher of the
 //     autopilot's active rule version), with rule_version_id recording the snapshot
-//     (MUL-4302 §3.4) — the accountable-diverges-from-originator case.
+//     (ENA-4302 §3.4) — the accountable-diverges-from-originator case.
 //   - manual: a member clicked "run now", a direct human action, so originator and
 //     accountable are BOTH that member (originator_source='direct_human'); no rule
-//     version is involved (MUL-4302 §4).
+//     version is involved (ENA-4302 §4).
 //
 // When no version/publisher resolves on the non-manual path, the caller passes NULL
 // accountable + originator_source='unattributed' so the row is still not a
-// NULL-source bypass (MUL-4302 §2).
+// NULL-source bypass (ENA-4302 §2).
 func (q *Queries) CreateAutopilotTask(ctx context.Context, arg CreateAutopilotTaskParams) (AgentTaskQueue, error) {
 	row := q.db.QueryRow(ctx, createAutopilotTask,
 		arg.AgentID,
@@ -1410,7 +1410,7 @@ type ListSchedulableAutopilotTriggersRow struct {
 // looks like a brand-new trigger to the new scheduler on first tick
 // and the half-open `(created_at, now]` enumeration replays the most
 // recent already-fired occurrence — exactly the post-deploy
-// spurious-fire reported on MUL-3551 dev.
+// spurious-fire reported on ENA-3551 dev.
 //
 // Filters out webhook / api triggers, disabled triggers, paused/archived
 // autopilots, and any trigger missing its cron expression. ORDER BY id
@@ -1748,13 +1748,13 @@ type SelectAutopilotsExceedingFailureThresholdRow struct {
 // Find active autopilots whose recent run failure rate exceeds the threshold.
 // Counts only "real" terminal runs (completed | failed). 'skipped' is
 // excluded from BOTH numerator and denominator: an admission-skipped run
-// (e.g. assignee runtime offline at dispatch time, MUL-1899) is neither a
+// (e.g. assignee runtime offline at dispatch time, ENA-1899) is neither a
 // success nor a failure, so it must not dilute the failure ratio (which
 // would let a 100%-failing autopilot mask itself behind a wall of skips)
 // nor inflate it. issue_created/running are still excluded so in-flight
 // work isn't penalised.
 // Used by the failure monitor to auto-pause sustained-failure autopilots
-// (the canonical example from MUL-1336 was an autopilot scheduled every 5 min
+// (the canonical example from ENA-1336 was an autopilot scheduled every 5 min
 // that 100% failed for days, burning ~1.5k useless tasks per week).
 func (q *Queries) SelectAutopilotsExceedingFailureThreshold(ctx context.Context, arg SelectAutopilotsExceedingFailureThresholdParams) ([]SelectAutopilotsExceedingFailureThresholdRow, error) {
 	rows, err := q.db.Query(ctx, selectAutopilotsExceedingFailureThreshold, arg.MinRuns, arg.FailRatioThreshold, arg.Since)
@@ -1799,7 +1799,7 @@ type SetAutopilotTriggerPublisherParams struct {
 
 // Re-stamp a single trigger's responsible publisher after a substantive edit of
 // THAT trigger (cron / filter / enabled / webhook security). Future runs it fires
-// become accountable to this member (MUL-4302 trigger_owner transfer).
+// become accountable to this member (ENA-4302 trigger_owner transfer).
 func (q *Queries) SetAutopilotTriggerPublisher(ctx context.Context, arg SetAutopilotTriggerPublisherParams) error {
 	_, err := q.db.Exec(ctx, setAutopilotTriggerPublisher, arg.ID, arg.PublishedByType, arg.PublishedByID)
 	return err
@@ -1821,7 +1821,7 @@ type SetAutopilotTriggerPublishersByAutopilotParams struct {
 // AUTOPILOT-level edit (target / instructions / assignee / execution-mode / enable).
 // Such a change governs every trigger's future runs, so responsibility transfers to
 // the editing member for all of them; a per-trigger edit uses the single-trigger
-// variant so it never reassigns another trigger (MUL-4302).
+// variant so it never reassigns another trigger (ENA-4302).
 func (q *Queries) SetAutopilotTriggerPublishersByAutopilot(ctx context.Context, arg SetAutopilotTriggerPublishersByAutopilotParams) error {
 	_, err := q.db.Exec(ctx, setAutopilotTriggerPublishersByAutopilot, arg.AutopilotID, arg.PublishedByType, arg.PublishedByID)
 	return err
@@ -2218,7 +2218,7 @@ type UpdateAutopilotRunSkippedParams struct {
 // pre-flight admission check when the assignee agent's runtime is offline:
 // creating an issue / task in that state would just pile a doomed job onto
 // agent_task_queue (the canonical "持续给离线 local agent 入队" symptom from
-// MUL-1899). Recording the skip + reason gives the UI / failure monitor / ops
+// ENA-1899). Recording the skip + reason gives the UI / failure monitor / ops
 // a paper trail without polluting the failure ratio.
 func (q *Queries) UpdateAutopilotRunSkipped(ctx context.Context, arg UpdateAutopilotRunSkippedParams) (AutopilotRun, error) {
 	row := q.db.QueryRow(ctx, updateAutopilotRunSkipped, arg.ID, arg.FailureReason, arg.ReasonCode)

@@ -34,7 +34,7 @@ func TestSquadOperatingProtocolOwnsParentStatus(t *testing.T) {
 }
 
 // TestSquadOperatingProtocolScopesParentStatusOwnership is the guard for the
-// MUL-5156 review finding: the briefing is injected on every leader path,
+// ENA-5156 review finding: the briefing is injected on every leader path,
 // including an @squad mention on an issue assigned to someone else. Status
 // ownership must not ride along — a guest leader gets an explicit prohibition
 // instead of the grant, so the model never has to infer the boundary.
@@ -77,7 +77,7 @@ func TestSquadOperatingProtocolScopesParentStatusOwnership(t *testing.T) {
 	}
 
 	// Both variants must keep the protocol header. The daemon no longer
-	// derives IsSquadLeader from it (MUL-5811 — it reads is_leader_task /
+	// derives IsSquadLeader from it (ENA-5811 — it reads is_leader_task /
 	// squad_id off the claim), but it is still the section title the leader
 	// rules in the brief and the per-turn prompt refer to by name.
 	if !strings.Contains(guest, "## Squad Operating Protocol") {

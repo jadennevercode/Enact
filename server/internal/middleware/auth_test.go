@@ -262,7 +262,7 @@ func TestAuth_InvalidPAT(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/api/me", nil)
-	req.Header.Set("Authorization", "Bearer mul_invalid_token_here")
+	req.Header.Set("Authorization", "Bearer enact_invalid_token_here")
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -274,10 +274,10 @@ func TestAuth_InvalidPAT(t *testing.T) {
 // TestAuth_StripsClientSuppliedActorSource enforces the invariant that
 // X-Actor-Source is a server-only header: any value the client sends
 // must be discarded before downstream code sees it. Without this
-// guarantee a client carrying a normal mul_ PAT could supply a forged
+// guarantee a client carrying a normal enact_ PAT could supply a forged
 // `X-Actor-Source: task_token` (or any other value) to fool a handler
 // into treating the request differently — exactly the kind of trust
-// boundary MUL-2600 introduces.
+// boundary ENA-2600 introduces.
 func TestAuth_StripsClientSuppliedActorSource(t *testing.T) {
 	var gotActorSource string
 	mw := Auth(nil, nil, nil)
@@ -318,7 +318,7 @@ func TestAuth_PATCacheHit(t *testing.T) {
 		t.Fatal("expected non-nil cache")
 	}
 
-	const rawToken = "mul_cache_hit_test_token"
+	const rawToken = "enact_cache_hit_test_token"
 	hash := auth.HashToken(rawToken)
 	cache.Set(context.Background(), hash, "cached-user-id", auth.AuthCacheTTL)
 
@@ -345,7 +345,7 @@ func TestAuth_PATCacheHit(t *testing.T) {
 // TestAuth_MCN_NoVerifierConfigured pins the same fail-closed branch
 // as the daemon side: with no ENACT_CLOUD_FLEET_URL configured, an
 // mcn_ bearer token must be rejected with 401 at the prefix branch.
-// We don't fall through — an mcn_ string can't be a valid mul_ PAT or
+// We don't fall through — an mcn_ string can't be a valid enact_ PAT or
 // JWT, so any fall-through would be wasted work.
 func TestAuth_MCN_NoVerifierConfigured(t *testing.T) {
 	mw := Auth(nil, nil, nil)

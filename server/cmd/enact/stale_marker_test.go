@@ -78,7 +78,7 @@ func clearDaemonEnvSignals(t *testing.T) {
 }
 
 // TestLeftoverMarkerReportedIdenticallyOnEveryRefusalPath is the regression test
-// for the split the MUL-6132 reviews found: at first only the API path named the
+// for the split the ENA-6132 reviews found: at first only the API path named the
 // marker file, and after that requireTaskLocalConfigRoot was still left out, so
 // whether a user could act on the refusal depended on which command they
 // happened to run first. All three paths must point at the same file with the

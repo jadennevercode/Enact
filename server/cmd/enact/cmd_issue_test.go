@@ -157,7 +157,7 @@ func TestResolveTextFlag(t *testing.T) {
 	// Reading the body straight off disk skips the shell entirely.
 	// See issues #2198, #2236, #2376.
 	t.Run("file body is preserved verbatim with non-ASCII content", func(t *testing.T) {
-		// The workdir guardrail (MUL-4252) requires the file to live inside the
+		// The workdir guardrail (ENA-4252) requires the file to live inside the
 		// current working directory, so chdir into a scratch dir and reference
 		// it by a relative name — the mainline agents actually use.
 		dir := t.TempDir()
@@ -206,7 +206,7 @@ func TestResolveTextFlag(t *testing.T) {
 		}
 	})
 
-	// MUL-4252: a --<name>-file path that resolves outside the working
+	// ENA-4252: a --<name>-file path that resolves outside the working
 	// directory is rejected, so a stale file left in a machine-shared path
 	// (e.g. /tmp) by another run/environment cannot silently become this
 	// issue's content.
@@ -300,7 +300,7 @@ func TestResolveTextFlag(t *testing.T) {
 	})
 }
 
-// TestEnsureAttachmentWithinWorkdir covers the MUL-4252 guardrail extended to
+// TestEnsureAttachmentWithinWorkdir covers the ENA-4252 guardrail extended to
 // --attachment: a local attachment path outside the task workdir is rejected
 // (so an agent can't attach another run's stale /tmp file), with the same
 // --allow-external-file escape hatch as the text flags.
@@ -364,7 +364,7 @@ func newIssueCommentAddTestCmd() *cobra.Command {
 	return cmd
 }
 
-// TestRunIssueCommentAddRejectsExternalAttachmentWithZeroUploads is the MUL-4252
+// TestRunIssueCommentAddRejectsExternalAttachmentWithZeroUploads is the ENA-4252
 // P2 guard: `comment add` must validate every --attachment BEFORE uploading any,
 // so a valid attachment followed by an invalid (external) one aborts the call
 // with ZERO upload requests and no comment — the pre-refactor loop uploaded the
@@ -459,7 +459,7 @@ func TestRunIssueCreateSendsAllowDuplicate(t *testing.T) {
 		}
 		json.NewEncoder(w).Encode(map[string]any{
 			"id":         "issue-1",
-			"identifier": "MUL-1",
+			"identifier": "ENA-1",
 			"title":      "Duplicate allowed",
 			"status":     "todo",
 			"priority":   "none",
@@ -494,7 +494,7 @@ func TestRunIssueCreateSendsExistingAttachmentIDs(t *testing.T) {
 		}
 		json.NewEncoder(w).Encode(map[string]any{
 			"id":         "issue-1",
-			"identifier": "MUL-1",
+			"identifier": "ENA-1",
 			"title":      "With attachments",
 			"status":     "todo",
 			"priority":   "none",
@@ -576,10 +576,10 @@ func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPaths = append(gotPaths, r.URL.Path)
 		switch r.URL.Path {
-		case "/api/issues/MUL-2818":
+		case "/api/issues/ENA-2818":
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-uuid",
-				"identifier": "MUL-2818",
+				"identifier": "ENA-2818",
 				"title":      "CLI PR lookup",
 			})
 		case "/api/issues/issue-uuid/pull-requests":
@@ -589,7 +589,7 @@ func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 						"url":    "https://github.com/enact-ai/enact/pull/42",
 						"number": float64(42),
 						"state":  "open",
-						"title":  "MUL-2818 add issue PR CLI",
+						"title":  "ENA-2818 add issue PR CLI",
 					},
 				},
 			})
@@ -608,7 +608,7 @@ func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := runIssuePullRequests(cmd, []string{"MUL-2818"})
+	err := runIssuePullRequests(cmd, []string{"ENA-2818"})
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
@@ -616,7 +616,7 @@ func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 		t.Fatalf("runIssuePullRequests: %v", err)
 	}
 
-	if want := []string{"/api/issues/MUL-2818", "/api/issues/issue-uuid/pull-requests"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
+	if want := []string{"/api/issues/ENA-2818", "/api/issues/issue-uuid/pull-requests"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
 		t.Fatalf("paths = %v, want %v", gotPaths, want)
 	}
 	var payload map[string]any
@@ -628,7 +628,7 @@ func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 		t.Fatalf("pull_requests length = %d, want 1", len(prs))
 	}
 	pr, _ := prs[0].(map[string]any)
-	if pr["url"] != "https://github.com/enact-ai/enact/pull/42" || pr["number"] != float64(42) || pr["state"] != "open" || pr["title"] != "MUL-2818 add issue PR CLI" {
+	if pr["url"] != "https://github.com/enact-ai/enact/pull/42" || pr["number"] != float64(42) || pr["state"] != "open" || pr["title"] != "ENA-2818 add issue PR CLI" {
 		t.Fatalf("unexpected PR payload: %#v", pr)
 	}
 }
@@ -644,10 +644,10 @@ func TestRunIssueUsageReturnsTokenSummaryAsJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPaths = append(gotPaths, r.URL.Path)
 		switch r.URL.Path {
-		case "/api/issues/MUL-2818":
+		case "/api/issues/ENA-2818":
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-uuid",
-				"identifier": "MUL-2818",
+				"identifier": "ENA-2818",
 				"title":      "CLI usage lookup",
 			})
 		case "/api/issues/issue-uuid/usage":
@@ -673,7 +673,7 @@ func TestRunIssueUsageReturnsTokenSummaryAsJSON(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := runIssueUsage(cmd, []string{"MUL-2818"})
+	err := runIssueUsage(cmd, []string{"ENA-2818"})
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
@@ -681,7 +681,7 @@ func TestRunIssueUsageReturnsTokenSummaryAsJSON(t *testing.T) {
 		t.Fatalf("runIssueUsage: %v", err)
 	}
 
-	if want := []string{"/api/issues/MUL-2818", "/api/issues/issue-uuid/usage"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
+	if want := []string{"/api/issues/ENA-2818", "/api/issues/issue-uuid/usage"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
 		t.Fatalf("paths = %v, want %v", gotPaths, want)
 	}
 	var payload map[string]any
@@ -700,7 +700,7 @@ func TestRunIssuePullRequestsTableIncludesCoreFields(t *testing.T) {
 		"url":    "https://github.com/enact-ai/enact/pull/42",
 		"number": float64(42),
 		"state":  "open",
-		"title":  "MUL-2818 add issue PR CLI",
+		"title":  "ENA-2818 add issue PR CLI",
 	}}
 
 	old := os.Stdout
@@ -711,7 +711,7 @@ func TestRunIssuePullRequestsTableIncludesCoreFields(t *testing.T) {
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
 	text := string(out)
-	for _, want := range []string{"NUMBER", "STATE", "TITLE", "URL", "42", "open", "MUL-2818 add issue PR CLI", "https://github.com/enact-ai/enact/pull/42"} {
+	for _, want := range []string{"NUMBER", "STATE", "TITLE", "URL", "42", "open", "ENA-2818 add issue PR CLI", "https://github.com/enact-ai/enact/pull/42"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("table output missing %q:\n%s", want, text)
 		}
@@ -874,7 +874,7 @@ func TestResolveIDByPrefix(t *testing.T) {
 func TestResolveIssueRef(t *testing.T) {
 	issue := map[string]any{
 		"id":         "1881a167-4bb6-4602-944b-f40ce4192fe6",
-		"identifier": "MUL-1852",
+		"identifier": "ENA-1852",
 		"title":      "Short ID bug",
 	}
 
@@ -882,7 +882,7 @@ func TestResolveIssueRef(t *testing.T) {
 		listCalled := false
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case "/api/issues/MUL-1852":
+			case "/api/issues/ENA-1852":
 				json.NewEncoder(w).Encode(issue)
 			case "/api/issues":
 				listCalled = true
@@ -894,14 +894,14 @@ func TestResolveIssueRef(t *testing.T) {
 		defer srv.Close()
 
 		client := cli.NewAPIClient(srv.URL, "ws-1", "test-token")
-		got, err := resolveIssueRef(context.Background(), client, "MUL-1852")
+		got, err := resolveIssueRef(context.Background(), client, "ENA-1852")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if listCalled {
 			t.Fatal("identifier path should not call issue list")
 		}
-		if got.ID != issue["id"] || got.Display != "MUL-1852" {
+		if got.ID != issue["id"] || got.Display != "ENA-1852" {
 			t.Fatalf("got %#v", got)
 		}
 	})
@@ -927,7 +927,7 @@ func TestResolveIssueRef(t *testing.T) {
 		if msg := err.Error(); !strings.Contains(msg, "short UUID prefix") {
 			t.Fatalf("expected error to flag the short-prefix case, got: %s", msg)
 		}
-		if msg := err.Error(); !strings.Contains(msg, "MUL-") {
+		if msg := err.Error(); !strings.Contains(msg, "ENA-") {
 			t.Fatalf("expected error to suggest the issue key form, got: %s", msg)
 		}
 		if len(hits) != 0 {
@@ -976,7 +976,7 @@ func TestResolveIssueRef(t *testing.T) {
 	})
 
 	t.Run("non-hex gibberish is rejected with key/UUID guidance", func(t *testing.T) {
-		// Inputs that are neither MUL-key, full UUID, nor a hex prefix
+		// Inputs that are neither ENA-key, full UUID, nor a hex prefix
 		// fall through to the generic guidance path and must not hit the
 		// network either.
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1016,7 +1016,7 @@ func TestResolveIssueRef(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if got.ID != issue["id"] || got.Display != "MUL-1852" {
+		if got.ID != issue["id"] || got.Display != "ENA-1852" {
 			t.Fatalf("got %#v", got)
 		}
 		if len(hits) != 1 {
@@ -1127,10 +1127,10 @@ func TestRunIssueRunMessagesResolvesShortTaskPrefix(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/issues/MUL-1852":
+		case "/api/issues/ENA-1852":
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         issueID,
-				"identifier": "MUL-1852",
+				"identifier": "ENA-1852",
 			})
 		case "/api/issues/" + issueID + "/task-runs":
 			json.NewEncoder(w).Encode([]map[string]any{{"id": taskID}})
@@ -1155,7 +1155,7 @@ func TestRunIssueRunMessagesResolvesShortTaskPrefix(t *testing.T) {
 	cmd.Flags().String("output", "json", "")
 	cmd.Flags().Int("since", 0, "")
 	cmd.Flags().String("issue", "", "")
-	_ = cmd.Flags().Set("issue", "MUL-1852")
+	_ = cmd.Flags().Set("issue", "ENA-1852")
 	if err := runIssueRunMessages(cmd, []string{"abcd"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1216,7 +1216,7 @@ func TestResolveAssignee(t *testing.T) {
 		}
 	})
 
-	// MUL-6286: the CLI documents member email as a way to address an actor
+	// ENA-6286: the CLI documents member email as a way to address an actor
 	// property value ("--value alice@example.com"), so email has to resolve.
 	t.Run("match member by email", func(t *testing.T) {
 		aType, aID, err := resolveAssignee(ctx, client, "alice@example.com", memberOnlyKinds)
@@ -1278,7 +1278,7 @@ func TestResolveAssignee(t *testing.T) {
 		}
 	})
 
-	// MUL-2165: squad names must resolve to (squad, <id>) so the autopilot
+	// ENA-2165: squad names must resolve to (squad, <id>) so the autopilot
 	// quick-create prompt can route work to a squad (e.g. "Super Human")
 	// instead of falling through to "Unrecognized assignee".
 	t.Run("match squad by exact name", func(t *testing.T) {
@@ -1439,7 +1439,7 @@ func TestNormalizeAssigneeLookupInput(t *testing.T) {
 	}
 }
 
-// TestResolveAssigneeRespectsKinds covers the MUL-2165 follow-up: callers
+// TestResolveAssigneeRespectsKinds covers the ENA-2165 follow-up: callers
 // whose target schema is member-or-agent-only (project.lead_type DB CHECK
 // at server/migrations/034_projects.up.sql:10, and the subscriber handler's
 // isWorkspaceEntity switch at server/internal/handler/handler.go:414) must
@@ -1692,7 +1692,7 @@ func TestResolveAssigneeByIDStrict(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("full UUID resolves the right agent in a substring-collision workspace", func(t *testing.T) {
-		// This is the MUL-1254 scenario: agent "J" is unreachable by name
+		// This is the ENA-1254 scenario: agent "J" is unreachable by name
 		// because every other agent has "J" in it. UUID lookup must
 		// deterministically pick the right one.
 		aType, aID, err := resolveAssigneeByID(ctx, client, "5fb87ac7-23b5-4a7a-81fa-ed295a54545d", issueAssigneeKinds)
@@ -1724,7 +1724,7 @@ func TestResolveAssigneeByIDStrict(t *testing.T) {
 		}
 	})
 
-	// MUL-2165: --assignee-id <squad-uuid> must resolve to (squad, <id>) so
+	// ENA-2165: --assignee-id <squad-uuid> must resolve to (squad, <id>) so
 	// scripts that read the squad list and pin its UUID can assign work to a
 	// squad in a single deterministic call.
 	t.Run("UUID resolves a squad", func(t *testing.T) {
@@ -1942,7 +1942,7 @@ func TestPickAssigneeFromFlags(t *testing.T) {
 }
 
 // TestPickAssigneeFromFlagsMemberOrAgentKinds is the call-site regression
-// for the MUL-2165 follow-up. Subscriber add/remove and project lead pass
+// for the ENA-2165 follow-up. Subscriber add/remove and project lead pass
 // memberOrAgentKinds because their target schema rejects squads
 // (subscriber: server/internal/handler/handler.go:414;
 // project: server/migrations/034_projects.up.sql:10). Without this gating,
@@ -2301,7 +2301,7 @@ func TestRunIssueCommentListFlagGuards(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2420,7 +2420,7 @@ func TestRunIssueCommentListFlagGuards(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := newIssueCommentListTestCmd()
 			tc.setup(cmd)
-			err := runIssueCommentList(cmd, []string{"MUL-1"})
+			err := runIssueCommentList(cmd, []string{"ENA-1"})
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tc.wantMsg)
 			}
@@ -2440,7 +2440,7 @@ func TestRunIssueCommentList_RootsOnlyPassesThroughWithSince(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2465,7 +2465,7 @@ func TestRunIssueCommentList_RootsOnlyPassesThroughWithSince(t *testing.T) {
 	if err := cmd.Flags().Set("since", "2026-01-01T00:00:00Z"); err != nil {
 		t.Fatalf("set since: %v", err)
 	}
-	if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueCommentList: %v", err)
 	}
 
@@ -2487,7 +2487,7 @@ func TestRunIssueCommentList_SummaryPassesThrough(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2512,7 +2512,7 @@ func TestRunIssueCommentList_SummaryPassesThrough(t *testing.T) {
 	if err := cmd.Flags().Set("roots-only", "true"); err != nil {
 		t.Fatalf("set roots-only: %v", err)
 	}
-	if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueCommentList: %v", err)
 	}
 
@@ -2525,7 +2525,7 @@ func TestRunIssueCommentList_SummaryPassesThrough(t *testing.T) {
 }
 
 // TestRunIssueCommentList_FoldDefaultAndFullEscape pins the CLI's resolve-aware
-// fold default and its --full escape hatch (MUL-3555):
+// fold default and its --full escape hatch (ENA-3555):
 //
 //   - the complete-thread reads (default list, --recent, untailed --thread) send
 //     fold=true by default, so an agent skips settled discussion automatically;
@@ -2539,7 +2539,7 @@ func TestRunIssueCommentList_FoldDefaultAndFullEscape(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2589,7 +2589,7 @@ func TestRunIssueCommentList_FoldDefaultAndFullEscape(t *testing.T) {
 			gotQuery = nil
 			cmd := newIssueCommentListTestCmd()
 			tc.setup(cmd)
-			if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+			if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 				t.Fatalf("runIssueCommentList: %v", err)
 			}
 			gotFold := gotQuery.Get("fold") == "true"
@@ -2611,7 +2611,7 @@ func TestRunIssueCommentList_ThreadTailPassesThroughAndPrintsReplyCursor(t *test
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2646,7 +2646,7 @@ func TestRunIssueCommentList_ThreadTailPassesThroughAndPrintsReplyCursor(t *test
 	if err := cmd.Flags().Set("tail", "5"); err != nil {
 		t.Fatalf("set tail: %v", err)
 	}
-	if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueCommentList: %v", err)
 	}
 
@@ -2671,7 +2671,7 @@ func TestRunIssueCommentList_RecentStillLabelsCursorAsThread(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2692,7 +2692,7 @@ func TestRunIssueCommentList_RecentStillLabelsCursorAsThread(t *testing.T) {
 	if err := cmd.Flags().Set("recent", "3"); err != nil {
 		t.Fatalf("set recent: %v", err)
 	}
-	if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueCommentList: %v", err)
 	}
 
@@ -2712,7 +2712,7 @@ func TestRunIssueCommentList_DoesNotPrintShowingPreamble(t *testing.T) {
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/issues/") && !strings.Contains(r.URL.Path, "/comments") {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-1",
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 			})
 			return
 		}
@@ -2731,7 +2731,7 @@ func TestRunIssueCommentList_DoesNotPrintShowingPreamble(t *testing.T) {
 	if err := cmd.Flags().Set("output", "json"); err != nil {
 		t.Fatalf("set output: %v", err)
 	}
-	if err := runIssueCommentList(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueCommentList(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueCommentList: %v", err)
 	}
 
@@ -2760,7 +2760,7 @@ func TestValidIssueStatuses(t *testing.T) {
 	}
 }
 
-// TestValidateIssueStatus pins the post-MUL-6243 contract: the CLI validates
+// TestValidateIssueStatus pins the post-ENA-6243 contract: the CLI validates
 // the SHAPE of a status key, not its membership. A workspace can define custom
 // statuses, so only the server knows the valid set; rejecting an unknown key
 // locally would make every custom status unreachable from the CLI.
@@ -2834,7 +2834,7 @@ func TestValidateIssuePriority(t *testing.T) {
 	}
 }
 
-// The status must be MALFORMED, not merely unknown: since MUL-6243 a workspace
+// The status must be MALFORMED, not merely unknown: since ENA-6243 a workspace
 // can define custom statuses, so an unknown-but-well-formed key is the server's
 // call, not the CLI's. What still has to hold is that a malformed one never
 // costs a network round trip.
@@ -2869,7 +2869,7 @@ func TestRunIssueUpdateRejectsInvalidStatusBeforeRequest(t *testing.T) {
 	cmd.Flags().String("status", "", "")
 	cmd.Flags().String("priority", "", "")
 	_ = cmd.Flags().Set("status", "not a status")
-	err := runIssueUpdate(cmd, []string{"MUL-1"})
+	err := runIssueUpdate(cmd, []string{"ENA-1"})
 	if err == nil {
 		t.Fatal("runIssueUpdate should reject a malformed status")
 	}
@@ -2883,7 +2883,7 @@ func TestRunIssueUpdateRejectsInvalidPriorityBeforeRequest(t *testing.T) {
 	cmd.Flags().String("status", "", "")
 	cmd.Flags().String("priority", "", "")
 	_ = cmd.Flags().Set("priority", "P1")
-	err := runIssueUpdate(cmd, []string{"MUL-1"})
+	err := runIssueUpdate(cmd, []string{"ENA-1"})
 	if err == nil {
 		t.Fatal("runIssueUpdate should reject invalid priority")
 	}
@@ -2958,16 +2958,16 @@ func TestRunIssueUpdateSendsPosition(t *testing.T) {
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/MUL-1":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/ENA-1":
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": "issue-1", "identifier": "MUL-1", "status": "todo",
+				"id": "issue-1", "identifier": "ENA-1", "status": "todo",
 			})
 		case r.Method == http.MethodPut && r.URL.Path == "/api/issues/issue-1":
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode body: %v", err)
 			}
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": "issue-1", "identifier": "MUL-1", "status": "todo", "priority": "none",
+				"id": "issue-1", "identifier": "ENA-1", "status": "todo", "priority": "none",
 			})
 		default:
 			http.NotFound(w, r)
@@ -2981,7 +2981,7 @@ func TestRunIssueUpdateSendsPosition(t *testing.T) {
 
 	cmd := newIssueUpdateTestCmd()
 	_ = cmd.Flags().Set("position", "7.5")
-	if err := runIssueUpdate(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueUpdate(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueUpdate: %v", err)
 	}
 	if got := body["position"]; got != float64(7.5) {
@@ -2993,13 +2993,13 @@ func TestRunIssueUpdateNoStartSendsSuppressRun(t *testing.T) {
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/MUL-1":
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "todo"})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/ENA-1":
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "todo"})
 		case r.Method == http.MethodPut && r.URL.Path == "/api/issues/issue-1":
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode body: %v", err)
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "in_progress"})
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "in_progress"})
 		default:
 			http.NotFound(w, r)
 		}
@@ -3012,7 +3012,7 @@ func TestRunIssueUpdateNoStartSendsSuppressRun(t *testing.T) {
 	cmd := newIssueUpdateTestCmd()
 	_ = cmd.Flags().Set("status", "in_progress")
 	_ = cmd.Flags().Set("no-start", "true")
-	if err := runIssueUpdate(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueUpdate(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueUpdate: %v", err)
 	}
 	if got := body["suppress_run"]; got != true {
@@ -3024,13 +3024,13 @@ func TestRunIssueStatusNoStartSendsSuppressRun(t *testing.T) {
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/MUL-1":
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "backlog"})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/ENA-1":
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "backlog"})
 		case r.Method == http.MethodPut && r.URL.Path == "/api/issues/issue-1":
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode body: %v", err)
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "in_progress"})
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "in_progress"})
 		default:
 			http.NotFound(w, r)
 		}
@@ -3042,7 +3042,7 @@ func TestRunIssueStatusNoStartSendsSuppressRun(t *testing.T) {
 
 	cmd := newIssueStatusTestCmd()
 	_ = cmd.Flags().Set("no-start", "true")
-	if err := runIssueStatus(cmd, []string{"MUL-1", "in_progress"}); err != nil {
+	if err := runIssueStatus(cmd, []string{"ENA-1", "in_progress"}); err != nil {
 		t.Fatalf("runIssueStatus: %v", err)
 	}
 	if got := body["status"]; got != "in_progress" {
@@ -3058,8 +3058,8 @@ func TestRunIssueAssignNoStartSendsSuppressRun(t *testing.T) {
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/MUL-1":
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "todo"})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/ENA-1":
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "todo"})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/workspaces/ws-1/members":
 			json.NewEncoder(w).Encode([]map[string]any{})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/agents":
@@ -3070,7 +3070,7 @@ func TestRunIssueAssignNoStartSendsSuppressRun(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode body: %v", err)
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "todo"})
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "todo"})
 		default:
 			http.NotFound(w, r)
 		}
@@ -3083,7 +3083,7 @@ func TestRunIssueAssignNoStartSendsSuppressRun(t *testing.T) {
 	cmd := newIssueAssignTestCmd()
 	_ = cmd.Flags().Set("to-id", agentID)
 	_ = cmd.Flags().Set("no-start", "true")
-	if err := runIssueAssign(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueAssign(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueAssign: %v", err)
 	}
 	if got := body["suppress_run"]; got != true {
@@ -3095,7 +3095,7 @@ func TestRunIssueAssignRejectsNoStartWithUnassign(t *testing.T) {
 	cmd := newIssueAssignTestCmd()
 	_ = cmd.Flags().Set("unassign", "true")
 	_ = cmd.Flags().Set("no-start", "true")
-	err := runIssueAssign(cmd, []string{"MUL-1"})
+	err := runIssueAssign(cmd, []string{"ENA-1"})
 	if err == nil || !strings.Contains(err.Error(), "--no-start") {
 		t.Fatalf("expected --no-start validation error, got %v", err)
 	}
@@ -3115,7 +3115,7 @@ func TestIssueReadCommandsUseInjectedTaskToken(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(ownerPath, []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"workspace_id\": \"owner-workspace-sentinel\",\n  \"token\": \"mul_owner_sentinel\"\n}\n"), 0o600); err != nil {
+	if err := os.WriteFile(ownerPath, []byte("{\n  \"server_url\": \"https://owner.invalid\",\n  \"workspace_id\": \"owner-workspace-sentinel\",\n  \"token\": \"enact_owner_sentinel\"\n}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -3131,10 +3131,10 @@ func TestIssueReadCommandsUseInjectedTaskToken(t *testing.T) {
 				t.Errorf("workspace_id = %q, want task workspace", got)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"issues": []any{}, "total": 0})
-		case "/api/issues/MUL-46":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "MUL-46", "title": "Task isolation"})
+		case "/api/issues/ENA-46":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "ENA-46", "title": "Task isolation"})
 		case "/api/issues/issue-uuid":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "MUL-46", "title": "Task isolation"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "issue-uuid", "identifier": "ENA-46", "title": "Task isolation"})
 		case "/api/issues/issue-uuid/task-runs":
 			_ = json.NewEncoder(w).Encode([]map[string]any{})
 		default:
@@ -3152,14 +3152,14 @@ func TestIssueReadCommandsUseInjectedTaskToken(t *testing.T) {
 
 	getCmd := &cobra.Command{Use: "get"}
 	getCmd.Flags().String("output", "json", "")
-	if _, err := captureStdout(t, func() error { return runIssueGet(getCmd, []string{"MUL-46"}) }); err != nil {
+	if _, err := captureStdout(t, func() error { return runIssueGet(getCmd, []string{"ENA-46"}) }); err != nil {
 		t.Fatalf("issue get: %v", err)
 	}
 
 	runsCmd := &cobra.Command{Use: "runs"}
 	runsCmd.Flags().String("output", "json", "")
 	runsCmd.Flags().Bool("full-id", false, "")
-	if _, err := captureStdout(t, func() error { return runIssueRuns(runsCmd, []string{"MUL-46"}) }); err != nil {
+	if _, err := captureStdout(t, func() error { return runIssueRuns(runsCmd, []string{"ENA-46"}) }); err != nil {
 		t.Fatalf("issue runs: %v", err)
 	}
 
@@ -3182,7 +3182,7 @@ func TestIssueReadCommandsFailClosedWithoutTaskToken(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(ownerPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(ownerPath, []byte("{\n  \"token\": \"mul_owner_sentinel\"\n}\n"), 0o600); err != nil {
+	if err := os.WriteFile(ownerPath, []byte("{\n  \"token\": \"enact_owner_sentinel\"\n}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -3329,7 +3329,7 @@ func TestIssueReorderTargetFlagGroup(t *testing.T) {
 
 	t.Run("no target flag", func(t *testing.T) {
 		cmd := newCmd()
-		cmd.SetArgs([]string{"MUL-1"})
+		cmd.SetArgs([]string{"ENA-1"})
 		err := cmd.Execute()
 		if err == nil {
 			t.Fatal("expected an error when no target flag is set")
@@ -3341,7 +3341,7 @@ func TestIssueReorderTargetFlagGroup(t *testing.T) {
 
 	t.Run("two bool targets", func(t *testing.T) {
 		cmd := newCmd()
-		cmd.SetArgs([]string{"MUL-1", "--top", "--bottom"})
+		cmd.SetArgs([]string{"ENA-1", "--top", "--bottom"})
 		err := cmd.Execute()
 		if err == nil {
 			t.Fatal("expected an error when --top and --bottom are combined")
@@ -3353,7 +3353,7 @@ func TestIssueReorderTargetFlagGroup(t *testing.T) {
 
 	t.Run("before and after together", func(t *testing.T) {
 		cmd := newCmd()
-		cmd.SetArgs([]string{"MUL-1", "--before", "MUL-2", "--after", "MUL-3"})
+		cmd.SetArgs([]string{"ENA-1", "--before", "ENA-2", "--after", "ENA-3"})
 		err := cmd.Execute()
 		if err == nil {
 			t.Fatal("expected an error when --before and --after are combined")
@@ -3383,7 +3383,7 @@ func TestRunIssueReorderRejectsNoOpTargetValues(t *testing.T) {
 			if err := cmd.Flags().Set(tc.flag, tc.value); err != nil {
 				t.Fatalf("set --%s=%q: %v", tc.flag, tc.value, err)
 			}
-			err := runIssueReorder(cmd, []string{"MUL-1"})
+			err := runIssueReorder(cmd, []string{"ENA-1"})
 			if err == nil {
 				t.Fatalf("expected an error when --%s is passed %q", tc.flag, tc.value)
 			}
@@ -3402,15 +3402,15 @@ func reorderTestServer(t *testing.T, gotPosition *float64) *httptest.Server {
 	issue := func(id, key, status string, pos float64) map[string]any {
 		return map[string]any{"id": id, "identifier": key, "status": status, "position": pos}
 	}
-	a := issue("a-id", "MUL-1", "todo", 1)
-	b := issue("b-id", "MUL-2", "todo", 9)
-	target := issue("t-id", "MUL-9", "todo", 20)
-	c := issue("c-id", "MUL-3", "in_progress", 4)
+	a := issue("a-id", "ENA-1", "todo", 1)
+	b := issue("b-id", "ENA-2", "todo", 9)
+	target := issue("t-id", "ENA-9", "todo", 20)
+	c := issue("c-id", "ENA-3", "in_progress", 4)
 	byRef := map[string]map[string]any{
-		"MUL-1": a, "a-id": a,
-		"MUL-2": b, "b-id": b,
-		"MUL-9": target, "t-id": target,
-		"MUL-3": c, "c-id": c,
+		"ENA-1": a, "a-id": a,
+		"ENA-2": b, "b-id": b,
+		"ENA-9": target, "t-id": target,
+		"ENA-3": c, "c-id": c,
 	}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/issues" && r.Method == http.MethodGet {
@@ -3461,8 +3461,8 @@ func TestRunIssueReorderComputesPosition(t *testing.T) {
 	}{
 		{"top of column", "top", "true", 0},            // pos(a) - 1 = 0
 		{"bottom of column", "bottom", "true", 10},     // pos(b) + 1 = 10
-		{"before another issue", "before", "MUL-2", 5}, // midpoint(a=1, b=9)
-		{"after another issue", "after", "MUL-2", 10},  // moves below b (the bottom)
+		{"before another issue", "before", "ENA-2", 5}, // midpoint(a=1, b=9)
+		{"after another issue", "after", "ENA-2", 10},  // moves below b (the bottom)
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -3476,7 +3476,7 @@ func TestRunIssueReorderComputesPosition(t *testing.T) {
 
 			cmd := newIssueReorderTestCmd()
 			_ = cmd.Flags().Set(tc.flag, tc.val)
-			if err := runIssueReorder(cmd, []string{"MUL-9"}); err != nil {
+			if err := runIssueReorder(cmd, []string{"ENA-9"}); err != nil {
 				t.Fatalf("runIssueReorder: %v", err)
 			}
 			if gotPosition != tc.want {
@@ -3495,8 +3495,8 @@ func TestRunIssueReorderRejectsCrossColumnTarget(t *testing.T) {
 	t.Setenv("ENACT_TOKEN", "test-token")
 
 	cmd := newIssueReorderTestCmd()
-	_ = cmd.Flags().Set("before", "MUL-3") // MUL-3 lives in the in_progress column
-	err := runIssueReorder(cmd, []string{"MUL-9"})
+	_ = cmd.Flags().Set("before", "ENA-3") // ENA-3 lives in the in_progress column
+	err := runIssueReorder(cmd, []string{"ENA-9"})
 	if err == nil {
 		t.Fatal("expected error when the --before target is in another column")
 	}
@@ -3511,9 +3511,9 @@ func mkIssue(id, key, status string, pos float64) map[string]any {
 
 func TestFetchIssueColumnPaginates(t *testing.T) {
 	all := []map[string]any{
-		mkIssue("i1", "MUL-1", "todo", 1),
-		mkIssue("i2", "MUL-2", "todo", 2),
-		mkIssue("i3", "MUL-3", "todo", 3),
+		mkIssue("i1", "ENA-1", "todo", 1),
+		mkIssue("i2", "ENA-2", "todo", 2),
+		mkIssue("i3", "ENA-3", "todo", 3),
 	}
 	var pageRequests int
 	var sawProject string
@@ -3567,13 +3567,13 @@ func TestRunIssueReorderNoOpSkipsPut(t *testing.T) {
 	// Column order by position: a(0), target(5), b(10). Asking for the target
 	// to go --before b computes (0+10)/2 = 5, which it already holds, so the
 	// command should short-circuit without issuing a PUT.
-	a := mkIssue("a-id", "MUL-1", "todo", 0)
-	b := mkIssue("b-id", "MUL-2", "todo", 10)
-	target := mkIssue("t-id", "MUL-9", "todo", 5)
+	a := mkIssue("a-id", "ENA-1", "todo", 0)
+	b := mkIssue("b-id", "ENA-2", "todo", 10)
+	target := mkIssue("t-id", "ENA-9", "todo", 5)
 	byRef := map[string]map[string]any{
-		"MUL-1": a, "a-id": a,
-		"MUL-2": b, "b-id": b,
-		"MUL-9": target, "t-id": target,
+		"ENA-1": a, "a-id": a,
+		"ENA-2": b, "b-id": b,
+		"ENA-9": target, "t-id": target,
 	}
 	putCalled := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -3600,8 +3600,8 @@ func TestRunIssueReorderNoOpSkipsPut(t *testing.T) {
 	t.Setenv("ENACT_TOKEN", "test-token")
 
 	cmd := newIssueReorderTestCmd()
-	_ = cmd.Flags().Set("before", "MUL-2")
-	if err := runIssueReorder(cmd, []string{"MUL-9"}); err != nil {
+	_ = cmd.Flags().Set("before", "ENA-2")
+	if err := runIssueReorder(cmd, []string{"ENA-9"}); err != nil {
 		t.Fatalf("runIssueReorder: %v", err)
 	}
 	if putCalled {
@@ -3610,15 +3610,15 @@ func TestRunIssueReorderNoOpSkipsPut(t *testing.T) {
 }
 
 func TestRunIssueReorderSingleItemColumnValidatesTarget(t *testing.T) {
-	// The "todo" column holds only the issue being moved; MUL-3 lives in a
+	// The "todo" column holds only the issue being moved; ENA-3 lives in a
 	// different column. A relative move must still validate its target rather
 	// than reporting a successful no-op (regression guard for the single-item
 	// fast path running before target resolution).
-	target := mkIssue("t-id", "MUL-9", "todo", 5)
-	other := mkIssue("c-id", "MUL-3", "in_progress", 2)
+	target := mkIssue("t-id", "ENA-9", "todo", 5)
+	other := mkIssue("c-id", "ENA-3", "in_progress", 2)
 	byRef := map[string]map[string]any{
-		"MUL-9": target, "t-id": target,
-		"MUL-3": other, "c-id": other,
+		"ENA-9": target, "t-id": target,
+		"ENA-3": other, "c-id": other,
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/issues" && r.Method == http.MethodGet {
@@ -3640,8 +3640,8 @@ func TestRunIssueReorderSingleItemColumnValidatesTarget(t *testing.T) {
 
 	t.Run("cross-column target errors", func(t *testing.T) {
 		cmd := newIssueReorderTestCmd()
-		_ = cmd.Flags().Set("after", "MUL-3")
-		err := runIssueReorder(cmd, []string{"MUL-9"})
+		_ = cmd.Flags().Set("after", "ENA-3")
+		err := runIssueReorder(cmd, []string{"ENA-9"})
 		if err == nil {
 			t.Fatal("expected an error, not a silent no-op")
 		}
@@ -3652,8 +3652,8 @@ func TestRunIssueReorderSingleItemColumnValidatesTarget(t *testing.T) {
 
 	t.Run("self target errors", func(t *testing.T) {
 		cmd := newIssueReorderTestCmd()
-		_ = cmd.Flags().Set("before", "MUL-9")
-		err := runIssueReorder(cmd, []string{"MUL-9"})
+		_ = cmd.Flags().Set("before", "ENA-9")
+		err := runIssueReorder(cmd, []string{"ENA-9"})
 		if err == nil {
 			t.Fatal("expected an error when targeting itself")
 		}
@@ -3666,7 +3666,7 @@ func TestRunIssueReorderSingleItemColumnValidatesTarget(t *testing.T) {
 func TestRunIssueReorderOnlyIssueInColumnIsNoOp(t *testing.T) {
 	// A --top/--bottom move on a single-issue column has nowhere to go, so it
 	// short-circuits without a PUT instead of rewriting the position.
-	target := mkIssue("t-id", "MUL-9", "todo", 5)
+	target := mkIssue("t-id", "ENA-9", "todo", 5)
 	putCalled := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/issues" && r.Method == http.MethodGet {
@@ -3679,7 +3679,7 @@ func TestRunIssueReorderOnlyIssueInColumnIsNoOp(t *testing.T) {
 			return
 		}
 		ref, _ := url.PathUnescape(strings.TrimPrefix(r.URL.Path, "/api/issues/"))
-		if ref == "MUL-9" || ref == "t-id" {
+		if ref == "ENA-9" || ref == "t-id" {
 			json.NewEncoder(w).Encode(target)
 			return
 		}
@@ -3693,7 +3693,7 @@ func TestRunIssueReorderOnlyIssueInColumnIsNoOp(t *testing.T) {
 
 	cmd := newIssueReorderTestCmd()
 	_ = cmd.Flags().Set("top", "true")
-	if err := runIssueReorder(cmd, []string{"MUL-9"}); err != nil {
+	if err := runIssueReorder(cmd, []string{"ENA-9"}); err != nil {
 		t.Fatalf("runIssueReorder: %v", err)
 	}
 	if putCalled {
@@ -3707,13 +3707,13 @@ func TestRunIssueUpdateOmitsPositionWhenUnset(t *testing.T) {
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/MUL-1":
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "status": "todo"})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/ENA-1":
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "status": "todo"})
 		case r.Method == http.MethodPut && r.URL.Path == "/api/issues/issue-1":
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode body: %v", err)
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "MUL-1", "title": "Renamed"})
+			json.NewEncoder(w).Encode(map[string]any{"id": "issue-1", "identifier": "ENA-1", "title": "Renamed"})
 		default:
 			http.NotFound(w, r)
 		}
@@ -3726,7 +3726,7 @@ func TestRunIssueUpdateOmitsPositionWhenUnset(t *testing.T) {
 
 	cmd := newIssueUpdateTestCmd()
 	_ = cmd.Flags().Set("title", "Renamed")
-	if err := runIssueUpdate(cmd, []string{"MUL-1"}); err != nil {
+	if err := runIssueUpdate(cmd, []string{"ENA-1"}); err != nil {
 		t.Fatalf("runIssueUpdate: %v", err)
 	}
 	if _, present := body["position"]; present {
@@ -3735,8 +3735,8 @@ func TestRunIssueUpdateOmitsPositionWhenUnset(t *testing.T) {
 }
 
 // TestIssueCommentListHelpCarriesReadContract pins the read-surface contract
-// that MUL-5442 moved out of the runtime brief into this command's --help: the
-// --recent saturation semantics (MUL-5372), the bounded two-step alternative,
+// that ENA-5442 moved out of the runtime brief into this command's --help: the
+// --recent saturation semantics (ENA-5372), the bounded two-step alternative,
 // and the pagination cursor labels. The brief now only points here — if these
 // leave the help, the pointer dangles and the over-read trap returns
 // undocumented.
@@ -3753,7 +3753,7 @@ func TestIssueCommentListHelpCarriesReadContract(t *testing.T) {
 		// --before must keep its string placeholder — a backticked phrase in
 		// the usage text would replace it (the UnquoteUsage hijack).
 		"--before string",
-		// The saturation contract relocated from the brief (MUL-5372).
+		// The saturation contract relocated from the brief (ENA-5372).
 		"caps THREADS, not comments",
 		"no per-thread cap",
 		"fewer than N root threads",
@@ -3776,7 +3776,7 @@ func TestIssueCommentListHelpCarriesReadContract(t *testing.T) {
 }
 
 // TestCompactCommentsDropsReaderNoise pins the --compact contract (#5999
-// follow-up, MUL-5442): reader-noise fields go — the echoed issue_id,
+// follow-up, ENA-5442): reader-noise fields go — the echoed issue_id,
 // source_task_id, updated_at when identical to created_at, null values,
 // empty arrays — while information-carrying fields and content pass
 // through untouched, and a REAL edit timestamp or non-empty array is
@@ -3922,7 +3922,7 @@ func TestRunIssueCommentListCompactWiring(t *testing.T) {
 }
 
 // TestIsTerminalChildIssue pins the stage-progress terminal test used by
-// `enact issue children --output json`. Since MUL-6243 a workspace can define
+// `enact issue children --output json`. Since ENA-6243 a workspace can define
 // custom statuses, so counting only the literal done/cancelled would report
 // wrong progress to an agent reading the stage summary.
 func TestIsTerminalChildIssue(t *testing.T) {

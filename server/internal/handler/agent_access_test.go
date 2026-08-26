@@ -248,7 +248,7 @@ func TestCreateIssue_AssignToPrivateAgentForbidsPlainMember(t *testing.T) {
 	}
 
 	// Workspace owner (testUserID) who is NOT the agent owner: DENIED under
-	// the invocation-permission model (MUL-3963) — admin/owner status no
+	// the invocation-permission model (ENA-3963) — admin/owner status no
 	// longer grants the ability to invoke someone else's private agent.
 	w := httptest.NewRecorder()
 	testHandler.CreateIssue(w, newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, body(testUserID)))
@@ -512,7 +512,7 @@ func TestMentionAgent_RejectsCrossWorkspaceAgentUUID(t *testing.T) {
 // posting a plain (non-@mention) comment, bypassing the visibility gate that
 // #2359 added to chat / @mention / assignment.
 //
-// The gate must (as tightened by MUL-3963 — the cases below are the source of
+// The gate must (as tightened by ENA-3963 — the cases below are the source of
 // truth, this list only summarises them):
 //   - reject plain workspace members (not owner, not admin, not agent owner)
 //   - allow the agent owner
@@ -576,14 +576,14 @@ func TestShouldEnqueueOnComment_PrivateAgentGate(t *testing.T) {
 			actorType: "member",
 			actorID:   testUserID,
 			want:      false,
-			reason:    "MUL-3963: workspace owners/admins no longer bypass a private agent's invocation gate",
+			reason:    "ENA-3963: workspace owners/admins no longer bypass a private agent's invocation gate",
 		},
 		{
 			name:      "agent-to-agent — denied without allowed originator",
 			actorType: "agent",
 			actorID:   agentID,
 			want:      false,
-			reason:    "MUL-3963: A2A is judged by the top-of-chain originator; a private agent denies an agent actor with no owner/allow-listed originator",
+			reason:    "ENA-3963: A2A is judged by the top-of-chain originator; a private agent denies an agent actor with no owner/allow-listed originator",
 		},
 	}
 

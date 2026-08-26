@@ -56,7 +56,7 @@ func NewAutopilotService(q *db.Queries, tx TxStarter, bus *events.Bus, taskSvc *
 
 // autopilotRuleConfigSummary captures the substantive (accountability-bearing)
 // config of an autopilot at publish time, stored on each rule-version snapshot for
-// audit display (MUL-4302 §7). Cosmetic fields (title / description / issue title
+// audit display (ENA-4302 §7). Cosmetic fields (title / description / issue title
 // template) are intentionally excluded — changing them does not transfer
 // accountability. Trigger config (cron / webhook / event_filters) lives in a
 // separate table and is not inlined here; a trigger edit still republishes the
@@ -70,7 +70,7 @@ type autopilotRuleConfigSummary struct {
 }
 
 // RecordAutopilotRuleVersion appends one rule-version snapshot for a substantive
-// publish (MUL-4302 §3.4), recording the publisher and the effective config. Shared
+// publish (ENA-4302 §3.4), recording the publisher and the effective config. Shared
 // by the handler publish paths (create / update / trigger edits / archive, run in
 // their tx) and the failure monitor's system-pause (a different package). q is the
 // caller's *db.Queries (tx-scoped where the caller wants atomicity). publishedByType
@@ -105,7 +105,7 @@ func RecordAutopilotRuleVersion(ctx context.Context, q *db.Queries, ap db.Autopi
 // Before run_only work is queued we run an admission check against the assignee
 // agent's runtime: if it is not online, we record a `skipped` run with a
 // failure_reason and return without enqueueing. This is the "触发时准入" gate
-// from MUL-1899 — without it a paused laptop / offline daemon causes scheduled
+// from ENA-1899 — without it a paused laptop / offline daemon causes scheduled
 // autopilots to pile thousands of doomed tasks onto agent_task_queue.
 //
 // create_issue mode is different: its primary contract is a durable audit
@@ -114,7 +114,7 @@ func RecordAutopilotRuleVersion(ctx context.Context, q *db.Queries, ap db.Autopi
 // can be claimed when the runtime returns.
 //
 // When assignee_type='squad' the gate runs against the squad leader (Path A
-// from MUL-2429: Autopilot-on-squad ≈ Autopilot-on-leader), with the same
+// from ENA-2429: Autopilot-on-squad ≈ Autopilot-on-leader), with the same
 // create_issue audit-trail exception for a merely offline leader runtime.
 func (s *AutopilotService) DispatchAutopilot(
 	ctx context.Context,
@@ -136,7 +136,7 @@ func (s *AutopilotService) DispatchAutopilot(
 // triggering an autopilot. Unlike scheduled / webhook / api dispatch (no human in
 // the loop → rule_owner), a manual trigger is a direct human action: the run is
 // attributed direct_human to actorUserID, which becomes BOTH its originator
-// (authorization) and accountable human (MUL-4302 §4), across both execution modes.
+// (authorization) and accountable human (ENA-4302 §4), across both execution modes.
 // An invalid actorUserID behaves exactly like DispatchAutopilot(source="manual").
 func (s *AutopilotService) DispatchAutopilotManual(
 	ctx context.Context,
@@ -629,7 +629,7 @@ func dispatchFailReasonCode(err error) dispatch.ReasonCode {
 
 // dispatchCreateIssue creates an issue and enqueues a task for the agent.
 //
-// When the autopilot is assigned to a squad (Path A from MUL-2429), the
+// When the autopilot is assigned to a squad (Path A from ENA-2429), the
 // created issue inherits assignee_type='squad' + assignee_id=squad. The
 // existing issue listener chain (shouldEnqueueSquadLeaderOnAssign →
 // enqueueSquadLeaderTask) then routes the work to the squad leader, exactly
@@ -781,11 +781,11 @@ func (s *AutopilotService) dispatchCreateIssue(ctx context.Context, ap db.Autopi
 
 	// Enqueue agent task via the existing flow. Squad-assigned autopilots
 	// route to the resolved leader as the executing agent (Path A from
-	// MUL-2429); agent-assigned autopilots go through the standard issue
+	// ENA-2429); agent-assigned autopilots go through the standard issue
 	// path. Both code paths land in agent_task_queue with agent_id = leader.
 	// A MANUAL trigger (valid actorUserID) is a direct human action: enqueue via the
 	// actor-carrying entry points so attribution resolves direct_human to the
-	// triggering member (originator == accountable == actor, MUL-4302 §4). Schedule /
+	// triggering member (originator == accountable == actor, ENA-4302 §4). Schedule /
 	// webhook dispatch has no actor and takes the plain entry points, where the
 	// autopilot-origin issue resolves to rule_owner. The *WithHandoff variants are
 	// the existing actor-carrying enqueue methods; the handoff note is empty here.
@@ -793,7 +793,7 @@ func (s *AutopilotService) dispatchCreateIssue(ctx context.Context, ap db.Autopi
 		// Fail-closed invocation gate: verify the admission principal (manual
 		// clicker, else creator — see autopilotAdmitInvoke) may still invoke the
 		// leader. Catches configs that predate the save-time gate, and configs
-		// that no longer pass (MUL-3963 / MUL-4525).
+		// that no longer pass (ENA-3963 / ENA-4525).
 		if !s.autopilotAdmitInvoke(ctx, ap, leader, actorUserID) {
 			return fmt.Errorf("not allowed to invoke private squad leader")
 		}
@@ -915,7 +915,7 @@ func (s *AutopilotService) notifyAutopilotSubscribersOnCreate(
 type errDispatchSkipped struct {
 	reason string
 	// code is the stable, typed admission reason decided at THIS branch and
-	// carried through to the response (MUL-4525) — never reverse-engineered from
+	// carried through to the response (ENA-4525) — never reverse-engineered from
 	// the human-readable reason string above.
 	code dispatch.ReasonCode
 }
@@ -925,7 +925,7 @@ func (e *errDispatchSkipped) Error() string { return e.reason }
 // dispatchRunOnly enqueues a direct agent task without creating an issue.
 //
 // For squad autopilots, the executing agent is the squad leader resolved at
-// trigger time (Path A from MUL-2429). The same archived / runtime-bound /
+// trigger time (Path A from ENA-2429). The same archived / runtime-bound /
 // runtime-online gates that the upstream admission check (shouldSkipDispatch)
 // applies also run here as belt-and-braces: if the leader changed between
 // admission and dispatch, or the runtime went offline in the gap, we still
@@ -957,11 +957,11 @@ func (s *AutopilotService) dispatchRunOnly(ctx context.Context, ap db.Autopilot,
 
 	// Attribution splits on the trigger. A MANUAL trigger is a direct human action:
 	// the triggering member is direct_human and becomes BOTH originator (so the run
-	// carries their authorization context) and accountable (MUL-4302 §4). A
+	// carries their authorization context) and accountable (ENA-4302 §4). A
 	// schedule / webhook trigger has no human — originator_user_id stays NULL and
 	// the audit-accountable human is the member currently RESPONSIBLE for the firing
 	// trigger's effective config (its creator, then whoever last substantively edited
-	// it) — trigger_owner, resolved from run.TriggerID (MUL-4302; Elon must-fix) —
+	// it) — trigger_owner, resolved from run.TriggerID (ENA-4302; Elon must-fix) —
 	// degrading to the rule version publisher (rule_owner) when no such member is
 	// recoverable, then to unattributed. Either way evidence points at the autopilot
 	// run and the row is never a NULL-source bypass.
@@ -973,7 +973,7 @@ func (s *AutopilotService) dispatchRunOnly(ctx context.Context, ap db.Autopilot,
 	}
 	// If no precise human resolved (a version-less autopilot), degrade to
 	// owner_fallback (accountable = agent owner), or skip the dispatch when the
-	// workspace is fail-closed (MUL-4302 §3.5).
+	// workspace is fail-closed (ENA-4302 §3.5).
 	autopilotAttr, err = s.TaskSvc.applyAttributionFallback(ctx, autopilotAttr, agent)
 	if err != nil {
 		return &errDispatchSkipped{reason: formatAdmissionReason(ap, "workspace fail-closed: no accountable human for autopilot run"), code: dispatch.ReasonAttributionBlocked}
@@ -1051,7 +1051,7 @@ func (s *AutopilotService) SyncRunFromIssue(ctx context.Context, issue db.Issue)
 	// is a no-op for every workspace that has not defined a custom status.
 	// The failure reason below deliberately keeps issue.Status, not the
 	// normalized key, so the audit trail names the status a human actually
-	// chose. (MUL-6243)
+	// chose. (ENA-6243)
 	effectiveStatus := issuestatus.Effective(ctx, s.Queries, issue.WorkspaceID, issue.Status)
 
 	switch effectiveStatus {
@@ -1252,7 +1252,7 @@ func (s *AutopilotService) failRun(ctx context.Context, runID pgtype.UUID, reaso
 	}
 }
 
-// shouldSkipDispatch is the pre-flight admission check from MUL-1899.
+// shouldSkipDispatch is the pre-flight admission check from ENA-1899.
 // Returns (reason, true) when dispatching now would only enqueue a doomed
 // task — i.e. the assignee (or, for squad autopilots, the squad leader) is
 // gone, archived, has no runtime bound, or its runtime is not currently
@@ -1329,7 +1329,7 @@ func (s *AutopilotService) shouldSkipDispatch(ctx context.Context, ap db.Autopil
 			return formatAdmissionReason(ap, verdict.Detail), verdict.Reason, true
 		}
 	}
-	// Invocation gate at the autopilot layer (MUL-3963 / MUL-4525). The
+	// Invocation gate at the autopilot layer (ENA-3963 / ENA-4525). The
 	// admission principal depends on how the dispatch was triggered: a MANUAL
 	// "run now" (actorUserID valid) is a direct human action gated by the
 	// current CLICKER's access — not the autopilot creator's — so admission and
@@ -1350,7 +1350,7 @@ func (s *AutopilotService) shouldSkipDispatch(ctx context.Context, ap db.Autopil
 // formatAdmissionReason rewrites the generic AgentReadiness reason into the
 // admission-gate phrasing the failure monitor and existing alerting are tuned
 // for. Keeping the prefix stable matters: dashboards group skip reasons by
-// substring ("offline at dispatch time" is how the MUL-1899 alert fires).
+// substring ("offline at dispatch time" is how the ENA-1899 alert fires).
 //
 // For squad autopilots the message names the squad so an operator looking at
 // the failure_reason field knows which squad's leader is down without
@@ -1367,7 +1367,7 @@ func formatAdmissionReason(ap db.Autopilot, raw string) string {
 		return prefix + "agent has no runtime bound"
 	default:
 		// raw is "agent runtime is X" — surface the runtime status while
-		// preserving the legacy "at dispatch time" suffix from MUL-1899
+		// preserving the legacy "at dispatch time" suffix from ENA-1899
 		// so alert queries do not need to change.
 		return raw + " at dispatch time"
 	}
@@ -1423,7 +1423,7 @@ func (s *AutopilotService) resolveAutopilotLeader(ctx context.Context, ap db.Aut
 // autopilotSquadAttribution returns the squad_id attribution hook for an
 // autopilot_run row. Only populated when assignee_type='squad'. First-version
 // reports do not consume this; it exists so a future squad-cost view does not
-// need to backfill — see RFC §4.e (MUL-2429).
+// need to backfill — see RFC §4.e (ENA-2429).
 func autopilotSquadAttribution(ap db.Autopilot) pgtype.UUID {
 	if ap.AssigneeType == "squad" && ap.AssigneeID.Valid {
 		return ap.AssigneeID
@@ -1835,7 +1835,7 @@ func (s *AutopilotService) getIssuePrefix(workspaceID pgtype.UUID) string {
 }
 
 // canCreatorInvokeAgent checks whether the autopilot's creator may invoke the
-// target agent under the invocation-permission model (MUL-3963). It mirrors
+// target agent under the invocation-permission model (ENA-3963). It mirrors
 // handler.canInvokeAgent with the autopilot creator as the effective user:
 //   - member creator who owns the agent -> always
 //   - private agent -> only the owner (NO admin bypass, NO agent-created bypass)
@@ -1845,7 +1845,7 @@ func (s *AutopilotService) getIssuePrefix(workspaceID pgtype.UUID) string {
 //
 // Fail-closed on any lookup error.
 // autopilotAdmitInvoke decides whether the dispatch's admission principal may
-// invoke the target agent (MUL-4525). A MANUAL "run now" (actorUserID valid) is
+// invoke the target agent (ENA-4525). A MANUAL "run now" (actorUserID valid) is
 // a direct human action gated by the CURRENT clicker's access, so admission and
 // attribution credit the same member. Automation (schedule / webhook / api,
 // actorUserID invalid) has no human in the loop and falls back to the autopilot
@@ -1858,7 +1858,7 @@ func (s *AutopilotService) autopilotAdmitInvoke(ctx context.Context, ap db.Autop
 }
 
 // canMemberInvokeAgent checks whether a specific member may invoke the agent
-// under the invocation-permission model (MUL-3963). It mirrors
+// under the invocation-permission model (ENA-3963). It mirrors
 // handler.canInvokeAgent with a member effective user — used for a manual
 // autopilot "run now" where the clicker, not the creator, is the admission
 // principal. Fail-closed on any lookup error; no admin bypass.

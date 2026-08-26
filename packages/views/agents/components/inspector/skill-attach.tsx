@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Agent } from "@enact/core/types";
 import { useWorkspaceId } from "@enact/core/hooks";
+import { isOntologySkill } from "@enact/core/skills";
 import { skillListOptions } from "@enact/core/workspace/queries";
 import { SkillAddDialog } from "../skill-add-dialog";
 import { useT } from "../../../i18n";
@@ -33,7 +34,7 @@ export function SkillAttach({
 
   const agentSkillIds = new Set(agent.skills.map((s) => s.id));
   const availableCount = workspaceSkills.filter(
-    (s) => !agentSkillIds.has(s.id),
+    (skill) => !isOntologySkill(skill) && !agentSkillIds.has(skill.id),
   ).length;
 
   if (!canEdit || availableCount === 0) return null;

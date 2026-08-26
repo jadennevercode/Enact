@@ -462,7 +462,7 @@ func (h *Handler) compileIssueTableQuery(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Any non-empty status KEY, not just the 7 built-ins. A status filter names
-	// the exact statuses the user picked, and since MUL-6243 those can be custom
+	// the exact statuses the user picked, and since ENA-6243 those can be custom
 	// — rejecting them here 400'd the entire request, so filtering a board by a
 	// custom status errored the surface instead of narrowing it. The predicate
 	// below is a parameterized `status = ANY(...)`, so an unknown key simply

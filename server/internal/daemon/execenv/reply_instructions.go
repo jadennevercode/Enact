@@ -14,7 +14,7 @@ import "fmt"
 // thread. The issue-wide `--since` catch-up is kept as an explicit
 // "only if you need it" fallback.
 //
-// Since MUL-5377 the per-turn prompt (daemon.buildCommentPrompt) is the only
+// Since ENA-5377 the per-turn prompt (daemon.buildCommentPrompt) is the only
 // caller — the brief must not carry per-run routing state.
 //
 // Renders nothing on cold start (no prior run → newCommentsSince empty) or when
@@ -31,7 +31,7 @@ func BuildNewCommentsHint(issueID, triggerCommentID, triggerThreadID, newComment
 	// issue-wide --since catch-up is demoted to an only-if-needed fallback,
 	// phrased as a rerun of the thread command minus `--thread` instead of a
 	// second full command: the duplicate restated the issue UUID and anchor
-	// for no routing value (MUL-5721 OPT-1).
+	// for no routing value (ENA-5721 OPT-1).
 	if threadID != "" {
 		return fmt.Sprintf(
 			"%d new comment(s) on this issue since your last run — don't read them all blindly. "+
@@ -65,7 +65,7 @@ func BuildResumedCommentsHint(issueID, triggerCommentID, triggerThreadID string)
 	if issueID == "" || threadID == "" {
 		return ""
 	}
-	// No standalone anchor-restating sentence here (MUL-5721 OPT-1): the read
+	// No standalone anchor-restating sentence here (ENA-5721 OPT-1): the read
 	// command below already carries the thread anchor, and the trigger comment
 	// id reaches the agent as the reply cookbook's `--parent` value.
 	return fmt.Sprintf(
@@ -87,10 +87,10 @@ func BuildResumedCommentsHint(issueID, triggerCommentID, triggerThreadID string)
 // context the triggering comment actually needs. Cross-thread background is a
 // cheap `--roots-only --summary` scan; the hint deliberately does NOT name
 // `--recent`, whose saturation trap and pagination live once in the brief's
-// `## Available Commands` (MUL-5372). Per-turn hints name only the reads they
+// `## Available Commands` (ENA-5372). Per-turn hints name only the reads they
 // actually want the agent to run.
 //
-// Since MUL-5377 the per-turn prompt is the only caller (same as
+// Since ENA-5377 the per-turn prompt is the only caller (same as
 // BuildNewCommentsHint). Returns "" when there is no triggering comment to
 // thread from, so the caller can keep a final plain fallback.
 func BuildColdCommentsHint(issueID, triggerCommentID, triggerThreadID string) string {
@@ -100,7 +100,7 @@ func BuildColdCommentsHint(issueID, triggerCommentID, triggerThreadID string) st
 	}
 	// The roots scan is phrased as a flag swap on the thread command above, not
 	// a second full command: the duplicate restated the issue UUID for no
-	// routing value (MUL-5721 OPT-1).
+	// routing value (ENA-5721 OPT-1).
 	return fmt.Sprintf(
 		"Read the triggering conversation first: "+
 			"`enact issue comment list %s --thread %s --tail 30 --compact --output json` "+
@@ -136,8 +136,8 @@ func activeThreadID(triggerThreadID, triggerCommentID string) string {
 //     receives it: a backtick-wrapped token becomes a failed command
 //     substitution that is silently deleted, the stored comment no longer
 //     matches what the model intended, and a model that notices the mismatch
-//     can retry forever (MUL-2904 / OKK-497). It also lets Codex emit literal
-//     `\n` escapes inside `--content` (MUL-1467).
+//     can retry forever (ENA-2904 / OKK-497). It also lets Codex emit literal
+//     `\n` escapes inside `--content` (ENA-1467).
 //   - `--content-stdin` with a HEREDOC has TWO failure modes the model cannot
 //     see:
 //     1. On Windows, PowerShell 5.1's `$OutputEncoding` defaults to
@@ -171,8 +171,8 @@ func BuildCommentReplyInstructions(provider, issueID, triggerCommentID string, s
 
 // buildCommentReplyInstructionsSlim is the compressed reply-instructions
 // block used by BuildCommentReplyInstructions. It was introduced in
-// MUL-3560 as the slim alternative to a legacy verbose form; the
-// `runtime_brief_slim` flag has since been retired (MUL-4297) and this is
+// ENA-3560 as the slim alternative to a legacy verbose form; the
+// `runtime_brief_slim` flag has since been retired (ENA-4297) and this is
 // now the only form.
 //
 // The slim block carries only the trigger-specific cookbook (the exact
@@ -186,7 +186,7 @@ func buildCommentReplyInstructionsSlim(provider, issueID, triggerCommentID strin
 	// The squad leader's `no_action` exit (recorded via `squad activity`) is
 	// the one path where posting no comment is correct — the imperative must
 	// carry its own carve-out so a later line never contradicts the
-	// no_action rule injected above it (MUL-5442 #6493 review).
+	// no_action rule injected above it (ENA-5442 #6493 review).
 	lead := "Post your reply as a comment — always use the trigger comment ID below, "
 	if squadLeader {
 		lead = "Unless your outcome is `no_action`, post your reply as a comment — always use the trigger comment ID below, "
@@ -205,7 +205,7 @@ func buildCommentReplyInstructionsSlim(provider, issueID, triggerCommentID strin
 	return fmt.Sprintf(
 		lead+
 			"do NOT reuse --parent values from previous turns in this session.\n\n"+
-			"Write the body file first (rules: ## Comment Formatting above — MUL-2904 / #4182):\n\n"+
+			"Write the body file first (rules: ## Comment Formatting above — ENA-2904 / #4182):\n\n"+
 			"    enact issue comment add %s --parent %s --content-file ./reply.md\n"+
 			"    rm ./reply.md\n\n"+
 			"Do NOT write literal `\\n` escapes to simulate line breaks; the file preserves real newlines.\n",
@@ -222,7 +222,7 @@ type ThreadReplyTarget struct {
 }
 
 // BuildMultiThreadCommentReplyInstructions is the reply fan-out block for a run
-// whose coalesced comments span MORE THAN ONE root thread (MUL-4348). It
+// whose coalesced comments span MORE THAN ONE root thread (ENA-4348). It
 // deliberately overrides the general "post exactly one comment per run"
 // guidance for this specific run: three unrelated questions raised in three
 // separate threads must land as three in-thread answers, not one merged blob
@@ -242,7 +242,7 @@ type ThreadReplyTarget struct {
 // inline/`--content-stdin` bans, the `\n`-escape rule, and the OS-specific
 // cleanup command — lives once in the brief's `## Comment Formatting`; this
 // block used to restate all of it plus two example command pairs, triple-
-// writing the same cookbook for ~1KB extra per multi-thread turn (MUL-5825).
+// writing the same cookbook for ~1KB extra per multi-thread turn (ENA-5825).
 // Dropping the embedded commands also removes the only OS-dependent text, so
 // the block no longer branches on runtimeGOOS: `## Comment Formatting` keeps
 // the OS split.
@@ -258,7 +258,7 @@ func BuildMultiThreadCommentReplyInstructions(issueID string, targets []ThreadRe
 		targetLines += fmt.Sprintf("%d. thread %s → reply with `--parent %s`\n", i+1, tgt.ThreadID, tgt.ParentID)
 	}
 
-	// Same carve-out as the single-thread cookbook (MUL-5442 #6493 review):
+	// Same carve-out as the single-thread cookbook (ENA-5442 #6493 review):
 	// the leader's no_action exit must not be contradicted by this later
 	// imperative, and the scope sentence must govern the ENTIRE fan-out
 	// block — every obligation below ("multiple replies are required", the

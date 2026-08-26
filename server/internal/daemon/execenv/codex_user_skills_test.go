@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// User skills reach the per-task CODEX_HOME as links, not copies (MUL-6000).
+// User skills reach the per-task CODEX_HOME as links, not copies (ENA-6000).
 // Copying charged every task directory the full skill tree — ~100 MB for a
 // user with npm-backed skills — re-paid on every task start and never
 // reclaimed while the issue stayed open.

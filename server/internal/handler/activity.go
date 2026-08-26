@@ -135,7 +135,7 @@ type timelinePaginatedResponse struct {
 // When the hard cap fires each list is independently reduced to its newest
 // entries and X-Timeline-Truncated names which kinds were affected. Comment
 // threads cut by the window are completed afterwards within a bounded context
-// budget; a thread that cannot be completed is omitted as one unit (MUL-5492).
+// budget; a thread that cannot be completed is omitted as one unit (ENA-5492).
 func (h *Handler) ListTimeline(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	issue, ok := h.loadIssueForUser(w, r, id)

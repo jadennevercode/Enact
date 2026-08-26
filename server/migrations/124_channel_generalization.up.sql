@@ -1,5 +1,5 @@
 -- Generalize the Feishu/Lark-specific integration tables into
--- platform-agnostic channel_* tables (MUL-3515, parent MUL-3506). Each
+-- platform-agnostic channel_* tables (ENA-3515, parent ENA-3506). Each
 -- lark_* table gains a `channel_type` discriminator and moves its
 -- platform-specific identifiers/config into a JSONB `config` column; the
 -- cross-platform columns stay flat. Existing Feishu rows are backfilled
@@ -7,7 +7,7 @@
 --
 -- Two hard rules from the design:
 --
---   * NO foreign keys and NO cascades (MUL-3515 §4). The lark_* tables
+--   * NO foreign keys and NO cascades (ENA-3515 §4). The lark_* tables
 --     leaned on composite FKs to enforce "a binding's workspace matches
 --     its installation" and "a binding dies when workspace membership is
 --     revoked / a chat_session is deleted". Those integrity rules now
@@ -43,7 +43,7 @@
 --     A one-time ENACT_LARK_HUB_DISABLED park-switch existed during the
 --     cutover to hold a hub dormant while the API stayed up, so only one hub
 --     was ever live (invariant b). That cutover is complete and the switch has
---     since been removed (MUL-3515); this note is kept as history. Rollback to
+--     since been removed (ENA-3515); this note is kept as history. Rollback to
 --     a pre-cutover build is not lossless once the new hub has written Feishu
 --     state into channel_*.
 --
@@ -83,7 +83,7 @@ CREATE TABLE channel_installation (
     -- natural generalization adds it to the key. In the current feishu-only
     -- world this is behaviorally identical (one row per agent). If the
     -- product later wants "one agent, at most one IM regardless of type",
-    -- that is an application-layer rule (MUL-3515 §4), not a DB constraint.
+    -- that is an application-layer rule (ENA-3515 §4), not a DB constraint.
     UNIQUE (workspace_id, agent_id, channel_type)
 );
 
@@ -130,7 +130,7 @@ FROM lark_installation;
 CREATE TABLE channel_user_binding (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id     UUID NOT NULL,
-    multica_user_id  UUID NOT NULL,
+    enact_user_id  UUID NOT NULL,
     installation_id  UUID NOT NULL,
     channel_type     TEXT NOT NULL,
     channel_user_id  TEXT NOT NULL,
@@ -140,16 +140,16 @@ CREATE TABLE channel_user_binding (
 );
 
 CREATE INDEX idx_channel_user_binding_user
-    ON channel_user_binding(multica_user_id, workspace_id);
+    ON channel_user_binding(enact_user_id, workspace_id);
 CREATE INDEX idx_channel_user_binding_workspace_user
     ON channel_user_binding(workspace_id, channel_user_id);
 
 INSERT INTO channel_user_binding (
-    id, workspace_id, multica_user_id, installation_id,
+    id, workspace_id, enact_user_id, installation_id,
     channel_type, channel_user_id, config, bound_at
 )
 SELECT
-    id, workspace_id, multica_user_id, installation_id,
+    id, workspace_id, enact_user_id, installation_id,
     'feishu', lark_open_id,
     jsonb_strip_nulls(jsonb_build_object('union_id', union_id)),
     bound_at

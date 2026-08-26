@@ -148,7 +148,7 @@ func (f *fakeOutboundQueries) failStampNotSet(taskID string) {
 
 // fileTask records the agent_task_queue row GetAgentTask answers with, for a
 // task that owns its own input batch — which every chat round's task has done
-// since MUL-4351. id is the task id the ending event carries.
+// since ENA-4351. id is the task id the ending event carries.
 func (f *fakeOutboundQueries) fileTask(t testing.TB, id string) {
 	t.Helper()
 	f.fileRetryClone(t, id, id)

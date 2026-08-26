@@ -22,8 +22,7 @@ function createWrapper() {
 }
 
 const {
-  mockSendCode,
-  mockVerifyCode,
+  mockLoginWithEmail,
   mockIssueCliToken,
   mockListWorkspaces,
   mockListMyInvitations,
@@ -32,8 +31,7 @@ const {
   searchParamsState,
   authStateRef,
 } = vi.hoisted(() => ({
-  mockSendCode: vi.fn(),
-  mockVerifyCode: vi.fn(),
+  mockLoginWithEmail: vi.fn(),
   mockIssueCliToken: vi.fn(),
   mockListWorkspaces: vi.fn(),
   mockListMyInvitations: vi.fn(),
@@ -42,8 +40,7 @@ const {
   searchParamsState: { params: new URLSearchParams() },
   authStateRef: {
     state: {
-      sendCode: vi.fn(),
-      verifyCode: vi.fn(),
+      loginWithEmail: vi.fn(),
       user: null as null | { id: string; email: string; onboarded_at?: string | null },
       isLoading: false,
     },
@@ -58,7 +55,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParamsState.params,
 }));
 
-// Mock auth store — shared LoginPage uses getState().sendCode/verifyCode,
+// Mock auth store — shared LoginPage uses getState().loginWithEmail,
 // web wrapper uses useAuthStore((s) => s.user/isLoading). Keep the real
 // sanitizeNextUrl so the redirect-sanitization rules are exercised rather
 // than silently drifting behind a mock reimplementation.
@@ -67,8 +64,7 @@ vi.mock("@enact/core/auth", async () => {
     await vi.importActual<typeof import("@enact/core/auth")>(
       "@enact/core/auth",
     );
-  authStateRef.state.sendCode = mockSendCode;
-  authStateRef.state.verifyCode = mockVerifyCode;
+  authStateRef.state.loginWithEmail = mockLoginWithEmail;
   const useAuthStore = Object.assign(
     (selector: (s: typeof authStateRef.state) => unknown) =>
       selector(authStateRef.state),
@@ -87,7 +83,7 @@ vi.mock("@enact/core/api", () => ({
   api: {
     listWorkspaces: mockListWorkspaces,
     listMyInvitations: mockListMyInvitations,
-    verifyCode: vi.fn(),
+    emailLogin: vi.fn(),
     setToken: vi.fn(),
     getMe: vi.fn(),
     issueCliToken: mockIssueCliToken,
@@ -104,42 +100,29 @@ describe("LoginPage", () => {
     authStateRef.state.isLoading = false;
     mockListWorkspaces.mockResolvedValue([]);
     mockListMyInvitations.mockResolvedValue([]);
+    mockLoginWithEmail.mockResolvedValue(undefined);
   });
 
   it("renders login form with email input and continue button", () => {
     render(<LoginPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Sign in to Enact")).toBeInTheDocument();
-    expect(screen.getByText("Enter your email to get a login code")).toBeInTheDocument();
+    expect(screen.getByText("Enter your email to continue")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Continue" })
     ).toBeInTheDocument();
   });
 
-  it("does not call sendCode when email is empty", async () => {
+  it("does not log in when email is empty", async () => {
     const user = userEvent.setup();
     render(<LoginPage />, { wrapper: createWrapper() });
 
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    expect(mockSendCode).not.toHaveBeenCalled();
+    expect(mockLoginWithEmail).not.toHaveBeenCalled();
   });
 
-  it("calls sendCode with email on submit", async () => {
-    mockSendCode.mockResolvedValueOnce(undefined);
-    const user = userEvent.setup();
-    render(<LoginPage />, { wrapper: createWrapper() });
-
-    await user.type(screen.getByLabelText("Email"), "test@enact.ai");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
-
-    await waitFor(() => {
-      expect(mockSendCode).toHaveBeenCalledWith("test@enact.ai");
-    });
-  });
-
-  it("shows 'Sending code...' while submitting", async () => {
-    mockSendCode.mockReturnValueOnce(new Promise(() => {}));
+  it("logs in directly with the submitted email", async () => {
     const user = userEvent.setup();
     render(<LoginPage />, { wrapper: createWrapper() });
 
@@ -147,12 +130,12 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Sending code...")).toBeInTheDocument();
+      expect(mockLoginWithEmail).toHaveBeenCalledWith("test@enact.ai");
     });
   });
 
-  it("shows verification code step after sending code", async () => {
-    mockSendCode.mockResolvedValueOnce(undefined);
+  it("shows 'Signing in...' while submitting", async () => {
+    mockLoginWithEmail.mockReturnValueOnce(new Promise(() => {}));
     const user = userEvent.setup();
     render(<LoginPage />, { wrapper: createWrapper() });
 
@@ -160,12 +143,12 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Check your email")).toBeInTheDocument();
+      expect(screen.getByText("Signing in...")).toBeInTheDocument();
     });
   });
 
-  it("shows error when sendCode fails", async () => {
-    mockSendCode.mockRejectedValueOnce(new Error("Network error"));
+  it("shows an error when direct login fails", async () => {
+    mockLoginWithEmail.mockRejectedValueOnce(new Error("Network error"));
     const user = userEvent.setup();
     render(<LoginPage />, { wrapper: createWrapper() });
 
@@ -177,7 +160,7 @@ describe("LoginPage", () => {
     });
   });
 
-  // Regression: MUL-1080 — if the user is already authenticated on the web
+  // If the user is already authenticated on the web
   // and the Desktop app redirects them to /login?platform=desktop, the web
   // must exchange the cookie session for a bearer token and hand it off via
   // the enact:// deep link, not silently redirect to the workspace page.
@@ -218,7 +201,7 @@ describe("LoginPage", () => {
   });
 
   // Regression: #5009 — the "already authenticated on arrival" effect used to
-  // fire for fresh form logins too. verifyCode writes `user` while handleVerify
+  // fire for fresh form logins too. Email login writes `user` while the handler
   // is still fetching the workspace list, so the effect read an empty cache and
   // raced handleSuccess with replace("/workspaces/new"); depending on the
   // interleaving the user could end up stuck on the create-workspace page
@@ -235,7 +218,7 @@ describe("LoginPage", () => {
       // now on came from the form".
       const wrapper = createWrapper();
       const { rerender } = render(<LoginPage />, { wrapper });
-      // verifyCode set the user; the workspace list fetch is still in flight
+      // Email login set the user; the workspace list fetch is still in flight
       // (cache cold). The arrival effect must stay silent — handleSuccess
       // owns this navigation.
       authStateRef.state.user = onboardedUser;

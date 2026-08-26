@@ -166,5 +166,33 @@
     "direction_desc": "降順",
     "section_columns": "列",
     "view": "ビュー"
+  },
+  "artifacts": {
+    "title": "成果物",
+    "subtitle": "このプロジェクトで生成されたファイル。生成元のタスクごとにまとめています。",
+    "open_action": "成果物",
+    "search_placeholder": "ファイルとタスクを検索",
+    "count_other": "{{count}} 件のファイル",
+    "empty_title": "成果物はまだありません",
+    "empty_hint": "このプロジェクトのタスクやコメントにアップロードされたファイルがここに表示されます。",
+    "empty_search_title": "一致するファイルがありません",
+    "empty_search_hint": "別のファイル名やタスクで試してください。",
+    "truncated": "最初の {{count}} 件のファイルを表示しています。古いファイルは検索で絞り込んでください。",
+    "load_failed": "成果物の読み込みに失敗しました",
+    "retry": "再試行",
+    "unfiled_folder": "未分類",
+    "unfiled_folder_hint": "これらのファイルはタスクをたどれませんでした。",
+    "select_prompt": "ファイルを選択するとバージョンが表示されます。",
+    "versions_title": "バージョン",
+    "version_label": "v{{version}}",
+    "version_current": "現在",
+    "version_count_other": "{{count}} 件のバージョン",
+    "download": "ダウンロード",
+    "preview": "プレビュー",
+    "open_issue": "タスクを開く",
+    "uploaded_by_member": "メンバーがアップロード",
+    "uploaded_by_agent": "エージェントが生成",
+    "column_size": "サイズ",
+    "column_uploaded": "アップロード日時"
   }
 }

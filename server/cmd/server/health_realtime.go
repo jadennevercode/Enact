@@ -15,7 +15,7 @@ import (
 //
 // The endpoint exposes operational counters (per-event / per-scope sends,
 // Redis relay state, etc.) that should not be reachable by anonymous public
-// clients. See MUL-1342.
+// clients. See ENA-1342.
 //
 // Access policy:
 //   - If token != "": require Authorization: Bearer <token>; reject other
@@ -27,7 +27,7 @@ import (
 //     not exposed on a public listener — including when the server sits
 //     behind a reverse proxy (Caddy / Nginx) that terminates TLS on
 //     localhost, in which case all requests would otherwise look like
-//     loopback (see MUL-1342 review).
+//     loopback (see ENA-1342 review).
 func realtimeMetricsHandler(token string) http.HandlerFunc {
 	token = strings.TrimSpace(token)
 	return func(w http.ResponseWriter, r *http.Request) {

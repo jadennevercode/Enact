@@ -62,7 +62,7 @@ var errTaskPrepareTimeout = errors.New("task preparation timed out")
 // sentinel — rather than leaving handleTask to pattern-match the wrapped
 // transport error — is what lets the failure land on the platform-side
 // skill_bundle_unavailable reason instead of agent_error.unknown, which is not
-// on the server's retry allowlist. (MUL-5370)
+// on the server's retry allowlist. (ENA-5370)
 var errSkillBundleUnavailable = errors.New("skill bundle unavailable")
 
 const (
@@ -77,7 +77,7 @@ const (
 	// provider process after the task reaches running.
 	defaultTaskPrepareTimeout = 5 * time.Minute
 	// pendingWorkHeartbeatTimeout bounds the out-of-band heartbeat a
-	// server-pushed daemon:pending_work hint triggers (MUL-5444). Short on
+	// server-pushed daemon:pending_work hint triggers (ENA-5444). Short on
 	// purpose: the hint is only a latency optimisation, and the scheduled
 	// heartbeat still picks the request up if this attempt fails.
 	pendingWorkHeartbeatTimeout = 15 * time.Second
@@ -210,7 +210,7 @@ type terminalTaskReport struct {
 	durableWorkDir string
 	failureReason  string
 	// sessionRolloutMissing is true when the daemon withheld this task's Codex
-	// session because its rollout was not in the store (MUL-5305). The server
+	// session because its rollout was not in the store (ENA-5305). The server
 	// clears the resume pointer and flags the continuity gap for the next claim.
 	sessionRolloutMissing bool
 	// retiredSessionID names a session this run was told to resume and then
@@ -256,7 +256,7 @@ var (
 	// profilePathExecutable reports whether path points at an existing,
 	// non-directory file with at least one executable bit set. It is the
 	// gate appendProfileRuntimes uses before trusting a per-machine command
-	// path override (MUL-3284) — a stale or mistyped override must fall back
+	// path override (ENA-3284) — a stale or mistyped override must fall back
 	// to the PATH lookup rather than register a runtime that can't launch.
 	// Indirected as a package var so tests can assert override preference
 	// without staging a real executable on disk.
@@ -290,7 +290,7 @@ type workspaceState struct {
 	lastRepoSyncErr string
 	repoRefreshMu   contextLock
 	// profileSetSig is a content hash of the workspace's custom runtime
-	// profile list (MUL-3332) as last seen from the server. An on-demand
+	// profile list (ENA-3332) as last seen from the server. An on-demand
 	// refresh compares the live signature with this cached value; any drift
 	// triggers a re-register so newly-added (or edited / disabled) custom
 	// runtimes appear without a daemon restart. Empty before the first
@@ -366,7 +366,7 @@ type Daemon struct {
 	runtimeIndex map[string]Runtime // runtimeID -> Runtime for provider lookups
 	// profileLaunchSpecs maps a custom runtime profile_id -> the absolute
 	// executable path plus fixed launch args resolved for that profile
-	// (MUL-3284). Populated in registerRuntimesForWorkspace when a profile's
+	// (ENA-3284). Populated in registerRuntimesForWorkspace when a profile's
 	// command resolves; read by runTask to launch the custom command for a
 	// claimed task. Guarded by mu.
 	profileLaunchSpecs map[string]profileLaunchSpec
@@ -390,14 +390,14 @@ type Daemon struct {
 	// a whole new map, and readers (agents()) take the pointer once and then
 	// only read. cfg.Agents used to be read unlocked from task-execution paths
 	// (resolveAgentEntry, runTask), so making the discovery set refreshable at
-	// runtime (MUL-5439) would otherwise be a data race.
+	// runtime (ENA-5439) would otherwise be a data race.
 	agentsAvailable atomic.Pointer[map[string]AgentEntry]
 
 	// skippedAgents records why a discovered provider did not make it into the
 	// last registration round (version undetectable, below minimum). Purely
 	// diagnostic: surfaced on /health so the UI can tell "not installed" apart
 	// from "installed but dropped", instead of silently showing nothing
-	// (MUL-5439). Guarded by skippedAgentsMu.
+	// (ENA-5439). Guarded by skippedAgentsMu.
 	skippedAgentsMu sync.RWMutex
 	skippedAgents   map[string]string // provider -> human-readable reason
 
@@ -445,7 +445,7 @@ type Daemon struct {
 
 	// resolvedPathsMu guards concrete executable paths paired with the version
 	// detected for each. On POSIX these are self-heals cached after a pinned path
-	// vanishes (MUL-4486). On Windows they are launch targets resolved from a
+	// vanishes (ENA-4486). On Windows they are launch targets resolved from a
 	// stable installer junction; that junction is followed on every launch so a
 	// retarget takes effect even while the old release remains installed. Path
 	// and version are stored together so no reader can launch a new binary under
@@ -454,7 +454,7 @@ type Daemon struct {
 	resolvedPaths   map[string]healedAgent
 	// healGroup coalesces concurrent self-heal re-resolutions per provider so a
 	// just-upgraded agent seen by many queued tasks at once pays for a single
-	// login-shell probe + version detection instead of one per task (MUL-4486).
+	// login-shell probe + version detection instead of one per task (ENA-4486).
 	healGroup singleflight.Group
 
 	wsHBMu      sync.RWMutex         // guards wsHBLastAck
@@ -471,7 +471,7 @@ type Daemon struct {
 	// runtime profiles that may have changed during the gap.
 	workspaceChanges *workspaceChangeSignal
 
-	// wsRPC carries generic request/response RPCs (e.g. tasks.claim, MUL-4257)
+	// wsRPC carries generic request/response RPCs (e.g. tasks.claim, ENA-4257)
 	// over the task-wakeup WS connection. It is attached to the live
 	// connection in runTaskWakeupConnection and detached on disconnect; when
 	// detached, callers fall back to HTTP.
@@ -481,7 +481,7 @@ type Daemon struct {
 	// server (no /api/daemon/tasks/claim route — an un-upgraded server), so
 	// subsequent polls skip WS+batch and use the legacy per-runtime claim
 	// directly. Reset when the WS (re)connects, so a server upgrade that
-	// bounces the connection re-probes the batch route (MUL-4257).
+	// bounces the connection re-probes the batch route (ENA-4257).
 	batchClaimUnsupported atomic.Bool
 	// wsClaimHTTPFallbackAfter is set after an uncertain WS claim outcome. Once
 	// the safety delay elapses, the next claim bypasses WS once and uses HTTP so
@@ -499,7 +499,7 @@ type Daemon struct {
 	reregisterLastCompletedAt map[string]time.Time // workspace_id -> wall-clock at which the last SUCCESSFUL re-register call returned (failures intentionally not stamped — see recordRegisterCompletion)
 
 	// pendingWorkMu guards pendingWorkInflight and pendingWorkLastRun, which
-	// coalesce and rate-limit server-pushed "heartbeat now" hints (MUL-5444).
+	// coalesce and rate-limit server-pushed "heartbeat now" hints (ENA-5444).
 	// Several UI surfaces can request the same runtime's model list within
 	// milliseconds; without the guard each hint would fire its own out-of-band
 	// heartbeat, and an authenticated caller looping the list-models endpoint
@@ -564,7 +564,7 @@ type Daemon struct {
 
 	activeStoresMu   sync.Mutex
 	activeStoresCond *sync.Cond      // signalled when an in-flight store deletion finishes, so a blocked markActive can proceed
-	activeStores     map[string]int  // persistent store path (per-conversation Codex sessions, per-agent Hermes memories) -> live-task refcount; guards the store from GC mid-task (MUL-4424)
+	activeStores     map[string]int  // persistent store path (per-conversation Codex sessions, per-agent Hermes memories) -> live-task refcount; guards the store from GC mid-task (ENA-4424)
 	deletingStores   map[string]bool // store paths a GC delete has reserved; markActive waits these out so a task never mounts a store mid-removal
 
 	// repoCheckoutTasks binds the localhost /repo/checkout endpoint to the
@@ -578,7 +578,7 @@ type Daemon struct {
 	// local_directory pinned to this daemon. Two tasks targeting the same
 	// on-disk path run sequentially; the second blocks on the lock and is
 	// surfaced via the server-side waiting_local_directory status while it
-	// waits. See MUL-2663.
+	// waits. See ENA-2663.
 	localPathLocks *LocalPathLocker
 
 	// bgSyncs tracks background goroutines started by registerTaskRepos so
@@ -840,7 +840,7 @@ func (d *Daemon) hasDetectedAgentVersions() bool {
 // returned together from resolveAgentEntry, so a caller that observes the new
 // path necessarily observes the matching version — closing the window where a
 // just-upgraded binary would run under the daemon's previous version policy
-// (MUL-4486 review).
+// (ENA-4486 review).
 type healedAgent struct {
 	path    string
 	version string
@@ -849,7 +849,7 @@ type healedAgent struct {
 // resolveAgentEntry returns entry with a usable executable path plus the CLI
 // version that corresponds to that path. It resolves retargetable Windows
 // installer junctions per launch and self-heals vanished pinned paths on other
-// platforms (MUL-4486).
+// platforms (ENA-4486).
 //
 // The daemon pins each agent's discovered entry point at startup so a later
 // PATH change cannot redirect a task launch. POSIX discovery also resolves
@@ -873,7 +873,7 @@ type healedAgent struct {
 //     version. This is checked first so that once we've re-resolved to a new
 //     binary, a reappearing stale path (a downgrade / reinstall recreating the
 //     old versioned directory) cannot re-pair that old binary with the healed
-//     version — a mismatched {old path, new version} (MUL-4486 review).
+//     version — a mismatched {old path, new version} (ENA-4486 review).
 //   - Otherwise, pinned Path still present -> returned unchanged, paired with
 //     its registration-detected version. The anti-redirect guarantee holds for
 //     the normal (never-healed) case: a live pinned binary is never
@@ -1088,7 +1088,7 @@ func (d *Daemon) adoptAgentPath(ctx context.Context, provider, command, newPath,
 	// Verify before adopting. An in-place "upgrade" that actually repoints at an
 	// older or broken install must not be launched under the daemon's stale
 	// version policy, and must not slip past the minimum-version gate that the
-	// registration path applies (MUL-4486 review).
+	// registration path applies (ENA-4486 review).
 	version, err := detectAgentVersion(ctx, agent.Command{Path: newPath})
 	if err != nil {
 		d.logger.Warn("re-resolved agent executable failed version detection; keeping pinned path",
@@ -1488,7 +1488,7 @@ func (d *Daemon) applyRegisterResponseInPlace(workspaceID string, resp *Register
 // applyRegisterResponseInPlace treats the response as authoritative and drops
 // unmentioned IDs, which is right for the convergence paths that deliberately
 // re-derive a workspace's whole runtime set. It is wrong for CLI discovery
-// (MUL-5439): that payload carries built-in runtimes only, so under the
+// (ENA-5439): that payload carries built-in runtimes only, so under the
 // authoritative rule it would evict the workspace's custom profile runtimes from
 // runtimeIndex and stop their heartbeats, possibly mid-task. The server's
 // register endpoint is a pure per-entry upsert and prunes nothing, so omitted
@@ -1647,7 +1647,7 @@ func (r *revivedRuntimes) add(d *Daemon, runtimeID, provider string) {
 // upsert overwrites metadata wholesale — so the reason this daemon just stored
 // is gone, and the cleanup that takes the revived row offline again has to
 // re-attach it. Without that the server ends up "offline, no reason", which
-// downgrades the refusal back to "wait for the machine" (MUL-6164).
+// downgrades the refusal back to "wait for the machine" (ENA-6164).
 type demotionRecord struct {
 	evidence string
 	offline  *RuntimeOfflineReason
@@ -1831,7 +1831,7 @@ func (d *Daemon) reregisterWorkspaceAfterRuntimeGone(ctx context.Context, worksp
 	// that needs to be failed-and-retried. The drift-refresh path (which
 	// also feeds applyRegisterResponseInPlace) deliberately skips this step
 	// because its surviving runtime IDs may still be actively executing
-	// tasks for the user (MUL-3332).
+	// tasks for the user (ENA-3332).
 	for _, rid := range newIDs {
 		if err := d.client.RecoverOrphans(ctx, rid); err != nil {
 			d.logger.Warn("recover-orphans after re-register failed",
@@ -2009,7 +2009,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start workspace sync loop to discover newly created workspaces.
 	go d.workspaceSyncLoop(ctx)
 
-	// Discover agent CLIs installed after startup (MUL-5439). Separate from the
+	// Discover agent CLIs installed after startup (ENA-5439). Separate from the
 	// workspace sync loop because that one runs on a thirty-minute consistency
 	// interval — far too slow for "install a CLI, see it under Runtimes".
 	go d.agentDiscoveryLoop(ctx)
@@ -2153,7 +2153,7 @@ const runtimeVersionProbeConcurrency = 8
 // --version` probe runs inside a single probe round before that provider is
 // dropped from the registration payload.
 //
-// A round now serves a whole batch of workspace registrations (MUL-5225), so a
+// A round now serves a whole batch of workspace registrations (ENA-5225), so a
 // single failed attempt no longer costs one workspace its runtime — it costs
 // every workspace registered in that batch, and nothing re-probes until a
 // daemon restart or a standalone re-registration. That amplification is worth
@@ -2175,7 +2175,7 @@ var runtimeVersionProbeRetryDelay = 500 * time.Millisecond
 // came back. A probe that burned its full timeout is a hung CLI, not a hiccup,
 // and retrying it would double the worst case for the whole round — the same
 // latency that used to push the desktop runtime step into its empty "no runtime
-// found" state before probes were parallelized (MUL-5119). Only fast failures,
+// found" state before probes were parallelized (ENA-5119). Only fast failures,
 // which are the transient ones, are retried.
 //
 // The window is measured over the WHOLE attempt, self-heal included: a vanished
@@ -2212,7 +2212,7 @@ const (
 	builtinProbeBelowMinimum
 	// builtinProbeNotExecutable: the file resolved, but the OS rejected it as
 	// not a runnable program (an npm placeholder stub whose postinstall was
-	// blocked is the case in the field — MUL-6164). Deterministic in the same
+	// blocked is the case in the field — ENA-6164). Deterministic in the same
 	// sense as below-minimum: the same bytes will be refused every time until
 	// someone reinstalls, so retrying is not what fixes it.
 	builtinProbeNotExecutable
@@ -2263,7 +2263,7 @@ func newRuntimeVerdict(verdict builtinProbeVerdict, reason, execPath string) run
 // The second return value is a short human-readable reason when the verdict is
 // not OK. It is surfaced on /health as skipped_agents so a user can tell "CLI
 // not installed" apart from "CLI installed but dropped at registration", which
-// was previously only visible in the daemon log (MUL-5439).
+// was previously only visible in the daemon log (ENA-5439).
 func (d *Daemon) probeBuiltinRuntime(ctx context.Context, name string, entry AgentEntry) (string, string, builtinProbeVerdict) {
 	var (
 		lastErr  error
@@ -2291,7 +2291,7 @@ func (d *Daemon) probeBuiltinRuntime(ctx context.Context, name string, entry Age
 		// slow half twice.
 		startedAt := time.Now()
 		// Self-heal a pinned executable path an in-place upgrade deleted
-		// (MUL-4486) so version detection — and thus staying registered/online —
+		// (ENA-4486) so version detection — and thus staying registered/online —
 		// recovers without a daemon restart. resolveAgentEntry already
 		// version-gates the healed binary; the detect + min-version check below
 		// still runs to produce the version string this registration reports.
@@ -2373,7 +2373,7 @@ func (d *Daemon) probeBuiltinRuntime(ctx context.Context, name string, entry Age
 	// The OS refusing to execute the file is not a failed probe, it is a
 	// finding: the CLI is installed, resolvable, and unrunnable. Report it as
 	// its own verdict so the caller can take the runtime offline instead of
-	// keeping it online for a binary that cannot start (MUL-6164). The
+	// keeping it online for a binary that cannot start (ENA-6164). The
 	// diagnosis attached in pkg/agent rides along as the reason, so /health
 	// carries the repair command and not just the errno.
 	if agent.IsExecFormatError(lastErr) {
@@ -2399,12 +2399,12 @@ func (d *Daemon) probeBuiltinRuntime(ctx context.Context, name string, entry Age
 // every CLI's `--version` call. On an onboarding host with several coding tools
 // installed that stacked into many seconds of dead time before the daemon could
 // register — long enough that the desktop runtime step timed out into its empty
-// "no runtime found" state while the probes were still running (MUL-5119).
+// "no runtime found" state while the probes were still running (ENA-5119).
 // Fanning the probes out makes total latency track the SLOWEST single probe
 // instead of their sum, so a freshly-created workspace lights up its runtimes
 // well inside the UI's scanning window.
 //
-// Each probe still self-heals a vanished pinned path (MUL-4486) and re-detects
+// Each probe still self-heals a vanished pinned path (ENA-4486) and re-detects
 // the live version — nothing is cached on the Daemon, so an in-place CLI
 // upgrade is still reported with its current version. A provider whose version
 // stays undetectable across probeBuiltinRuntime's bounded attempts, or which is
@@ -2413,7 +2413,7 @@ func (d *Daemon) probeBuiltinRuntime(ctx context.Context, name string, entry Age
 //
 // The result describes the machine, not a workspace, so a caller registering a
 // batch of workspaces at once calls this ONCE and passes the payload to
-// registerRuntimesForWorkspaceBatch for each workspace (MUL-5225).
+// registerRuntimesForWorkspaceBatch for each workspace (ENA-5225).
 //
 // The second return value is THIS round's confirmed verdicts, provider to the
 // evidence against it. It is returned rather than read back
@@ -2603,7 +2603,7 @@ func preserveProvidersFromProbe(unavailable map[string]string, demotable map[str
 // Built-in CLIs are a machine-level fact, not a per-workspace one, but
 // registration is per-workspace — so probing inside every registration made a
 // daemon serving N workspaces spawn N×M `<cli> --version` processes at startup
-// (24 workspaces × 5 agents = 120 instead of 5, MUL-5225 / #5837). Beyond the
+// (24 workspaces × 5 agents = 120 instead of 5, ENA-5225 / #5837). Beyond the
 // wasted startup time, some CLI wrappers have visible side effects when
 // executed, and a single slow probe gets multiplied by the workspace count.
 //
@@ -2622,14 +2622,14 @@ func (d *Daemon) registerRuntimesForWorkspaceBatchLocked(ctx context.Context, wo
 	var failedProfiles []map[string]string
 
 	// Append any workspace custom runtime profiles whose command resolves on
-	// this host (MUL-3284). This is best-effort: a fetch error (e.g. an older
+	// this host (ENA-3284). This is best-effort: a fetch error (e.g. an older
 	// server returning 404) must never fail registration — the daemon simply
 	// continues with the built-in runtimes it already collected. A profile
 	// whose command_name is not on PATH is skipped (the host doesn't have it).
 	//
 	// profileSig is a content hash of the workspace's profile list captured
 	// here so an on-demand server notification can skip re-registration when
-	// the effective profile set is already current (MUL-3332). An empty string
+	// the effective profile set is already current (ENA-3332). An empty string
 	// means the fetch failed and the caller must keep whatever signature was
 	// previously cached on the workspaceState.
 	profileSig := d.appendProfileRuntimes(ctx, workspaceID, &runtimes, &failedProfiles)
@@ -2670,7 +2670,7 @@ func (d *Daemon) registerRuntimesForWorkspaceBatchLocked(ctx context.Context, wo
 // workspace: no custom runtime profiles are fetched or sent, and no profile
 // signature is produced.
 //
-// This exists for the CLI-discovery path (MUL-5439), which must not participate
+// This exists for the CLI-discovery path (ENA-5439), which must not participate
 // in custom-profile convergence at all. Going through the profile-appending
 // registration made discovery observe the profile set as a side effect, and
 // caching that observation told the drift path "already converged" — so a
@@ -2713,7 +2713,7 @@ func (d *Daemon) registerBuiltinRuntimesForWorkspaceLocked(ctx context.Context, 
 }
 
 // appendProfileRuntimes fetches the workspace's enabled custom runtime
-// profiles (MUL-3284) and appends a runtime registration entry for each one
+// profiles (ENA-3284) and appends a runtime registration entry for each one
 // whose command_name resolves on this host's PATH. For each resolved profile
 // it records the absolute command path and fixed args keyed by profile_id (via
 // recordProfileLaunch) so runTask can later launch the custom executable for a
@@ -2729,7 +2729,7 @@ func (d *Daemon) registerBuiltinRuntimesForWorkspaceLocked(ctx context.Context, 
 // protocol_family (the routing provider), version = best-effort detected
 // version, status = "online", plus the profile_id the server validates.
 //
-// Returns a content signature of the fetched profile list (MUL-3332). The
+// Returns a content signature of the fetched profile list (ENA-3332). The
 // signature is used by on-demand profile refreshes to ignore duplicate change
 // notifications while still triggering a re-register without a daemon
 // restart. Returns the empty string when the fetch failed — callers must treat
@@ -2770,7 +2770,7 @@ func (d *Daemon) appendProfileRuntimes(ctx context.Context, workspaceID string, 
 			continue
 		}
 		// Resolve the executable to launch for this profile. A per-machine
-		// path override (MUL-3284, `enact runtime profile set-path`) wins
+		// path override (ENA-3284, `enact runtime profile set-path`) wins
 		// over the PATH lookup when it is set AND points at a real
 		// executable — this is how an operator pins a profile to a binary
 		// that isn't on the daemon's PATH, or selects between multiple
@@ -2847,7 +2847,7 @@ func (d *Daemon) appendProfileRuntimes(ctx context.Context, workspaceID string, 
 }
 
 // profileSetSignature is a stable content hash of the workspace's custom
-// runtime profile list (MUL-3332). An on-demand refresh diffs this against the
+// runtime profile list (ENA-3332). An on-demand refresh diffs this against the
 // cached value after the server reports a create, edit, disable, or delete; a
 // mismatch makes the daemon re-register so the new runtime instance appears
 // without a restart.
@@ -2985,7 +2985,7 @@ func (d *Daemon) workspaceLastRepoSyncErr(workspaceID string) string {
 // The hook is gated by BOTH the GitHub master switch (`github_enabled`) and
 // the dedicated co-author switch (`co_authored_by_enabled`) so flipping the
 // workspace's master GitHub toggle off also stops new trailers from landing
-// in commits, matching the contract documented in RFC MUL-2414 §4.8.
+// in commits, matching the contract documented in RFC ENA-2414 §4.8.
 func (d *Daemon) workspaceCoAuthoredByEnabled(workspaceID string) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -3172,7 +3172,7 @@ func (d *Daemon) refreshWorkspaceRepos(ctx context.Context, workspaceID string) 
 }
 
 // refreshWorkspaceRuntimeProfiles fetches the workspace's enabled custom
-// runtime profile list (MUL-3332), compares its content signature against
+// runtime profile list (ENA-3332), compares its content signature against
 // the value cached on the workspaceState, and triggers a re-register when
 // the signature has drifted. This is the entry point used by the daemon
 // WebSocket change notification so profiles added / edited / disabled via the
@@ -3626,7 +3626,7 @@ func (d *Daemon) syncWorkspacesFromAPI(ctx context.Context, reconcileProfiles bo
 	d.mu.Unlock()
 
 	// Built-in agent CLIs are installed per machine, so one probe round serves
-	// every workspace this sync has to register (MUL-5225). Probing is lazy —
+	// every workspace this sync has to register (ENA-5225). Probing is lazy —
 	// a sync that finds nothing new to register never shells out at all, which
 	// is the common case for the periodic sync — and scoped to this call, so
 	// the next sync re-detects and an in-place CLI upgrade is still reported.
@@ -3964,7 +3964,7 @@ func (d *Daemon) handleHeartbeatActions(ctx context.Context, runtimeID string, r
 
 // handlePendingWorkHint reacts to a server-pushed daemon:pending_work frame by
 // sending ONE immediate heartbeat for the runtime, then dispatching whatever
-// that heartbeat claimed (MUL-5444).
+// that heartbeat claimed (ENA-5444).
 //
 // Why a heartbeat and not the work itself: the hint deliberately carries no
 // request payload, so the server never has to un-claim anything when delivery
@@ -4064,8 +4064,8 @@ func (d *Daemon) handleModelList(ctx context.Context, rt Runtime, requestID stri
 
 	// Discovery must enumerate the binary this runtime will actually execute,
 	// otherwise the picker advertises a catalog the launched CLI never agreed
-	// to (MUL-5789). Mirror runTask's resolution order: a custom runtime
-	// profile (MUL-3284) owns the executable path, and such a runtime can live
+	// to (ENA-5789). Mirror runTask's resolution order: a custom runtime
+	// profile (ENA-3284) owns the executable path, and such a runtime can live
 	// on a host with NO built-in agent of the same protocol family installed —
 	// so a custom runtime must never fail on the built-in lookup. A custom
 	// path is also never re-resolved: like runTask, we don't second-guess a
@@ -4083,7 +4083,7 @@ func (d *Daemon) handleModelList(ctx context.Context, rt Runtime, requestID stri
 			"fixed_args", len(fixedArgs))
 	} else if entry, ok := d.agents()[rt.Provider]; ok {
 		// Built-in provider: self-heal a pinned executable path an in-place
-		// upgrade deleted (MUL-4486).
+		// upgrade deleted (ENA-4486).
 		entry, _ = d.resolveAgentEntry(ctx, rt.Provider, entry)
 		execPath = entry.Path
 	} else {
@@ -4112,7 +4112,7 @@ func (d *Daemon) handleModelList(ctx context.Context, rt Runtime, requestID stri
 	// map[string]string) so the Default bool and the per-model
 	// Thinking catalog round-trip — without it the UI loses its
 	// "default" badge on the advertised pick and the thinking-level
-	// picker for claude/codex (MUL-2339).
+	// picker for claude/codex (ENA-2339).
 	type thinkingLevelWire struct {
 		Value       string `json:"value"`
 		Label       string `json:"label"`
@@ -4171,7 +4171,7 @@ func (d *Daemon) handleModelList(ctx context.Context, rt Runtime, requestID stri
 		"models":    wire,
 		"supported": agent.ModelSelectionSupported(rt.Provider),
 		// Additive field: the models are still worth rendering, but the server
-		// must not persist them as this runtime's real catalog (MUL-5549).
+		// must not persist them as this runtime's real catalog (ENA-5549).
 		// Older servers ignore it and keep the previous behaviour.
 		"fallback": catalog.Fallback,
 	})
@@ -4647,7 +4647,7 @@ func (d *Daemon) restartTargetBinary() (string, error) {
 	return newBin, nil
 }
 
-// pollLoop runs the machine-level batch claim poller (MUL-4257): a single
+// pollLoop runs the machine-level batch claim poller (ENA-4257): a single
 // goroutine claims across ALL of the daemon's runtimes per cycle via
 // ClaimTasksWSFirst (WS-first, HTTP fallback), replacing the previous
 // one-HTTP-poller-per-runtime model. Wake-up signals — a WS task_available /
@@ -4655,7 +4655,7 @@ func (d *Daemon) restartTargetBinary() (string, error) {
 // batch claim already covers every runtime. On shutdown it stops the poller,
 // then drains in-flight tasks.
 //
-// This trades the per-runtime isolation the old model gave (MUL-1744) for a
+// This trades the per-runtime isolation the old model gave (ENA-1744) for a
 // single request; the head-of-line risk is bounded by ClaimTasksWSFirst's short
 // per-request timeout (WS) / the client's timeout (HTTP fallback), and the
 // server-side batch claim is index-backed + short.
@@ -5145,7 +5145,7 @@ func (d *Daemon) handleTask(ctx context.Context, task Task, slot int) {
 		// runTask may have reached worktree finalization before returning the
 		// error. Preserve any delivery metadata that defer attached to the named
 		// result, especially the actual/preserved workdir and delivered branch.
-		// MUL-2946: route the bare error string through the canonical
+		// ENA-2946: route the bare error string through the canonical
 		// classifier so the failure_reason column reflects the actual
 		// shape of the failure (provider 5xx, network, process crash,
 		// …) rather than the coarse legacy "agent_error" bucket.
@@ -5241,7 +5241,7 @@ func taskRunFailureReason(err error) string {
 	// out, runTask has already collapsed the error into errTaskPrepareTimeout
 	// and that classification is the more accurate one. This branch is for the
 	// per-skill download deadline firing inside a prepare budget that still had
-	// room (MUL-5370).
+	// room (ENA-5370).
 	if errors.Is(err, errSkillBundleUnavailable) {
 		return taskfailure.ReasonSkillBundleUnavailable.String()
 	}
@@ -5500,7 +5500,7 @@ func (d *Daemon) reportTaskResult(ctx context.Context, taskID string, result Tas
 			return
 		}
 		taskLog.Error("complete task rejected by server, falling back to fail", "error", err)
-		// MUL-2946: this fallback fires when a server-side complete
+		// ENA-2946: this fallback fires when a server-side complete
 		// callback was permanently rejected (4xx other than 408/429)
 		// — the agent itself succeeded, so the err here describes the
 		// server response rather than an agent failure. The classifier
@@ -5536,7 +5536,7 @@ func (d *Daemon) reportTaskResult(ctx context.Context, taskID string, result Tas
 				// it differently from a real failure.
 				failureReason = "cancelled"
 			} else {
-				// MUL-2946: classify the agent's comment text so the
+				// ENA-2946: classify the agent's comment text so the
 				// failure_reason lands in the refined taxonomy
 				// (provider_auth_or_access, context_overflow,
 				// process_failure, …) instead of the legacy coarse
@@ -5666,7 +5666,7 @@ func providerDisplayName(name string) string {
 // issues stuck in `todo` with no comment and no error. Adding one that DOES
 // read the file just duplicates the brief on every turn.
 //
-// Confirmed to load their context file, so deliberately absent here. MUL-5392
+// Confirmed to load their context file, so deliberately absent here. ENA-5392
 // probed each one over its real launch path with a canary in the context file
 // and no inline delivery: claude 2.1.220 (CLAUDE.md), codex 0.144.6 driving the
 // app-server (AGENTS.md), opencode 1.17.7 (AGENTS.md), pi 0.67.2 (AGENTS.md),
@@ -5740,8 +5740,8 @@ func gateResumeToReusedWorkdir(task *Task, taskCtx *execenv.TaskContextForEnv, e
 		task.PriorSessionID = ""
 		taskCtx.PriorSessionResumed = false
 		// The user expected this run to continue the prior conversation; surface
-		// the loss instead of silently restarting (MUL-4424). Set it on BOTH
-		// carriers: the notice is rendered from `task` by BuildPrompt (MUL-5377
+		// the loss instead of silently restarting (ENA-4424). Set it on BOTH
+		// carriers: the notice is rendered from `task` by BuildPrompt (ENA-5377
 		// moved it out of the brief), while taskCtx still drives execenv.
 		taskCtx.PriorSessionResumeUnavailable = true
 		task.PriorSessionResumeUnavailable = true
@@ -5794,7 +5794,7 @@ func sessionHomeReachable(provider string, env *execenv.Environment, envReused b
 // terminal state). The server's task-complete handler reconciles a follow-up
 // and wakes the runtime before the prior task's daemon handler writes the GC
 // file, so a successor can be claimed inside that window; keying off the
-// terminal file raced and dropped the session (MUL-4886). Both proofs this
+// terminal file raced and dropped the session (ENA-4886). Both proofs this
 // function reads — the env-root provenance and the workdir task-context marker
 // — are written at Prepare time, so neither depends on completion ordering.
 func shouldReusePriorWorkdir(task Task, localAssignment *localDirectoryAssignment, workspacesRoot string) (string, bool) {
@@ -5866,7 +5866,7 @@ func shouldReusePriorWorkdir(task Task, localAssignment *localDirectoryAssignmen
 // gateCodexResumeToRolloutPresence drops the prior Codex session when its
 // rollout is not actually present in the task's CODEX_HOME sessions. A reused
 // workdir keeps PriorSessionID (gateResumeToReusedWorkdir), but Codex session
-// isolation (MUL-4424) means the rollout may be missing: a migrated legacy home
+// isolation (ENA-4424) means the rollout may be missing: a migrated legacy home
 // that could not locate it, or a local_directory task whose shared history was
 // pruned. Codex would then silently thread/start from scratch, so we clear the
 // resume claim from both the backend (PriorSessionID) and the brief
@@ -5884,8 +5884,8 @@ func gateCodexResumeToRolloutPresence(task *Task, taskCtx *execenv.TaskContextFo
 	task.PriorSessionID = ""
 	taskCtx.PriorSessionResumed = false
 	// The user expected this run to continue the prior conversation; surface the
-	// loss instead of silently restarting (MUL-4424). Set it on BOTH carriers:
-	// the notice is rendered from `task` by BuildPrompt (MUL-5377 moved it out
+	// loss instead of silently restarting (ENA-4424). Set it on BOTH carriers:
+	// the notice is rendered from `task` by BuildPrompt (ENA-5377 moved it out
 	// of the brief), while taskCtx still drives execenv.
 	taskCtx.PriorSessionResumeUnavailable = true
 	task.PriorSessionResumeUnavailable = true
@@ -5905,7 +5905,7 @@ const (
 // codexSessionResumable reports whether a Codex session's rollout is present in
 // the task's per-issue session store, so the daemon never records a session
 // pointer the next follow-up would only discover is unresumable — and then drop
-// via gateCodexResumeToRolloutPresence, losing the conversation (MUL-5305). It
+// via gateCodexResumeToRolloutPresence, losing the conversation (ENA-5305). It
 // mirrors, at write time, the presence gate the daemon already applies at resume
 // time: only a session whose rollout is on disk is worth persisting as the
 // resumable pointer.
@@ -5936,7 +5936,7 @@ func codexSessionResumable(codexHome, sessionID string, wait time.Duration) bool
 // status, so a fixed one-shot check would miss a rollout that flushes a beat
 // later; polling for the life of the run (bounded by ctx) catches it while never
 // outliving the task. Non-Codex providers (codexHome == "") have no rollout to
-// verify and return immediately (MUL-5305).
+// verify and return immediately (ENA-5305).
 func waitCodexRolloutPresent(ctx context.Context, codexHome, sessionID string) bool {
 	if codexHome == "" || sessionID == "" {
 		return true
@@ -5990,7 +5990,7 @@ func (d *Daemon) ensureTaskSkillBundles(ctx context.Context, task *Task) error {
 	// everything and timed out again. Per-skill, each download fits its own
 	// size-scaled deadline and is persisted independently, so even a dispatch
 	// that ultimately fails leaves the skills it did fetch cached for the next
-	// one. (GitHub #4505 / MUL-3650)
+	// one. (GitHub #4505 / ENA-3650)
 	for _, ref := range misses {
 		started := time.Now()
 		bundle, err := d.resolveSkillBundle(ctx, task, ref)
@@ -5999,7 +5999,7 @@ func (d *Daemon) ensureTaskSkillBundles(ctx context.Context, task *Task) error {
 			// waited. The bare "resolve skill bundles: context deadline
 			// exceeded" this replaced was indistinguishable from a generic
 			// network fault, and cost a community thread three hours of
-			// guesswork (MUL-5370): size + elapsed separate "this bundle is
+			// guesswork (ENA-5370): size + elapsed separate "this bundle is
 			// too big for the link" from "the link is dead".
 			return fmt.Errorf("%w: skill %q (id=%s, %d bytes) after %s: %w",
 				errSkillBundleUnavailable, ref.Name, ref.ID, ref.SizeBytes,
@@ -6025,7 +6025,7 @@ func (d *Daemon) ensureTaskSkillBundles(ctx context.Context, task *Task) error {
 // the bundle's declared size rather than the daemon's fixed 30s control-plane
 // timeout, so a large bundle on a slow link is given room to finish instead of
 // being cut off mid-body. Caching on success is what lets the resolve converge
-// across dispatches. (GitHub #4505 / MUL-3650)
+// across dispatches. (GitHub #4505 / ENA-3650)
 func (d *Daemon) resolveSkillBundle(ctx context.Context, task *Task, ref SkillRefData) (SkillData, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, skillBundleResolveTimeout(ref.SizeBytes))
 	defer cancel()
@@ -6324,11 +6324,11 @@ type taskModelSelection struct {
 //
 // The single read is the point. Discovery is a CLI subprocess with a 15-30s
 // ceiling, and cachedDiscovery deliberately does not memoize a result that
-// came back empty or as a fallback (#3729, MUL-5549) so a transient failure
+// came back empty or as a fallback (#3729, ENA-5549) so a transient failure
 // can retry immediately. A logged-out or timing-out runtime therefore pays
 // that ceiling in full on every read, and a task that read the catalog once to
 // qualify its model and again to validate thinking_level would pay it twice
-// before the agent even starts (MUL-6471 review).
+// before the agent even starts (ENA-6471 review).
 //
 // Who asks for the catalog:
 //   - opencode and its DevEco fork cannot execute an unqualified selector, so
@@ -6518,7 +6518,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	defer d.clearTaskRepoRefs(task.WorkspaceID, task.ID)
 
 	entry, ok := d.agents()[provider]
-	// A custom runtime profile (MUL-3284) overrides the executable path: the
+	// A custom runtime profile (ENA-3284) overrides the executable path: the
 	// runtime's protocol_family is the provider (so agent.New still selects
 	// the right backend), but the actual binary on PATH is the profile's
 	// command_name, resolved at registration time and keyed by RuntimeID here.
@@ -6528,7 +6528,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	var profileFixedArgs []string
 	// resolvedVersion is the CLI version of the built-in binary entry.Path
 	// resolves to, paired with the path by resolveAgentEntry so a just-upgraded
-	// codex is never launched under the previous version's policy (MUL-4486).
+	// codex is never launched under the previous version's policy (ENA-4486).
 	var resolvedVersion string
 	// usesCustomProfileCommand distinguishes "this provider's own binary" from
 	// "some other binary speaking this provider's protocol". Backends need it
@@ -6551,7 +6551,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			"fixed_args", len(profileFixedArgs))
 	} else if ok {
 		// Built-in provider: self-heal a pinned executable path that an in-place
-		// upgrade deleted (MUL-4486). Only reached when no custom profile owns
+		// upgrade deleted (ENA-4486). Only reached when no custom profile owns
 		// the launch, so a custom runtime's path is never second-guessed and a
 		// custom-only host pays no wasted re-resolution.
 		var resolveErr error
@@ -6589,7 +6589,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		NewCommentCount:     task.NewCommentCount,
 		NewCommentsSince:    task.NewCommentsSince,
 		PriorSessionResumed: task.PriorSessionID != "",
-		// MUL-5305: the server sets this when a more recent Codex session was
+		// ENA-5305: the server sets this when a more recent Codex session was
 		// withheld (rollout missing) and PriorSessionID is an older fallback (or
 		// absent). Seed the brief's continuity disclosure from it; the local
 		// resume gates below only ever OR it to true, so the signal is monotonic.
@@ -6662,7 +6662,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	var env *execenv.Environment
 	// For a built-in codex task, use the version paired with the resolved path
 	// so an in-place upgrade can't leave the sandbox policy on the old version
-	// (MUL-4486). A custom codex runtime skips the self-heal, so resolvedVersion
+	// (ENA-4486). A custom codex runtime skips the self-heal, so resolvedVersion
 	// is empty and it keeps the existing cached-version fallback — its binary is
 	// the profile's own command, which the daemon never pins or version-detects.
 	// Non-codex providers carry the value through without consuming it.
@@ -6776,7 +6776,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// split so the filtering matches launch exactly. Threaded into execenv so
 	// the Windows sandbox decision can honor a `-c windows.sandbox=...` override
 	// that never lands in config.toml — even when it arrives shell-quoted —
-	// instead of silently downgrading a user's isolation opt-in (MUL-4957).
+	// instead of silently downgrading a user's isolation opt-in (ENA-4957).
 	var codexSandboxArgs []string
 	if provider == "codex" {
 		// profileFixedArgs still belongs in this reconstruction even though it
@@ -6870,7 +6870,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// Guard this task's per-issue Codex session store from the GC for the whole
 	// task, starting before Prepare/Reuse mounts it — so a prune that samples the
 	// store's stale (pre-remount) mtime cannot reclaim it out from under a resume
-	// of a long-idle issue (MUL-4424). No-op for non-Codex tasks / no stable key.
+	// of a long-idle issue (ENA-4424). No-op for non-Codex tasks / no stable key.
 	if provider == "codex" {
 		if store := execenv.CodexSessionStorePath(d.cfg.Profile, taskCtx); store != "" {
 			d.markActiveStore(store)
@@ -7134,7 +7134,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			// Excise the sidecar tree (.agent_context/, .enact/,
 			// provider-specific .claude/skills/ etc.) that Prepare wrote
 			// into the user's repo. Without this pass the user's tree
-			// accumulates one directory layer per task — see MUL-2784.
+			// accumulates one directory layer per task — see ENA-2784.
 			// CleanupRuntimeConfig handles the runtime brief inside
 			// CLAUDE.md / AGENTS.md; CleanupSidecars handles
 			// every other file Prepare placed under WorkDir. Together
@@ -7191,7 +7191,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// On error we return early so handleTask's existing FailTask +
 	// taskfailure.Classify path records the failure with the same
 	// "start task failed: <…>" string and the same failure_reason
-	// taxonomy as before — see MUL-2946 for the classifier contract.
+	// taxonomy as before — see ENA-2946 for the classifier contract.
 	if err := d.client.StartTask(prepareCtx, task.ID); err != nil {
 		stopPrepareLease()
 		return TaskResult{}, fmt.Errorf("start task failed: %w", err)
@@ -7204,7 +7204,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	reused := gateResumeToReusedWorkdir(&task, &taskCtx, env.WorkDir, sessionHomeReachable(provider, env, envReused), taskLog)
 	// A reused workdir is necessary but not sufficient for a Codex resume: the
 	// prior thread's rollout must actually be present in this task's CODEX_HOME
-	// sessions (MUL-4424 isolates them). Drop the resume before the brief is
+	// sessions (ENA-4424 isolates them). Drop the resume before the brief is
 	// generated below if it isn't, so we never tell the agent it is continuing a
 	// conversation Codex will silently restart from scratch.
 	if reused {
@@ -7278,7 +7278,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	}
 	// HOME and the XDG base dirs are deliberately not touched here: provider
 	// tools such as gh, aws, kubectl, and npm continue resolving the daemon
-	// user's existing state (MUL-5578). The Enact CLI is the exception:
+	// user's existing state (ENA-5578). The Enact CLI is the exception:
 	// ENACT_TASK_CONFIG_ROOT above redirects its implicit profile lookup to
 	// private task-local state and prevents Owner-profile fallback.
 	// (Hermes HERMES_HOME is applied after custom_env below so the per-task
@@ -7450,13 +7450,13 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		// resume gates (a dropped resume is surfaced via the prompt instead). If it
 		// survived to here, the backend must disclose the loss when the live
 		// resume still fails — even across the fresh-session retry below, which
-		// clears ResumeSessionID but not this (MUL-4424).
+		// clears ResumeSessionID but not this (ENA-4424).
 		//
 		// What that disclosure SAYS, and whether it addresses the user at all,
 		// depends on whether this surface's conversation is still readable, which
 		// only the daemon knows — hence handing the backend finished text rather
 		// than a flag. Empty when the prompt already carries the notice, so a turn
-		// can never pay for it twice (MUL-5722).
+		// can never pay for it twice (ENA-5722).
 		ResumeExpected:         task.PriorSessionID != "",
 		ResumeContinuityNotice: backendResumeContinuityNotice(task),
 		ExtraArgs:              extraArgs,
@@ -7495,7 +7495,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	}
 
 	// A quick-actions refresh task from a server that predates server-side
-	// generation (MUL-5573). This daemon no longer has a suggestion pass to run
+	// generation (ENA-5573). This daemon no longer has a suggestion pass to run
 	// it with, and it must NOT fall through to the ordinary chat path below:
 	// the task carries no user message, so the agent would answer a prompt
 	// nobody wrote and that server would persist the result as a real assistant
@@ -7574,7 +7574,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		//     continuity notice for this surface, so the agent knows not to
 		//     assume continuity it no longer has. This is now the ONLY injector
 		//     on the retry path: the backend's own copy is suppressed below,
-		//     because before MUL-5722 both fired and the turn carried the same
+		//     because before ENA-5722 both fired and the turn carried the same
 		//     paragraph twice.
 		// task and taskCtx are local (runTask takes task by value), so these
 		// mutations only affect the retry.
@@ -7642,14 +7642,14 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		})
 	}
 
-	// MUL-5305: withhold a Codex session whose rollout never reached the per-issue
+	// ENA-5305: withhold a Codex session whose rollout never reached the per-issue
 	// store, for ANY terminal state — including `completed`, since a completed
 	// turn whose rollout is missing is exactly the #5934 case and must not be
 	// recorded as a resume pointer the next follow-up would only drop. Blanking
 	// the id keeps GetLastTaskSession falling back to the last session whose
 	// rollout is real; SessionRolloutMissing tells the server to clear the row's
 	// session and record a continuity gap, so the next claim still discloses the
-	// loss (PriorSessionResumeUnavailable, MUL-4424 transparency) even while
+	// loss (PriorSessionResumeUnavailable, ENA-4424 transparency) even while
 	// resuming that older good session. No-op for non-Codex providers
 	// (env.CodexHome == "") and when there is no session.
 	var sessionRolloutMissing bool
@@ -7661,7 +7661,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	}
 	// Stamp the withhold flag onto whichever TaskResult the status switch below
 	// returns (SessionID is already blanked above); reportTaskResult forwards it
-	// as session_rollout_missing on the terminal callback (MUL-5305).
+	// as session_rollout_missing on the terminal callback (ENA-5305).
 	defer func() { taskResult.SessionRolloutMissing = sessionRolloutMissing }()
 
 	switch result.Status {
@@ -7793,7 +7793,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			// in-turn fresh-session retry did not save the run (it is gated on
 			// tools == 0, and can fail on its own), so classify it to keep the
 			// NEXT task off that thread rather than replaying the overflow
-			// forever (MUL-5722).
+			// forever (ENA-5722).
 			failureReason, _ = classifyResumeUnsafeTransport(provider, errMsg)
 			if failureReason != "" && retiredSessionID == "" && task.PriorSessionID != "" {
 				// Name the thread explicitly. The failure happens before the
@@ -7819,7 +7819,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 				"failure_reason", failureReason,
 			)
 		} else {
-			// MUL-2946: classifyPoisonedError only matches the
+			// ENA-2946: classifyPoisonedError only matches the
 			// session-poisoning Anthropic 400 shape. Everything else
 			// falls through to taskfailure.Classify, which maps the
 			// raw error string to one of the 14 agent_error.*
@@ -7827,7 +7827,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			// runner crash, …) or to ReasonAgentUnknown. This keeps
 			// the failure_reason column in the canonical refined
 			// taxonomy at write time instead of waiting on the
-			// MUL-1949 offline backfill to re-classify after the
+			// ENA-1949 offline backfill to re-classify after the
 			// fact.
 			failureReason = taskfailure.Classify(errMsg).String()
 		}
@@ -7867,7 +7867,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 //     discards the one recoverable thing — the conversation pointer — and
 //     re-runs the task for nothing. provider_network in particular is
 //     documented resume-safe in internal/service/task.go (retryableReasons,
-//     MUL-4910): the platform's own retry is supposed to inherit the session
+//     ENA-4910): the platform's own retry is supposed to inherit the session
 //     and continue the truncated conversation.
 //
 //     Not every backend can answer, though, and a false ResumeRejected means
@@ -7934,7 +7934,7 @@ func shouldRetryWithFreshSession(result agent.Result, priorSessionID string, too
 	// for every step of the ACP lifecycle: the failure surfaces at
 	// session/resume, at session/set_model (a resumed session whose persisted
 	// provider was normalised gets a redundant set_model that re-routes to the
-	// wrong provider — MUL-5029) or at session/prompt, and only two of those
+	// wrong provider — ENA-5029) or at session/prompt, and only two of those
 	// three carry any resume-failure signal today. The final error text carries
 	// the phrase on all three.
 	//
@@ -8056,7 +8056,7 @@ func (d *Daemon) executeAndDrain(ctx context.Context, backend agent.Backend, pro
 		// One provider-agnostic boundary for launches: every backend's
 		// cmd.Start() failure arrives here, so diagnosing ENOEXEC at this point
 		// covers claude, opencode and any CLI added later without a wrap in
-		// each backend (MUL-6164).
+		// each backend (ENA-6164).
 		err = agent.ExplainExecError(err)
 		taskLog.Debug("backend execute returned error", "error", err)
 		return agent.Result{}, 0, err
@@ -8074,7 +8074,7 @@ func (d *Daemon) executeAndDrain(ctx context.Context, backend agent.Backend, pro
 	// backend's own deadline fires). With no cap (opts.Timeout <= 0) the
 	// inactivity watchdog is the only liveness net, so the drain must NOT
 	// impose its own deadline either — otherwise an actively streaming long run
-	// would be cut off here regardless of progress (MUL-3064).
+	// would be cut off here regardless of progress (ENA-3064).
 	var drainCtx context.Context
 	var drainCancel context.CancelFunc
 	if opts.Timeout > 0 {
@@ -8199,7 +8199,7 @@ func (d *Daemon) executeAndDrain(ctx context.Context, backend agent.Backend, pro
 					// reveals them. Without this, a daemon crash mid-run
 					// loses the resume pointer and the auto-retry fires
 					// without context.
-					// MUL-5305: pin the resume pointer only once the session's
+					// ENA-5305: pin the resume pointer only once the session's
 					// rollout is actually in the store, so a crash-recovery pointer
 					// the daemon cannot resume never poisons the next follow-up
 					// (FailAgentTask keeps the pinned session_id via COALESCE, so a
@@ -8418,7 +8418,7 @@ func idleWatchdogReason(window time.Duration) string {
 //     keeps the historical behavior of never force-stopping while a tool is in
 //     flight. Without this in-flight budget a backend that emits tool_use and
 //     never the matching tool_result would run forever now that there is no
-//     wall-clock cap (MUL-3064).
+//     wall-clock cap (ENA-3064).
 //
 // In both cases the watchdog also requires the session.Messages buffer to be
 // empty — a buffered-but-undrained message means the drain loop is behind, not
@@ -8626,7 +8626,7 @@ func (d *Daemon) reserveEnvRootForGC(envRoot string) (release func(), ok bool) {
 // markActiveStore records that a task is about to use the given persistent
 // store — a per-issue Codex session store or a per-agent Hermes memory store —
 // so the GC never reclaims it mid-task. These stores live outside the env root,
-// so isActiveEnvRoot does not cover them (MUL-4424). If a GC
+// so isActiveEnvRoot does not cover them (ENA-4424). If a GC
 // delete has already reserved this store, we wait for that removal to finish
 // before claiming it, so a task never mounts a store mid-removal; the store is
 // then recreated fresh by Prepare. Reference-counted like the env-root guard.
@@ -8662,7 +8662,7 @@ func (d *Daemon) unmarkActiveStore(store string) {
 // (PruneCodexSessionStores, PruneHermesMemoryStores) need:
 // the "confirm inactive" and the mark happen under one lock acquisition, so a
 // markActiveStore either loses the check (store stays) or blocks on the
-// reservation, closing the stat->remove race (MUL-4424).
+// reservation, closing the stat->remove race (ENA-4424).
 func (d *Daemon) reserveStoreForDeletion(store string) (commit func(), ok bool) {
 	d.activeStoresMu.Lock()
 	defer d.activeStoresMu.Unlock()

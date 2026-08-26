@@ -630,7 +630,7 @@ func TestRollupTaskUsageHourlyIdempotentAndWatermark(t *testing.T) {
 		t.Skip("database not available")
 	}
 	// Serialise against any other package's test that touches the shared
-	// rollup singleton / advisory lock 4246 (MUL-3980).
+	// rollup singleton / advisory lock 4246 (ENA-3980).
 	lockRollupSingleton(t)
 	ctx := context.Background()
 
@@ -1126,7 +1126,7 @@ func TestPruneTaskUsageHourlyDirty(t *testing.T) {
 	}
 	// This test calls rollup_task_usage_hourly(), which advances the shared
 	// watermark as a side effect; serialise so it does not perturb another
-	// package's rollup test (MUL-3980).
+	// package's rollup test (ENA-3980).
 	lockRollupSingleton(t)
 	ctx := context.Background()
 
@@ -1199,7 +1199,7 @@ func TestRollupTaskUsageHourlyCapsWindowAtOneDay(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
 	}
-	// Serialise against any other package's rollup test (MUL-3980). Acquire
+	// Serialise against any other package's rollup test (ENA-3980). Acquire
 	// the guard BEFORE registering the watermark-restore cleanup below so
 	// that cleanup (LIFO) runs while the guard is still held, and the guard
 	// is released last.
@@ -1632,7 +1632,7 @@ func TestDashboardFailuresByAgentUsesExactWindow(t *testing.T) {
 	}
 }
 
-// TestDashboardPerAgentRollupsUseExactWindow is MUL-5551: the Usage page's
+// TestDashboardPerAgentRollupsUseExactWindow is ENA-5551: the Usage page's
 // leaderboard reported MORE tokens for a single agent than the Tokens KPI
 // reported for the entire workspace.
 //

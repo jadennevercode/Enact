@@ -11,7 +11,7 @@ import (
 )
 
 // TestRerunIssuePinsForceFreshSessionForRollbackSafety locks in the rollback-safe
-// half of the MUL-4869 contract: RerunIssue ALWAYS persists
+// half of the ENA-4869 contract: RerunIssue ALWAYS persists
 // force_fresh_session=true on the rerun row, no matter how the source task
 // failed. The session-reuse decision is made later by the (new) claim handler
 // from the source task, so an OLD claim handler picked up mid rolling-deploy —

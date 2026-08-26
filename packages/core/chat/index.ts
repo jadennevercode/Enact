@@ -2,6 +2,15 @@ export { createChatStore, CHAT_MIN_W, CHAT_MIN_H, CHAT_DEFAULT_W, CHAT_DEFAULT_H
 export type { ChatStoreOptions, ChatState, ChatTimelineItem } from "./store";
 export { useRecentContextStore, selectRecentContexts } from "./recent-context-store";
 export type { RecentContextEntry, RecentContextType } from "./recent-context-store";
+export {
+  segmentChatSessions,
+  countSegmentUnread,
+  CHAT_SEGMENT_PINNED,
+  CHAT_SEGMENT_NO_PROJECT,
+} from "./segments";
+export type { ChatSegment, ChatSegmentKind, ChatSegmentation } from "./segments";
+export { useChatSegmentCollapseStore } from "./segment-collapse-store";
+export type { ChatSegmentCollapseState } from "./segment-collapse-store";
 
 import type { createChatStore as CreateChatStoreFn } from "./store";
 

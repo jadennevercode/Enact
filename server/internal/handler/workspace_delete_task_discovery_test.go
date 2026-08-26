@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // workspaceDeletePathFixture builds the ownership shapes teardown has to handle:
@@ -123,10 +123,10 @@ RETURNING id
 	f.taskViaRuntime = insertDeletePathTask(t, f.neighbourAgent, f.neighbourIssue, f.victimRuntime)
 	f.neighbourTask = insertDeletePathTask(t, f.neighbourAgent, f.neighbourIssue, f.neighbourRuntime)
 
-	f.victimToken = insertDeletePathToken(t, "mul5999-victim-"+slugSuffix, f.taskViaAgent, f.victimAgent, f.victimID)
-	f.crossTaskToken = insertDeletePathToken(t, "mul5999-cross-task-"+slugSuffix, f.taskViaIssue, f.neighbourAgent, f.neighbourID)
-	f.crossAgentToken = insertDeletePathToken(t, "mul5999-cross-agent-"+slugSuffix, f.neighbourTask, f.victimAgent, f.neighbourID)
-	f.neighbourOnlyToken = insertDeletePathToken(t, "mul5999-neighbour-"+slugSuffix, f.neighbourTask, f.neighbourAgent, f.neighbourID)
+	f.victimToken = insertDeletePathToken(t, "ena5999-victim-"+slugSuffix, f.taskViaAgent, f.victimAgent, f.victimID)
+	f.crossTaskToken = insertDeletePathToken(t, "ena5999-cross-task-"+slugSuffix, f.taskViaIssue, f.neighbourAgent, f.neighbourID)
+	f.crossAgentToken = insertDeletePathToken(t, "ena5999-cross-agent-"+slugSuffix, f.neighbourTask, f.victimAgent, f.neighbourID)
+	f.neighbourOnlyToken = insertDeletePathToken(t, "ena5999-neighbour-"+slugSuffix, f.neighbourTask, f.neighbourAgent, f.neighbourID)
 
 	t.Cleanup(func() {
 		bg := context.Background()
@@ -287,7 +287,7 @@ func TestDeleteWorkspace_CollectsTasksThroughEveryOwnershipPath(t *testing.T) {
 // TestDeleteWorkspaceTasks_PagesPastTheBatchSize covers the bound itself: a
 // single owner with more tasks than one batch must be swept by several
 // iterations, and the loop must terminate. Nothing here may depend on the whole
-// task set fitting in one statement or in this process (MUL-5999 review).
+// task set fitting in one statement or in this process (ENA-5999 review).
 func TestDeleteWorkspaceTasks_PagesPastTheBatchSize(t *testing.T) {
 	if testPool == nil {
 		t.Skip("database not available")
@@ -376,7 +376,7 @@ WHERE agent_id = $1 OR issue_id = $2 OR runtime_id = $3
 // TestDeleteWorkspaceTasks_PagesOwnersBeyondOnePage covers the other unbounded
 // dimension: owner enumeration. A workspace with more agents than one owner page
 // must still be swept completely, and the owner ids must never all be held here at
-// once (MUL-5999 review).
+// once (ENA-5999 review).
 func TestDeleteWorkspaceTasks_PagesOwnersBeyondOnePage(t *testing.T) {
 	if testPool == nil {
 		t.Skip("database not available")

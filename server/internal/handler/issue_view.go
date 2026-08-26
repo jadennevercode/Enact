@@ -12,7 +12,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Saved issue views (MUL-4796): server-backed filter definitions with
+// Saved issue views (ENA-4796): server-backed filter definitions with
 // display defaults. `query` is the shared identity of a view; `display`
 // only seeds a member's first open. Both are opaque JSON to the server —
 // interpretation lives in the client definition_version contract.

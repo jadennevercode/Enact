@@ -640,7 +640,7 @@ func TestKimiResumeIncludesMcpServers(t *testing.T) {
 // TestKimiFreshSessionIncludesMcpServers is the session/new counterpart to the
 // resume test above: a fresh Kimi task must carry the managed MCP set too.
 // Kimi takes MCP over ACP rather than as a CLI flag, so a bare `kimi acp`
-// launch line is not evidence that the servers were dropped (MUL-5846) — this
+// launch line is not evidence that the servers were dropped (ENA-5846) — this
 // pins the payload that actually carries them.
 func TestKimiFreshSessionIncludesMcpServers(t *testing.T) {
 	t.Parallel()
@@ -885,7 +885,7 @@ func writeKimiWireLog(tb testing.TB, kimiHome, sessionID, agentName string, line
 }
 
 // TestScanKimiSessionUsageSumsRecordsIgnoringStepEnd is the core guard for
-// MUL-5773: kimi logs each LLM call's usage twice — once as `usage.record`
+// ENA-5773: kimi logs each LLM call's usage twice — once as `usage.record`
 // and once inside the `step.end` loop event. Counting both doubles every
 // number on the dashboard.
 func TestScanKimiSessionUsageSumsRecordsIgnoringStepEnd(t *testing.T) {
@@ -1082,7 +1082,7 @@ func TestKimiBackendPropagatesACPPromptUsage(t *testing.T) {
 }
 
 // TestKimiBackendReportsUsageFromWireLog is the end-to-end proof for
-// MUL-5773 / #6448: with an ACP peer that reports no usage at all — which is
+// ENA-5773 / #6448: with an ACP peer that reports no usage at all — which is
 // what kimi-code 0.33.0 actually does — the task still lands on the dashboard
 // with its real token split, keyed by the model the wire log names.
 func TestKimiBackendReportsUsageFromWireLog(t *testing.T) {

@@ -90,7 +90,7 @@ INSERT INTO channel_installation (id, workspace_id, agent_id, channel_type, conf
 VALUES ($1, $2, $3, 'dingtalk', jsonb_build_object('app_id', $4::text), $5)
 `, oldInstallID, workspaceID, agentID, oldAppKey, installerID)
 	exec(`
-INSERT INTO channel_user_binding (workspace_id, multica_user_id, installation_id, channel_type, channel_user_id)
+INSERT INTO channel_user_binding (workspace_id, enact_user_id, installation_id, channel_type, channel_user_id)
 VALUES ($1, $2, $3, 'dingtalk', $4)
 `, workspaceID, enactUserID, oldInstallID, staffID)
 	exec(`

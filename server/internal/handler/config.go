@@ -17,7 +17,7 @@ type AppConfig struct {
 	// enabled). When true, a raw storage URL on the CDN domain is NOT
 	// publicly fetchable — renderers must not pick it as a native
 	// <img>/<video> source and should fall back to the per-attachment
-	// API endpoint or a freshly signed download_url instead (MUL-3254).
+	// API endpoint or a freshly signed download_url instead (ENA-3254).
 	// Omitted when false so older clients see the previous shape.
 	CdnSigned bool `json:"cdn_signed,omitempty"`
 	// Public auth config consumed by the web app at runtime so self-hosted
@@ -105,7 +105,7 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	config.FeatureFlags = featureflags.EvaluateFrontendPublicFlags(r.Context(), h.FeatureFlags)
 	// Only surface the build version on self-hosted deployments. The managed
 	// cloud is continuously deployed and its users can't choose the build, so
-	// the Help popover's version row would just be noise there (MUL-4108).
+	// the Help popover's version row would just be noise there (ENA-4108).
 	if !isOfficialCloudDeployment() {
 		config.ServerVersion = h.cfg.ServerVersion
 	}

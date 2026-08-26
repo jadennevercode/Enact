@@ -120,7 +120,7 @@ describe("TranscriptButton", () => {
     act(() => {
       window.dispatchEvent(
         new CustomEvent("enact:navigate", {
-          detail: { path: "/acme/inbox?issue=MUL-123" },
+          detail: { path: "/acme/inbox?issue=ENA-123" },
         }),
       );
     });

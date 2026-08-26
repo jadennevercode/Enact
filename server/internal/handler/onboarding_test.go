@@ -669,7 +669,7 @@ func TestBootstrapOnboardingNoRuntimeUsesChineseGuideForChineseUsers(t *testing.
 
 // counterValue sums a named Prometheus counter across all label
 // combinations on the given BusinessMetrics. Events are metrics-only
-// since MUL-4127, so PatchOnboarding's emissions are observable ONLY
+// since ENA-4127, so PatchOnboarding's emissions are observable ONLY
 // through these counters — there is no PostHog capture to record.
 func counterValue(t *testing.T, m *obsmetrics.BusinessMetrics, name string) float64 {
 	t.Helper()
@@ -709,7 +709,7 @@ func patchOnboardingAs(t *testing.T, h *Handler, userID, questionnaire string) {
 	}
 }
 
-// The in-flow questionnaire is role + use_case only (MUL-5159): its
+// The in-flow questionnaire is role + use_case only (ENA-5159): its
 // funnel counter must move without source, and source's own counter
 // must move exactly once when source resolves later via the workspace
 // backfill prompt.

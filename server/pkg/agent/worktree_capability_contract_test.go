@@ -12,7 +12,7 @@ import (
 // What the two sides must agree on is the capability TOKEN, not a version.
 //
 // This replaces a test that pinned MinLocalWorktreeCLIVersion against a
-// frontend twin. That twin is gone: since MUL-5707 nothing on either side gates
+// frontend twin. That twin is gone: since ENA-5707 nothing on either side gates
 // on the version, and the frontend no longer even quotes it (#7113), so the old
 // contract was pinning a number the UI does not show. The server constant stays
 // because the 422 payload still carries it, but it has no counterpart to match.

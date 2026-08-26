@@ -19,7 +19,7 @@ import (
 // code alone — the repair command is too long for a chip and too important to
 // put in something that disappears. An agent-authored @mention has nobody
 // watching a response at all. So both get the same durable record, and the
-// transient surfaces stay a preview of it rather than the only copy (MUL-6164).
+// transient surfaces stay a preview of it rather than the only copy (ENA-6164).
 //
 // Best-effort by construction: the refusal already happened and is correct
 // whether or not this note lands, so a failure here is logged, never returned.

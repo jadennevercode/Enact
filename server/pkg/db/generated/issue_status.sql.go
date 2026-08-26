@@ -427,7 +427,7 @@ VALUES
 ON CONFLICT DO NOTHING
 `
 
-// Issue status catalog (MUL-6243). Each workspace holds the 7 built-in
+// Issue status catalog (ENA-6243). Each workspace holds the 7 built-in
 // statuses plus any custom ones. A category's value IS its canonical built-in
 // key, so resolving a custom status to its platform behavior is a plain column
 // read — no mapping table, no second concept.

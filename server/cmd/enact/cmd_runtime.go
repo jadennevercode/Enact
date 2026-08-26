@@ -414,7 +414,7 @@ func printRuntimeDeleteResult(cmd *cobra.Command, result map[string]any) error {
 		return nil
 	}
 	// Compatibility fallback for an older server that only returns the
-	// pre-MUL-5559 mirror.
+	// pre-ENA-5559 mirror.
 	if agentsArchived, ok := result["agents_archived"]; ok {
 		fmt.Fprintf(os.Stderr, "Runtime %s deleted; processed %v agent(s).\n", strVal(result, "id"), agentsArchived)
 		return nil

@@ -19,3 +19,16 @@ export {
   useUpdateProjectResource,
   useDeleteProjectResource,
 } from "./resource-queries";
+export {
+  projectArtifactKeys,
+  projectArtifactsOptions,
+} from "./artifact-queries";
+export {
+  buildArtifactFolders,
+  filterArtifactFolders,
+  flattenArtifactEntries,
+  UNFILED_FOLDER_ID,
+  type ArtifactEntry,
+  type ArtifactFolder,
+  type ArtifactVersion,
+} from "./artifact-tree";

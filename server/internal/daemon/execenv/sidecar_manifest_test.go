@@ -165,7 +165,7 @@ var allFileBasedProviders = []string{
 }
 
 // TestPrepareThenCleanupSidecarsRoundTripEmptyWorkdir is the headline
-// invariant the issue (MUL-2784) calls out: a user repo that contained
+// invariant the issue (ENA-2784) calls out: a user repo that contained
 // nothing related to Enact before a task ran must contain nothing
 // related to Enact after the task finishes — no .agent_context/,
 // no .claude/skills/, no .enact/, no stub directories. The test

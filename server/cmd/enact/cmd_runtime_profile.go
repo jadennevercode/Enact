@@ -17,7 +17,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// `enact runtime profile ...` — custom runtime profiles (MUL-3284)
+// `enact runtime profile ...` — custom runtime profiles (ENA-3284)
 //
 // A runtime profile lets a workspace declare a custom agent runtime built on
 // top of a supported protocol family (the routing backend) but launched via a
@@ -130,7 +130,7 @@ func validateProtocolFamily(family string) error {
 // NOTE: a --visibility flag is intentionally NOT exposed in v1. The server
 // forces every profile to 'workspace' because the read paths do not yet
 // enforce 'private' (exposing it would leak "private" profiles). Re-add once
-// creator-visibility filtering exists. Follow-up: MUL-3308.
+// creator-visibility filtering exists. Follow-up: ENA-3308.
 
 func runRuntimeProfileList(cmd *cobra.Command, _ []string) error {
 	client, err := newAPIClient(cmd)

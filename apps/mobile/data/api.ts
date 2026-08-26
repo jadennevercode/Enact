@@ -106,6 +106,7 @@ import {
   ListLabelsResponseSchema,
   ListProjectResourcesResponseSchema,
   ListProjectsResponseSchema,
+  LoginResponseSchema,
   MemberListSchema,
   PinListSchema,
   PinnedItemSchema,
@@ -133,11 +134,6 @@ if (!API_URL) {
     "EXPO_PUBLIC_API_URL is not set. Add it to apps/mobile/.env.development.local " +
       "(see apps/mobile/.env.staging for an example).",
   );
-}
-
-export interface LoginResponse {
-  token: string;
-  user: User;
 }
 
 /** Mobile file payload for `uploadFile`. RN doesn't have a browser `File`
@@ -366,18 +362,12 @@ class ApiClient {
   }
 
   // --- Auth ---
-  async sendCode(email: string): Promise<void> {
-    await this.fetch<void>("/auth/send-code", {
+  async emailLogin(email: string) {
+    const raw = await this.fetch<unknown>("/auth/email-login", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-  }
-
-  async verifyCode(email: string, code: string): Promise<LoginResponse> {
-    return this.fetch<LoginResponse>("/auth/verify-code", {
-      method: "POST",
-      body: JSON.stringify({ email, code }),
-    });
+    return LoginResponseSchema.parse(raw);
   }
 
   async getMe(opts?: { signal?: AbortSignal }): Promise<User> {
@@ -870,7 +860,7 @@ class ApiClient {
     );
   }
 
-  // --- Issue status catalog (MUL-6243) ---
+  // --- Issue status catalog (ENA-6243) ---
   /**
    * The workspace's issue statuses — the 7 built-ins plus any custom ones an
    * admin defined. Reads are open to every workspace member; the catalog

@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
-	"github.com/enact-ai/enact/server/internal/auth"
 )
 
 const testWorkspaceID = "test-workspace"
@@ -72,8 +72,8 @@ func TestAuthenticateTokenRejectsTemporarilyDisabledJWTUser(t *testing.T) {
 }
 
 func TestAuthenticateTokenRejectsTemporarilyDisabledPATUser(t *testing.T) {
-	uid, errMsg := authenticateToken("mul_disabled", staticPATResolver{
-		"mul_disabled": "1d542296-17c6-484a-9914-dcee589be116",
+	uid, errMsg := authenticateToken("enact_disabled", staticPATResolver{
+		"enact_disabled": "1d542296-17c6-484a-9914-dcee589be116",
 	}, context.Background())
 	if uid != "" {
 		t.Fatalf("expected no user ID, got %q", uid)
@@ -473,7 +473,10 @@ func TestCheckOrigin(t *testing.T) {
 		{"same-origin allowed (https)", "api.enact.ai", "https://api.enact.ai", "", "1.2.3.4:5678", true},
 		{"same-origin allowed (case-insensitive host, RFC 7230)", "API.Enact.AI", "https://api.enact.ai", "", "1.2.3.4:5678", true},
 		{"whitelisted origin allowed (web cross-origin)", "localhost:8080", "http://localhost:3000", "", "1.2.3.4:5678", true},
+		{"loopback alias allowed for local backend", "127.0.0.1:8080", "http://127.0.0.1:3000", "", "127.0.0.1:5678", true},
+		{"IPv6 loopback alias allowed for local backend", "[::1]:8080", "http://[::1]:3000", "", "[::1]:5678", true},
 		{"whitelisted origin allowed (prod web)", "api.enact.ai", "https://enact.ai", "", "1.2.3.4:5678", true},
+		{"loopback alias rejected for remote backend", "api.enact.ai", "http://127.0.0.1:3000", "", "1.2.3.4:5678", false},
 		{"unknown origin rejected (CSWSH defense)", "api.enact.ai", "https://evil.com", "", "1.2.3.4:5678", false},
 		{"different port rejected", "localhost:8080", "http://localhost:9999", "", "1.2.3.4:5678", false},
 		{"X-Forwarded-Host from trusted proxy matches origin", "internal.proxy", "https://enact.ai", "enact.ai", "127.0.0.1:5678", true},

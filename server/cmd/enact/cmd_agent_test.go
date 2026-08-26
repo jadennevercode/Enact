@@ -21,7 +21,7 @@ import (
 // freshAgentEnvSetCmd returns a standalone cobra.Command with the three
 // --custom-env* flags registered identically to agentEnvSetCmd, so
 // resolveCustomEnv-shaped tests can mutate flag state without leaking
-// across subtests. After MUL-2600 the same three flags are registered
+// across subtests. After ENA-2600 the same three flags are registered
 // on `agent create` and `agent env set` (NOT on `agent update`), but
 // the parser they drive is shared, so a single fresh-command helper
 // covers both call sites.
@@ -44,7 +44,7 @@ func chdirWithDaemonTaskMarker(t *testing.T) {
 	// Task-scoped: a real workdir marker always carries the identity of the
 	// task that wrote it, and that identity is what separates a leftover from
 	// the permanent workspaces root marker, which has managed_by and nothing
-	// else (MUL-6132). Writing the bare form here would model the root marker
+	// else (ENA-6132). Writing the bare form here would model the root marker
 	// rather than the workdir marker these tests are about.
 	data := []byte(`{"managed_by":"` + execenv.TaskContextMarkerManagedBy + `","agent_id":"agent-1","issue_id":"issue-1"}`)
 	if err := os.WriteFile(markerPath, data, 0o644); err != nil {
@@ -147,9 +147,9 @@ func TestMissingServerConfigMessageExplainsPortOnlyContext(t *testing.T) {
 // itself — carries the fail-closed signal. This test builds that tree shape
 // and asserts the CLI refuses the config-PAT fallback from the escaped cwd.
 func TestNewAPIClient_WorkdirParentEscapeFailsClosed(t *testing.T) {
-	// Seed a user config with a mul_ PAT that must never be picked up.
+	// Seed a user config with a enact_ PAT that must never be picked up.
 	t.Setenv("HOME", t.TempDir())
-	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_owner_pat"}); err != nil {
+	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_owner_pat"}); err != nil {
 		t.Fatalf("seed config: %v", err)
 	}
 
@@ -327,7 +327,7 @@ func TestResolveWorkspaceID_AgentContextSkipsConfig(t *testing.T) {
 func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
-	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_profile_token"}); err != nil {
+	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_profile_token"}); err != nil {
 		t.Fatalf("seed config: %v", err)
 	}
 
@@ -337,7 +337,7 @@ func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 		t.Setenv("ENACT_DAEMON_PORT", "")
 		t.Setenv("ENACT_TOKEN", "")
 
-		if got := resolveToken(testCmd()); got != "mul_profile_token" {
+		if got := resolveToken(testCmd()); got != "enact_profile_token" {
 			t.Fatalf("resolveToken() = %q, want profile token", got)
 		}
 	})
@@ -350,7 +350,7 @@ func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 		t.Setenv("ENACT_TOKEN", "")
 		t.Setenv("ENACT_DAEMON_PORT", "")
 
-		if got := resolveToken(testCmd()); got != "mul_profile_token" {
+		if got := resolveToken(testCmd()); got != "enact_profile_token" {
 			t.Fatalf("resolveToken() = %q, want profile token", got)
 		}
 	})
@@ -424,7 +424,7 @@ func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 		t.Setenv("ENACT_SERVER_URL", "")
 		t.Setenv("ENACT_TOKEN", "")
 
-		if got := resolveToken(testCmd()); got != "mul_profile_token" {
+		if got := resolveToken(testCmd()); got != "enact_profile_token" {
 			t.Fatalf("resolveToken() = %q, want profile token (unreadable marker path must not fail closed)", got)
 		}
 	})
@@ -473,7 +473,7 @@ func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 		t.Setenv("ENACT_DAEMON_PORT", "")
 		t.Setenv("ENACT_SERVER_URL", "https://api.enact.ai")
 
-		if got := resolveToken(testCmd()); got != "mul_profile_token" {
+		if got := resolveToken(testCmd()); got != "enact_profile_token" {
 			t.Fatalf("resolveToken() = %q, want profile token (SERVER_URL is not a daemon identity signal)", got)
 		}
 	})
@@ -488,7 +488,7 @@ func TestResolveToken_AgentContextSkipsConfig(t *testing.T) {
 		t.Setenv("ENACT_DAEMON_PORT", "")
 		t.Setenv("ENACT_SERVER_URL", "")
 
-		if got := resolveToken(testCmd()); got != "mul_profile_token" {
+		if got := resolveToken(testCmd()); got != "enact_profile_token" {
 			t.Fatalf("resolveToken() = %q, want profile token (normal CLI flow)", got)
 		}
 	})
@@ -513,7 +513,7 @@ func TestNewAPIClient_AgentContextRequiresTaskToken(t *testing.T) {
 	})
 
 	t.Run("member token fails closed", func(t *testing.T) {
-		t.Setenv("ENACT_TOKEN", "mul_member_token")
+		t.Setenv("ENACT_TOKEN", "enact_member_token")
 
 		_, err := newAPIClient(testCmd())
 		if err == nil {
@@ -547,7 +547,7 @@ func TestNewAPIClient_DaemonPortRequiresTaskToken(t *testing.T) {
 	t.Setenv("ENACT_DAEMON_PORT", "27182")
 	t.Setenv("ENACT_TOKEN", "")
 
-	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_profile_token", WorkspaceID: "config-file-ws"}); err != nil {
+	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_profile_token", WorkspaceID: "config-file-ws"}); err != nil {
 		t.Fatalf("seed config: %v", err)
 	}
 
@@ -572,7 +572,7 @@ func TestNewAPIClient_WorkdirMarkerRequiresTaskToken(t *testing.T) {
 	t.Setenv("ENACT_TOKEN", "")
 	chdirWithDaemonTaskMarker(t)
 
-	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_profile_token", WorkspaceID: "config-file-ws"}); err != nil {
+	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_profile_token", WorkspaceID: "config-file-ws"}); err != nil {
 		t.Fatalf("seed config: %v", err)
 	}
 
@@ -668,7 +668,7 @@ func TestParseCustomEnv(t *testing.T) {
 
 // TestAgentUpdateNoFieldsErrorPointsAtEnvCommand invokes runAgentUpdate
 // with no flags set and asserts the resulting "no fields" error
-// directs the user toward the new env subcommand. After MUL-2600 the
+// directs the user toward the new env subcommand. After ENA-2600 the
 // --custom-env* flags are gone from `agent update`; the hint must
 // surface their replacement so users discover the new audited path.
 func TestAgentUpdateNoFieldsErrorPointsAtEnvCommand(t *testing.T) {
@@ -710,7 +710,7 @@ func TestAgentUpdateNoFieldsErrorPointsAtEnvCommand(t *testing.T) {
 func TestAgentUpdateDoesNotExposeCustomEnvFlags(t *testing.T) {
 	for _, flag := range []string{"custom-env", "custom-env-stdin", "custom-env-file"} {
 		if agentUpdateCmd.Flag(flag) != nil {
-			t.Errorf("agent update must NOT expose --%s after MUL-2600; use `enact agent env set` instead", flag)
+			t.Errorf("agent update must NOT expose --%s after ENA-2600; use `enact agent env set` instead", flag)
 		}
 	}
 }

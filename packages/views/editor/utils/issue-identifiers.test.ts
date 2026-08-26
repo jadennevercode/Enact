@@ -11,55 +11,55 @@ import {
  */
 describe("preprocessIssueIdentifiers", () => {
   it("rewrites a bare identifier into a canonical mention link", () => {
-    expect(preprocessIssueIdentifiers("Related to MUL-1745")).toBe(
-      "Related to [MUL-1745](mention://issue/MUL-1745)",
+    expect(preprocessIssueIdentifiers("Related to ENA-1745")).toBe(
+      "Related to [ENA-1745](mention://issue/ENA-1745)",
     );
   });
 
   it("rewrites multiple identifiers in one string", () => {
-    expect(preprocessIssueIdentifiers("Created TES-1 and MUL-2")).toBe(
-      "Created [TES-1](mention://issue/TES-1) and [MUL-2](mention://issue/MUL-2)",
+    expect(preprocessIssueIdentifiers("Created TES-1 and ENA-2")).toBe(
+      "Created [TES-1](mention://issue/TES-1) and [ENA-2](mention://issue/ENA-2)",
     );
   });
 
   it("links an identifier at a sentence end (trailing dot + space)", () => {
-    expect(preprocessIssueIdentifiers("See MUL-1. Done.")).toBe(
-      "See [MUL-1](mention://issue/MUL-1). Done.",
+    expect(preprocessIssueIdentifiers("See ENA-1. Done.")).toBe(
+      "See [ENA-1](mention://issue/ENA-1). Done.",
     );
   });
 
   it("links identifiers wrapped in prose punctuation", () => {
-    expect(preprocessIssueIdentifiers("(MUL-1) and [MUL-2]")).toContain(
-      "([MUL-1](mention://issue/MUL-1))",
+    expect(preprocessIssueIdentifiers("(ENA-1) and [ENA-2]")).toContain(
+      "([ENA-1](mention://issue/ENA-1))",
     );
   });
 
   // --- skip: code -------------------------------------------------------
   it("skips identifiers inside inline code", () => {
-    expect(preprocessIssueIdentifiers("use `MUL-1` here")).toBe(
-      "use `MUL-1` here",
+    expect(preprocessIssueIdentifiers("use `ENA-1` here")).toBe(
+      "use `ENA-1` here",
     );
   });
 
   it("skips identifiers inside fenced code blocks", () => {
-    const input = "```\nMUL-1 in code\n```";
+    const input = "```\nENA-1 in code\n```";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
   // --- skip: existing links / mentions ----------------------------------
   it("does not double-process an existing mention link", () => {
-    const input = "[MUL-1](mention://issue/00000000-0000-0000-0000-000000000001)";
+    const input = "[ENA-1](mention://issue/00000000-0000-0000-0000-000000000001)";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
   it("skips an identifier used as a markdown link label", () => {
-    const input = "[MUL-1](https://example.com/x)";
+    const input = "[ENA-1](https://example.com/x)";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
   // --- skip: urls / filenames / paths -----------------------------------
   it("skips an identifier inside a URL", () => {
-    const input = "https://example.com/board/MUL-1";
+    const input = "https://example.com/board/ENA-1";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
@@ -75,12 +75,12 @@ describe("preprocessIssueIdentifiers", () => {
 
   // --- non-matches ------------------------------------------------------
   it("ignores lowercase tokens", () => {
-    const input = "some-word-1 and mul-1";
+    const input = "some-word-1 and ena-1";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
   it("ignores a token embedded in a larger word", () => {
-    const input = "XMUL-1A stays";
+    const input = "XENA-1A stays";
     expect(preprocessIssueIdentifiers(input)).toBe(input);
   });
 
@@ -92,7 +92,7 @@ describe("preprocessIssueIdentifiers", () => {
 
 describe("isIssueIdentifier", () => {
   it("accepts a bare identifier", () => {
-    expect(isIssueIdentifier("MUL-1745")).toBe(true);
+    expect(isIssueIdentifier("ENA-1745")).toBe(true);
     expect(isIssueIdentifier("TES-1")).toBe(true);
   });
 
@@ -103,8 +103,8 @@ describe("isIssueIdentifier", () => {
   });
 
   it("rejects lowercase and malformed tokens", () => {
-    expect(isIssueIdentifier("mul-1")).toBe(false);
-    expect(isIssueIdentifier("MUL-")).toBe(false);
-    expect(isIssueIdentifier("MUL1")).toBe(false);
+    expect(isIssueIdentifier("ena-1")).toBe(false);
+    expect(isIssueIdentifier("ENA-")).toBe(false);
+    expect(isIssueIdentifier("ENA1")).toBe(false);
   });
 });

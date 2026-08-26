@@ -321,7 +321,7 @@ func TestFailTaskKeepsChatPointerOnTransientFailure(t *testing.T) {
 }
 
 // TestGetLastChatTaskSessionExcludesOverflowedResumeFromOlderCompletedRow is
-// the chat half of the MUL-5722 topology. Same shape as the issue side: the
+// the chat half of the ENA-5722 topology. Same shape as the issue side: the
 // overflowed resume records no session, so only the older completed row names
 // the oversized thread.
 //

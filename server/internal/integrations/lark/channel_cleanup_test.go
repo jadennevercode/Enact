@@ -14,7 +14,7 @@ import (
 // half of "auto-reclaim on delete": deleting a workspace, or hard-deleting an
 // archived agent on runtime teardown, must sweep the channel_installation rows
 // (and every dependent row) their owners left behind — channel_* has no FK to
-// workspace/agent (MUL-3515 §4), so nothing else would.
+// workspace/agent (ENA-3515 §4), so nothing else would.
 const (
 	ccWS         = "cc000000-0000-4000-8000-000000000001"
 	ccRuntime    = "cc000000-0000-4000-8000-000000000003"
@@ -60,7 +60,7 @@ RETURNING id
 			t.Fatalf("seed dependent for app=%s: %v", app, err)
 		}
 	}
-	exec(`INSERT INTO channel_user_binding (workspace_id, multica_user_id, installation_id, channel_type, channel_user_id)
+	exec(`INSERT INTO channel_user_binding (workspace_id, enact_user_id, installation_id, channel_type, channel_user_id)
 VALUES ($1, $2, $3, 'feishu', 'ou_cc_user')`, ws, ccUser, id)
 	exec(`INSERT INTO channel_chat_session_binding (chat_session_id, installation_id, channel_type, channel_chat_id, chat_type)
 VALUES ($1, $2, 'feishu', 'oc_cc_chat', 'p2p')`, chatSess, id)
@@ -134,7 +134,7 @@ func assertInstallationIntact(t *testing.T, ctx context.Context, pool *pgxpool.P
 
 // TestDeleteChannelInstallationsBySystemRuntimeAgents: runtime teardown hard-
 // deletes only the SYSTEM agents on the runtime (user agents are unbound and
-// keep everything since MUL-5559), so this cleanup must sweep exactly those
+// keep everything since ENA-5559), so this cleanup must sweep exactly those
 // agents' installations and dependents. The archived user agent in the fixture
 // is the regression: sweeping it would take a working bot away from an agent
 // that is still there.
@@ -145,7 +145,7 @@ func TestDeleteChannelInstallationsBySystemRuntimeAgents(t *testing.T) {
 
 	clean := func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_installation WHERE config->>'app_id' = ANY($1)`, []string{ccAppArchive, ccAppLive})
-		_, _ = pool.Exec(ctx, `DELETE FROM channel_user_binding WHERE multica_user_id = $1`, ccUser)
+		_, _ = pool.Exec(ctx, `DELETE FROM channel_user_binding WHERE enact_user_id = $1`, ccUser)
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_chat_session_binding WHERE chat_session_id = ANY($1)`, []string{ccChatArch, ccChatLive})
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_binding_token WHERE token_hash = ANY($1)`, []string{ccTokenArch, ccTokenLive})
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_outbound_card_message WHERE chat_session_id = ANY($1)`, []string{ccChatArch, ccChatLive})
@@ -191,7 +191,7 @@ func TestDeleteWorkspace_SweepsChannelInstallations(t *testing.T) {
 
 	clean := func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_installation WHERE config->>'app_id' = $1`, ccAppWs)
-		_, _ = pool.Exec(ctx, `DELETE FROM channel_user_binding WHERE multica_user_id = $1`, ccUser)
+		_, _ = pool.Exec(ctx, `DELETE FROM channel_user_binding WHERE enact_user_id = $1`, ccUser)
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_chat_session_binding WHERE chat_session_id = $1`, ccChatWs)
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_binding_token WHERE token_hash = $1`, ccTokenWs)
 		_, _ = pool.Exec(ctx, `DELETE FROM channel_outbound_card_message WHERE chat_session_id = $1`, ccChatWs)

@@ -37,7 +37,7 @@ const MinQuickCreateCLIVersion = "0.2.21"
 const MinQuickCreateFieldsCLIVersion = "0.4.3"
 
 // MinLocalWorktreeCLIVersion is the release that first shipped
-// execution_mode=worktree for local_directory resources (MUL-5707).
+// execution_mode=worktree for local_directory resources (ENA-5707).
 //
 // NOTHING GATES ON THIS. It is a display value: the number shown in the 422
 // payload and the UI hint so a user knows roughly which release to update to.
@@ -54,7 +54,7 @@ const MinLocalWorktreeCLIVersion = "0.4.24"
 
 // MinHandoffCLIVersion is the lowest enact CLI version whose daemon renders
 // the assignment handoff note into the run's opening prompt + issue_context.md
-// (MUL-3375). Unlike quick-create this is a SOFT gate: assigning an issue with
+// (ENA-3375). Unlike quick-create this is a SOFT gate: assigning an issue with
 // a note never fails on an old daemon — the assignment still takes effect, the
 // note is simply dropped. The frontend reads HandoffSupported to gray out the
 // note box and warn the user, so they aren't surprised by a silently ignored

@@ -1,5 +1,5 @@
 // Package dispatch holds the canonical, cross-layer vocabulary for execution
-// admission outcomes (MUL-4525). It is a leaf package (no internal deps) so both
+// admission outcomes (ENA-4525). It is a leaf package (no internal deps) so both
 // the service layer — which MAKES the admission/skip decision and therefore owns
 // the reason at its source — and the handler layer — which serializes it to the
 // wire — share one enum and can never drift.
@@ -34,14 +34,14 @@ const (
 	// ReasonRuntimeUnusable: the target is bound to a runtime whose machine is
 	// reachable, but whose agent CLI cannot be executed there — the npm
 	// placeholder stub left behind when a package's postinstall was blocked is
-	// the case in the field (MUL-6164). Distinct from runtime_offline for the
+	// the case in the field (ENA-6164). Distinct from runtime_offline for the
 	// same reason agent_runtime_required is: waiting changes nothing here. The
 	// machine is already on, and the fix is a command the user runs on it, which
 	// the daemon reports with this verdict so clients can show it.
 	ReasonRuntimeUnusable ReasonCode = "runtime_unusable"
 	// ReasonAgentRuntimeRequired: the target is permitted but bound to no
 	// runtime at all (agent.runtime_id IS NULL), which is where an agent lands
-	// when its runtime is deleted (MUL-5559). Distinct from runtime_offline on
+	// when its runtime is deleted (ENA-5559). Distinct from runtime_offline on
 	// purpose: there is no machine to bring back, nothing will ever claim work
 	// for this agent, and the only fix is binding it to a runtime. Clients that
 	// collapse the two send the user looking for an offline computer that does

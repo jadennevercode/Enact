@@ -32,7 +32,7 @@ export interface Attachment {
    * CloudFront / S3 signed URL with a TTL). `markdown_url` is contracted
    * to be safe to embed in markdown bodies that outlive the current
    * session and to load as a native browser resource fetch on every
-   * supported client (web / desktop / mobile webview). MUL-3192.
+   * supported client (web / desktop / mobile webview). ENA-3192.
    *
    * Empty when the response was produced by a server old enough to
    * predate this field, or by an upload path that did not produce a
@@ -46,4 +46,35 @@ export interface Attachment {
   content_type: string;
   size_bytes: number;
   created_at: string;
+}
+
+/**
+ * One file in a project's artifact listing.
+ *
+ * An attachment carries no project of its own — project membership is derived
+ * server-side by following the attachment to its owning issue (directly, or
+ * through the comment it hangs off) and reading that issue's project. The
+ * owner issue is therefore always present, and is the edge the artifacts
+ * browser groups files into folders by.
+ *
+ * `owner_issue_id` is distinct from the inherited `issue_id`: a file attached
+ * to a COMMENT has a null `issue_id` but still resolves to an owner issue
+ * through that comment.
+ */
+export interface ProjectArtifact extends Attachment {
+  owner_issue_id: string;
+  owner_issue_number: number;
+  /** Workspace-prefixed issue key, e.g. `ENC-42`. Computed at read time. */
+  owner_issue_identifier: string;
+  owner_issue_title: string;
+}
+
+export interface ListProjectArtifactsResponse {
+  artifacts: ProjectArtifact[];
+  total: number;
+  /**
+   * The listing filled the server's row cap, so the tree built from it is a
+   * prefix of the truth rather than the whole project.
+   */
+  truncated: boolean;
 }

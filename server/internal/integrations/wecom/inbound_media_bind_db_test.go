@@ -132,7 +132,7 @@ func seedMediaBindFixture(t *testing.T, pool *pgxpool.Pool) mediaBindFixture {
 		t.Fatalf("create installation: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO channel_user_binding (workspace_id, multica_user_id, installation_id, channel_type, channel_user_id)
+		INSERT INTO channel_user_binding (workspace_id, enact_user_id, installation_id, channel_type, channel_user_id)
 		VALUES ($1, $2, $3, 'wecom', $4)`,
 		f.workspaceID, f.userID, f.installationID, f.senderID); err != nil {
 		t.Fatalf("create user binding: %v", err)

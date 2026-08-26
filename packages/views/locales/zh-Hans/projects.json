@@ -166,5 +166,33 @@
     "direction_desc": "降序",
     "section_columns": "列",
     "view": "视图"
+  },
+  "artifacts": {
+    "title": "产物",
+    "subtitle": "本项目下产生的文件，按其来源任务分组。",
+    "open_action": "产物",
+    "search_placeholder": "搜索文件和任务",
+    "count_other": "{{count}} 个文件",
+    "empty_title": "暂无产物",
+    "empty_hint": "上传到本项目任务和评论中的文件会显示在这里。",
+    "empty_search_title": "没有匹配的文件",
+    "empty_search_hint": "换一个文件名或任务试试。",
+    "truncated": "仅显示前 {{count}} 个文件。缩小搜索范围以查找更早的文件。",
+    "load_failed": "加载产物失败",
+    "retry": "重试",
+    "unfiled_folder": "未归类",
+    "unfiled_folder_hint": "这些文件无法追溯到具体任务。",
+    "select_prompt": "选择一个文件以查看其版本。",
+    "versions_title": "版本",
+    "version_label": "v{{version}}",
+    "version_current": "当前",
+    "version_count_other": "{{count}} 个版本",
+    "download": "下载",
+    "preview": "预览",
+    "open_issue": "打开任务",
+    "uploaded_by_member": "由成员上传",
+    "uploaded_by_agent": "由智能体产出",
+    "column_size": "大小",
+    "column_uploaded": "上传时间"
   }
 }

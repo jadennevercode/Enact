@@ -455,7 +455,7 @@ func (b *kimiBackend) Execute(ctx context.Context, prompt string, opts ExecOptio
 		// `usage_update` notification carries only {used,size} — context
 		// window occupancy, not billing. Verified against the CLI Enact's
 		// own onboarding installs. Without this scan every kimi task lands
-		// on the usage dashboard with no row at all (MUL-5773 / #6448).
+		// on the usage dashboard with no row at all (ENA-5773 / #6448).
 		//
 		// The counters do exist in kimi's per-session wire log, so read
 		// them from there, the same way codex.go falls back to Codex

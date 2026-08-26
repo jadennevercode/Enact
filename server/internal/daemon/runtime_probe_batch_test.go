@@ -25,7 +25,7 @@ import (
 // records the runtime payload each workspace was registered with. It also
 // counts `<cli> --version` probes per executable path so a test can assert the
 // daemon probed the machine's built-in CLIs once per sync instead of once per
-// workspace (MUL-5225).
+// workspace (ENA-5225).
 type batchFixture struct {
 	daemon *Daemon
 	server *httptest.Server
@@ -51,7 +51,7 @@ type batchFixture struct {
 	// registerFail, when non-nil, makes /api/daemon/register return 500. A
 	// non-empty string key scopes the failure to that workspace ID; the empty
 	// string key fails every workspace. Used to exercise the discovery retry
-	// paths (MUL-5439).
+	// paths (ENA-5439).
 	registerFail map[string]bool
 	// profilesFail makes the runtime-profiles route return 500, reproducing the
 	// best-effort profile fetch failing while a discovery-driven registration
@@ -469,7 +469,7 @@ func newBatchFixture(t *testing.T) *batchFixture {
 	return fx
 }
 
-// TestSyncWorkspaces_ProbesBuiltinCLIsOncePerBatch is the MUL-5225 regression:
+// TestSyncWorkspaces_ProbesBuiltinCLIsOncePerBatch is the ENA-5225 regression:
 // registering N workspaces must execute each built-in agent CLI's `--version`
 // once for the machine, not once per workspace, while still sending one
 // Register call per workspace with the full built-in payload.
@@ -709,7 +709,7 @@ func TestDetectBuiltinRuntimes_DropsProviderAfterRetriesExhausted(t *testing.T) 
 // TestDetectBuiltinRuntimes_DoesNotRetrySlowProbe protects registration
 // latency. A probe that burned its whole timeout is a hung CLI, not a hiccup;
 // retrying it would double the round's worst case, which is the latency that
-// used to strand the desktop runtime step in its empty state (MUL-5119).
+// used to strand the desktop runtime step in its empty state (ENA-5119).
 func TestDetectBuiltinRuntimes_DoesNotRetrySlowProbe(t *testing.T) {
 	fx := newBatchFixture(t)
 	const probeWindow = 20 * time.Millisecond
@@ -729,7 +729,7 @@ func TestDetectBuiltinRuntimes_DoesNotRetrySlowProbe(t *testing.T) {
 	}
 }
 
-// vanishedPinnedPath lays out the MUL-4486 shape a probe retry has to reckon
+// vanishedPinnedPath lays out the ENA-4486 shape a probe retry has to reckon
 // with: a stable command name that resolves on PATH to a runnable stub, plus
 // the pinned absolute path an in-place upgrade already deleted. It returns the
 // missing pinned path and the path the self-heal re-resolves to.
@@ -772,7 +772,7 @@ func countingVersionProbe(t *testing.T, answer func(path string) (string, error)
 // TestDetectBuiltinRuntimes_DoesNotRetryWhenSelfHealBurnsTheWindow keeps the
 // slow-probe guard honest about where an attempt's time actually goes. When the
 // pinned path has vanished, resolveAgentEntry runs its own version probe on the
-// re-resolved candidate (MUL-4486) — which can burn the full 10s timeout on its
+// re-resolved candidate (ENA-4486) — which can burn the full 10s timeout on its
 // own. Timing only the outer probe would read the attempt as a fast failure
 // (the stale path fails instantly), retry, and pay the slow self-heal a second
 // time — exactly the doubled worst case the guard exists to prevent.
@@ -848,7 +848,7 @@ func TestDetectBuiltinRuntimes_SelfHealRejectionIsABelowMinimumVerdict(t *testin
 	}
 	// Below-minimum keeps today's behaviour on the trigger paths: it takes the
 	// runtime offline but does not carry the "a human must repair this" code
-	// that refuses new work (MUL-6164 scoped that to the unusable verdict).
+	// that refuses new work (ENA-6164 scoped that to the unusable verdict).
 	if belowMin["codex"].offline != nil {
 		t.Errorf("below-minimum verdict must not carry an offline reason: %+v", belowMin["codex"].offline)
 	}

@@ -76,7 +76,7 @@ func metadataTestServer(t *testing.T, metadataHandler http.HandlerFunc) (*httpte
 		case r.Method == http.MethodGet && r.URL.Path == "/api/issues/"+testIssueUUID:
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":         testIssueUUID,
-				"identifier": "MUL-1",
+				"identifier": "ENA-1",
 				"title":      "test issue",
 			})
 		case strings.HasPrefix(r.URL.Path, "/api/issues/"+testIssueUUID+"/metadata"):

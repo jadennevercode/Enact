@@ -50,14 +50,14 @@ go test ./internal/service -run TestBuiltinSkillsConformToTemplate
 | Contract | Line | Behavior |
 |---|---|---|
 | `maxAgentDescriptionLength = 255` | 31 | Cap is 255 **Unicode code points** (comment: counted via `utf8.RuneCountInString`, matches Postgres `char_length`) |
-| `AgentResponse` omits plaintext `custom_env` | 33–53 | Exposes only `has_custom_env` (52) and `custom_env_key_count` (53); comment cites MUL-2600 |
+| `AgentResponse` omits plaintext `custom_env` | 33–53 | Exposes only `has_custom_env` (52) and `custom_env_key_count` (53); comment cites ENA-2600 |
 | `CreateAgentRequest` fields | 930–970 | Includes `model`, `thinking_level`, and Codex `service_tier` alongside the profile/runtime/permission inputs |
 | `name` required | 623–625 | 400 "name is required" |
 | `description` ≤ 255 code points | 627–629 | `utf8.RuneCountInString(req.Description) > maxAgentDescriptionLength` → 400 |
 | `runtime_id` required | 631–633 | `if req.RuntimeID == ""` → 400 "runtime_id is required" |
 | `runtime_id` must resolve in workspace | 642–658 | parsed + `GetAgentRuntimeForWorkspace`; unknown → 400 "invalid runtime_id" |
-| `thinking_level` provider-level validation | `agent.go` create/update paths | `!agent.IsKnownThinkingValue(runtime.Provider, req.ThinkingLevel)` → 400; fixed-vocabulary providers use an enum (Pi: `off|minimal|low|medium|high|xhigh|max`), Codex/OpenCode use safe-token syntax, and per-model gaps are deferred to daemon (MUL-2339) |
-| `thinking_level` rejection copy | `agent.go` `thinkingLevelRejection` / `existingThinkingLevelRejection` | Splits "runtime has no reasoning control" from "unrecognised token" so a runtime-capability 400 does not read as a typo; both carry-over branches point at `thinking_level=""` (MUL-5770) |
+| `thinking_level` provider-level validation | `agent.go` create/update paths | `!agent.IsKnownThinkingValue(runtime.Provider, req.ThinkingLevel)` → 400; fixed-vocabulary providers use an enum (Pi: `off|minimal|low|medium|high|xhigh|max`), Codex/OpenCode use safe-token syntax, and per-model gaps are deferred to daemon (ENA-2339) |
+| `thinking_level` rejection copy | `agent.go` `thinkingLevelRejection` / `existingThinkingLevelRejection` | Splits "runtime has no reasoning control" from "unrecognised token" so a runtime-capability 400 does not read as a typo; both carry-over branches point at `thinking_level=""` (ENA-5770) |
 | `service_tier` provider-level validation | `agent.go` create/update paths | Non-empty values are Codex-only safe tokens; exact per-model support is daemon-owned |
 | Defaults: `{}` config/env, `[]` args | 688–701 | `RuntimeConfig`→`{}`, `CustomEnv`→`{}`, `CustomArgs`→`[]` when nil, before insert |
 | `visibility` default | 635–636 | `if req.Visibility == "" { req.Visibility = "private" }` — access-control field, not the runtime prompt |
@@ -101,8 +101,8 @@ go test ./internal/service -run TestBuiltinSkillsConformToTemplate
 | Contract | Line | Behavior |
 |---|---|---|
 | `authorizeAgentEnv` gate | 76 | loads agent, then applies the two checks below |
-| Agent actors denied | 90–94 | `if actorType == "agent"` → 403 "agents may not access env management endpoints" (MUL-2600 impersonation guard); runs FIRST, so an agent is denied even when its backing human owns the target agent |
-| Agent owner or ws owner/admin | 96–103 | `requireWorkspaceRole(..., "owner", "admin", "member")` then `canManageAgentEnv` → 403 otherwise (MUL-5438) |
+| Agent actors denied | 90–94 | `if actorType == "agent"` → 403 "agents may not access env management endpoints" (ENA-2600 impersonation guard); runs FIRST, so an agent is denied even when its backing human owns the target agent |
+| Agent owner or ws owner/admin | 96–103 | `requireWorkspaceRole(..., "owner", "admin", "member")` then `canManageAgentEnv` → 403 otherwise (ENA-5438) |
 | `canManageAgentEnv` predicate | 120 | workspace owner/admin, or `agent.owner_id == member.user_id`; a NULL `owner_id` never matches |
 
 ## Routes — `server/cmd/server/router.go`

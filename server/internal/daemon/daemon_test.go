@@ -403,7 +403,7 @@ func TestConfigureCodexTaskShellEnvironment(t *testing.T) {
 	})
 }
 
-// TestCodexTaskShellEnvInheritsRealHome pins the MUL-5578 contract at the layer
+// TestCodexTaskShellEnvInheritsRealHome pins the ENA-5578 contract at the layer
 // where the daemon assembles the environment a Codex task actually launches
 // with: HOME and the XDG base dirs reach the task's shell tools from the
 // *inherited* daemon process environment, so `gh`, `aws`, `kubectl`, and npm
@@ -424,7 +424,7 @@ func TestCodexTaskShellEnvInheritsRealHome(t *testing.T) {
 		"PATH=/usr/local/bin:/usr/bin",
 	}
 	// What runTask layers on top for a Codex task: task identity plus the
-	// task-scoped CODEX_HOME, and — since MUL-5578 — no HOME/XDG entry.
+	// task-scoped CODEX_HOME, and — since ENA-5578 — no HOME/XDG entry.
 	explicit := map[string]string{
 		"CODEX_HOME":               codexHome,
 		"ENACT_TASK_CONFIG_ROOT": "/task/enact-config",
@@ -500,7 +500,7 @@ func TestTaskScopedAuthToken(t *testing.T) {
 		},
 		{
 			name:    "member token fails closed",
-			token:   "mul_member_token",
+			token:   "enact_member_token",
 			wantErr: "server provided non-task-scoped auth token",
 		},
 		{
@@ -571,7 +571,7 @@ func TestTaskEnactEnvironmentIncludesPrivateConfigRoot(t *testing.T) {
 	layerCustomEnvAndHermesHome(env, map[string]string{
 		"ENACT_TASK_CONFIG_ROOT":     "/owner/config",
 		"ENACT_TASK_WORKSPACES_ROOT": "/owner/enact_workspaces",
-		"ENACT_TOKEN":                "mul_owner_sentinel",
+		"ENACT_TOKEN":                "enact_owner_sentinel",
 	}, "", nil)
 	if env["ENACT_TASK_CONFIG_ROOT"] != taskRoot {
 		t.Fatalf("custom env replaced task config root: %q", env["ENACT_TASK_CONFIG_ROOT"])
@@ -833,7 +833,7 @@ func TestBuildPromptContainsIssueID(t *testing.T) {
 	}
 }
 
-// TestSessionContinuityNoticeMatchesSurface locks the MUL-5722 split. The same
+// TestSessionContinuityNoticeMatchesSurface locks the ENA-5722 split. The same
 // event costs each surface something different, so it cannot be reported with
 // one sentence. The dividing question is whether the conversation can still be
 // READ, not whether it is a chat: an issue's comments, a Slack channel's
@@ -939,7 +939,7 @@ func TestSessionContinuityNoticeMatchesSurface(t *testing.T) {
 // TestBackendResumeContinuityNoticeSuppressedWhenPromptAlreadyHasIt is the
 // count guard Elon asked for, on the combination that actually occurs: the
 // codex overflow fresh retry. The daemon appends the notice to the prompt AND
-// hands the backend a notice to prepend, so before MUL-5722 one turn carried
+// hands the backend a notice to prepend, so before ENA-5722 one turn carried
 // the same paragraph twice — at full token price, from two hand-written
 // strings. Suppression is keyed on the prompt already carrying it, so the two
 // injectors cannot both fire.
@@ -1108,11 +1108,11 @@ func TestBuildPromptAutopilotRunOnly(t *testing.T) {
 	}
 
 	// The issue-command boundary is emitted ONCE, by the brief's autopilot
-	// workflow section (execenv.AutopilotIssueCommandsGuard). MUL-5696 found
+	// workflow section (execenv.AutopilotIssueCommandsGuard). ENA-5696 found
 	// that a second hand-maintained per-turn copy drifts, so the per-turn
 	// prompt must not restate it in any form.
 	if strings.Contains(prompt, "Do not run `enact issue get`") {
-		t.Fatalf("autopilot prompt restates the issue-command boundary the brief owns (MUL-5696)\n---\n%s", prompt)
+		t.Fatalf("autopilot prompt restates the issue-command boundary the brief owns (ENA-5696)\n---\n%s", prompt)
 	}
 	if strings.Contains(prompt, "Your assigned issue ID is:") {
 		t.Fatalf("autopilot prompt should not use issue assignment template\n---\n%s", prompt)
@@ -1144,7 +1144,7 @@ func TestBuildPromptCommentTriggered(t *testing.T) {
 		commentID,
 		"enact issue comment add " + issueID + " --parent " + commentID,
 		"do NOT reuse --parent values from previous turns",
-		// MUL-5442 (2026-08-06): with the generic no-reply rule retired,
+		// ENA-5442 (2026-08-06): with the generic no-reply rule retired,
 		// the reply command is framed as a plain imperative again — the
 		// squad leader's `no_action` block states its own exception.
 		"Post your reply as a comment",
@@ -1162,8 +1162,8 @@ func TestBuildPromptCommentTriggered(t *testing.T) {
 
 // TestBuildPromptCommentTriggeredByAgent covers the trigger-attribution
 // line for agent-authored triggers, and guards the RETIREMENT of the
-// generic no-reply warning block that used to follow it (MUL-1323 /
-// GH#1576). Retired by MUL-5442 owner decision (2026-08-06): an agent
+// generic no-reply warning block that used to follow it (ENA-1323 /
+// GH#1576). Retired by ENA-5442 owner decision (2026-08-06): an agent
 // comment cannot wake an ordinary agent without an explicit @mention
 // (computeCommentAgentTriggers routes agent-authored comments only via
 // mentions, plus the squad-leader wake), so loop prevention belongs to the
@@ -1192,7 +1192,7 @@ func TestBuildPromptCommentTriggeredByAgent(t *testing.T) {
 		"reply is warranted",
 		"exit with no output",
 		// The conditional reply framing was the door the retired rule
-		// walked through — guard it shut (MUL-5442 #6493 review).
+		// walked through — guard it shut (ENA-5442 #6493 review).
 		"If you decide to reply",
 	} {
 		if strings.Contains(prompt, banned) {
@@ -1224,7 +1224,7 @@ func TestBuildPromptCommentTriggeredByMember(t *testing.T) {
 	}
 	// Must NOT use the old "You MUST respond" language: the reply command is
 	// shared across turn types, and a squad leader's `no_action` exit — the
-	// one silent path left after MUL-5442 retired the generic no-reply rule —
+	// one silent path left after ENA-5442 retired the generic no-reply rule —
 	// must not be shouted over by the per-turn channel. The unconditional
 	// one-comment contract for ordinary agents lives in the brief.
 	if strings.Contains(prompt, "MUST respond") {
@@ -1254,7 +1254,7 @@ func TestBuildPromptCommentTriggeredNoContent(t *testing.T) {
 // TestBuildPromptSquadLeaderNoActionProhibition verifies that when a squad
 // leader is triggered by another agent's comment, the per-turn prompt
 // explicitly forbids posting a comment whose only purpose is to announce
-// no_action or "exiting silently". This is the fix for MUL-2168.
+// no_action or "exiting silently". This is the fix for ENA-2168.
 func TestBuildPromptSquadLeaderNoActionProhibition(t *testing.T) {
 	t.Parallel()
 
@@ -1856,7 +1856,7 @@ func newPinRecorder(t *testing.T) (*Daemon, *pinRecorder) {
 }
 
 // TestExecuteAndDrain_PinsResumableCodexSession pins the write-time invariant
-// (MUL-5305): a Codex session is pinned mid-flight only once its rollout exists
+// (ENA-5305): a Codex session is pinned mid-flight only once its rollout exists
 // in the task's CODEX_HOME, so the daemon never persists a resume pointer the
 // next follow-up would just discover is unrecoverable and drop.
 func TestExecuteAndDrain_PinsResumableCodexSession(t *testing.T) {
@@ -1891,7 +1891,7 @@ func TestExecuteAndDrain_PinsResumableCodexSession(t *testing.T) {
 }
 
 // TestExecuteAndDrain_SkipsPinWhenRolloutAbsent pins the negative half of the
-// write-time invariant (MUL-5305): a Codex session with no rollout in the store
+// write-time invariant (ENA-5305): a Codex session with no rollout in the store
 // is never pinned mid-flight, so a pointer the daemon cannot resume is not left
 // on the task row for the next follow-up to inherit.
 func TestExecuteAndDrain_SkipsPinWhenRolloutAbsent(t *testing.T) {
@@ -1912,7 +1912,7 @@ func TestExecuteAndDrain_SkipsPinWhenRolloutAbsent(t *testing.T) {
 }
 
 // TestExecuteAndDrain_PinsWhenRolloutAppearsAfterStatus covers the crash-
-// recovery half of MUL-5305: Codex reveals the session id on a single
+// recovery half of ENA-5305: Codex reveals the session id on a single
 // task_started status, so the pin waiter must keep watching for the life of the
 // run and pin as soon as the rollout lands — even when it flushes AFTER that one
 // status. A fixed one-shot check at status time would miss it and lose in-flight
@@ -2848,7 +2848,7 @@ func TestShouldRetryWithFreshSession(t *testing.T) {
 			want:           false,
 		},
 		{
-			// MUL-5722: a codex thread/resume whose response overflowed the
+			// ENA-5722: a codex thread/resume whose response overflowed the
 			// stdout line buffer. This is the case #5715 accidentally
 			// stranded — codex reported no rejection and is not in the
 			// undetectable set, so the gate returned false and the same
@@ -2905,7 +2905,7 @@ func TestShouldRetryWithFreshSession(t *testing.T) {
 			// The same failure surfacing one ACP step earlier: a resumed
 			// session whose persisted provider was flattened gets a
 			// non-redundant session/set_model, which re-runs provider
-			// auto-detection and mis-routes (MUL-5029). The adapter wraps the
+			// auto-detection and mis-routes (ENA-5029). The adapter wraps the
 			// message instead of replacing it, which is why matching the
 			// phrase here covers all three lifecycle steps at once.
 			name: "hermes set_model auth-resolution failure on resume retries",
@@ -3247,7 +3247,7 @@ func TestExecuteAndDrain_ContextCancelled_ReportsCancelled(t *testing.T) {
 	}
 }
 
-// idleWatchdogBackend simulates the MUL-2225 hang: emit one message to mark
+// idleWatchdogBackend simulates the ENA-2225 hang: emit one message to mark
 // activity, then go silent forever. With a short AgentIdleWatchdog, the
 // watchdog should fire and short-circuit executeAndDrain. With no wall-clock
 // cap (opts.Timeout = 0) the drain loop imposes no deadline of its own, so the
@@ -3560,7 +3560,7 @@ func TestExecuteAndDrain_IdleWatchdog_PerRunOverrideStillUsesToolWindow(t *testi
 // stuckInFlightToolBackend models a hung tool: it emits a tool_use and then
 // goes silent forever — the matching tool_result never arrives, so inFlightTools
 // stays at 1 (e.g. a child process that never returns). With no wall-clock cap
-// (the MUL-3064 default), AgentToolWatchdog is the only thing that ends it.
+// (the ENA-3064 default), AgentToolWatchdog is the only thing that ends it.
 type stuckInFlightToolBackend struct{}
 
 func (stuckInFlightToolBackend) Execute(_ context.Context, _ string, _ agent.ExecOptions) (*agent.Session, error) {
@@ -3788,7 +3788,7 @@ func TestRegisterTaskReposAllowsProjectOnlyURL(t *testing.T) {
 	if err := d.ensureRepoReady(context.Background(), "ws-1", sourceRepo); err != nil {
 		t.Fatalf("ensureRepoReady: %v", err)
 	}
-	// ensureRepoReady refreshes settings on every call (RFC MUL-2414 §4.8; PR
+	// ensureRepoReady refreshes settings on every call (RFC ENA-2414 §4.8; PR
 	// #2847 review by Emacs) so a freshly-flipped GitHub toggle takes effect
 	// without waiting for the 30s sync tick. We expect exactly one refresh —
 	// the project-only URL still skips re-cloning because the cache is warm.
@@ -4163,7 +4163,7 @@ func TestReportTaskResult_NonCompletedHitsFailEndpoint(t *testing.T) {
 			wantFailureReason: "iteration_limit",
 		},
 		{
-			// MUL-2946: when the daemon doesn't supply a refined
+			// ENA-2946: when the daemon doesn't supply a refined
 			// reason, the comment text is run through
 			// taskfailure.Classify so the failure_reason column
 			// lands in the canonical refined taxonomy instead of
@@ -4230,7 +4230,7 @@ func TestReportTaskResult_NonCompletedHitsFailEndpoint(t *testing.T) {
 	}
 }
 
-// Regression test for the MUL-2780 incident: a short 502 burst on the
+// Regression test for the ENA-2780 incident: a short 502 burst on the
 // /complete callback used to (a) drop the task at the first failure and
 // (b) wrongly fall back to /fail, surfacing a successful run as red.
 // With the retry helper in place, a transient 502 followed by a 200 must
@@ -4878,7 +4878,7 @@ func TestWorkspaceSyncLoop_WorkspaceChangeTriggersImmediateSync(t *testing.T) {
 }
 
 // TestWorkspaceSyncLoop_DoesNotDropChangeAfterSuccessfulSync covers the
-// request-changes race from MUL-4480: a real membership hint arriving within
+// request-changes race from ENA-4480: a real membership hint arriving within
 // one second of a completed sync must trigger another sync, not be treated as
 // a duplicate of the earlier read and deferred to the 30-minute fallback.
 func TestWorkspaceSyncLoop_DoesNotDropChangeAfterSuccessfulSync(t *testing.T) {
@@ -5478,7 +5478,7 @@ func TestFreshSessionMayHelp(t *testing.T) {
 }
 
 // TestBuildPromptSquadLeaderReplyCommandCarvesOutNoAction renders the COMPLETE
-// leader prompt and pins the exception's scope relation (MUL-5442 #6493
+// leader prompt and pins the exception's scope relation (ENA-5442 #6493
 // review): the no_action rule and the reply imperative appear in the same
 // prompt, so the imperative must carry the carve-out itself — a bare
 // unconditional "Post your reply as a comment" anywhere in a leader prompt
@@ -5512,7 +5512,7 @@ func TestBuildPromptSquadLeaderReplyCommandCarvesOutNoAction(t *testing.T) {
 }
 
 // TestBuildPromptSquadLeaderMultiThreadCarvesOutNoAction renders the complete
-// leader prompt on the cross-thread fan-out path (MUL-5442 #6493 review): the
+// leader prompt on the cross-thread fan-out path (ENA-5442 #6493 review): the
 // fan-out imperative fires AFTER the no_action rule, so its scope sentence
 // must govern the ENTIRE block — assert it precedes every later obligation,
 // not just the first verb. The ordinary fan-out output keeps the
@@ -5545,7 +5545,7 @@ func TestBuildPromptSquadLeaderMultiThreadCarvesOutNoAction(t *testing.T) {
 	if scope < 0 {
 		t.Fatalf("leader multi-thread prompt missing the whole-block scope sentence\n---\n%s", prompt)
 	}
-	// Obligation strings track the converged fan-out block (MUL-5825). Pin
+	// Obligation strings track the converged fan-out block (ENA-5825). Pin
 	// ledger: "Post the replies in the order listed below" → the order rule
 	// merged into the targets header ("OLDEST thread first"); "For EACH
 	// thread above" → the embedded cookbook collapsed to the

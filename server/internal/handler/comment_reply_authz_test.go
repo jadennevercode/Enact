@@ -9,7 +9,7 @@ import (
 )
 
 // TestTaskCoversReplyParent pins the comment-reply authorization allow-list
-// (MUL-4348): a comment-triggered task may reply under its trigger comment OR
+// (ENA-4348): a comment-triggered task may reply under its trigger comment OR
 // under any earlier comment it coalesced, and nothing else. This is what lets
 // a coalesced cross-thread run answer each thread in its own thread instead of
 // being rejected with "parent_id must equal this task's trigger comment id".

@@ -238,7 +238,7 @@ func TestParseChatQuickActionsOutputAcceptsFencedObject(t *testing.T) {
 	}
 }
 
-// The MUL-5689 shape, with every pull toward the wrong language present at
+// The ENA-5689 shape, with every pull toward the wrong language present at
 // once: an older Chinese turn, a Chinese agent reply, Chinese labels replayed
 // under ALREADY SUGGESTED — and the user's newest turn in English. The rendered
 // prompt must close by pointing at that newest [user] turn and disowning the

@@ -9,7 +9,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Regression tests for the second half of MUL-5492: `issue:updated` used to
+// Regression tests for the second half of ENA-5492: `issue:updated` used to
 // broadcast prev_description alongside the new description, so every debounced
 // description autosave pushed TWO full copies of the description to every
 // connection in the workspace — including users who did not have the issue open.

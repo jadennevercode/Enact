@@ -198,7 +198,7 @@ func (q questionnaireAnswers) useCaseResolved() bool {
 const questionnaireSchemaVersion = 2
 
 // complete covers the IN-FLOW questionnaire only: role + use_case.
-// Source moved out of the onboarding flow (MUL-5159) — it is collected
+// Source moved out of the onboarding flow (ENA-5159) — it is collected
 // later by the workspace backfill prompt, and its resolution is
 // tracked by the separate `onboarding_source_submitted` emission in
 // PatchOnboarding. Requiring source here would stall the funnel's

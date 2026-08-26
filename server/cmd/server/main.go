@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/daemonws"
@@ -28,6 +27,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/featureflag"
 	"github.com/enact-ai/enact/server/pkg/llm"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -153,7 +153,7 @@ const maxLLMRetriesLimit = 5
 // Unlike the envFooInt helpers above it returns an error instead of warning and
 // falling back to a default. A retry budget silently corrected to something the
 // operator did not ask for is the failure this knob exists to remove
-// (MUL-6364): a typo'd "3x" or a negative must stop the boot, not quietly
+// (ENA-6364): a typo'd "3x" or a negative must stop the boot, not quietly
 // restore the default and look configured.
 func parseLLMMaxRetries(raw string) (*llm.RetryOverride, error) {
 	raw = strings.TrimSpace(raw)
@@ -285,16 +285,8 @@ func main() {
 		slog.Warn("JWT_SECRET is not set — using insecure dev default (allowed only because APP_ENV is not production).")
 	}
 	if os.Getenv("RESEND_API_KEY") == "" && strings.TrimSpace(os.Getenv("SMTP_HOST")) == "" {
-		slog.Warn("no email backend configured (RESEND_API_KEY and SMTP_HOST both empty) — verification codes will be printed to the log instead of emailed.")
+		slog.Warn("no email backend configured (RESEND_API_KEY and SMTP_HOST both empty) — invitation links will be printed to the log instead of emailed.")
 	}
-	if os.Getenv("ENACT_DEV_VERIFICATION_CODE") != "" {
-		if strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production") {
-			slog.Warn("ENACT_DEV_VERIFICATION_CODE is set but ignored because APP_ENV=production.")
-		} else {
-			slog.Warn("ENACT_DEV_VERIFICATION_CODE is enabled. Use it only for local development or private test instances.")
-		}
-	}
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -357,7 +349,7 @@ func main() {
 	daemonHub := daemonws.NewHub()
 	var daemonWakeup service.TaskWakeupNotifier = daemonHub
 
-	// MUL-1138: when REDIS_URL is set, route fanout through a Redis relay so
+	// ENA-1138: when REDIS_URL is set, route fanout through a Redis relay so
 	// multiple API nodes can deliver each other's events. Without it the hub
 	// is the sole broadcaster and the server stays single-node (legacy).
 	// Runtime local-skill stores and realtime relay traffic use separate Redis
@@ -611,11 +603,11 @@ func main() {
 	if h.TelegramOutbound != nil {
 		h.TelegramOutbound.Start(sweepCtx)
 	}
-	// GitHub PR-card API snapshot pipeline (MUL-5265): worker pool + TTL sweeper.
+	// GitHub PR-card API snapshot pipeline (ENA-5265): worker pool + TTL sweeper.
 	// No-op when unconfigured (no App private key).
 	h.PRRefresh.Start(sweepCtx)
 
-	// Channel inbound supervisor (MUL-3620): holds the §4.4 WS lease per
+	// Channel inbound supervisor (ENA-3620): holds the §4.4 WS lease per
 	// installation and drives each channel.Channel. It is channel-agnostic,
 	// not Lark-specific, but remains nil when lease startup validation fails
 	// (notably Redis fail-closed readiness). With no platform registered or no
@@ -634,7 +626,7 @@ func main() {
 		go h.ChannelMediaReconciler.Run(sweepCtx)
 	}
 
-	// MUL-2957: DB-backed execution scheduler. The scheduler turns the
+	// ENA-2957: DB-backed execution scheduler. The scheduler turns the
 	// `sys_cron_executions` table into the distributed lease + audit
 	// log for internal periodic jobs. The first job is
 	// `rollup_task_usage_hourly`, which replaces the previously
@@ -652,7 +644,7 @@ func main() {
 	if err := schedulerMgr.Register(scheduler.TaskUsageHourlyJob(pool)); err != nil {
 		slog.Warn("scheduler: failed to register task_usage_hourly rollup job", "error", err)
 	}
-	// MUL-3551: scheduled-Autopilot dispatch runs on the same DB-backed
+	// ENA-3551: scheduled-Autopilot dispatch runs on the same DB-backed
 	// scheduler. The job owns its plan_times via PlansForScope (each
 	// trigger has its own cron expression, so the Cadence planner does
 	// not fit). Crash recovery, occurrence-level idempotency, lease

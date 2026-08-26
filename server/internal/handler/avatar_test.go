@@ -349,7 +349,7 @@ func TestServeAvatar_ProxiesPrivateHostBody(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Authorization boundary (MUL-5393 review)
+// Authorization boundary (ENA-5393 review)
 // ---------------------------------------------------------------------------
 //
 // Naming a storage object is not permission to publish it. These cover the

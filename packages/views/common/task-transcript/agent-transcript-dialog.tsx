@@ -44,6 +44,7 @@ import { ActorAvatar } from "../actor-avatar";
 import { AttributionBadge } from "../../issues/components/attribution-badge";
 import { cancelReasonLabel } from "../../agents/components/tabs/task-failure";
 import { RichContent } from "../../rich-content";
+import { formatFileSize } from "@enact/core/attachments";
 import { api } from "@enact/core/api";
 import {
   useTranscriptViewStore,
@@ -1680,7 +1681,7 @@ function StepBody({ item }: { item: TimelineItem }) {
           className="max-h-80 w-full rounded-md border object-contain"
         />
         <figcaption className="pt-1 text-micro text-faint-foreground">
-          {t(($) => $.transcript.image_result)} · {formatBytes(base64ByteLength(image.base64))}
+          {t(($) => $.transcript.image_result)} · {formatFileSize(base64ByteLength(image.base64))}
         </figcaption>
       </figure>
     );
@@ -1709,10 +1710,4 @@ function readPathFromInput(input: Record<string, unknown> | undefined): string |
   if (!input) return undefined;
   const path = input.file_path ?? input.path;
   return typeof path === "string" ? path : undefined;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

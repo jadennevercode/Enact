@@ -459,7 +459,7 @@ func (q *Queries) CreateChannelOutboundCardMessage(ctx context.Context, arg Crea
 const createChannelUserBinding = `-- name: CreateChannelUserBinding :one
 
 INSERT INTO channel_user_binding (
-    workspace_id, multica_user_id, installation_id,
+    workspace_id, enact_user_id, installation_id,
     channel_type, channel_user_id, config
 ) VALUES (
     $1, $2, $3, $4, $5, $6
@@ -471,13 +471,13 @@ ON CONFLICT (installation_id, channel_user_id) DO UPDATE SET
     -- erase a union_id we already captured. Only non-null incoming keys win.
     config   = channel_user_binding.config || jsonb_strip_nulls(EXCLUDED.config),
     bound_at = now()
-WHERE channel_user_binding.multica_user_id = EXCLUDED.multica_user_id
-RETURNING id, workspace_id, multica_user_id, installation_id, channel_type, channel_user_id, config, bound_at
+WHERE channel_user_binding.enact_user_id = EXCLUDED.enact_user_id
+RETURNING id, workspace_id, enact_user_id, installation_id, channel_type, channel_user_id, config, bound_at
 `
 
 type CreateChannelUserBindingParams struct {
 	WorkspaceID    pgtype.UUID `json:"workspace_id"`
-	EnactUserID    pgtype.UUID `json:"multica_user_id"`
+	EnactUserID    pgtype.UUID `json:"enact_user_id"`
 	InstallationID pgtype.UUID `json:"installation_id"`
 	ChannelType    string      `json:"channel_type"`
 	ChannelUserID  string      `json:"channel_user_id"`
@@ -491,7 +491,7 @@ type CreateChannelUserBindingParams struct {
 // to a Enact user. The old composite member-FK is gone, so this no
 // longer fails when the redeemer is not a workspace member — the caller
 // (BindingTokenService.RedeemAndBind) validates membership explicitly
-// before calling. ON CONFLICT DO UPDATE is still gated on multica_user_id
+// before calling. ON CONFLICT DO UPDATE is still gated on enact_user_id
 // matching, so a second redeemer cannot steal an already-bound user id;
 // a cross-user conflict updates zero rows and the caller maps that to
 // ErrBindingAlreadyAssigned. config carries secondary identity (union_id).
@@ -523,7 +523,7 @@ DELETE FROM channel_binding_token
 WHERE installation_id = $1
 `
 
-// Application-layer integrity (schema has no FK/cascade, MUL-3515 §4): drop
+// Application-layer integrity (schema has no FK/cascade, ENA-3515 §4): drop
 // every pending binding token for an installation that is being hard-deleted.
 // A token stays redeemable for up to 15 min; without this a user who clicks a
 // still-unexpired bind link right after the bot was rebound to another agent
@@ -611,7 +611,7 @@ cleared_audit AS (
 DELETE FROM channel_installation WHERE id IN (SELECT id FROM doomed)
 `
 
-// Application-layer replacement for the (deliberately absent, MUL-3515 §4)
+// Application-layer replacement for the (deliberately absent, ENA-3515 §4)
 // workspace/agent ON DELETE CASCADE: on runtime teardown, before the system
 // agents are hard-deleted, remove every channel installation they own — plus all
 // of each installation's dependent rows — so no orphaned installation keeps
@@ -619,7 +619,7 @@ DELETE FROM channel_installation WHERE id IN (SELECT id FROM doomed)
 // (#4810). MUST run in the same tx as, and BEFORE, DeleteSystemAgentsByRuntime.
 // Mirrors the agent hard-delete predicate (runtime_id, kind = 'system') exactly.
 //
-// Scoped to kind = 'system' since MUL-5559: a user agent now survives its
+// Scoped to kind = 'system' since ENA-5559: a user agent now survives its
 // runtime's deletion as an unbound agent, so tearing down its installations
 // here would take a working bot away from an agent that is still there.
 func (q *Queries) DeleteChannelInstallationsBySystemRuntimeAgents(ctx context.Context, runtimeID pgtype.UUID) error {
@@ -657,7 +657,7 @@ DELETE FROM channel_outbound_card_message
 WHERE chat_session_id = $1
 `
 
-// Application-layer integrity (channel_* has no FK/cascade, MUL-3515 §4): drop the
+// Application-layer integrity (channel_* has no FK/cascade, ENA-3515 §4): drop the
 // outbound card-message rows for a chat_session being deleted. They are keyed by
 // chat_session_id with no FK and no reaper, so the standalone chat-session delete
 // path must prune them here alongside DeleteChannelChatSessionBindingBySession —
@@ -674,7 +674,7 @@ DELETE FROM channel_user_binding
 WHERE installation_id = $1
 `
 
-// Application-layer integrity (schema has no FK/cascade, MUL-3515 §4): drop
+// Application-layer integrity (schema has no FK/cascade, ENA-3515 §4): drop
 // every member account link for an installation that is being hard-deleted.
 // Rebinding a Feishu bot to a DIFFERENT agent starts a fresh installation, so
 // old links do not follow — a different agent is a distinct connection and
@@ -689,12 +689,12 @@ func (q *Queries) DeleteChannelUserBindingsByInstallation(ctx context.Context, i
 
 const deleteChannelUserBindingsByWorkspaceMember = `-- name: DeleteChannelUserBindingsByWorkspaceMember :exec
 DELETE FROM channel_user_binding
-WHERE workspace_id = $1 AND multica_user_id = $2
+WHERE workspace_id = $1 AND enact_user_id = $2
 `
 
 type DeleteChannelUserBindingsByWorkspaceMemberParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	EnactUserID pgtype.UUID `json:"multica_user_id"`
+	EnactUserID pgtype.UUID `json:"enact_user_id"`
 }
 
 // Application-layer integrity (replaces the old member-FK ON DELETE
@@ -706,10 +706,10 @@ func (q *Queries) DeleteChannelUserBindingsByWorkspaceMember(ctx context.Context
 }
 
 const findChannelBindingForMember = `-- name: FindChannelBindingForMember :one
-SELECT b.id, b.workspace_id, b.multica_user_id, b.installation_id, b.channel_type, b.channel_user_id, b.config, b.bound_at FROM channel_user_binding b
+SELECT b.id, b.workspace_id, b.enact_user_id, b.installation_id, b.channel_type, b.channel_user_id, b.config, b.bound_at FROM channel_user_binding b
 JOIN channel_installation ci ON ci.id = b.installation_id
 WHERE b.workspace_id = $1
-  AND b.multica_user_id = $2
+  AND b.enact_user_id = $2
   AND b.channel_type = $3
   AND ci.status = 'active'
 ORDER BY b.bound_at DESC
@@ -718,7 +718,7 @@ LIMIT 1
 
 type FindChannelBindingForMemberParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	EnactUserID pgtype.UUID `json:"multica_user_id"`
+	EnactUserID pgtype.UUID `json:"enact_user_id"`
 	ChannelType string      `json:"channel_type"`
 }
 
@@ -808,7 +808,7 @@ func (q *Queries) FindLiveChannelBindingToken(ctx context.Context, arg FindLiveC
 }
 
 const findReusableChannelUserBinding = `-- name: FindReusableChannelUserBinding :one
-SELECT b.id, b.workspace_id, b.multica_user_id, b.installation_id, b.channel_type, b.channel_user_id, b.config, b.bound_at FROM channel_user_binding b
+SELECT b.id, b.workspace_id, b.enact_user_id, b.installation_id, b.channel_type, b.channel_user_id, b.config, b.bound_at FROM channel_user_binding b
 JOIN channel_installation ci ON ci.id = b.installation_id
 WHERE b.workspace_id = $1
   AND b.channel_type = $2
@@ -825,7 +825,7 @@ type FindReusableChannelUserBindingParams struct {
 	TeamID        string      `json:"team_id"`
 }
 
-// Cross-installation account-link reuse (MUL-3911). When a platform user
+// Cross-installation account-link reuse (ENA-3911). When a platform user
 // messages an installation they have NOT linked, but the SAME user id is already
 // bound to ANOTHER installation in the SAME Enact workspace + SAME Slack team,
 // the inbound identity step reuses that link instead of re-prompting. Slack user
@@ -1128,7 +1128,7 @@ type GetChannelInstallationSlotOwnerByAppIDRow struct {
 // "name the conflict" read and INNER JOINs the agent away.
 //
 // Here the joins are LEFT so an ORPHAN row survives the read: with no FKs
-// (MUL-3515 §4) an installation outlives a deleted workspace or agent, and the
+// (ENA-3515 §4) an installation outlives a deleted workspace or agent, and the
 // caller has to tell "orphan, reclaimable" apart from "live owner, refuse".
 // workspace_exists / agent_exists carry that; status and agent_archived_at
 // carry the rest of ReclaimDeadChannelInstallationByAppID's own definition of
@@ -1181,7 +1181,7 @@ func (q *Queries) GetChannelOutboundCardByTask(ctx context.Context, arg GetChann
 }
 
 const getChannelUserBindingByUserID = `-- name: GetChannelUserBindingByUserID :one
-SELECT id, workspace_id, multica_user_id, installation_id, channel_type, channel_user_id, config, bound_at FROM channel_user_binding
+SELECT id, workspace_id, enact_user_id, installation_id, channel_type, channel_user_id, config, bound_at FROM channel_user_binding
 WHERE installation_id = $1 AND channel_user_id = $2
 `
 
@@ -1224,7 +1224,7 @@ ORDER BY ci.created_at ASC
 // for its own platform and never supervises another channel's installation.
 //
 // The JOINs require the owning workspace and agent rows to still exist.
-// channel_installation has no FK (MUL-3515 §4), so unlike the old
+// channel_installation has no FK (ENA-3515 §4), so unlike the old
 // lark_installation (which cascaded away on workspace/agent deletion) an
 // installation can be orphaned when its workspace is deleted or its agent is
 // hard-deleted (e.g. runtime teardown). Without this guard the hub would keep
@@ -1272,14 +1272,14 @@ WHERE ci.status = 'active'
 ORDER BY ci.created_at ASC
 `
 
-// Boot path for the channel-agnostic engine Supervisor (MUL-3620): every
+// Boot path for the channel-agnostic engine Supervisor (ENA-3620): every
 // active installation across ALL channel types, so one Supervisor drives every
 // platform's connections rather than a per-platform hub. This is the de-
 // hardcoded counterpart of ListActiveChannelInstallations — the Supervisor
 // routes each row to its registered channel.Factory by channel_type, so it
 // never needs to know which platforms exist. Same orphan guard as the per-type
 // query: the workspace + agent JOINs drop installations whose owning rows are
-// gone (channel_installation has no FK, MUL-3515 §4), matching the old ON
+// gone (channel_installation has no FK, ENA-3515 §4), matching the old ON
 // DELETE CASCADE semantics (row existence, not agent archival).
 func (q *Queries) ListAllActiveChannelInstallations(ctx context.Context) ([]ChannelInstallation, error) {
 	rows, err := q.db.Query(ctx, listAllActiveChannelInstallations)
@@ -1499,7 +1499,7 @@ SET installation_id = NULL
 WHERE installation_id = $1
 `
 
-// Application-layer stand-in for the old ON DELETE SET NULL (MUL-3515 §4,
+// Application-layer stand-in for the old ON DELETE SET NULL (ENA-3515 §4,
 // migration 124 keeps installation_id nullable for exactly this): before an
 // installation row is hard-deleted, detach its inbound-audit rows by NULLing
 // installation_id. The drop-audit history is preserved (channel_type,
@@ -1599,7 +1599,7 @@ type ReclaimDeadChannelInstallationByAppIDParams struct {
 // Rebind cleanup gate. Frees the (channel_type, config->>'app_id') routing slot
 // so a valid new agent can (re)bind a bot whose previous owner is DEAD, and, in
 // the same statement, clears every application-owned dependent row of the removed
-// installation (channel_* has no FK/cascade, MUL-3515 §4). Returns the removed id
+// installation (channel_* has no FK/cascade, ENA-3515 §4). Returns the removed id
 // (pgx.ErrNoRows when nothing was dead — a no-op the caller treats as success).
 //
 // "Dead" is exactly one of:
@@ -1961,14 +1961,14 @@ type UpsertChannelInstallationParams struct {
 	InstallerUserID pgtype.UUID `json:"installer_user_id"`
 }
 
-// Platform-agnostic inbound channel queries (MUL-3515). These operate on
+// Platform-agnostic inbound channel queries (ENA-3515). These operate on
 // the channel_* tables created in migration 124. Each installation carries
 // a `channel_type` discriminator and a JSONB `config` blob for
 // platform-specific identifiers/credentials; the cross-platform columns
 // stay flat. The Go layer owns building/parsing config — these queries
 // treat it as opaque JSON except for the routing index on config->>'app_id'.
 //
-// No foreign keys exist on these tables (MUL-3515 §4): the integrity the
+// No foreign keys exist on these tables (ENA-3515 §4): the integrity the
 // old composite FKs enforced (binding workspace matches installation;
 // binding dies with membership / chat_session) is maintained in the
 // application layer via the membership check in the inbound identity step

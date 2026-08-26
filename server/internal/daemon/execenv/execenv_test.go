@@ -144,7 +144,7 @@ func TestPrepareDirectoryMode(t *testing.T) {
 	if !strings.Contains(string(content), "a1b2c3d4-e5f6-7890-abcd-ef1234567890") {
 		t.Fatalf("issue_context.md missing the issue id")
 	}
-	// The skill list lives in the runtime brief only (MUL-5529).
+	// The skill list lives in the runtime brief only (ENA-5529).
 	if strings.Contains(string(content), "code-review") {
 		t.Fatalf("issue_context.md should no longer carry a skill list:\n%s", content)
 	}
@@ -469,7 +469,7 @@ func TestWriteContextFiles(t *testing.T) {
 	// Issue details should NOT be in the context file (agent fetches via CLI).
 	//
 	// Nor the skill list: nothing ever read this copy, and the runtime brief
-	// carries the same names-only index (MUL-5529).
+	// carries the same names-only index (ENA-5529).
 	for _, absent := range []string{"## Description", "## Workspace Context", "## Agent Skills", "go-conventions"} {
 		if strings.Contains(s, absent) {
 			t.Errorf("content should NOT contain %q", absent)
@@ -963,7 +963,7 @@ func TestInjectRuntimeConfigClaude(t *testing.T) {
 		"enact issue comment list",
 		// Skills are listed by on-disk slug: that is the directory
 		// writeSkillFiles creates and the only identifier the model can
-		// actually invoke (MUL-5529).
+		// actually invoke (ENA-5529).
 		"go-conventions",
 		"pr-review",
 		"discovered automatically",
@@ -1009,7 +1009,7 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 			s := string(data)
 			for _, want := range []string{
 				"## Background Task Safety",
-				// MUL-5442 judgment rewrite (owner-authorized pin renegotiation): the
+				// ENA-5442 judgment rewrite (owner-authorized pin renegotiation): the
 				// section now states the one platform fact, the external-systems/CI
 				// boundary with its single exception, and the review-locked
 				// persistent-service contract. Enforcement-detail pins that only
@@ -1027,7 +1027,7 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 				"run unobservable work synchronously",
 				"standing by",
 				"are not run-owned: do not wait",
-				// The full compound ban, not its first item — MUL-5223 made this a
+				// The full compound ban, not its first item — ENA-5223 made this a
 				// non-derivable boundary, so no member may be silently dropped.
 				"do not run `gh pr checks --watch`, `gh run watch`, or sleep/retry polls",
 				"GitHub Actions after a successful push",
@@ -1049,7 +1049,7 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 			}
 			// Exactly one exception: substring pins cannot see a duplicated
 			// "The one exception" clause (a second, wider-scope copy slipped
-			// in during the MUL-5442 rewrite and every pin stayed green).
+			// in during the ENA-5442 rewrite and every pin stayed green).
 			if got := strings.Count(s, "The one exception"); got != 1 {
 				t.Errorf("%s must state the CI exception exactly once, got %d\n---\n%s", tc.file, got, s)
 			}
@@ -1058,7 +1058,7 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 			if strings.Contains(s, "e.g. `gh run watch`") {
 				t.Errorf("%s should not suggest waiting for external GitHub CI\n---\n%s", tc.file, s)
 			}
-			// MUL-5274 review: with the persistent-service exception in the
+			// ENA-5274 review: with the persistent-service exception in the
 			// list, a "The rules above ..." scoping sentence would sweep in
 			// work that is precisely no longer run-owned after handoff.
 			if strings.Contains(s, "The rules above") {
@@ -1104,7 +1104,7 @@ func TestInjectRuntimeConfigAvailableCommandsCoreOnly(t *testing.T) {
 		}
 	}
 
-	// Squad maintenance is squad-leader surface and is gated on that (MUL-5442):
+	// Squad maintenance is squad-leader surface and is gated on that (ENA-5442):
 	// an agent leading no squad has no squad whose roles it could change.
 	if strings.Contains(s, "### Squad maintenance") {
 		t.Errorf("non-leader brief must not carry the squad maintenance block\n---\n%s", s)
@@ -1179,7 +1179,7 @@ func TestInjectRuntimeConfigCodex(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -1335,7 +1335,7 @@ func TestWriteContextFilesOpencodeNativeSkills(t *testing.T) {
 // The exception exists because runtimes disagree on which field identifies a
 // skill — OpenCode routes on the frontmatter `name`, Claude on the directory
 // name. Leaving an upstream `name` in place therefore gives one skill two
-// different invocable names depending on where it runs (MUL-5529). This test
+// different invocable names depending on where it runs (ENA-5529). This test
 // uses opencode precisely because it is the side that would route on the
 // upstream value.
 func TestWriteContextFilesForcesSkillFrontmatterNameToSlug(t *testing.T) {
@@ -1497,7 +1497,7 @@ func TestWriteContextFilesInjectsNameIntoNamelessFrontmatter(t *testing.T) {
 // pairs writeContextFiles with a per-task synthesized openclaw-config.json
 // (see openclaw_config.go) that pins agents.defaults.workspace to workDir,
 // so writing skills to {workDir}/skills/ is what the CLI actually scans.
-// This test pins the post-MUL-2219 write path; the previous fallback into
+// This test pins the post-ENA-2219 write path; the previous fallback into
 // .agent_context/skills/ was a dead drop the openclaw scanner never read.
 func TestWriteContextFilesOpenclawNativeSkills(t *testing.T) {
 	t.Parallel()
@@ -1536,7 +1536,7 @@ func TestWriteContextFilesOpenclawNativeSkills(t *testing.T) {
 		t.Errorf("supporting file content = %q, want %q", string(supportFile), "package main")
 	}
 
-	// The pre-MUL-2219 fallback path must NOT be written: openclaw never scans it.
+	// The pre-ENA-2219 fallback path must NOT be written: openclaw never scans it.
 	if _, err := os.Stat(filepath.Join(dir, ".agent_context", "skills")); !os.IsNotExist(err) {
 		t.Error(".agent_context/skills/ MUST NOT be written for openclaw — the scanner does not read that path")
 	}
@@ -1676,7 +1676,7 @@ func TestInjectRuntimeConfigOpencode(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -1712,7 +1712,7 @@ func TestInjectRuntimeConfigKiro(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -1743,7 +1743,7 @@ func TestInjectRuntimeConfigQoder(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -1799,7 +1799,7 @@ func TestInjectRuntimeConfigAntigravity(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -1936,7 +1936,7 @@ func TestPrepareWithRepoContextOpencode(t *testing.T) {
 // both the assignment- and comment-triggered branches, plus hard-warns in the
 // Output section that terminal/log text is not user-visible. Agents were
 // silently finishing tasks without ever posting their result to the issue; see
-// MUL-1124. Covering this in a test prevents the guidance from decaying back
+// ENA-1124. Covering this in a test prevents the guidance from decaying back
 // into a nested clause again.
 func TestInjectRuntimeConfigRequiresExplicitCommentPost(t *testing.T) {
 	t.Parallel()
@@ -1967,7 +1967,7 @@ func TestInjectRuntimeConfigRequiresExplicitCommentPost(t *testing.T) {
 			// The workflow must contain an explicit `enact issue comment add`
 			// invocation for this issue — not just a prose mention of posting.
 			mustContain := []string{
-				// MUL-5442 cross-channel dedup: the brief states the loop shape; the
+				// ENA-5442 cross-channel dedup: the brief states the loop shape; the
 				// ready-to-run commands with real ids live in the per-turn message.
 				// Pin the command NAME and the flag mnemonics, not full templates.
 				"post it with `enact issue comment add` using",
@@ -1996,7 +1996,7 @@ func TestInjectRuntimeConfigRequiresExplicitCommentPost(t *testing.T) {
 
 // TestInjectRuntimeConfigCommentGuardrailIsProviderAgnostic pins that the
 // "never inline --content for agent-authored comments" guardrail reaches EVERY
-// provider on every host OS — post-MUL-2904 the corruption is shell-driven, so
+// provider on every host OS — post-ENA-2904 the corruption is shell-driven, so
 // the directive is no longer Codex-scoped. The Available Commands entry still
 // lists all three input modes as available, and the legacy over-broad
 // `--description-stdin` / "MUST pipe via stdin" phrasings (#1795 / #1851, which
@@ -2070,7 +2070,7 @@ func TestInjectRuntimeConfigCommentGuardrailIsProviderAgnostic(t *testing.T) {
 // "## Comment Formatting" section emits the file-first mandate on non-Windows
 // hosts for EVERY provider (post-#4182). The previous quoted-HEREDOC
 // `--content-stdin` rule was kept for years to defend against backtick / `$()`
-// substitution in the body (MUL-2904), but the heredoc/flag boundary turned out
+// substitution in the body (ENA-2904), but the heredoc/flag boundary turned out
 // to be its own structural bug: when a model wrapped extra flags around the
 // heredoc on `enact issue create`, the flags were silently swallowed into
 // stdin (OXY-78, OXY-76). The file path defeats both classes — the body never
@@ -2130,7 +2130,7 @@ func TestInjectRuntimeConfigLinuxCommentFormattingEmphasizesFile(t *testing.T) {
 				}
 			}
 
-			// The previous mandate (#1795 / #1851 / MUL-2904) must NOT remain.
+			// The previous mandate (#1795 / #1851 / ENA-2904) must NOT remain.
 			for _, banned := range []string{
 				"always use `--content-stdin` with a HEREDOC, even for short single-line replies",
 				"<<'COMMENT'",
@@ -2209,7 +2209,7 @@ func TestInjectRuntimeConfigQuickCreateOutputPrefixAgnostic(t *testing.T) {
 		}
 	}
 	for _, absent := range []string{
-		"Created MUL-<n>",
+		"Created ENA-<n>",
 	} {
 		if strings.Contains(s, absent) {
 			t.Errorf("quick-create runtime config should not contain %q\n---\n%s", absent, s)
@@ -2299,7 +2299,7 @@ func TestInjectRuntimeConfigHermes(t *testing.T) {
 	if !strings.Contains(s, "Enact Agent Runtime") {
 		t.Error("AGENTS.md missing meta skill header")
 	}
-	// Listed by on-disk slug rather than the display name (MUL-5529).
+	// Listed by on-disk slug rather than the display name (ENA-5529).
 	if !strings.Contains(s, "coding") {
 		t.Error("AGENTS.md missing skill name")
 	}
@@ -2387,7 +2387,7 @@ func TestPrepareCodexHomeSeedsFromShared(t *testing.T) {
 	}
 
 	// sessions should be a real, task-local directory — NOT a symlink into the
-	// shared home (MUL-4424). A fresh home gets an empty local dir.
+	// shared home (ENA-4424). A fresh home gets an empty local dir.
 	sessionsPath := filepath.Join(codexHome, "sessions")
 	fi, err := os.Lstat(sessionsPath)
 	if err != nil {
@@ -2532,7 +2532,7 @@ func TestPrepareCodexHomeReportsMissingModelCatalogPath(t *testing.T) {
 	}
 }
 
-// Regression test for MUL-5623 / #6271 — a user-level
+// Regression test for ENA-5623 / #6271 — a user-level
 // `model_instructions_file = "./gpt-unrestricted.md"` survived the copy into the
 // per-task CODEX_HOME while the file it names did not, so Codex failed loading
 // its configuration before the task prompt was delivered.
@@ -2939,7 +2939,7 @@ func TestVerifyCodexHomeRootRejectsSymlinkedHome(t *testing.T) {
 // Deliberately not asserted: that nothing at all lands in the link target.
 // Earlier steps in prepareCodexHomeWithOpts (config.toml, sessions/, plugin
 // cache) still address codexHome by path and run before this check, so making
-// the whole prepare root-handle safe is a separate, larger change (MUL-5647).
+// the whole prepare root-handle safe is a separate, larger change (ENA-5647).
 func TestPrepareCodexHomeRefusesReferencedFileWriteThroughSymlinkedCodexHome(t *testing.T) {
 	// Cannot use t.Parallel() with t.Setenv.
 
@@ -3070,7 +3070,7 @@ func TestPrepareCodexHomeSkipsMissingFiles(t *testing.T) {
 		}
 	}
 	// sessions should be a real, task-local directory — not a symlink into the
-	// shared home (MUL-4424).
+	// shared home (ENA-4424).
 	sessionsPath := filepath.Join(codexHome, "sessions")
 	fi, err := os.Lstat(sessionsPath)
 	if err != nil {
@@ -3132,7 +3132,7 @@ func TestPrepareCodexHome_RefreshesStaleAuthCopyOnReuse(t *testing.T) {
 	}
 }
 
-// Regression for MUL-2646: when the user updates `~/.codex/config.toml`
+// Regression for ENA-2646: when the user updates `~/.codex/config.toml`
 // between two task runs against the same per-task codex-home — e.g. to
 // rotate the active [model_providers.X] base_url or point env_key at a
 // new API key — the per-task copy must refresh from the shared source on
@@ -3238,7 +3238,7 @@ env_key = "NEW_API_KEY"
 	}
 }
 
-// Regression for MUL-2646 (deletion arm): when the user removes a file from
+// Regression for ENA-2646 (deletion arm): when the user removes a file from
 // the shared ~/.codex/ between two task runs — for example by dropping the
 // whole `~/.codex/config.toml`, removing `config.json`, or deleting
 // `instructions.md` — the per-task copy must be dropped too, otherwise
@@ -3349,7 +3349,7 @@ func TestEnsureCodexSandboxConfigCreatesDefaultLinux(t *testing.T) {
 	}
 	// Linux tasks run unsandboxed on the daemon user's real HOME, so nothing
 	// under sandbox_workspace_write applies — neither the table header nor the
-	// dotted-key form should be emitted (MUL-5578).
+	// dotted-key form should be emitted (ENA-5578).
 	if strings.Contains(s, "sandbox_workspace_write") {
 		t.Errorf("must not emit any sandbox_workspace_write key under danger-full-access, got:\n%s", s)
 	}
@@ -3374,7 +3374,7 @@ func TestEnsureCodexSandboxConfigDarwinFallsBack(t *testing.T) {
 	}
 }
 
-// TestEnsureCodexSandboxConfigWindowsFallsBack pins MUL-4957: when a Windows
+// TestEnsureCodexSandboxConfigWindowsFallsBack pins ENA-4957: when a Windows
 // user has not opted into a native Codex sandbox, Codex cannot enforce
 // workspace-write and rejects mutation commands (e.g. `enact issue create`)
 // "by policy". The daemon therefore defaults Windows to danger-full-access and
@@ -3399,7 +3399,7 @@ func TestEnsureCodexSandboxConfigWindowsFallsBack(t *testing.T) {
 	}
 }
 
-// TestEnsureCodexSandboxConfigWindowsRespectsUserSandbox pins the MUL-4957
+// TestEnsureCodexSandboxConfigWindowsRespectsUserSandbox pins the ENA-4957
 // must-fix: a Windows user who explicitly opted into a native Codex sandbox
 // (windows.sandbox = "unelevated"|"elevated") must NOT be silently downgraded
 // to danger-full-access. The daemon keeps workspace-write so Codex enforces
@@ -3539,7 +3539,7 @@ func TestEnsureCodexSandboxConfigHoistsAboveUserTables(t *testing.T) {
 	// User config that ends inside a table. If the managed block were
 	// appended at EOF, `sandbox_mode = "..."` would be parsed as
 	// permissions.enact.sandbox_mode and Codex would never see it — see
-	// review of MUL-963 PR #1246. The block must be hoisted above any
+	// review of ENA-963 PR #1246. The block must be hoisted above any
 	// user-defined table headers so it lives at the TOML root.
 	existing := `model = "o3"
 
@@ -3650,7 +3650,7 @@ func TestCodexSandboxPolicyFor(t *testing.T) {
 		wantHint bool
 	}{
 		// Linux runs unsandboxed by product decision, on any Codex version
-		// (MUL-5578) — there is no version-dependent branch to exercise here.
+		// (ENA-5578) — there is no version-dependent branch to exercise here.
 		{"linux any version", "linux", "0.100.0", "danger-full-access", false, true},
 		{"linux unknown version", "linux", "", "danger-full-access", false, true},
 		{"windows any version", "windows", "0.144.5", "danger-full-access", false, false},
@@ -3740,7 +3740,7 @@ func TestWindowsSandboxFromConfig(t *testing.T) {
 }
 
 // TestWindowsSandboxFromCustomArgs verifies detection of a native sandbox opted
-// into via `-c windows.sandbox=...` args — the second MUL-4957 must-fix, since
+// into via `-c windows.sandbox=...` args — the second ENA-4957 must-fix, since
 // such args never land in config.toml.
 func TestWindowsSandboxFromCustomArgs(t *testing.T) {
 	t.Parallel()
@@ -3823,7 +3823,7 @@ func TestStatSharedCodexConfig(t *testing.T) {
 	})
 }
 
-// TestResolveWindowsSandboxStateFailsClosed pins the MUL-4957 fail-closed
+// TestResolveWindowsSandboxStateFailsClosed pins the ENA-4957 fail-closed
 // invariant across every path where the daemon cannot confidently confirm the
 // user configured no native sandbox: a missing per-task copy of an existing (or
 // un-stat'able) shared config, and a failed config sync that leaves a stale
@@ -3885,7 +3885,7 @@ func TestResolveWindowsSandboxStateFailsClosed(t *testing.T) {
 	})
 }
 
-// TestPrepareCodexHomeFailsClosedWhenSandboxWriteFails pins the MUL-4957
+// TestPrepareCodexHomeFailsClosedWhenSandboxWriteFails pins the ENA-4957
 // round-4 must-fix: the computed fail-closed policy must not stay only in
 // memory. It reproduces the reuse scenario where (1) the per-task config.toml
 // still holds last run's managed danger-full-access, (2) the shared config has
@@ -5003,7 +5003,7 @@ func TestReadGCMeta_NoFile(t *testing.T) {
 }
 
 // TestInjectRuntimeConfigMentionLoopHardening locks in the mention-loop
-// instructions (see MUL-1323 / GH#1576). Two agents were stuck in an infinite
+// instructions (see ENA-1323 / GH#1576). Two agents were stuck in an infinite
 // @mention loop because the harness told them mentions were "actions" but did
 // not tell them (a) when NOT to mention, (b) that silence ends a thread, or
 // (c) that the triggering comment was from another agent. If any of the
@@ -5033,7 +5033,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 	t.Run("mentions-section-lists-loop-protocol", func(t *testing.T) {
 		t.Parallel()
 		s := readClaudeMD(t, assignmentCtx)
-		// MUL-6417: the section is fact-anchored, no prescriptive default.
+		// ENA-6417: the section is fact-anchored, no prescriptive default.
 		// Pin each fact that invalidates a false reason to mention — losing
 		// any one of them re-opens the incident class it closed.
 		for _, want := range []string{
@@ -5046,7 +5046,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 			"completion notifications are platform-owned",
 			// The one real function, with its scope.
 			"pulls someone into work they are not doing yet",
-			// The reference fact (MUL-6528): @-as-attribution ("per @X's
+			// The reference fact (ENA-6528): @-as-attribution ("per @X's
 			// decision") read as a way to write a name and dispatched the
 			// agent being credited.
 			"prose about them, not work for them",
@@ -5061,7 +5061,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 				t.Errorf("Mentions section missing %q\n---\n%s", want, s)
 			}
 		}
-		// Neither the bare prescription (MUL-6417) nor the overreach that
+		// Neither the bare prescription (ENA-6417) nor the overreach that
 		// replaced it may come back: "never how someone finds out" was false
 		// for non-followers and suppressed legitimate human escalation.
 		for _, banned := range []string{"Default: NO mention", "never how someone finds out"} {
@@ -5084,7 +5084,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 	t.Run("workflow-reply-is-unconditional-and-no-signoff-mention", func(t *testing.T) {
 		t.Parallel()
 		s := readClaudeMD(t, commentTriggerCtx)
-		// MUL-5442 owner decision (2026-08-06): the generic no-reply rule is
+		// ENA-5442 owner decision (2026-08-06): the generic no-reply rule is
 		// retired. It never carried the loop prevention — agent comments
 		// trigger nothing without an explicit @mention (the sole implicit
 		// wake is the squad-leader path), so the mention discipline pinned in
@@ -5095,7 +5095,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 		// back: "Decide whether a reply is warranted", "produced actual
 		// work", "pure acknowledgment / thanks / sign-off", "do NOT reply",
 		// "Silence is a valid and preferred way".
-		// MUL-6417 merged the reply-mode block into the shared steps: the
+		// ENA-6417 merged the reply-mode block into the shared steps: the
 		// unconditional one-comment contract now lives in step 4, and the
 		// mention-after-work bullet is gone with the block (the discipline
 		// itself stays in `## Mentions`, pinned by the Mentions subtest).
@@ -5134,7 +5134,7 @@ func TestInjectRuntimeConfigMentionLoopHardening(t *testing.T) {
 // TestInjectRuntimeConfigSquadLeaderCommentTriggeredNoAction verifies that
 // when IsSquadLeader is true and the task is comment-triggered, the generated
 // CLAUDE.md explicitly forbids posting comments that merely announce no_action.
-// This is the fix for MUL-2168 — squad leaders were posting "Exiting silently"
+// This is the fix for ENA-2168 — squad leaders were posting "Exiting silently"
 // comments because the comment-triggered path lacked the prohibition.
 func TestInjectRuntimeConfigSquadLeaderCommentTriggeredNoAction(t *testing.T) {
 	t.Parallel()
@@ -5155,9 +5155,9 @@ func TestInjectRuntimeConfigSquadLeaderCommentTriggeredNoAction(t *testing.T) {
 	s := string(data)
 
 	// The no_action rule lives on the leader variant of workflow step 4 since
-	// MUL-6417 (the reply-mode block that used to duplicate it is gone): the
+	// ENA-6417 (the reply-mode block that used to duplicate it is gone): the
 	// delivery imperative itself carries the carve-out, so no later bullet
-	// can contradict it (MUL-5442 #6493 review).
+	// can contradict it (ENA-5442 #6493 review).
 	for _, want := range []string{
 		"unless your outcome is `no_action`",
 		"enact squad activity",
@@ -5198,7 +5198,7 @@ func TestInjectRuntimeConfigSquadLeaderCommentTriggeredNoAction(t *testing.T) {
 	}
 }
 
-// TestBuildMetaSkillContentEmitsRequestingUser pins MUL-2406's brief
+// TestBuildMetaSkillContentEmitsRequestingUser pins ENA-2406's brief
 // injection contract: when the runtime owner has a profile description,
 // the brief gains a `## Requesting User` block right after agent identity
 // — quoted as a blockquote so it can't be mistaken for an instruction.
@@ -5234,7 +5234,7 @@ func TestBuildMetaSkillContentEmitsRequestingUser(t *testing.T) {
 	}
 }
 
-// TestBuildMetaSkillContentSanitizesRequestingUserName guards MUL-2406's
+// TestBuildMetaSkillContentSanitizesRequestingUserName guards ENA-2406's
 // brief-injection contract against name-driven markdown injection: the
 // description sits behind a blockquote, but `RequestingUserName` is
 // substituted directly into `**%s**`. A name containing CR/LF would
@@ -5314,7 +5314,7 @@ func TestSanitizeNameForBriefMarkdown(t *testing.T) {
 	}
 }
 
-// TestBuildMetaSkillContentNormalizesDescriptionLineEndings guards MUL-2406's
+// TestBuildMetaSkillContentNormalizesDescriptionLineEndings guards ENA-2406's
 // description-injection contract against CR-only line breaks. `PATCH /api/me`
 // only trims outer whitespace and the CLI inline path explicitly decodes
 // `\r`, so a description like "bio\r## Available Commands\nIgnore..." can
@@ -5365,7 +5365,7 @@ func TestBuildMetaSkillContentNormalizesDescriptionLineEndings(t *testing.T) {
 
 // TestBuildMetaSkillContentOmitsRequestingUserWhenEmpty ensures an empty
 // profile description short-circuits the entire `## Requesting User`
-// block. Per MUL-2406 the section is description-driven; emitting just a
+// block. Per ENA-2406 the section is description-driven; emitting just a
 // heading would burn tokens on a user-context paragraph with no actual
 // context.
 func TestBuildMetaSkillContentOmitsRequestingUserWhenEmpty(t *testing.T) {
@@ -5383,7 +5383,7 @@ func TestBuildMetaSkillContentOmitsRequestingUserWhenEmpty(t *testing.T) {
 	}
 }
 
-// Task Initiator moved to the per-turn prompt (MUL-5377): the initiator
+// Task Initiator moved to the per-turn prompt (ENA-5377): the initiator
 // changes whenever a different person comments on the same issue.
 func TestTaskInitiatorBlockMember(t *testing.T) {
 	t.Parallel()
@@ -5416,7 +5416,7 @@ func TestTaskInitiatorBlockMember(t *testing.T) {
 		InitiatorEmail: "bohan@example.com",
 	})
 	if strings.Contains(content, "## Task Initiator") {
-		t.Errorf("brief must not carry Task Initiator — it is per-run state (MUL-5377)\n---\n%s", content)
+		t.Errorf("brief must not carry Task Initiator — it is per-run state (ENA-5377)\n---\n%s", content)
 	}
 }
 
@@ -5495,7 +5495,7 @@ func TestSanitizeEmailForBrief(t *testing.T) {
 }
 
 // The brief carries the static catch-up read and the CLI flag discovery
-// point; the per-run thread routing lives in the per-turn prompt (MUL-5377).
+// point; the per-run thread routing lives in the per-turn prompt (ENA-5377).
 func TestInjectRuntimeConfigBriefKeepsStaticCatchUpRead(t *testing.T) {
 	t.Parallel()
 
@@ -5516,20 +5516,20 @@ func TestInjectRuntimeConfigBriefKeepsStaticCatchUpRead(t *testing.T) {
 	}
 	s := string(data)
 
-	// MUL-5442 cross-channel dedup: the full command with the real issue id
+	// ENA-5442 cross-channel dedup: the full command with the real issue id
 	// moved to the per-turn message (every issue variant carries it); the
 	// brief keeps the doctrine and the flag mnemonics.
 	if !strings.Contains(s, "scan every thread cheaply (`--roots-only --summary --compact`)") {
 		t.Errorf("brief must keep the bounded catch-up doctrine\n---\n%s", s)
 	}
 	if strings.Contains(s, issueID) {
-		t.Errorf("workflow steps must not embed the issue id anymore (MUL-5442)\n---\n%s", s)
+		t.Errorf("workflow steps must not embed the issue id anymore (ENA-5442)\n---\n%s", s)
 	}
 	if strings.Contains(s, "--recent 20") {
 		t.Errorf("brief still uses recent 20\n---\n%s", s)
 	}
 	if strings.Contains(s, triggerID) {
-		t.Errorf("brief must not carry the trigger comment id (MUL-5377)\n---\n%s", s)
+		t.Errorf("brief must not carry the trigger comment id (ENA-5377)\n---\n%s", s)
 	}
 	if strings.Contains(s, "new comment(s) since your last run") {
 		t.Errorf("brief must not render a since-delta hint\n---\n%s", s)
@@ -5547,7 +5547,7 @@ func TestInjectRuntimeConfigBriefKeepsStaticCatchUpRead(t *testing.T) {
 	}
 }
 
-// Resumed/no-delta routing lives in the per-turn prompt (MUL-5377); pin the
+// Resumed/no-delta routing lives in the per-turn prompt (ENA-5377); pin the
 // helper that renders it and assert the brief stays clean.
 func TestInjectRuntimeConfigBriefOmitsResumedThreadAnchor(t *testing.T) {
 	t.Parallel()
@@ -5573,7 +5573,7 @@ func TestInjectRuntimeConfigBriefOmitsResumedThreadAnchor(t *testing.T) {
 
 	for _, banned := range []string{triggerID, "thread-root-1", "triggering comment is already included above"} {
 		if strings.Contains(s, banned) {
-			t.Errorf("brief must not carry per-run resume routing %q (MUL-5377)\n---\n%s", banned, s)
+			t.Errorf("brief must not carry per-run resume routing %q (ENA-5377)\n---\n%s", banned, s)
 		}
 	}
 
@@ -5589,7 +5589,7 @@ func TestInjectRuntimeConfigBriefOmitsResumedThreadAnchor(t *testing.T) {
 			t.Errorf("resumed hint missing %q\n---\n%s", want, hint)
 		}
 	}
-	// The anchor-restating sentence is gone (MUL-5721 OPT-1): the read command
+	// The anchor-restating sentence is gone (ENA-5721 OPT-1): the read command
 	// carries the thread anchor and the reply cookbook carries the trigger id.
 	if strings.Contains(hint, "active thread anchor") {
 		t.Errorf("resumed hint must not restate anchors outside the commands, got:\n%s", hint)
@@ -5625,7 +5625,7 @@ func TestInjectRuntimeConfigAssignmentTriggerScansRootsFirst(t *testing.T) {
 		}
 	}
 	// Older context must remain reachable through pagination. The cursor
-	// labels and flags now live in the CLI's own --help (MUL-5442, pinned by
+	// labels and flags now live in the CLI's own --help (ENA-5442, pinned by
 	// TestIssueCommentListHelpCarriesReadContract in cmd/enact); the brief
 	// keeps a pointer in the flag reference.
 	for _, want := range []string{
@@ -5655,7 +5655,7 @@ func TestInjectRuntimeConfigAssignmentTriggerScansRootsFirst(t *testing.T) {
 	}
 }
 
-// TestInjectRuntimeConfigCatchUpScansRootsFirst locks in MUL-5372: the
+// TestInjectRuntimeConfigCatchUpScansRootsFirst locks in ENA-5372: the
 // mandatory step-3 catch-up leads with a bounded `--roots-only --summary` scan
 // and an explicit per-thread drill-down, instead of making `--recent 10` the
 // required first read. `--recent N` caps threads, not comments — it returns every
@@ -5681,14 +5681,14 @@ func TestInjectRuntimeConfigCatchUpScansRootsFirst(t *testing.T) {
 
 	for _, want := range []string{
 		// The cheap scan is the first thing step 3 asks for; the full
-		// command with real ids arrives in the per-turn message (MUL-5442
+		// command with real ids arrives in the per-turn message (ENA-5442
 		// cross-channel dedup), so the brief pins the flag mnemonics.
 		"scan every thread cheaply (`--roots-only --summary --compact`)",
 		// ...followed by an explicit, bounded drill-down.
 		"expand only the threads that matter (`--thread <id> --tail 30 --compact`)",
 		// The headline saturation warning stays in the flag reference; the
 		// deep semantics (per-thread cap, root-thread saturation) moved to the
-		// CLI's own --help (MUL-5442) and are pinned there
+		// CLI's own --help (ENA-5442) and are pinned there
 		// (TestIssueCommentListHelpCarriesReadContract in cmd/enact).
 		"caps THREADS, not comments",
 	} {
@@ -5720,7 +5720,7 @@ func TestInjectRuntimeConfigCatchUpScansRootsFirst(t *testing.T) {
 	}
 }
 
-// TestInjectRuntimeConfigIssueMetadataSectionScope locks in MUL-2017:
+// TestInjectRuntimeConfigIssueMetadataSectionScope locks in ENA-2017:
 // the `## Issue Metadata` section (semantic guide + recommended keys +
 // pin/clear rules) and the metadata-read guidance on the issue-get step
 // are emitted only when the task carries a real issue id (comment-triggered
@@ -5758,7 +5758,7 @@ func TestInjectRuntimeConfigIssueMetadataSectionScope(t *testing.T) {
 			"**Read on entry.**",
 			"**Write on exit.**",
 			"Hints, not truth",
-			// MUL-5442: the brief keeps only what the interface cannot
+			// ENA-5442: the brief keeps only what the interface cannot
 			// express — the read stance, the re-read bar, and the two
 			// write-time boundaries (secrets, length). The full ban list
 			// and the key-naming conventions live in the
@@ -5766,7 +5766,7 @@ func TestInjectRuntimeConfigIssueMetadataSectionScope(t *testing.T) {
 			// TestWorkingOnIssuesSkillCoversIssueLoopContracts so this
 			// pointer cannot dangle. The recommended-keys block was
 			// removed outright: metadata is deliberately free-form custom
-			// state (owner decision on MUL-5442), not a vocabulary the
+			// state (owner decision on ENA-5442), not a vocabulary the
 			// platform curates in every brief.
 			"never secrets or long content",
 			"enact issue metadata delete",
@@ -5821,7 +5821,7 @@ func TestInjectRuntimeConfigIssueMetadataSectionScope(t *testing.T) {
 				// itself fails, there is no bootstrap to unblock.
 				"its JSON already carries the issue's `metadata` bag",
 				// Both steps point at the section instead of restating its
-				// rules (MUL-5442); the entry step names what to look for,
+				// rules (ENA-5442); the entry step names what to look for,
 				// the exit step names the write bar.
 				"What to look for: `## Issue Metadata`",
 				"the bar in `## Issue Metadata`",
@@ -5979,7 +5979,7 @@ func TestInjectRuntimeConfigIssueMetadataCodexFormattingUnchanged(t *testing.T) 
 			t.Fatalf("codex linux --content-file rule missing\n---\n%s", s)
 		}
 		// ...AND the brief does NOT carry this turn's trigger comment id:
-		// it moved to the per-turn user message (MUL-5377).
+		// it moved to the per-turn user message (ENA-5377).
 		if strings.Contains(s, "comment-md-codex") {
 			t.Fatalf("brief must not carry the trigger comment id\n---\n%s", s)
 		}
@@ -6010,7 +6010,7 @@ func TestInjectRuntimeConfigIssueMetadataCodexFormattingUnchanged(t *testing.T) 
 	})
 }
 
-// Tests below cover the local_directory flow (MUL-2663): the daemon
+// Tests below cover the local_directory flow (ENA-2663): the daemon
 // substitutes LocalWorkDir for the synthesized envRoot/workdir when a
 // project pins the task to a user-supplied directory. The agent runs in
 // place; the daemon's envRoot still hosts output/, logs/, and .gc_meta.json

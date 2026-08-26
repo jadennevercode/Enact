@@ -48,7 +48,7 @@ function clipTitle(title: string): string {
 
 /**
  * Build the full document title for a page name, e.g.
- * `MUL-123: Fix login` → `MUL-123: Fix login | Enact`.
+ * `ENA-123: Fix login` → `ENA-123: Fix login | Enact`.
  *
  * An empty or whitespace-only name falls back to {@link SITE_TITLE} rather than
  * rendering a bare ` | Enact`.

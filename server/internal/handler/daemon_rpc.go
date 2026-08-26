@@ -35,7 +35,7 @@ func (w *rpcResponseCapture) Write(b []byte) (int, error) {
 	return w.body.Write(b)
 }
 
-// DaemonRPCHandler is the daemonws.RPCHandler wired into the WS hub (MUL-4257).
+// DaemonRPCHandler is the daemonws.RPCHandler wired into the WS hub (ENA-4257).
 // It dispatches a generic daemon:rpc_request to the matching HTTP handler,
 // reusing all of its auth / payload-building / finalization logic by driving it
 // with a synthetic in-process request carrying the WS connection's identity.

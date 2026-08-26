@@ -25,7 +25,7 @@ func TestFailedEventsUseWillRetry(t *testing.T) {
 }
 
 func TestIsMetricsOnly(t *testing.T) {
-	// As of MUL-4127, PostHog is retired for server-side product analytics:
+	// As of ENA-4127, PostHog is retired for server-side product analytics:
 	// every server-side event is Prometheus-only and must not ship to PostHog.
 	for _, name := range []string{
 		// runtime / autopilot execution-lifecycle telemetry
@@ -40,7 +40,7 @@ func TestIsMetricsOnly(t *testing.T) {
 		EventContactSalesSubmitted, EventSquadCreated, EventAutopilotCreated,
 	} {
 		if !IsMetricsOnly(name) {
-			t.Errorf("IsMetricsOnly(%q) = false, want true (server events stay out of PostHog since MUL-4127)", name)
+			t.Errorf("IsMetricsOnly(%q) = false, want true (server events stay out of PostHog since ENA-4127)", name)
 		}
 	}
 	// A name that isn't a declared server event is not metrics-only.

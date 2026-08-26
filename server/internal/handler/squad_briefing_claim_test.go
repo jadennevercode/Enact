@@ -13,7 +13,7 @@ import (
 // returns the claimed task id, the agent Instructions carried on the claim
 // response (the field the squad-leader briefing is injected into), and the
 // is_leader_task flag the daemon derives its squad-leader role from
-// (MUL-5811). Empty task id means no task was claimed.
+// (ENA-5811). Empty task id means no task was claimed.
 func claimAgentInstructionsForTest(t *testing.T, runtimeID string) (taskID string, instructions string, isLeaderTask bool, raw string) {
 	t.Helper()
 
@@ -46,7 +46,7 @@ func claimAgentInstructionsForTest(t *testing.T, runtimeID string) (taskID strin
 	// Every claim must advertise the capability, leader or not: its absence is
 	// how a daemon detects a server too old to resolve the role, and silently
 	// dropping it would send every upgraded daemon back to inferring the role
-	// from instructions text — the bug MUL-5811 removed.
+	// from instructions text — the bug ENA-5811 removed.
 	if !resp.Task.LeaderRoleResolved {
 		t.Fatalf("claim response must set leader_role_resolved=true: %s", w.Body.String())
 	}
@@ -63,7 +63,7 @@ type squadBriefingClaimFixture struct {
 	RuntimeID string
 	AgentID   string // squad leader, has the runtime and empty instructions
 	SquadID   string
-	IssueID   string // assignee_type='agent' (NOT squad) — reproduces MUL-3724
+	IssueID   string // assignee_type='agent' (NOT squad) — reproduces ENA-3724
 }
 
 func newSquadBriefingClaimFixture(t *testing.T, ctx context.Context, name string) squadBriefingClaimFixture {
@@ -73,7 +73,7 @@ func newSquadBriefingClaimFixture(t *testing.T, ctx context.Context, name string
 	// Leader agent + an issue assigned to that agent (assignee_type='agent').
 	agentID, issueID := createClaimReclaimAgentAndIssue(t, ctx, runtimeID, name+" leader")
 	// Force empty instructions so the test asserts the briefing alone — this
-	// mirrors MUL-3724 where the leader's own instructions were blank.
+	// mirrors ENA-3724 where the leader's own instructions were blank.
 	if _, err := testPool.Exec(ctx, `UPDATE agent SET instructions = '' WHERE id = $1`, agentID); err != nil {
 		t.Fatalf("clear leader instructions: %v", err)
 	}
@@ -123,7 +123,7 @@ func enqueueClaimTask(t *testing.T, ctx context.Context, fx squadBriefingClaimFi
 	return taskID
 }
 
-// TestClaim_LeaderTaskFromCommentMention_InjectsBriefing is the MUL-3724
+// TestClaim_LeaderTaskFromCommentMention_InjectsBriefing is the ENA-3724
 // reproduction: a leader task (is_leader_task=true) carrying a squad_id, on an
 // issue assigned to a plain AGENT (not the squad). The pre-fix gate
 // (issue.assignee_type='squad') would NOT inject the briefing here, so the
@@ -145,7 +145,7 @@ func TestClaim_LeaderTaskFromCommentMention_InjectsBriefing(t *testing.T) {
 	if !strings.Contains(instr, "## Squad Operating Protocol") || !strings.Contains(instr, "## Squad Roster") {
 		t.Fatalf("expected squad-leader briefing in agent instructions, got:\n%s", instr)
 	}
-	// The daemon reads its leader role off this flag (MUL-5811), so an
+	// The daemon reads its leader role off this flag (ENA-5811), so an
 	// injected briefing must arrive with the flag set.
 	if !isLeader {
 		t.Fatalf("claim injected the briefing but reported is_leader_task=false: %s", raw)
@@ -214,7 +214,7 @@ func TestClaim_LeaderTaskWithDanglingSquadID_NoBriefing(t *testing.T) {
 		t.Fatalf("dangling squad_id must NOT get squad briefing, got:\n%s", instr)
 	}
 	// A leader task with no briefing has no roster to delegate to, so the
-	// daemon must not run it in the leader role either (MUL-5811).
+	// daemon must not run it in the leader role either (ENA-5811).
 	if isLeader {
 		t.Fatalf("skipped injection must clear is_leader_task on the claim response: %s", raw)
 	}
@@ -246,7 +246,7 @@ func TestClaim_LeaderTaskWithoutSquadID_NoBriefing(t *testing.T) {
 // this task was enqueued, so the claiming agent is no longer the leader. The
 // defensive gate already withheld the briefing; the flag must follow it down,
 // otherwise the daemon would boot a former leader into the leader role with no
-// roster and no protocol (MUL-5811).
+// roster and no protocol (ENA-5811).
 func TestClaim_LeaderSwappedAfterEnqueue_NoBriefingAndNoLeaderRole(t *testing.T) {
 	if testHandler == nil || testPool == nil {
 		t.Skip("database not available")

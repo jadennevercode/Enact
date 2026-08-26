@@ -20,7 +20,7 @@ func TestDiscoveryCacheKeyScopesByExecutable(t *testing.T) {
 }
 
 // TestCachedDiscoveryDoesNotShareMemoAcrossExecutables is the reason the key
-// carries the path (MUL-5789). A host can run a built-in runtime and a custom
+// carries the path (ENA-5789). A host can run a built-in runtime and a custom
 // runtime profile of the same protocol family at once — the reporter's own
 // `ENACT_HERMES_PATH` workaround produces exactly that pair. With a
 // provider-only key the first discovery to land would answer for both for the

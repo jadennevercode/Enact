@@ -658,7 +658,7 @@ func buildPiArgs(sessionPath string, opts ExecOptions, logger *slog.Logger) []st
 	// SystemPrompt is intentionally not forwarded as --append-system-prompt:
 	// Pi loads the per-task AGENTS.md the daemon writes into the workdir, so
 	// inlining the same runtime brief would duplicate it on every turn.
-	// Verified against Pi 0.67.2 (MUL-5392).
+	// Verified against Pi 0.67.2 (ENA-5392).
 	args = append(args, filterPiCustomArgs(opts.CustomArgs, logger)...)
 	return args
 }

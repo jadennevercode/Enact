@@ -63,7 +63,7 @@ func registerSubscriberListeners(bus *events.Bus, pool *pgxpool.Pool) {
 		// above keys on ACTOR identity, so when an agent creates an issue and
 		// assigns it to an agent, every subscriber is an agent — and
 		// notifyIssueSubscribers only delivers to members. The result is a full
-		// subscriber list with zero recipients (MUL-5483).
+		// subscriber list with zero recipients (ENA-5483).
 		subscribeDelegatedHuman(bus, pool, queries, e.WorkspaceID, issue.ID)
 	})
 
@@ -128,7 +128,7 @@ func registerSubscriberListeners(bus *events.Bus, pool *pgxpool.Pool) {
 			return
 		}
 
-		// Platform-authored system comments (MUL-2538 child-done parent notify)
+		// Platform-authored system comments (ENA-2538 child-done parent notify)
 		// have author_type='system' and a zero UUID author. They must NOT
 		// add a subscriber row: issue_subscriber.user_type is constrained to
 		// ('member','agent'), and a "system" subscriber has no inbox to read
@@ -144,7 +144,7 @@ func registerSubscriberListeners(bus *events.Bus, pool *pgxpool.Pool) {
 
 // subscribeDelegatedHuman auto-subscribes the accountable human behind an
 // agent-created issue, so a delegated chain keeps the visibility its
-// attribution already records (MUL-5483).
+// attribution already records (ENA-5483).
 //
 // The facts are read here and classified by the pure
 // attribution.DelegatedSubscriber rule, which is the SAME origin waterfall
@@ -170,7 +170,7 @@ func subscribeDelegatedHuman(bus *events.Bus, pool *pgxpool.Pool, queries *db.Qu
 	}
 
 	// Workspace-scoped so a foreign origin id can never resolve a human from
-	// another tenant (the MUL-4252 guard the comment chain already applies).
+	// another tenant (the ENA-4252 guard the comment chain already applies).
 	originTask, err := queries.GetAgentTaskInWorkspace(ctx, db.GetAgentTaskInWorkspaceParams{
 		ID:          issue.OriginID,
 		WorkspaceID: parseUUID(workspaceID),
@@ -207,7 +207,7 @@ func subscribeDelegatedHuman(bus *events.Bus, pool *pgxpool.Pool, queries *db.Qu
 	// take. Checking in one round trip and writing in another cannot be made
 	// correct here: the losing interleaving subscribes an issue that did not
 	// exist when the opt-out was written, so there is no row for a row lock to
-	// protect (MUL-5483 review round 7).
+	// protect (ENA-5483 review round 7).
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		slog.Error("delegated subscribe: begin failed", "issue_id", issueID, "error", err)

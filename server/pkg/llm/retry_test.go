@@ -27,7 +27,7 @@ func retryingUpstream(t *testing.T, count *int) string {
 
 // TestMaxRetriesSemantics pins the supported states of Config.MaxRetries
 // against the only thing that matters to an operator: how many times we hit
-// their upstream. Before MUL-6364 an explicit 0 landed in the "unset" row here
+// their upstream. Before ENA-6364 an explicit 0 landed in the "unset" row here
 // and a negative was the only way to reach the "disabled" one. The upstream
 // here fails every time, so the budget is always spent in full — with a
 // recoverable upstream the same configuration would stop at the first success.

@@ -326,7 +326,7 @@ func TestGetAttachmentByID_ProxyModeReturnsRedeemableCapability(t *testing.T) {
 
 	// markdown_url is persisted into comment bodies and must outlive the
 	// session, so a 60-second capability must never reach it — that is the
-	// exact class of bug MUL-3130 fixed.
+	// exact class of bug ENA-3130 fixed.
 	if strings.Contains(resp.MarkdownURL, "signed-download") {
 		t.Fatalf("markdown_url = %q, must not embed a short-lived capability", resp.MarkdownURL)
 	}

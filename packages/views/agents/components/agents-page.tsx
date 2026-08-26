@@ -227,7 +227,7 @@ export function rowMatchesFilters(
 
 /**
  * Bulk-access dialog confirm-button enablement is centralized in
- * `@enact/core/agents` as `isAccessChangeReady` (MUL-3963). The dialog
+ * `@enact/core/agents` as `isAccessChangeReady` (ENA-3963). The dialog
  * consumes it; the picker also gates its internal Save button on the same
  * predicate (its own Save button is hidden via `hideFooter` in the bulk flow).
  */

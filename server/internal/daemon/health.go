@@ -68,7 +68,7 @@ type HealthResponse struct {
 	//
 	// Without it, "CLI not installed" and "CLI installed but rejected" both
 	// render as an absent runtime, which is what made GH #6077 unactionable for
-	// the reporter (MUL-5439).
+	// the reporter (ENA-5439).
 	SkippedAgents map[string]string `json:"skipped_agents,omitempty"`
 	// ReloadPendingReason explains why the daemon has confirmed a enact
 	// version change on disk but hasn't restarted into it yet — it was busy at

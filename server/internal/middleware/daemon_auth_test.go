@@ -53,7 +53,7 @@ func TestDaemonAuth_DaemonTokenCacheHit(t *testing.T) {
 }
 
 // TestDaemonAuth_PATCacheHit pins the PAT-fallback short-circuit. Production
-// daemon traffic today uses mul_ PATs (mdt_ minting isn't wired up yet), so
+// daemon traffic today uses enact_ PATs (mdt_ minting isn't wired up yet), so
 // this is the cache hit that actually matters for /api/daemon/* DB load.
 func TestDaemonAuth_PATCacheHit(t *testing.T) {
 	rdb := newRedisTestClient(t)
@@ -62,7 +62,7 @@ func TestDaemonAuth_PATCacheHit(t *testing.T) {
 		t.Fatal("expected non-nil cache")
 	}
 
-	const rawToken = "mul_daemon_pat_cache_hit_test"
+	const rawToken = "enact_daemon_pat_cache_hit_test"
 	hash := auth.HashToken(rawToken)
 	cache.Set(context.Background(), hash, "cached-user-id", auth.AuthCacheTTL)
 
@@ -167,7 +167,7 @@ func TestDaemonAuth_InvalidMDT_NilQueries(t *testing.T) {
 // TestDaemonAuth_MCN_NoVerifierConfigured pins the fail-closed
 // behaviour when ENACT_CLOUD_FLEET_URL is empty: an mcn_ token MUST
 // be rejected at the prefix branch with 401, not silently fall
-// through to the mul_/JWT paths (an mcn_ string would never match a
+// through to the enact_/JWT paths (an mcn_ string would never match a
 // valid PAT or JWT, but failing closed makes the contract explicit).
 func TestDaemonAuth_MCN_NoVerifierConfigured(t *testing.T) {
 	mw := DaemonAuth(nil, nil, nil, nil)

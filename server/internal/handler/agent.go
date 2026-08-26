@@ -13,9 +13,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/attribution"
 	"github.com/enact-ai/enact/server/internal/logger"
@@ -27,6 +24,9 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
 	"github.com/enact-ai/enact/server/pkg/remotemcp"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // Mirrors AGENT_DESCRIPTION_MAX_LENGTH in packages/core/agents/constants.ts
@@ -40,7 +40,7 @@ type AgentResponse struct {
 	WorkspaceID string `json:"workspace_id"`
 	// RuntimeID is the empty string when the agent is unbound — it kept its
 	// configuration and history when its runtime was deleted, and needs a new
-	// runtime before it can run again (MUL-5559). The wire type stays a string
+	// runtime before it can run again (ENA-5559). The wire type stays a string
 	// so installed clients keep parsing; RuntimeBound is the explicit signal.
 	RuntimeID string `json:"runtime_id"`
 	// RuntimeBound is false exactly when the agent has no runtime. UI should
@@ -73,12 +73,12 @@ type AgentResponse struct {
 	// the UI can show "N variables configured" without dragging secrets
 	// across the API surface. Reading values requires the dedicated, audited
 	// `GET /api/agents/{id}/env` endpoint; writing requires `PUT` to the
-	// same path. agent-actor tokens are denied there. See MUL-2600.
+	// same path. agent-actor tokens are denied there. See ENA-2600.
 	HasCustomEnv      bool   `json:"has_custom_env"`
 	CustomEnvKeyCount int    `json:"custom_env_key_count"`
 	McpConfigRedacted bool   `json:"mcp_config_redacted"`
 	Visibility        string `json:"visibility"`
-	// PermissionMode is the invocation-permission mode (MUL-3963):
+	// PermissionMode is the invocation-permission mode (ENA-3963):
 	// "private" (owner only) or "public_to" (allow-list in InvocationTargets).
 	// Replaces Visibility as the authorization source; Visibility is kept as a
 	// derived legacy field so old clients never see a permission widening.
@@ -92,7 +92,7 @@ type AgentResponse struct {
 	Model              string                     `json:"model"`
 	// ThinkingLevel is the runtime-native reasoning/effort token persisted
 	// for this agent (empty = use runtime default). The picker is per-runtime
-	// per-model; the API never normalizes across providers. See MUL-2339.
+	// per-model; the API never normalizes across providers. See ENA-2339.
 	ThinkingLevel string `json:"thinking_level"`
 	// ServiceTier is the runtime-native Codex execution tier persisted for
 	// this agent (empty = inherit local Codex configuration).
@@ -100,7 +100,7 @@ type AgentResponse struct {
 	// ComposioToolkitAllowlist is the subset of Composio toolkit slugs this
 	// agent is allowed to mount as MCP at task dispatch — for ANY run that
 	// passes the agent's invocation permission, using the agent OWNER's
-	// Composio connection (MUL-3963; no longer gated on originator == owner).
+	// Composio connection (ENA-3963; no longer gated on originator == owner).
 	// NULL or empty = no overlay. Like mcp_config, this is
 	// owner-only data: the slugs themselves are not secret, but the
 	// "this is what {agent owner} is willing to surface" view is — surfacing
@@ -316,7 +316,7 @@ type ActiveSiblingRunData struct {
 const taskIssueStatusCap = 30
 
 // TaskIssueStatusData is one active CUSTOM workspace status on the claim wire
-// (MUL-6460). Only the fields an agent needs to choose and write the status
+// (ENA-6460). Only the fields an agent needs to choose and write the status
 // travel: key is the CLI argument, name is what users call it in instructions,
 // category anchors the inherited platform behavior, and description is the
 // admin's "when to use me" guidance — the disambiguator when a category holds
@@ -352,7 +352,7 @@ type AgentTaskResponse struct {
 	// regardless of issue / chat / autopilot / quick-create — sees the same
 	// shared context. Empty when the workspace owner hasn't set it.
 	WorkspaceContext string `json:"workspace_context,omitempty"`
-	// IssueStatuses is the workspace's ACTIVE CUSTOM status catalog (MUL-6460),
+	// IssueStatuses is the workspace's ACTIVE CUSTOM status catalog (ENA-6460),
 	// injected into the agent brief so agents can see and use statuses beyond
 	// the seven built-ins. Built-ins are omitted: their keys, names, and
 	// semantics are locked (is_system rows cannot be renamed or archived), so
@@ -379,7 +379,7 @@ type AgentTaskResponse struct {
 	MaxAttempts          int32                  `json:"max_attempts"`
 	ParentTaskID         *string                `json:"parent_task_id,omitempty"`
 	IsLeaderTask         bool                   `json:"is_leader_task,omitempty"`
-	LeaderRoleResolved   bool                   `json:"leader_role_resolved,omitempty"` // claim-only capability, always true here: IsLeaderTask/SquadID authoritatively answer "is this a leader run", so the daemon must not infer the role from briefing text. Servers predating it make no such promise — before #4951 they sent no is_leader_task at all, after it they sent the flag without guaranteeing a briefing — so a daemon seeing no capability keeps the legacy inference. Never rendered into a prompt; see daemon.taskIsSquadLeader (MUL-5811). Mirror field: internal/daemon/types.go, same JSON name
+	LeaderRoleResolved   bool                   `json:"leader_role_resolved,omitempty"` // claim-only capability, always true here: IsLeaderTask/SquadID authoritatively answer "is this a leader run", so the daemon must not infer the role from briefing text. Servers predating it make no such promise — before #4951 they sent no is_leader_task at all, after it they sent the flag without guaranteeing a briefing — so a daemon seeing no capability keeps the legacy inference. Never rendered into a prompt; see daemon.taskIsSquadLeader (ENA-5811). Mirror field: internal/daemon/types.go, same JSON name
 	Agent                *TaskAgentData         `json:"agent,omitempty"`
 	ConnectedApps        []ConnectedAppData     `json:"connected_apps,omitempty"` // daemon-claim only: per-run app capabilities mounted through runtime MCP overlays
 	Repos                []RepoData             `json:"repos,omitempty"`
@@ -391,7 +391,7 @@ type AgentTaskResponse struct {
 	PriorSessionID       string                 `json:"prior_session_id,omitempty"` // session ID from a previous task on same issue
 	PriorWorkDir         string                 `json:"prior_work_dir,omitempty"`   // work_dir from a previous task on same issue
 	// PriorSessionResumeUnavailable is set when a more recent Codex session was
-	// withheld because its rollout was missing (MUL-5305); PriorSessionID (if
+	// withheld because its rollout was missing (ENA-5305); PriorSessionID (if
 	// any) is then an older fallback. The daemon surfaces the continuity gap in
 	// the brief even when that older session resumes cleanly. omitempty keeps it
 	// off the wire for the common (no-gap) case and for old daemons.
@@ -422,8 +422,8 @@ type AgentTaskResponse struct {
 	// partial work, and that is when the pointer matters most.
 	BranchName               string                 `json:"branch_name,omitempty"`
 	TriggerCommentID         *string                `json:"trigger_comment_id,omitempty"`          // comment that triggered this task
-	CoalescedCommentIDs      []string               `json:"coalesced_comment_ids,omitempty"`       // MUL-4195: earlier comments folded into this run when it had not yet started, so a single run still covers every deliberate comment; trigger_comment_id is the newest. Surfaced so the UI can show which comments a run covered. omitempty so old clients ignore it
-	CoalescedComments        []CoalescedCommentData `json:"coalesced_comments,omitempty"`          // MUL-4195: full detail (thread_id/author/created_at/content) of the folded comments, so the daemon prompt can address each without assuming they share the triggering thread. omitempty so old clients ignore it
+	CoalescedCommentIDs      []string               `json:"coalesced_comment_ids,omitempty"`       // ENA-4195: earlier comments folded into this run when it had not yet started, so a single run still covers every deliberate comment; trigger_comment_id is the newest. Surfaced so the UI can show which comments a run covered. omitempty so old clients ignore it
+	CoalescedComments        []CoalescedCommentData `json:"coalesced_comments,omitempty"`          // ENA-4195: full detail (thread_id/author/created_at/content) of the folded comments, so the daemon prompt can address each without assuming they share the triggering thread. omitempty so old clients ignore it
 	DeliveredCommentIDs      []string               `json:"delivered_comment_ids"`                 // always present: [] is an authoritative empty receipt, while field absence identifies responses from legacy servers
 	TriggerThreadID          string                 `json:"trigger_thread_id,omitempty"`           // root comment ID for the triggering thread
 	TriggerCommentContent    string                 `json:"trigger_comment_content,omitempty"`     // content of the triggering comment
@@ -454,7 +454,7 @@ type AgentTaskResponse struct {
 	SquadID                  string                 `json:"squad_id,omitempty"`                    // for quick-create tasks where the picker was a squad; Agent is still the resolved leader
 	SquadName                string                 `json:"squad_name,omitempty"`                  // display name for the picker squad
 	ParentIssueID            string                 `json:"parent_issue_id,omitempty"`             // for quick-create tasks opened from "Add sub issue" — UUID of the parent issue the new issue should be filed under
-	ParentIssueIdentifier    string                 `json:"parent_issue_identifier,omitempty"`     // human-readable identifier (e.g. MUL-123) of the quick-create parent issue, resolved on claim for prompt context
+	ParentIssueIdentifier    string                 `json:"parent_issue_identifier,omitempty"`     // human-readable identifier (e.g. ENA-123) of the quick-create parent issue, resolved on claim for prompt context
 	// RequestingUserName + RequestingUserProfileDescription mirror the user
 	// the agent is acting on behalf of (see daemon/types.go). v1 sources them
 	// from the runtime owner so they're populated for daemon runtimes and
@@ -475,14 +475,14 @@ type AgentTaskResponse struct {
 	// workspace-visible, multi-user agent can attribute the request and apply
 	// per-person privacy / access rules instead of seeing every requester as
 	// the owner. The agent's effective Enact credentials stay owner-scoped —
-	// this is an attested identity, not a credential. See MUL-2645.
+	// this is an attested identity, not a credential. See ENA-2645.
 	InitiatorType  string `json:"initiator_type,omitempty"`  // "member" or "agent"
 	InitiatorID    string `json:"initiator_id,omitempty"`    // user UUID (member) or agent UUID
 	InitiatorName  string `json:"initiator_name,omitempty"`  // display name of the initiator
 	InitiatorEmail string `json:"initiator_email,omitempty"` // member email; empty for agent initiators
 	Kind           string `json:"kind"`                      // discriminator: "comment" | "autopilot" | "chat" | "quick_create" | "direct" — used by the activity row to label tasks that have no linked issue
 	// Attribution is the resolved accountable-human provenance for this run
-	// (MUL-4302 §9): the source label + precise flag, the initiator (accountable)
+	// (ENA-4302 §9): the source label + precise flag, the initiator (accountable)
 	// and originator refs, the evidence pointer, and lineage. Always present (the
 	// pure taskToResponse builds the labels + raw ids); initiator/originator names
 	// are hydrated from the global user table only on user-facing surfaces.
@@ -505,12 +505,12 @@ type AgentTaskResponse struct {
 	// agent process cannot use it to read another agent's secrets via the
 	// env-management endpoint. Claim fails closed when the runtime has no
 	// owning user; the daemon must not fall back to its own credential. See
-	// MUL-3292.
+	// ENA-3292.
 	AuthToken string `json:"auth_token,omitempty"`
 }
 
 // TaskAttribution is the wire shape of a run's accountable-human provenance
-// (MUL-4302 §9). Source/Precise/Evidence/lineage come straight from the row (pure);
+// (ENA-4302 §9). Source/Precise/Evidence/lineage come straight from the row (pure);
 // Initiator/Originator carry the raw user id always and the display name/email/avatar
 // only after hydration on a user-facing surface.
 type TaskAttribution struct {
@@ -658,7 +658,7 @@ type ChatAttachmentMeta struct {
 }
 
 // CoalescedCommentData carries the full detail of a comment that was folded
-// into a not-yet-started run (MUL-4195) so the daemon can embed it directly in
+// into a not-yet-started run (ENA-4195) so the daemon can embed it directly in
 // the prompt. The earlier merge path only shipped comment IDs plus a
 // "they are in the triggering thread" hint, which is WRONG when the folded
 // comments span multiple threads (an issue's assignee can be triggered from
@@ -786,7 +786,7 @@ func taskToResponse(t db.AgentTaskQueue, workspaceID string) AgentTaskResponse {
 		AutopilotRunID: uuidToString(t.AutopilotRunID),
 		Kind:           computeTaskKind(t),
 		// Attribution labels + evidence + lineage + raw user ids (pure). Names are
-		// hydrated separately on user-facing surfaces (MUL-4302 §9).
+		// hydrated separately on user-facing surfaces (ENA-4302 §9).
 		Attribution: taskAttributionBase(t),
 	}
 }
@@ -949,17 +949,19 @@ func (h *Handler) ListAgents(w http.ResponseWriter, r *http.Request) {
 	for _, row := range skillRows {
 		agentID := uuidToString(row.AgentID)
 		skillMap[agentID] = append(skillMap[agentID], AgentSkillSummary{
-			ID:          uuidToString(row.ID),
-			Name:        row.Name,
-			Description: row.Description,
-			Enabled:     row.Enabled,
+			ID:             uuidToString(row.ID),
+			Name:           row.Name,
+			Description:    row.Description,
+			Enabled:        row.Enabled,
+			Kind:           skillConfigKind(row.Config),
+			OntologyDomain: skillConfigOntologyDomain(row.Config),
 		})
 	}
 
 	// mcp_config still uses the workspace-level always-redact setting and
 	// the per-row owner/admin gate — secrets in MCP server configs follow
 	// the same exposure rules as custom_env used to. custom_env itself is
-	// never serialized on agent resources anymore (MUL-2600); see the
+	// never serialized on agent resources anymore (ENA-2600); see the
 	// AgentResponse comment.
 	ws, err := h.Queries.GetWorkspace(r.Context(), parseUUID(workspaceID))
 	if err != nil {
@@ -997,7 +999,7 @@ func (h *Handler) ListAgents(w http.ResponseWriter, r *http.Request) {
 		// PAT would normally satisfy the owner/admin role gate. Otherwise an
 		// agent running under an owner's daemon could read other agents'
 		// MCP configs (which routinely embed third-party API tokens) — the
-		// same lateral-movement vector MUL-2600 closed for custom_env.
+		// same lateral-movement vector ENA-2600 closed for custom_env.
 		if actorType == "agent" || alwaysRedact || !canViewAgentSecrets(a, userID, member.Role) {
 			redactMcpConfig(&resp)
 		}
@@ -1007,7 +1009,7 @@ func (h *Handler) ListAgents(w http.ResponseWriter, r *http.Request) {
 		// confuses non-owners who cannot actually edit it. Workspace
 		// owner/admin do NOT bypass this gate (unlike mcp_config): the overlay
 		// uses the OWNER's connection and follows invocation permission
-		// (MUL-3963), so surfacing the slugs to admins gives them nothing
+		// (ENA-3963), so surfacing the slugs to admins gives them nothing
 		// actionable. Agent actors are also redacted (same A2A
 		// lateral-movement reasoning as mcp_config).
 		if !h.composioMCPAppsEnabled(r.Context()) {
@@ -1051,7 +1053,7 @@ func (h *Handler) GetAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// mcp_config redaction (custom_env was removed from this response shape
-	// in MUL-2600; secrets are now fetched via GET /api/agents/{id}/env).
+	// in ENA-2600; secrets are now fetched via GET /api/agents/{id}/env).
 	userID := requestUserID(r)
 	ws, err := h.Queries.GetWorkspace(r.Context(), agent.WorkspaceID)
 	if err != nil {
@@ -1091,7 +1093,7 @@ type CreateAgentRequest struct {
 	McpConfig     json.RawMessage   `json:"mcp_config"`
 	Visibility    string            `json:"visibility"`
 	// PermissionMode + InvocationTargets are the new invocation-permission
-	// inputs (MUL-3963). When permission_mode is present it is authoritative
+	// inputs (ENA-3963). When permission_mode is present it is authoritative
 	// and Visibility is ignored; when absent, legacy Visibility is mapped
 	// (private -> private, workspace -> public_to+workspace target). On create
 	// only the caller can be the owner, so targets are accepted unconditionally.
@@ -1101,7 +1103,7 @@ type CreateAgentRequest struct {
 	Model              string                     `json:"model"`
 	ThinkingLevel      string                     `json:"thinking_level"`
 	ServiceTier        string                     `json:"service_tier"`
-	// ComposioToolkitAllowlist seeds the per-task overlay gate (MUL-3869). On
+	// ComposioToolkitAllowlist seeds the per-task overlay gate (ENA-3869). On
 	// create only the calling user can be the owner, so we accept the field
 	// unconditionally here; the cross-owner permission gate lives on PUT.
 	// Nil = leave column NULL (no overlay). Empty slice = explicit `{}` (no
@@ -1182,7 +1184,7 @@ func (h *Handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve invocation permission (MUL-3963). permission_mode is
+	// Resolve invocation permission (ENA-3963). permission_mode is
 	// authoritative when present; otherwise the legacy visibility value is
 	// mapped. On create the caller is always the owner, so targets are
 	// accepted unconditionally.
@@ -1214,7 +1216,7 @@ func (h *Handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	// thinking_level validation: fixed-enum providers reject unknown literals;
 	// dynamic-catalog providers (Codex/OpenCode) reject malformed tokens here.
 	// Pi has a fixed token universe and a daemon-discovered per-model subset.
-	// Per-model gaps are enforced by the daemon at execution time (MUL-2339):
+	// Per-model gaps are enforced by the daemon at execution time (ENA-2339):
 	// combination-invalid values are logged and omitted from the invocation.
 	if !agent.IsKnownThinkingValue(runtime.Provider, req.ThinkingLevel) {
 		writeError(w, http.StatusBadRequest, thinkingLevelRejection(runtime.Provider, req.ThinkingLevel))
@@ -1410,12 +1412,12 @@ type UpdateAgentRequest struct {
 	// caller never believes they rotated a secret when the value is
 	// actually unchanged, and so a client that round-tripped a
 	// previously-returned masked map cannot silently overwrite real
-	// secret values with literal `****`. See MUL-2600.
+	// secret values with literal `****`. See ENA-2600.
 	CustomArgs *[]string        `json:"custom_args"`
 	McpConfig  *json.RawMessage `json:"mcp_config"`
 	Visibility *string          `json:"visibility"`
 	// PermissionMode + InvocationTargets are the invocation-permission inputs
-	// (MUL-3963). Owner-only writes (like composio_toolkit_allowlist): a
+	// (ENA-3963). Owner-only writes (like composio_toolkit_allowlist): a
 	// non-owner admin passing them is silently ignored, because the invoke
 	// gate is owner/allow-list based and an admin-authored allow-list would
 	// confuse the owner about who can run their agent. permission_mode is
@@ -1425,7 +1427,7 @@ type UpdateAgentRequest struct {
 	Status             *string                     `json:"status"`
 	MaxConcurrentTasks *int32                      `json:"max_concurrent_tasks"`
 	Model              *string                     `json:"model"`
-	// ThinkingLevel is treated as a tri-state per-MUL-2339:
+	// ThinkingLevel is treated as a tri-state per-ENA-2339:
 	//   - field omitted → no change (leave existing value alone)
 	//   - field present with "" → explicit clear (use runtime default)
 	//   - field present with non-empty value → set (validated server-side)
@@ -1443,7 +1445,7 @@ type UpdateAgentRequest struct {
 	//   - field present with non-empty → store deduped lowercase slugs
 	// The decode-time raw fields map disambiguates "omitted" from "explicit
 	// null" (a *[]string can't, because a nil pointer is the same wire
-	// representation as both). MUL-3869.
+	// representation as both). ENA-3869.
 	ComposioToolkitAllowlist *[]string `json:"composio_toolkit_allowlist"`
 }
 
@@ -1452,7 +1454,7 @@ type UpdateAgentRequest struct {
 // `mcp_config`) on read responses, regardless of the caller's role.
 //
 // The legacy JSON key is still `always_redact_env` for backwards-
-// compatibility with workspaces that flipped the setting before MUL-2600
+// compatibility with workspaces that flipped the setting before ENA-2600
 // shipped. The setting no longer affects `custom_env` because that field
 // is never serialized on agent resources anymore — secrets there are
 // fetched exclusively through `GET /api/agents/{id}/env` with audit
@@ -1474,7 +1476,7 @@ func workspaceAlwaysRedactSecrets(settings []byte) bool {
 // see the agent's secret-bearing fields (currently `mcp_config`). Only
 // the agent owner or workspace owner/admin qualify; for everyone else
 // the response is redacted. `custom_env` is no longer part of an agent
-// resource response (see MUL-2600), so this predicate is shared only by
+// resource response (see ENA-2600), so this predicate is shared only by
 // the remaining mcp_config redaction path.
 func canViewAgentSecrets(agent db.Agent, userID string, memberRole string) bool {
 	if roleAllowed(memberRole, "owner", "admin") {
@@ -1589,7 +1591,7 @@ func normaliseComposioToolkitAllowlist(in []string) []string {
 // (create/update/archive/restore) must apply the same rule, otherwise
 // an agent with a host owner/admin token can do an unrelated mutation
 // (e.g. flip max_concurrent_tasks) on a target agent and harvest the
-// target's mcp_config from the mutation response. MUL-2600.
+// target's mcp_config from the mutation response. ENA-2600.
 //
 // composio_toolkit_allowlist is redacted under the same logic: an agent
 // runs with its host owner's PAT, so a mutation against a sibling agent
@@ -1726,7 +1728,7 @@ func (h *Handler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		targetRuntimeID = runtime.ID
 		targetProvider = runtime.Provider
 	}
-	// Invocation permission (MUL-3963). OWNER-ONLY write: access is the one
+	// Invocation permission (ENA-3963). OWNER-ONLY write: access is the one
 	// agent property a workspace admin may NOT change (only the owner decides
 	// who can run their agent — the overlay uses the owner's own Composio
 	// connection, so admin-authored access would be confusing and unsafe).
@@ -1792,7 +1794,7 @@ func (h *Handler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		params.Model = pgtype.Text{String: "", Valid: true}
 	}
 
-	// thinking_level handling (MUL-2339). Tri-state semantics:
+	// thinking_level handling (ENA-2339). Tri-state semantics:
 	//   - field omitted  → leave column alone (COALESCE narg), but if a
 	//     runtime change in this same request would make the *existing*
 	//     value invalid for the new provider's fixed enum or token syntax,
@@ -1904,13 +1906,13 @@ func (h *Handler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// composio_toolkit_allowlist handling (MUL-3869). Tri-state semantics
+	// composio_toolkit_allowlist handling (ENA-3869). Tri-state semantics
 	// mirror thinking_level (see above): omitted → no change, null →
 	// ClearAgentComposioToolkitAllowlist, slice → wholesale replace.
 	//
 	// Owner-only WRITE. The caller is already past canManageAgent, which lets
 	// workspace owner/admins through alongside the agent owner — but the
-	// Composio overlay uses the agent OWNER's connection (MUL-3963), so an
+	// Composio overlay uses the agent OWNER's connection (ENA-3963), so an
 	// admin editing someone else's allowlist would silently reshape what the
 	// OWNER exposes through their own connected apps, confusing the owner
 	// about what their agent surfaces. Keep it owner-only.
@@ -1999,7 +2001,7 @@ func (h *Handler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Invocation targets (MUL-3963): replace wholesale when the owner touched
+	// Invocation targets (ENA-3963): replace wholesale when the owner touched
 	// permission. Done after the row update so a permission_mode flip and its
 	// targets land together.
 	if replacePermissionTargets {
@@ -2058,10 +2060,12 @@ func (h *Handler) attachAgentSkills(ctx context.Context, resp *AgentResponse, ag
 	out := make([]AgentSkillSummary, len(skills))
 	for i, s := range skills {
 		out[i] = AgentSkillSummary{
-			ID:          uuidToString(s.ID),
-			Name:        s.Name,
-			Description: s.Description,
-			Enabled:     s.Enabled,
+			ID:             uuidToString(s.ID),
+			Name:           s.Name,
+			Description:    s.Description,
+			Enabled:        s.Enabled,
+			Kind:           skillConfigKind(s.Config),
+			OntologyDomain: skillConfigOntologyDomain(s.Config),
 		}
 	}
 	resp.Skills = out
@@ -2087,7 +2091,7 @@ func (h *Handler) resolveAgentProvider(r *http.Request, workspaceID pgtype.UUID,
 // thinking_level. Two different failures used to share one sentence: a token
 // the runtime's catalog doesn't list, and a runtime with no reasoning control
 // at all. The second one made "high" look like a spelling mistake and sent
-// users hunting for a value that does not exist for that runtime (MUL-5770),
+// users hunting for a value that does not exist for that runtime (ENA-5770),
 // so it now names the capability gap instead.
 func thinkingLevelRejection(provider, value string) string {
 	if !agent.ThinkingControlSupported(provider) {
@@ -2621,7 +2625,7 @@ func (h *Handler) GetWorkspaceAgentActivity30d(w http.ResponseWriter, r *http.Re
 // Per-agent filtering happens in the front-end against this snapshot.
 //
 // The outcome half is deliberately still served here so shipped desktop builds
-// keep working; MUL-5436 tracks moving it to a dedicated lazy endpoint.
+// keep working; ENA-5436 tracks moving it to a dedicated lazy endpoint.
 func (h *Handler) ListWorkspaceAgentTaskSnapshot(w http.ResponseWriter, r *http.Request) {
 	workspaceID := h.resolveWorkspaceID(r)
 	member, ok := h.workspaceMember(w, r, workspaceID)

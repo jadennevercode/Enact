@@ -245,7 +245,7 @@ func TestRequireDaemonAuth(t *testing.T) {
 
 	t.Run("authenticated", func(t *testing.T) {
 		t.Setenv("HOME", t.TempDir())
-		if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_test_token"}); err != nil {
+		if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_test_token"}); err != nil {
 			t.Fatalf("SaveCLIConfig: %v", err)
 		}
 		if err := requireDaemonAuth(""); err != nil {
@@ -438,7 +438,7 @@ func TestDaemonStartBackgroundReportsEarlyChildExit(t *testing.T) {
 	t.Cleanup(func() { daemonExecutable = orig })
 
 	const profile = "child-exit-test"
-	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "mul_fake"}, profile); err != nil {
+	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "enact_fake"}, profile); err != nil {
 		t.Fatalf("SaveCLIConfigForProfile: %v", err)
 	}
 
@@ -541,7 +541,7 @@ func TestDaemonRestartRejectedTokenFailsBeforeStopping(t *testing.T) {
 	}))
 	defer api.Close()
 
-	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "mul_revoked", ServerURL: api.URL}, profile); err != nil {
+	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "enact_revoked", ServerURL: api.URL}, profile); err != nil {
 		t.Fatalf("SaveCLIConfigForProfile: %v", err)
 	}
 
@@ -579,7 +579,7 @@ func TestDaemonRestartUnreachableServerFailsBeforeStopping(t *testing.T) {
 	deadURL := "http://" + ln.Addr().String()
 	ln.Close()
 
-	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "mul_fake", ServerURL: deadURL}, profile); err != nil {
+	if err := cli.SaveCLIConfigForProfile(cli.CLIConfig{Token: "enact_fake", ServerURL: deadURL}, profile); err != nil {
 		t.Fatalf("SaveCLIConfigForProfile: %v", err)
 	}
 
@@ -676,7 +676,7 @@ func TestPrintDiskUsageOtherRootsHintSuggestsProfilesWithTasks(t *testing.T) {
 }
 
 // TestPrintDiskUsageOtherRootsHintFiresWhenCurrentRootNonEmpty is the core
-// MUL-3404 behavior: the hint must surface other roots even when the scanned
+// ENA-3404 behavior: the hint must surface other roots even when the scanned
 // root already has tasks, otherwise the Desktop app's root stays hidden behind
 // a non-empty default root.
 func TestPrintDiskUsageOtherRootsHintFiresWhenCurrentRootNonEmpty(t *testing.T) {
@@ -874,7 +874,7 @@ func writeDiskUsageFile(t *testing.T, path string) {
 //
 // The daemon's auto-reload check runs `<binary> --version` and parses the result
 // back into a version string it compares against its own compile-time version
-// (MUL-3269). That only works while cobra's version template keeps rendering
+// (ENA-3269). That only works while cobra's version template keeps rendering
 // "enact <version> ..." as its first line — a reasonable-looking edit here
 // would leave the daemon reading a version that never matches, restarting on
 // every check, and nothing else in the suite would notice.

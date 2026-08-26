@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/events"
 	"github.com/enact-ai/enact/server/internal/service"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func TestAutopilotRunOnlyTaskTerminalEventsUpdateRun(t *testing.T) {
@@ -308,7 +308,7 @@ func TestAutopilotCreateIssueTaskRetryPendingKeepsRunOpen(t *testing.T) {
 	}
 }
 
-// TestAutopilotDispatchSkipsWhenRuntimeOffline locks in the MUL-1899
+// TestAutopilotDispatchSkipsWhenRuntimeOffline locks in the ENA-1899
 // admission gate: when the assignee agent's runtime is not online we must
 // record a `skipped` autopilot_run with a failure_reason and NOT enqueue an
 // agent_task_queue row. This is the fix for "活跃 schedule 持续给离线 local
@@ -327,7 +327,7 @@ func TestAutopilotDispatchSkipsWhenRuntimeOffline(t *testing.T) {
 		INSERT INTO agent_runtime (
 			workspace_id, daemon_id, name, runtime_mode, provider, status, device_info, metadata, last_seen_at
 		)
-		VALUES ($1, NULL, 'Offline runtime', 'local', 'mul1899_offline_runtime', 'offline', '{}'::jsonb, '{}'::jsonb, now())
+		VALUES ($1, NULL, 'Offline runtime', 'local', 'ena1899_offline_runtime', 'offline', '{}'::jsonb, '{}'::jsonb, now())
 		RETURNING id::text
 	`, parseUUID(testWorkspaceID)).Scan(&runtimeID); err != nil {
 		t.Fatalf("create offline runtime: %v", err)
@@ -341,7 +341,7 @@ func TestAutopilotDispatchSkipsWhenRuntimeOffline(t *testing.T) {
 			workspace_id, name, description, runtime_mode, runtime_config,
 			runtime_id, visibility, max_concurrent_tasks, owner_id
 		)
-		VALUES ($1, 'mul1899-offline-agent', '', 'local', '{}'::jsonb, $2, 'workspace', 1, $3)
+		VALUES ($1, 'ena1899-offline-agent', '', 'local', '{}'::jsonb, $2, 'workspace', 1, $3)
 		RETURNING id::text
 	`, parseUUID(testWorkspaceID), runtimeID, parseUUID(testUserID)).Scan(&agentID); err != nil {
 		t.Fatalf("create offline agent: %v", err)
@@ -353,7 +353,7 @@ func TestAutopilotDispatchSkipsWhenRuntimeOffline(t *testing.T) {
 	ap, err := queries.CreateAutopilot(ctx, db.CreateAutopilotParams{
 		WorkspaceID:        parseUUID(testWorkspaceID),
 		Title:              "Offline-runtime autopilot",
-		Description:        pgtype.Text{String: "MUL-1899 admission test", Valid: true},
+		Description:        pgtype.Text{String: "ENA-1899 admission test", Valid: true},
 		AssigneeType:       "agent",
 		AssigneeID:         parseUUID(agentID),
 		Status:             "active",
@@ -528,7 +528,7 @@ func TestManualTriggerDoesNotErrorOnPostAdmissionSkip(t *testing.T) {
 		INSERT INTO agent_runtime (
 			workspace_id, daemon_id, name, runtime_mode, provider, status, device_info, metadata, last_seen_at
 		)
-		VALUES ($1, NULL, 'Manual-trigger skip runtime', 'local', 'mul2429_manual_skip_runtime', 'offline', '{}'::jsonb, '{}'::jsonb, now())
+		VALUES ($1, NULL, 'Manual-trigger skip runtime', 'local', 'ena2429_manual_skip_runtime', 'offline', '{}'::jsonb, '{}'::jsonb, now())
 		RETURNING id::text
 	`, parseUUID(testWorkspaceID)).Scan(&runtimeID); err != nil {
 		t.Fatalf("create runtime: %v", err)
@@ -542,7 +542,7 @@ func TestManualTriggerDoesNotErrorOnPostAdmissionSkip(t *testing.T) {
 			workspace_id, name, description, runtime_mode, runtime_config,
 			runtime_id, visibility, max_concurrent_tasks, owner_id
 		)
-		VALUES ($1, 'mul2429-manual-skip-agent', '', 'local', '{}'::jsonb, $2, 'workspace', 1, $3)
+		VALUES ($1, 'ena2429-manual-skip-agent', '', 'local', '{}'::jsonb, $2, 'workspace', 1, $3)
 		RETURNING id::text
 	`, parseUUID(testWorkspaceID), runtimeID, parseUUID(testUserID)).Scan(&agentID); err != nil {
 		t.Fatalf("create agent: %v", err)

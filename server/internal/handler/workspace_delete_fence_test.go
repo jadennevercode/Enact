@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 // enqueueViaRealQuery creates a task through the generated CreateAgentTask query —
@@ -65,7 +65,7 @@ SELECT EXISTS (
 // a convention. Every statement that inserts an agent_task_queue row, or assigns
 // one of its ownership columns, has to call lock_task_owner_rows — a new
 // write path that forgets it would silently reopen the insert-after-sweep window
-// that MUL-5999's teardown depends on being closed.
+// that ENA-5999's teardown depends on being closed.
 //
 // This is the trade for not using a row trigger: the write path names its own
 // fence, and CI checks that it did.
@@ -511,7 +511,7 @@ RETURNING id
 	}
 
 	if _, err := testPool.Exec(ctx, `
-CREATE OR REPLACE FUNCTION mul5999_fail_agent_move() RETURNS trigger LANGUAGE plpgsql AS $fn$
+CREATE OR REPLACE FUNCTION ena5999_fail_agent_move() RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN
     IF NEW.name = 'victim agent' AND NEW.runtime_id IS DISTINCT FROM OLD.runtime_id THEN
         RAISE EXCEPTION 'injected failure moving agent onto the merge target';
@@ -523,16 +523,16 @@ $fn$;
 		t.Fatalf("create injection function: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-CREATE TRIGGER mul5999_fail_agent_move
+CREATE TRIGGER ena5999_fail_agent_move
 BEFORE UPDATE OF runtime_id ON agent
-FOR EACH ROW EXECUTE FUNCTION mul5999_fail_agent_move()
+FOR EACH ROW EXECUTE FUNCTION ena5999_fail_agent_move()
 `); err != nil {
 		t.Fatalf("create injection trigger: %v", err)
 	}
 	t.Cleanup(func() {
 		bg := context.Background()
-		_, _ = testPool.Exec(bg, `DROP TRIGGER IF EXISTS mul5999_fail_agent_move ON agent`)
-		_, _ = testPool.Exec(bg, `DROP FUNCTION IF EXISTS mul5999_fail_agent_move()`)
+		_, _ = testPool.Exec(bg, `DROP TRIGGER IF EXISTS ena5999_fail_agent_move ON agent`)
+		_, _ = testPool.Exec(bg, `DROP FUNCTION IF EXISTS ena5999_fail_agent_move()`)
 	})
 
 	err := testHandler.mergeLegacyRuntime(ctx, parseUUID(target), parseUUID(f.victimRuntime),
@@ -577,7 +577,7 @@ FOR EACH ROW EXECUTE FUNCTION mul5999_fail_agent_move()
 
 	// With the injection removed the same merge completes, so the rollback above
 	// was not just a permanently broken fixture.
-	if _, err := testPool.Exec(ctx, `DROP TRIGGER mul5999_fail_agent_move ON agent`); err != nil {
+	if _, err := testPool.Exec(ctx, `DROP TRIGGER ena5999_fail_agent_move ON agent`); err != nil {
 		t.Fatalf("drop injection trigger: %v", err)
 	}
 	if err := testHandler.mergeLegacyRuntime(ctx, parseUUID(target), parseUUID(f.victimRuntime),

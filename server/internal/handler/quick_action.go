@@ -18,7 +18,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Issue Quick Actions (MUL-5465): workspace-level presets for "who to call and
+// Issue Quick Actions (ENA-5465): workspace-level presets for "who to call and
 // what to say" on an existing issue.
 //
 // Contract highlights:
@@ -26,7 +26,7 @@ import (
 //     ordinary comment carrying the target's mention markup (marked with
 //     quick_action_id), and hands off to triggerTasksForComment. Permission, attribution, squad routing,
 //     the execution log, and pending-task coalescing are inherited from the
-//     comment path rather than reimplemented — the MUL-3375 lesson about four
+//     comment path rather than reimplemented — the ENA-3375 lesson about four
 //     drifting copies of one trigger decision.
 //   - PERMISSION IS CHECKED IN EXACTLY ONE PLACE: RunQuickAction. The list
 //     endpoint does no permission work and hides nothing beyond `private`

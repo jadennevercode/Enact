@@ -9,7 +9,7 @@
 SELECT installation_id, channel_user_id
 FROM channel_user_binding
 WHERE workspace_id = sqlc.arg(workspace_id)
-  AND multica_user_id = sqlc.arg(multica_user_id)
+  AND enact_user_id = sqlc.arg(enact_user_id)
   AND channel_type = 'dingtalk'
 ORDER BY bound_at DESC, id ASC;
 

@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	invitationActorLimiterKeyPrefix     = "mul:invitation:actor:"
-	invitationWorkspaceLimiterKeyPrefix = "mul:invitation:workspace:"
-	invitationRecipientLimiterKeyPrefix = "mul:invitation:recipient:"
+	invitationActorLimiterKeyPrefix     = "enact:invitation:actor:"
+	invitationWorkspaceLimiterKeyPrefix = "enact:invitation:workspace:"
+	invitationRecipientLimiterKeyPrefix = "enact:invitation:recipient:"
 )
 
 // InvitationRateLimits configures the independent invitation admission gates.

@@ -1,19 +1,19 @@
 // Package taskfailure is the canonical, refined taxonomy of values written
 // into agent_task_queue.failure_reason and chat_message.failure_reason.
 //
-// History: until MUL-1949, server/daemon code wrote one of a small handful
+// History: until ENA-1949, server/daemon code wrote one of a small handful
 // of coarse failure_reason values ("agent_error", "timeout",
 // "runtime_offline", …). The "agent_error" bucket grew to ~30% of all
 // failures and hid the real cause (provider 401, quota exceeded, context
 // overflow, runner crash, etc.) inside the free-form `error` text column.
-// MUL-1949's offline backfill SQL re-classified those rows into 14
+// ENA-1949's offline backfill SQL re-classified those rows into 14
 // agent_error.* sub-reasons via a CASE expression on the error text.
 //
 // This package lifts that classifier into the in-flight write path so the
 // stored failure_reason is already refined when the row is first
 // persisted, and so server / daemon / cloud share a single source of
 // truth for the canonical values. PR1 of the Grafana board plan
-// ([MUL-2946](https://enact/issues/MUL-2946)). Subsequent PRs use
+// ([ENA-2946](https://enact/issues/ENA-2946)). Subsequent PRs use
 // AllReasons() to pre-warm the Prometheus failure_reason label set.
 //
 // The canonical values fall into two groups:
@@ -112,7 +112,7 @@ const (
 	// preparation — the agent process was never launched. Platform-side
 	// because nothing the agent did caused it: the usual triggers are a
 	// slow/blocked link to the API or a daemon that inherited no proxy
-	// configuration (MUL-5370). Retryable, and cheap to retry: every
+	// configuration (ENA-5370). Retryable, and cheap to retry: every
 	// bundle that *did* arrive is cached on disk, so successive attempts
 	// converge instead of re-downloading the whole set. Written by
 	// taskRunFailureReason in daemon/daemon.go.

@@ -104,12 +104,12 @@ func TestValidateInstallationParams(t *testing.T) {
 
 func TestIssueCreatedText(t *testing.T) {
 	t.Parallel()
-	withTitle := issueCreatedText(engine.Result{IssueIdentifier: "MUL-42", IssueTitle: "Fix the thing"})
-	if !strings.Contains(withTitle, "MUL-42") || !strings.Contains(withTitle, "Fix the thing") {
+	withTitle := issueCreatedText(engine.Result{IssueIdentifier: "ENA-42", IssueTitle: "Fix the thing"})
+	if !strings.Contains(withTitle, "ENA-42") || !strings.Contains(withTitle, "Fix the thing") {
 		t.Errorf("issueCreatedText = %q, want identifier + title", withTitle)
 	}
-	noTitle := issueCreatedText(engine.Result{IssueIdentifier: "MUL-43"})
-	if !strings.Contains(noTitle, "MUL-43") || strings.Contains(noTitle, "—") {
+	noTitle := issueCreatedText(engine.Result{IssueIdentifier: "ENA-43"})
+	if !strings.Contains(noTitle, "ENA-43") || strings.Contains(noTitle, "—") {
 		t.Errorf("issueCreatedText without title = %q, want just the identifier", noTitle)
 	}
 	noID := issueCreatedText(engine.Result{IssueNumber: 7})

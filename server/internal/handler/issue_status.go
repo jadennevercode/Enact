@@ -18,7 +18,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// Issue status catalog API (MUL-6243).
+// Issue status catalog API (ENA-6243).
 //
 // Reading the catalog is open to any workspace member — every client needs it
 // to render a status. Mutating it is owner/admin only: a status is workflow
@@ -311,7 +311,7 @@ func (h *Handler) ArchiveIssueStatus(w http.ResponseWriter, r *http.Request) {
 	// issue can be assigned an archived status" exact rather than approximate:
 	// an issue write targeting a custom status re-resolves it under the SHARED
 	// side of this lock (assertIssueStatusStillActive), so a write can never
-	// interleave between this archive and its own status check. (MUL-6243)
+	// interleave between this archive and its own status check. (ENA-6243)
 	tx, err := h.TxStarter.Begin(r.Context())
 	if err != nil {
 		slog.Warn("ArchiveIssueStatus begin failed", append(logger.RequestAttrs(r), "error", err)...)

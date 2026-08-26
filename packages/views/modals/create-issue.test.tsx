@@ -45,7 +45,7 @@ const mockToastCustom = vi.hoisted(() => vi.fn());
 const mockToastDismiss = vi.hoisted(() => vi.fn());
 const mockToastError = vi.hoisted(() => vi.fn());
 // Uploads flow through the module-level coordinator, which calls
-// `api.uploadFile(file, ctx, signal)` (MUL-5181 L2). Tests drive uploads by
+// `api.uploadFile(file, ctx, signal)` (ENA-5181 L2). Tests drive uploads by
 // mocking that call; it resolves a plain server Attachment row.
 const mockApiUploadFile = vi.hoisted(() => vi.fn());
 
@@ -67,7 +67,7 @@ type DraftAttachment = {
   created_at: string;
 };
 
-// Coordinator-owned upload entry persisted in the shared pool (MUL-5181 L2).
+// Coordinator-owned upload entry persisted in the shared pool (ENA-5181 L2).
 type DraftUploadEntry = {
   clientUploadId: string;
   status: "uploading" | "uploaded" | "failed" | "interrupted";
@@ -841,7 +841,7 @@ describe("CreateIssueModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Upload file" }));
 
-    // Coordinator flow (MUL-5181 L2): a placeholder is written at pick time,
+    // Coordinator flow (ENA-5181 L2): a placeholder is written at pick time,
     // then settles into an `uploaded` entry carrying the server row.
     await waitFor(() => {
       const uploads = mockDraftStore.draft.shared.attachments;
@@ -1034,12 +1034,12 @@ describe("CreateIssueModal", () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     mockCreateIssue.mockRejectedValue(
-      new ApiError("An active issue with this title already exists: MUL-7 – Login bug", 409, "Conflict", {
+      new ApiError("An active issue with this title already exists: ENA-7 – Login bug", 409, "Conflict", {
         code: "active_duplicate_issue",
-        error: "An active issue with this title already exists: MUL-7 – Login bug",
+        error: "An active issue with this title already exists: ENA-7 – Login bug",
         issue: {
           id: "issue-dup",
-          identifier: "MUL-7",
+          identifier: "ENA-7",
           title: "Login bug",
         },
       }),
@@ -1058,7 +1058,7 @@ describe("CreateIssueModal", () => {
     render(renderToast("toast-dup"));
 
     expect(screen.getByText("Duplicate issue")).toBeInTheDocument();
-    expect(screen.getByText(/MUL-7/)).toBeInTheDocument();
+    expect(screen.getByText(/ENA-7/)).toBeInTheDocument();
     expect(screen.getByText(/Login bug/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "View existing issue" }));
@@ -1162,7 +1162,7 @@ describe("CreateIssueModal", () => {
   // from "Add sub issue". Before this, the agent panel received no parent
   // context and the new issue was filed as a standalone — silently dropping
   // the sub-issue intent set by openCreateSubIssue. The parent_issue_identifier
-  // tags along so the agent panel can render a "Sub-issue of MUL-XX" chip
+  // tags along so the agent panel can render a "Sub-issue of ENA-XX" chip
   // without an extra round-trip.
   //
   // The identifier fallback matters here: the mocked issueDetailOptions
@@ -1180,7 +1180,7 @@ describe("CreateIssueModal", () => {
         onSwitchMode={onSwitchMode}
         data={{
           parent_issue_id: "parent-uuid-1",
-          parent_issue_identifier: "MUL-2534",
+          parent_issue_identifier: "ENA-2534",
         }}
         isExpanded={false}
         setIsExpanded={vi.fn()}
@@ -1195,7 +1195,7 @@ describe("CreateIssueModal", () => {
     // still rides the carry channel. The prompt rides the store now.
     expect(onSwitchMode.mock.calls[0]?.[0]).toEqual({
       parent_issue_id: "parent-uuid-1",
-      parent_issue_identifier: "MUL-2534",
+      parent_issue_identifier: "ENA-2534",
     });
     expect(mockSetAgent).toHaveBeenCalledWith({ prompt: "Refactor auth" });
   });
@@ -1299,7 +1299,7 @@ describe("CreateIssueModal", () => {
     expect(mockPush).toHaveBeenCalledWith("/ws-test/settings?tab=issue");
   });
 
-  // MUL-5181: switching to agent must PRESERVE the manual draft. The agent
+  // ENA-5181: switching to agent must PRESERVE the manual draft. The agent
   // prompt is assist-init'd from title + description (a one-time convenience
   // when the agent slot is empty), but the manual title/description are left
   // untouched so a later agent→manual switch restores them verbatim — no
@@ -1334,10 +1334,10 @@ describe("CreateIssueModal", () => {
     );
   });
 
-  // MUL-4808 — manual create had no upload gate at all: Create, Enter on the
+  // ENA-4808 — manual create had no upload gate at all: Create, Enter on the
   // title, and Switch to Agent would each fix the draft while an image was
   // still uploading, dropping it from the description with no warning.
-  // MUL-5181 P0: the issue draft is a SINGLETON store. A submit that outlives
+  // ENA-5181 P0: the issue draft is a SINGLETON store. A submit that outlives
   // its dialog may only consume the draft it submitted — never one the user
   // typed after closing and reopening.
   describe("stale-submit draft guard", () => {
@@ -1433,7 +1433,7 @@ describe("CreateIssueModal", () => {
 
   describe("upload submit gate", () => {
     /** Attach a file whose upload stays in flight until the caller releases it.
-     *  Controls the coordinator's `api.uploadFile` promise (MUL-5181 L2). */
+     *  Controls the coordinator's `api.uploadFile` promise (ENA-5181 L2). */
     function startPendingUpload() {
       let release!: (result: unknown) => void;
       mockApiUploadFile.mockImplementationOnce(
@@ -1481,7 +1481,7 @@ describe("CreateIssueModal", () => {
     });
 
     // Plain Enter in the title was removed as a create trigger in #5532 — it
-    // fired from a half-typed title. MUL-4931 adds the explicit `send` chord
+    // fired from a half-typed title. ENA-4931 adds the explicit `send` chord
     // alongside it; plain Enter must stay inert.
     it("never submits manual create from plain Enter in the title", async () => {
       const user = userEvent.setup();
@@ -1526,7 +1526,7 @@ describe("CreateIssueModal", () => {
     });
   });
 
-  // MUL-4931 — manual create had no submit shortcut at all, while agent create
+  // ENA-4931 — manual create had no submit shortcut at all, while agent create
   // has had one all along.
   describe("send shortcut", () => {
     function renderManual() {
@@ -1622,7 +1622,7 @@ describe("CreateIssueModal", () => {
       });
 
       await act(async () => {
-        release({ id: "issue-1", identifier: "MUL-1", title: "Double tap", status: "todo" });
+        release({ id: "issue-1", identifier: "ENA-1", title: "Double tap", status: "todo" });
       });
       expect(mockCreateIssue).toHaveBeenCalledTimes(1);
     });
@@ -1667,7 +1667,7 @@ describe("CreateIssueModal", () => {
     });
   });
 
-  // MUL-6236 — the manual panel shares the agent panel's phone treatment; it
+  // ENA-6236 — the manual panel shares the agent panel's phone treatment; it
   // is one tap away behind "Switch to Manual", so it hit the same bugs.
   describe("phone layout", () => {
     it("caps the dialog inside the viewport on phones", () => {

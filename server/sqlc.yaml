@@ -10,9 +10,7 @@ sql:
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_empty_slices: true
-        # The `multica_user_id` column predates the Enact rename and is kept as-is:
-        # renaming it would need a data migration for zero user-visible gain.
-        # This mapping keeps the generated Go field on the Enact name so a
-        # `make sqlc` regen does not revert it and break call sites.
+        # Keep the generated Go field idiomatic while retaining the explicit
+        # product-qualified database column name.
         rename:
-          multica_user_id: "EnactUserID"
+          enact_user_id: "EnactUserID"

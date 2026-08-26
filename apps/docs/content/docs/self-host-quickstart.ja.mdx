@@ -144,26 +144,7 @@ curl -fsS https://api.example.com/readyz
 
 ## 4. ログインしてワークスペースを作成する
 
-ローカルの `http://localhost:3000`、または先ほど設定した `https://app.example.com` を開き、メールアドレスを入力して認証コードをリクエストします。
-
-デフォルトではメールサービスは設定されていません。コードをリクエストしたら、backend のログから読み取ります。
-
-```bash
-docker compose -f docker-compose.selfhost.yml logs backend \
-  | grep "Verification code"
-```
-
-ログには次のような行が出力されます。
-
-```text
-[DEV] Verification code for you@example.com: 123456
-```
-
-コードを入力して、最初のワークスペースを作成します。Resend または SMTP を設定すると認証コードはメールで送信され、メンバーがコンテナログを読む必要はなくなります。詳しくは[ログインとサインアップ設定](/auth-setup)を参照してください。
-
-<Callout type="warning">
-セルフホストのデプロイはデフォルトで `APP_ENV=production` を使い、固定の認証コードは有効になりません。公開インスタンスで `ENACT_DEV_VERIFICATION_CODE` を設定しないでください。
-</Callout>
+ローカルの `http://localhost:3000`、または先ほど設定した `https://app.example.com` を開き、メールアドレスを入力して続行します。Enact はすぐにログインを完了するため、メールサービスや認証コードの手順なしで最初のワークスペースを作成できます。
 
 ## 5. 実行用コンピュータを接続する
 
@@ -333,7 +314,6 @@ Helm には独自のアップグレード経路があります。values ファ�
 | 症状 | まず確認すること |
 |---|---|
 | `/readyz` が `ok` を返さない | `docker compose -f docker-compose.selfhost.yml logs backend postgres` を実行する。 |
-| 認証コードが届かない | コードを一度リクエストし、backend のログで `Verification code` を探す。 |
 | `setup self-host` が server に到達できないと報告する | 実行用コンピュータから `https://api.example.com/health` をリクエストし、DNS、TLS、リバースプロキシがすべて到達可能か確認する。 |
 | デーモンが `Agents` を表示しない | AI コーディングツールが `PATH` にありログイン済みであることを確認し、`enact daemon restart` を実行する。 |
 | イシューがキューにとどまり続ける | `enact daemon status` を実行し、デーモンが起動していてワークスペースに接続していることを確認する。 |

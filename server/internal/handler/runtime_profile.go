@@ -16,7 +16,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Custom Runtime Profiles (MUL-3284)
+// Custom Runtime Profiles (ENA-3284)
 //
 // A runtime_profile is a workspace-level, team-shared definition of a custom
 // runtime — e.g. an in-house Codex wrapper. Daemons pull the enabled profiles
@@ -76,7 +76,7 @@ func runtimeProfileToResponse(p db.RuntimeProfile) RuntimeProfileResponse {
 // would silently leak a "private" profile's name/command to other members and
 // let other machines' daemons register it (lateral data leak). Re-expose a
 // visibility control only once those read paths enforce creator visibility.
-// Follow-up: MUL-3308.
+// Follow-up: ENA-3308.
 const runtimeProfileDefaultVisibility = "workspace"
 
 // marshalFixedArgs validates and JSON-encodes the fixed_args list. Each entry

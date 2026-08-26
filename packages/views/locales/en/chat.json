@@ -226,6 +226,8 @@
     "archive": "Archive",
     "unarchive": "Unarchive",
     "archived_title": "Archived",
+    "pinned_segment": "Pinned",
+    "no_project_segment": "No project",
     "row_actions_aria": "Chat actions"
   },
   "header": {

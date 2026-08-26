@@ -18,7 +18,7 @@ import (
 // Assignment is the trigger with no reply anyone reads: the API returns the
 // updated issue, and nothing in it says "and by the way, nothing will run".
 // Without this the user gets exactly the silence this change exists to remove
-// (MUL-6164).
+// (ENA-6164).
 //
 // Best-effort: the refusal is correct whether or not the note lands, so a
 // failure here is logged rather than returned.

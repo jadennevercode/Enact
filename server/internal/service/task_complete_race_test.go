@@ -170,7 +170,7 @@ func TestFailTask_AlreadyFinalized(t *testing.T) {
 }
 
 // TestProviderNetworkRetrySchedule locks in the three-tier schedule for a
-// transient provider stream cut (MUL-4910): first run + immediate retry + one
+// transient provider stream cut (ENA-4910): first run + immediate retry + one
 // retry deferred ~5s. runtime_offline uses a separate deferred marker so its
 // retry waits for a healthy runtime; other retryable reasons keep their generic
 // max_attempts=2 (single, immediate retry).
@@ -254,7 +254,7 @@ func TestTaskFailureClassifiers(t *testing.T) {
 	}{
 		{reason: "timeout", wantType: "timeout", wantResumeOK: true, wantRetry: true},
 		{reason: "codex_semantic_inactivity", wantType: "timeout", wantResumeOK: false, wantRetry: true},
-		// Transient mid-stream provider disconnect (MUL-4910): retryable, and
+		// Transient mid-stream provider disconnect (ENA-4910): retryable, and
 		// resume-safe so the retry continues the truncated conversation.
 		{reason: "agent_error.provider_network", wantType: "agent_error", wantResumeOK: true, wantRetry: true},
 		{reason: "runtime_recovery", wantType: "runtime", wantResumeOK: true, wantRetry: true},
@@ -351,7 +351,7 @@ func TestOpencodeStreamEndedFailureRetries(t *testing.T) {
 		{"current daemon (server classifies)", ""},
 		{"legacy daemon reporting process_failure", string(taskfailure.ReasonAgentProcessFailure)},
 		{"legacy daemon reporting unknown", string(taskfailure.ReasonAgentUnknown)},
-		{"pre-MUL-1949 daemon reporting coarse agent_error", "agent_error"},
+		{"pre-ENA-1949 daemon reporting coarse agent_error", "agent_error"},
 	}
 
 	// resolveFailureReason mirrors the two steps FailTask runs in order before
@@ -404,7 +404,7 @@ func TestOpencodeStreamEndedFailureRetries(t *testing.T) {
 }
 
 // TestSkillBundleFailureFromLegacyDaemonRetries is the mixed-version
-// regression for MUL-5370. It walks the exact chain FailTask runs for a task
+// regression for ENA-5370. It walks the exact chain FailTask runs for a task
 // an un-upgraded daemon just failed, and asserts the user-visible outcome:
 // the run is retried instead of dying.
 //

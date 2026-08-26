@@ -42,7 +42,7 @@ func channelScopeTestDB(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// TestChannelStore_ScopesToFeishu is the MUL-3515 regression guard: the
+// TestChannelStore_ScopesToFeishu is the ENA-3515 regression guard: the
 // Lark/Feishu wrappers on ChannelStore must never read another channel_type's
 // rows, even when a non-Feishu installation / chat-session binding / outbound
 // card shares the same workspace, chat_session, or task. (Member-removal and

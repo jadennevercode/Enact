@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// MUL-5824: cancelled work is abandoned work. It stays reachable, but it must
+// ENA-5824: cancelled work is abandoned work. It stays reachable, but it must
 // never sit above a live issue on relevance alone — and it must be what the
 // LIMIT window drops first, not what pushes live work off the page.
 //

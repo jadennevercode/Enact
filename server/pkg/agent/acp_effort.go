@@ -20,7 +20,7 @@ import (
 //   - Semantics. There is no "this option is reasoning effort" marker, so the
 //     selector is matched by id/category against acpEffortOptionIDs.
 //   - Vocabulary. reasonix advertises auto|disabled|low|high|max, Codex
-//     none|minimal|…|ultra. We pass tokens through verbatim (MUL-2339) rather
+//     none|minimal|…|ultra. We pass tokens through verbatim (ENA-2339) rather
 //     than flattening them onto a shared enum.
 //   - Whether setting it does anything. The protocol says a client MAY set an
 //     option; it does not say the agent must act on it. Kimi ≤0.28.1 and

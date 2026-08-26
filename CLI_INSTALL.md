@@ -140,7 +140,7 @@ enact auth status
 Expected output should show the authenticated user and server URL.
 
 **If login fails:**
-- If no browser is available (headless environment), the user can generate a Personal Access Token at `https://enact.ai/settings?tab=tokens` and run: `enact login --token <mul_...>` (use `--token=` with an empty value to be prompted interactively).
+- If no browser is available (headless environment), the user can generate a Personal Access Token at `https://enact.ai/settings?tab=tokens` and run: `enact login --token <enact_...>` (use `--token=` with an empty value to be prompted interactively).
 - If the server URL needs to be customized: `enact config set server_url <url>` before logging in.
 
 ---

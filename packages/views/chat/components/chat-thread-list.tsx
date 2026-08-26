@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -25,9 +26,21 @@ import {
   useSetChatSessionArchived,
   useSetChatSessionPinned,
 } from "@enact/core/chat/mutations";
-import { useChatStore } from "@enact/core/chat";
-import type { Agent, ChatSession, PendingChatTasksResponse } from "@enact/core/types";
+import {
+  countSegmentUnread,
+  segmentChatSessions,
+  useChatSegmentCollapseStore,
+  useChatStore,
+  type ChatSegment,
+} from "@enact/core/chat";
+import type {
+  Agent,
+  ChatSession,
+  PendingChatTasksResponse,
+  Project,
+} from "@enact/core/types";
 import { ActorAvatar } from "../../common/actor-avatar";
+import { ProjectIcon } from "../../projects/components/project-icon";
 import {
   RowActionsMenu,
   handleRowActivationKey,
@@ -70,6 +83,14 @@ function toPreview(content: string): string {
  * activity first). Renaming lives in the conversation header's ⋯ menu, not
  * here.
  *
+ * The history view segments by project context whenever at least one chat
+ * resolves to a known project: a leading "Pinned" segment (pins mean "always on
+ * top", so they must not be foldable away under a project), then one segment
+ * per project ordered by its most recent chat, then "No project" last. Each
+ * segment header folds, and the fold state is persisted per workspace. Chats
+ * with no project context at all keep the plain flat list — see
+ * `segmentChatSessions`.
+ *
  * Two views, toggled locally: the default "history" view lists active chats and
  * hovering a row reveals pin + archive (or stop, while running) — archiving is
  * the reversible, one-click default so nothing is destroyed by accident. A
@@ -81,12 +102,17 @@ function toPreview(content: string): string {
 export function ChatThreadList({
   sessions,
   agents,
+  projects = [],
   activeSessionId,
   onSelectSession,
   onArchive,
 }: {
   sessions: ChatSession[];
   agents: Agent[];
+  // Workspace projects, used to resolve each chat's `project_id` into a
+  // segment. Optional so the list still renders bare in tests; without them
+  // nothing resolves and the list stays flat.
+  projects?: Project[];
   activeSessionId: string | null;
   onSelectSession: (session: ChatSession) => void;
   // Archiving is owned by the parent so the selection advance stays layout-
@@ -121,6 +147,13 @@ export function ChatThreadList({
     () => sortChatSessions(sessions.filter((s) => s.status === "archived")),
     [sessions],
   );
+  // History only. The archived view stays flat: it is a small, read-only
+  // terminal list, and folding it by project would add headers to hide rows
+  // the user came there specifically to find.
+  const segmentation = useMemo(
+    () => segmentChatSessions(historySessions, projects),
+    [historySessions, projects],
+  );
 
   // Which view is showing. Falls back to history when the archived list drains
   // (last chat unarchived / deleted) so we never strand the user on an empty
@@ -137,6 +170,10 @@ export function ChatThreadList({
   const setPinned = useSetChatSessionPinned();
   const setArchived = useSetChatSessionArchived();
   const setActiveSession = useChatStore((s) => s.setActiveSession);
+  const collapsedSegmentIds = useChatSegmentCollapseStore((s) => s.collapsedSegmentIds);
+  const toggleSegmentCollapsed = useChatSegmentCollapseStore(
+    (s) => s.toggleSegmentCollapsed,
+  );
   const queryClient = useQueryClient();
 
   const { data: pending } = useQuery(pendingChatTasksOptions(wsId));
@@ -245,7 +282,7 @@ export function ChatThreadList({
     } else if (last?.message_kind === "no_response") {
       // A no_response turn stores a non-empty English fallback as its content,
       // so the preview is never blank even on older clients; new clients show a
-      // localized, italic hint instead of that fallback text (MUL-4351).
+      // localized, italic hint instead of that fallback text (ENA-4351).
       previewNode = (
         <span className="block truncate italic text-muted-foreground">
           {t(($) => $.list.no_response_preview)}
@@ -474,6 +511,48 @@ export function ChatThreadList({
     );
   };
 
+  const renderSegment = (segment: ChatSegment) => {
+    const collapsed = collapsedSegmentIds.includes(segment.id);
+    const groupId = `chat-segment-${segment.id}`;
+    const title =
+      segment.kind === "pinned"
+        ? t(($) => $.list.pinned_segment)
+        : segment.kind === "no_project"
+          ? t(($) => $.list.no_project_segment)
+          : segment.project?.title.trim() || t(($) => $.window.untitled);
+
+    return (
+      <div key={segment.id}>
+        <SegmentHeader
+          title={title}
+          icon={
+            segment.kind === "pinned" ? (
+              <Pin aria-hidden="true" className="size-3.5 -rotate-45 fill-current" />
+            ) : segment.kind === "project" ? (
+              <ProjectIcon project={segment.project} size="sm" />
+            ) : null
+          }
+          count={segment.sessions.length}
+          // A folded segment must not swallow new replies or a running agent,
+          // so the header carries both signals — but only while folded: the
+          // rows own them once they are visible.
+          unread={collapsed ? countSegmentUnread(segment.sessions, activeSessionId) : 0}
+          unreadLabel={t(($) => $.session_history.row_subtitle.new_reply)}
+          running={
+            collapsed &&
+            segment.sessions.some((item) => pendingTaskBySessionId.has(item.id))
+          }
+          collapsed={collapsed}
+          controlsId={groupId}
+          onToggle={() => toggleSegmentCollapsed(segment.id)}
+        />
+        <div id={groupId} role="group" aria-label={title} hidden={collapsed}>
+          {!collapsed && segment.sessions.map(renderRow)}
+        </div>
+      </div>
+    );
+  };
+
   // Archived view: a back header, then the archived rows. Delete lives only
   // here (via each row's hover actions).
   if (view === "archived") {
@@ -524,9 +603,71 @@ export function ChatThreadList({
 
   return (
     <>
-      {historySessions.map(renderRow)}
+      {segmentation.segmented
+        ? segmentation.segments.map(renderSegment)
+        : segmentation.sessions.map(renderRow)}
       {archivedEntry}
     </>
+  );
+}
+
+/**
+ * Fold control for one project segment. Sized and coloured like the "Archived"
+ * footer entry so the list reads as one family of secondary controls rather
+ * than two competing header styles.
+ */
+function SegmentHeader({
+  title,
+  icon,
+  count,
+  unread,
+  unreadLabel,
+  running,
+  collapsed,
+  controlsId,
+  onToggle,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  count: number;
+  unread: number;
+  unreadLabel: string;
+  running: boolean;
+  collapsed: boolean;
+  controlsId: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      aria-controls={controlsId}
+      className="mt-1 flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-left text-caption font-medium text-muted-foreground outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      {collapsed ? (
+        <ChevronRight aria-hidden="true" className="size-3.5 shrink-0" />
+      ) : (
+        <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
+      )}
+      {/* Spacer when the segment has no icon ("No project"), so every segment
+          title starts on the same x — same trick the rows use for a missing
+          agent avatar. */}
+      {icon ?? <span aria-hidden="true" className="size-3.5 shrink-0" />}
+      <span className="min-w-0 flex-1 truncate">{title}</span>
+      {running && (
+        <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin text-emerald-500" />
+      )}
+      {unread > 0 && (
+        <span
+          aria-label={unreadLabel}
+          className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[oklch(0.62_0.14_18)] px-1 text-micro font-semibold text-white"
+        >
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+      <span className="shrink-0 tabular-nums text-muted-foreground">{count}</span>
+    </button>
   );
 }
 

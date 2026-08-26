@@ -50,7 +50,7 @@ func TestClassifyPoisonedOutput(t *testing.T) {
 			wantOK: false,
 		},
 		{
-			// Regression guard for the GPT-Boy review on MUL-1630:
+			// Regression guard for the GPT-Boy review on ENA-1630:
 			// a real review/analysis that quotes both markers must not
 			// be misclassified. Without the length cap, this entire
 			// PR's review thread would tank as a poisoned failure.
@@ -128,7 +128,7 @@ func TestClassifyPoisonedError(t *testing.T) {
 		wantReason string
 	}{
 		{
-			// MUL-1921 reproducer: a markdown image in the issue
+			// ENA-1921 reproducer: a markdown image in the issue
 			// description was downloaded as a 146-byte CDN auth-error
 			// XML, then surfaced to the LLM as a base64 PNG. The API
 			// rejected it and every follow-up task replayed the same

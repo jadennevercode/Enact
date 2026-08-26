@@ -26,8 +26,7 @@ export interface AuthState {
   retryGeneration: number;
 
   retryAuthentication: () => void;
-  sendCode: (email: string) => Promise<void>;
-  verifyCode: (email: string, code: string) => Promise<User>;
+  loginWithEmail: (email: string) => Promise<User>;
   loginWithGoogle: (code: string, redirectUri: string) => Promise<User>;
   loginWithToken: (token: string) => Promise<User>;
   logout: () => void;
@@ -52,12 +51,8 @@ export function createAuthStore(options: AuthStoreOptions) {
       }));
     },
 
-    sendCode: async (email: string) => {
-      await api.sendCode(email);
-    },
-
-    verifyCode: async (email: string, code: string) => {
-      const { token, user } = await api.verifyCode(email, code);
+    loginWithEmail: async (email: string) => {
+      const { token, user } = await api.emailLogin(email);
       if (!cookieAuth) {
         // Token mode: persist for Electron / legacy.
         storage.setItem("enact_token", token);

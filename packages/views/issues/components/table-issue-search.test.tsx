@@ -19,13 +19,13 @@ describe("TableIssueSearch", () => {
     );
 
     fireEvent.change(screen.getByRole("searchbox"), {
-      target: { value: "MUL-4797" },
+      target: { value: "ENA-4797" },
     });
-    expect(onChange).toHaveBeenLastCalledWith("MUL-4797");
+    expect(onChange).toHaveBeenLastCalledWith("ENA-4797");
 
     view.rerender(
       <TableIssueSearch
-        value="MUL-4797"
+        value="ENA-4797"
         onChange={onChange}
         placeholder="Search title or issue ID…"
         clearLabel="Clear search"

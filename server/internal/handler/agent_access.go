@@ -10,7 +10,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Agent invocation permission model (MUL-3963).
+// Agent invocation permission model (ENA-3963).
 //
 // Two distinct questions, previously conflated in canAccessPrivateAgent:
 //
@@ -49,7 +49,7 @@ import (
 func (h *Handler) canInvokeAgent(ctx context.Context, agent db.Agent, actorType, actorID, originatorUserID, workspaceID string) bool {
 	allowed := h.invokeAgentDecision(ctx, agent, actorType, actorID, originatorUserID, workspaceID)
 	if !allowed && actorType != "member" && originatorUserID == "" {
-		// MUL-6490: the wire reason stays the deliberately generic
+		// ENA-6490: the wire reason stays the deliberately generic
 		// invocation_not_allowed (dispatch/reason.go — it must not reveal whether a
 		// target exists), which leaves the one denial a workspace CAN fix looking
 		// identical to a plain permission error. Name the root cause here, where
@@ -96,7 +96,7 @@ func (h *Handler) invokeAgentDecision(ctx context.Context, agent db.Agent, actor
 
 	// Agents and system triggers are workspace-internal principals: a
 	// workspace target admits them even when no human originator resolved.
-	// This is a DELIBERATE, product-approved exception (MUL-3963): webhook /
+	// This is a DELIBERATE, product-approved exception (ENA-3963): webhook /
 	// system / workspace-wide automation must be able to trigger a
 	// `public_to workspace` agent even though there is no human at the top of
 	// the chain. It is scoped tightly — it ONLY relaxes the *workspace* target.
@@ -227,10 +227,10 @@ func (h *Handler) invokeOriginatorFromRequest(r *http.Request, actorType, actorI
 // autopilotDelegationAuthority resolves the effective invoking human for the A2A
 // invoke gate (canInvokeAgent) when a trigger comment is authored by an
 // UNATTRIBUTED autopilot dispatch delegating mid-chain on the very issue that
-// autopilot created (MUL-4857).
+// autopilot created (ENA-4857).
 //
 // A schedule/webhook autopilot run carries no top-of-chain human originator by
-// design (MUL-4302). Without one, canInvokeAgent fails closed for the DEFAULT
+// design (ENA-4302). Without one, canInvokeAgent fails closed for the DEFAULT
 // private agent (and member-scoped public_to agents), so a mid-run @mention
 // delegation silently enqueues nothing — even though the SAME autopilot's first
 // dispatch was admitted via the autopilot creator (autopilotAdmitInvoke ->
@@ -238,11 +238,11 @@ func (h *Handler) invokeOriginatorFromRequest(r *http.Request, actorType, actorI
 // the mid-run delegation path: the gate still runs, now keyed on the autopilot
 // creator, so NO unrestricted agent-to-agent bypass is reopened.
 //
-// SECURITY (confused-deputy defense, review MUL-4857): the creator's authority is
+// SECURITY (confused-deputy defense, review ENA-4857): the creator's authority is
 // granted ONLY when the SPEAKING run is verified to be doing work on THIS very
 // autopilot-created issue. Binding to issue provenance + an empty originator alone
 // is NOT enough — an agent running a task on some OTHER issue can legitimately
-// comment here, and since MUL-6490 that cross-issue lineage IS persisted on
+// comment here, and since ENA-6490 that cross-issue lineage IS persisted on
 // source_task_id (so the human originator chain survives the hop), so it could
 // otherwise borrow a stranger autopilot creator's invoke rights just by mentioning
 // on that autopilot's issue. The task.issue_id check below is what keeps that shut:
@@ -295,7 +295,7 @@ func (h *Handler) autopilotDelegationAuthority(ctx context.Context, issue db.Iss
 	return uuidToString(ap.CreatedByID)
 }
 
-// autopilotDelegationAuthorityFromRequest resolves the MUL-4857 delegation
+// autopilotDelegationAuthorityFromRequest resolves the ENA-4857 delegation
 // authority for a comment being created or previewed over HTTP. The speaking task
 // is taken from the server-trusted X-Task-ID header (the CLI stamps it on every
 // agent request); autopilotDelegationAuthority then verifies its lineage. Returns
@@ -311,7 +311,7 @@ func (h *Handler) autopilotDelegationAuthorityFromRequest(r *http.Request, issue
 	return h.autopilotDelegationAuthority(r.Context(), issue, actorType, actorID, task)
 }
 
-// autopilotDelegationAuthorityFromComment resolves the MUL-4857 delegation
+// autopilotDelegationAuthorityFromComment resolves the ENA-4857 delegation
 // authority when reconciling an already-persisted comment (retrigger after
 // cancel). The speaking task is taken from the stored comment.source_task_id — the
 // same server-trusted lineage CreateComment stamped for the authoring run — and
@@ -331,14 +331,14 @@ func (h *Handler) autopilotDelegationAuthorityFromComment(ctx context.Context, i
 // server-trusted X-Task-ID header), else an invalid UUID. This is the exact
 // lineage CreateComment stamps onto source_task_id, so an edit re-stamps what a
 // fresh authoring of the same content would have stamped and the two resolvers
-// can never disagree (MUL-6490).
+// can never disagree (ENA-6490).
 //
 // The task is NOT required to be running on the edited comment's issue: the
 // stamp records "which run wrote this", and a run may legitimately write on
 // another issue. Authority rules that additionally require same-issue work keep
 // that check themselves — autopilotDelegationAuthority verifies
 // task.issue_id == issue.id before granting the autopilot creator's invoke
-// rights, so a cross-issue lineage still fails closed there (MUL-4857).
+// rights, so a cross-issue lineage still fails closed there (ENA-4857).
 func (h *Handler) commentSourceTaskID(r *http.Request) pgtype.UUID {
 	task, ok := h.taskFromRequestHeader(r)
 	if !ok {

@@ -189,7 +189,7 @@ func (h *Handler) RerunIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// A manual rerun is a direct human action: attribute the new run to the
-	// rerunning member (MUL-4302 §5). Resolve the actor the same way assign/promote
+	// rerunning member (ENA-4302 §5). Resolve the actor the same way assign/promote
 	// does; an agent A2A actor is not a human and threads an invalid actor.
 	userID, ok := requireUserID(w, r)
 	if !ok {
@@ -200,7 +200,7 @@ func (h *Handler) RerunIssue(w http.ResponseWriter, r *http.Request) {
 	actorUserID := memberActorUserID(actorType, actorID)
 
 	// Re-validate the operator's invoke permission on the resolved target agent
-	// before cancelling / creating anything (MUL-4525). Issue visibility does not
+	// before cancelling / creating anything (ENA-4525). Issue visibility does not
 	// grant the right to trigger a private agent — a task_id rerun must gate the
 	// historical agent, not the (possibly reassigned) current assignee.
 	originatorUserID := h.invokeOriginatorFromRequest(r, actorType, actorID)

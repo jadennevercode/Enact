@@ -299,7 +299,7 @@ func TestEnsureTaskSkillBundles_RejectsPluginHashDrift(t *testing.T) {
 	}
 }
 
-// TestEnsureTaskSkillBundles_DeadlineIsLabelledStructurally is the MUL-5370
+// TestEnsureTaskSkillBundles_DeadlineIsLabelledStructurally is the ENA-5370
 // regression. A stalled bundle download used to surface as the bare string
 // "resolve skill bundles: context deadline exceeded", which taskfailure.Classify
 // could only file under agent_error.unknown — a bucket that is NOT on the

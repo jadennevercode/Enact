@@ -66,7 +66,7 @@ func TestSquadAssignedLeaderCanWrapUpOnCommentTurn(t *testing.T) {
 			"which contradicts the Own-the-parent-issue-status grant")
 	}
 	for _, want := range []string{
-		// MUL-6417: the brief's status rule is a fact judgment, and the
+		// ENA-6417: the brief's status rule is a fact judgment, and the
 		// leader bullet must point the same way as the briefing's grant —
 		// in_review is reached on the confirming turn, not on dispatch.
 		"dispatching members is not delivery",
@@ -86,7 +86,7 @@ func TestSquadAssignedLeaderCanWrapUpOnCommentTurn(t *testing.T) {
 }
 
 // TestGuestLeaderCannotChangeStatusOnCommentTurn is the other half of the
-// scope fix (MUL-3724 path): the issue belongs to a plain agent and this squad
+// scope fix (ENA-3724 path): the issue belongs to a plain agent and this squad
 // was only @mentioned for help. The briefing still gets injected — the leader
 // needs its roster — but no combination of the two halves may authorize a
 // status change on someone else's issue.
@@ -114,7 +114,7 @@ func TestGuestLeaderCannotChangeStatusOnCommentTurn(t *testing.T) {
 
 	// But the grant is absent: the briefing's prohibition governs (Agent
 	// Identity outranks the workflow), and the brief's fact-judgment rule
-	// (MUL-6417) hands the guest no runnable status command to contradict it.
+	// (ENA-6417) hands the guest no runnable status command to contradict it.
 	if strings.Contains(briefing, "Own the parent issue status") {
 		t.Errorf("guest leader must not receive the status-ownership grant:\n%s", briefing)
 	}

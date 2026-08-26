@@ -16,6 +16,7 @@ describe("parseTabSubject", () => {
     ["/acme/squads", { kind: "page", page: "squads" }],
     ["/acme/usage", { kind: "page", page: "usage" }],
     ["/acme/runtimes", { kind: "page", page: "runtimes" }],
+    ["/acme/ontologies", { kind: "page", page: "ontologies" }],
     ["/acme/skills", { kind: "page", page: "skills" }],
     ["/acme/settings", { kind: "page", page: "settings" }],
     // Resource details
@@ -46,11 +47,11 @@ describe("parseTabSubject", () => {
     ],
     // Containers — selection (and archived sub-list) live in the query string
     ["/acme/inbox", { kind: "inbox", selectedKey: null, archived: false }],
-    ["/acme/inbox?issue=MUL-9", { kind: "inbox", selectedKey: "MUL-9", archived: false }],
+    ["/acme/inbox?issue=ENA-9", { kind: "inbox", selectedKey: "ENA-9", archived: false }],
     ["/acme/inbox?view=archived", { kind: "inbox", selectedKey: null, archived: true }],
     [
-      "/acme/inbox?view=archived&issue=MUL-9",
-      { kind: "inbox", selectedKey: "MUL-9", archived: true },
+      "/acme/inbox?view=archived&issue=ENA-9",
+      { kind: "inbox", selectedKey: "ENA-9", archived: true },
     ],
     ["/acme/chat", { kind: "chat", sessionId: null }],
     ["/acme/chat?session=sess-1", { kind: "chat", sessionId: "sess-1" }],

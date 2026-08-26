@@ -102,7 +102,7 @@ SELECT EXISTS (
 // server-driven turn: an intro session starts with zero user messages, so the
 // opening run gets the "introduce yourself" prompt. Once the creator replies,
 // later turns in the same session must fall back to the normal reply prompt
-// instead of repeating the introduction every turn (MUL-4259).
+// instead of repeating the introduction every turn (ENA-4259).
 func (q *Queries) ChatSessionHasUserMessage(ctx context.Context, chatSessionID pgtype.UUID) (bool, error) {
 	row := q.db.QueryRow(ctx, chatSessionHasUserMessage, chatSessionID)
 	var has_user_message bool
@@ -257,7 +257,7 @@ type CreateChatMessageParams struct {
 
 // message_kind and quick_actions default via COALESCE so every existing caller
 // (which omits it) keeps writing ordinary messages; the empty-reply path passes
-// 'no_response' to mark a visible turn with no text output (MUL-4351).
+// 'no_response' to mark a visible turn with no text output (ENA-4351).
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
 	row := q.db.QueryRow(ctx, createChatMessage,
 		arg.ChatSessionID,
@@ -384,10 +384,10 @@ type CreateChatTaskParams struct {
 // Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 // locks the owners' workspace rows in the writer's own transaction and returns
 // false once they are gone, so this statement writes no row instead of stranding
-// a task in a workspace that has just been deleted (MUL-5999).
+// a task in a workspace that has just been deleted (ENA-5999).
 // The chat sender (initiator) is a direct_human originator and accountable;
 // attribution provenance is stamped so this path is not a NULL-source enqueue
-// bypass (MUL-4302 §2).
+// bypass (ENA-4302 §2).
 func (q *Queries) CreateChatTask(ctx context.Context, arg CreateChatTaskParams) (AgentTaskQueue, error) {
 	row := q.db.QueryRow(ctx, createChatTask,
 		arg.AgentID,
@@ -486,7 +486,7 @@ type CreateMikaOnboardingOpeningParams struct {
 }
 
 // Mika's opening reply, written by the server rather than produced by an agent
-// run (MUL-5827). Paired with the hidden kickoff row in one transaction, which
+// run (ENA-5827). Paired with the hidden kickoff row in one transaction, which
 // is why created_at is derived instead of defaulted: now() is the TRANSACTION
 // timestamp, so both rows would land on the identical microsecond, and the
 // session-list LATERAL picks the last message with `ORDER BY created_at DESC
@@ -629,7 +629,7 @@ DELETE FROM chat_draft_restore
 WHERE chat_session_id = $1
 `
 
-// chat_draft_restore carries no chat_session FK (MUL-3515), so DeleteChatSession
+// chat_draft_restore carries no chat_session FK (ENA-3515), so DeleteChatSession
 // prunes its pending restores in the same tx that deletes the session.
 func (q *Queries) DeleteChatDraftRestoresBySession(ctx context.Context, chatSessionID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteChatDraftRestoresBySession, chatSessionID)
@@ -651,7 +651,7 @@ WHERE chat_session_id IN (
 // same tx, BEFORE the agent rows go: the join below needs them. Mirrors
 // DeleteChannelInstallationsBySystemRuntimeAgents.
 //
-// Only system agents are hard-deleted on runtime teardown since MUL-5559; user
+// Only system agents are hard-deleted on runtime teardown since ENA-5559; user
 // agents (archived or not) are unbound and keep their sessions and restores.
 func (q *Queries) DeleteChatDraftRestoresBySystemRuntimeAgents(ctx context.Context, runtimeID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteChatDraftRestoresBySystemRuntimeAgents, runtimeID)
@@ -690,7 +690,7 @@ RETURNING id, chat_session_id, role, content, task_id, created_at, failure_reaso
 
 // Deletes the MEMBER-TYPED input of a cancelled/edited turn.
 //
-// The kickoff exclusion is load-bearing since MUL-5827: an onboarding session's
+// The kickoff exclusion is load-bearing since ENA-5827: an onboarding session's
 // first real turn owns two user rows — the member's message and the adopted
 // kickoff — so an unqualified delete would take the kickoff with it. That row
 // is the only copy of the onboarding context and of "you have already greeted
@@ -910,7 +910,7 @@ WHERE session_id NOT IN (SELECT session_id FROM retired_sessions)
                AND COALESCE(error, '') ~* 'role[^a-z0-9]{0,2}assistant|assistant message|message at position|messages\.[0-9]|messages\[[0-9]')
     )
   )
-  -- MUL-5722, mirroring GetLastTaskSession: an overflowed resume records no
+  -- ENA-5722, mirroring GetLastTaskSession: an overflowed resume records no
   -- session, so exclude by time instead of by matching the failed row. Note
   -- this only guards the FALLBACK — the claim handler reads
   -- chat_session.session_id first, so a pointer still naming the oversized
@@ -983,7 +983,7 @@ LIMIT 1
 `
 
 // The session's most recent assistant turn, used as the regeneration target
-// when the user clicks "refresh" on the quick-actions row (MUL-5149). Only rows
+// when the user clicks "refresh" on the quick-actions row (ENA-5149). Only rows
 // with a task_id qualify — the daemon suggest supplement keys off task_id and
 // a resume needs a real completed turn to resume from.
 func (q *Queries) GetLatestAssistantChatMessageForSession(ctx context.Context, chatSessionID pgtype.UUID) (ChatMessage, error) {
@@ -1056,7 +1056,7 @@ SELECT id, status, created_at FROM agent_task_queue
 WHERE chat_session_id = $1 AND status IN ('queued', 'dispatched', 'running', 'waiting_local_directory')
   -- Background quick-actions regeneration passes are invisible to the chat UI:
   -- they own no assistant turn and must not raise the StatusPill or disable the
-  -- composer (MUL-5149 refresh follow-up).
+  -- composer (ENA-5149 refresh follow-up).
   AND regenerate_quick_actions_for IS NULL
 ORDER BY created_at DESC
 LIMIT 1
@@ -1153,14 +1153,14 @@ SELECT EXISTS (
 // target we'd resume is already stale even before its assistant row lands; and a
 // second concurrent regenerate would double-spend quota on the same turn. Read
 // inside the same session lock as the enqueue so it cannot race a sibling insert
-// (MUL-5149 review §1/§2).
+// (ENA-5149 review §1/§2).
 //
 // 'deferred' is included: an auto-retry armed with a backoff fire_at is inserted
 // deferred (CreateRetryTask), and provider_network's final chat attempt waits
 // ~5s that way. During that window the failed turn has written no assistant row,
 // so the latest-persisted check still points at the OLD turn — omitting deferred
 // would let a refresh resume a session the retry is about to advance and attach
-// the new turn's suggestions to the old one (MUL-5149 re-review §1).
+// the new turn's suggestions to the old one (ENA-5149 re-review §1).
 func (q *Queries) HasActiveChatTaskForSession(ctx context.Context, chatSessionID pgtype.UUID) (bool, error) {
 	row := q.db.QueryRow(ctx, hasActiveChatTaskForSession, chatSessionID)
 	var has_active bool
@@ -1176,7 +1176,7 @@ SELECT EXISTS (
   WHERE atq.chat_session_id IS NOT NULL
     AND atq.status IN ('queued', 'dispatched', 'running', 'waiting_local_directory', 'deferred')
     -- Background quick-actions regeneration passes own no visible turn and must
-    -- never light the FAB "running" indicator (MUL-5149 refresh follow-up).
+    -- never light the FAB "running" indicator (ENA-5149 refresh follow-up).
     AND atq.regenerate_quick_actions_for IS NULL
     AND cs.workspace_id = $1
     AND cs.creator_id = $2
@@ -1357,7 +1357,7 @@ type ListAgentBuilderSessionsByCreatorRow struct {
 // cs.runtime_id: that is the daemon's resume pointer, left stale on purpose
 // after a runtime switch (see RebindAgentBuilderRuntime), so resuming from it
 // would put the picker on a runtime that no longer executes anything — the
-// exact split MUL-5163 removed.
+// exact split ENA-5163 removed.
 //
 // A conversation qualifies once it holds something the user would miss: a
 // message, or a saved configuration. Requiring a message alone was wrong — the
@@ -1481,7 +1481,7 @@ type ListAllChatSessionsByCreatorRow struct {
 // unread state), but an archived session is read-only and hidden from history,
 // so any residual unread is uncleanable and must not light up any badge. Gating
 // on status here is the single source of truth for all unread surfaces (FAB,
-// sidebar Chat tab, chat-window header) — see MUL-4360.
+// sidebar Chat tab, chat-window header) — see ENA-4360.
 func (q *Queries) ListAllChatSessionsByCreator(ctx context.Context, arg ListAllChatSessionsByCreatorParams) ([]ListAllChatSessionsByCreatorRow, error) {
 	rows, err := q.db.Query(ctx, listAllChatSessionsByCreator, arg.WorkspaceID, arg.CreatorID)
 	if err != nil {
@@ -1956,7 +1956,7 @@ JOIN chat_session cs ON cs.id = atq.chat_session_id
 WHERE atq.chat_session_id IS NOT NULL
   AND atq.status IN ('queued', 'dispatched', 'running', 'waiting_local_directory', 'deferred')
   -- Exclude background quick-actions regeneration passes: they own no assistant
-  -- turn and must not surface as "running" chat work (MUL-5149 refresh follow-up).
+  -- turn and must not surface as "running" chat work (ENA-5149 refresh follow-up).
   AND atq.regenerate_quick_actions_for IS NULL
   AND cs.workspace_id = $1
   AND cs.creator_id = $2
@@ -2240,7 +2240,7 @@ FOR UPDATE
 // send reads the carrier agent's runtime_id, the switch then passes its
 // pending-task check and rebinds the carrier, and the send finally inserts a task
 // still stamped with the pre-switch runtime — so the user is told the switch
-// succeeded while their message runs on the old runtime (MUL-5163).
+// succeeded while their message runs on the old runtime (ENA-5163).
 //
 // The lock alone is not sufficient: the send path must also re-read the agent
 // INSIDE the locked transaction, because a send blocked at INSERT would otherwise
@@ -2579,7 +2579,7 @@ WITH latest_visible AS (
       -- member's message so the runtime reads "context, then their words";
       -- moving it to dispatch time reverses that, and because the batch's two
       -- rows would then share one timestamp, their order falls to random UUIDs
-      -- (MUL-5827).
+      -- (ENA-5827).
       AND claimed_input.message_kind <> 'onboarding_kickoff'
 )
 UPDATE chat_message AS claimed_input
@@ -2671,7 +2671,7 @@ type ReanchorNextQueuedDirectChatInputParams struct {
 }
 
 // An assistant outcome can make the next queued direct task the positional
-// head before a daemon claims it (MUL-5750). Its user row was persisted before
+// head before a daemon claims it (ENA-5750). Its user row was persisted before
 // this reply, so move that still-hidden single-row input just after the reply.
 // Callers run this immediately after CreateChatMessage in the same transaction:
 // readers see either the old active head without the reply, or the settled
@@ -2968,7 +2968,7 @@ SELECT
 `
 
 // Whether this input batch is a kickoff and NOTHING else — the shape only a
-// pre-MUL-5827 opening task has, where the kickoff was a turn of its own.
+// pre-ENA-5827 opening task has, where the kickoff was a turn of its own.
 //
 // Reachable exclusively during a rolling deploy: a kickoff task enqueued by the
 // old server and claimed by the new one. The reply to it is still that member's
@@ -2985,7 +2985,7 @@ SELECT
 //
 // $1 is the INPUT-OWNING task id — COALESCE(task.chat_input_task_id, task.id),
 // i.e. chatInputOwnerID — never a retry clone's own id, since the whole retry
-// chain consumes the root's input batch (MUL-4351).
+// chain consumes the root's input batch (ENA-4351).
 func (q *Queries) TaskInputIsOnboardingKickoffOnly(ctx context.Context, taskID pgtype.UUID) (pgtype.Bool, error) {
 	row := q.db.QueryRow(ctx, taskInputIsOnboardingKickoffOnly, taskID)
 	var kickoff_only pgtype.Bool
@@ -3149,7 +3149,7 @@ type UpdateChatSessionTitleIfCurrentParams struct {
 
 // Compare-and-swap the title: only overwrite it when it still equals the
 // value the caller observed (@expected_title). This is the idempotency /
-// no-clobber guard behind LLM auto-titling (MUL-4295): the async generator
+// no-clobber guard behind LLM auto-titling (ENA-4295): the async generator
 // captures the session's current (default/original) title before calling the
 // model, and this write lands only if a manual rename or a competing writer
 // has not changed the title in the meantime. A mismatch returns pgx.ErrNoRows

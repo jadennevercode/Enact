@@ -95,7 +95,7 @@ func batchClaimFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) (r
 }
 
 // TestClaimTasksForRuntimes_MultiRuntimeDrain verifies the machine-level batch
-// claim (MUL-4257): a single call claims across all runtimes, one task per
+// claim (ENA-4257): a single call claims across all runtimes, one task per
 // agent per call (matching the singular path's dedup), routes each task to its
 // runtime, respects a subsequent drain, and reports empty once nothing is
 // queued.
@@ -165,7 +165,7 @@ func TestClaimTasksForRuntimes_MaxTasksCap(t *testing.T) {
 	}
 }
 
-// TestClaimTasksForRuntimes_AnyDueRuntimeChecksTheCompleteSet pins MUL-6486's
+// TestClaimTasksForRuntimes_AnyDueRuntimeChecksTheCompleteSet pins ENA-6486's
 // collection-level reclaim gate. Per-runtime backstops can begin staggered, but
 // one due member must run the single UPDATE over every runtime on that daemon;
 // filtering the SQL array to only the due member both misses recoverable work

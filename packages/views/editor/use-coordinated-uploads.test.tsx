@@ -17,7 +17,7 @@ import {
   type UploadDraftBinding,
 } from "./use-coordinated-uploads";
 
-// The coordinator (MUL-5181 L2) is what actually performs the request; tests
+// The coordinator (ENA-5181 L2) is what actually performs the request; tests
 // drive an upload's outcome by controlling THAT promise.
 const mockApiUploadFile = vi.hoisted(() => vi.fn());
 vi.mock("@enact/core/api", () => ({ api: { uploadFile: mockApiUploadFile } }));

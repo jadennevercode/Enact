@@ -116,7 +116,7 @@ WHERE agent_id = $1 AND skill_id = $2;
 DELETE FROM agent_skill WHERE agent_id = $1;
 
 -- name: ListAgentSkillsByWorkspace :many
-SELECT ask.agent_id, s.id, s.name, s.description, ask.enabled
+SELECT ask.agent_id, s.id, s.name, s.description, s.config, ask.enabled
 FROM agent_skill ask
 JOIN skill s ON s.id = ask.skill_id
 WHERE s.workspace_id = $1

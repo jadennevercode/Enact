@@ -16,7 +16,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Test helpers for LLM chat auto-titling (MUL-4295)
+// Test helpers for LLM chat auto-titling (ENA-4295)
 // ---------------------------------------------------------------------------
 
 // stubLLMCompletion returns an httptest server that mimics the OpenAI

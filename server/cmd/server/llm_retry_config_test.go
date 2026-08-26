@@ -75,7 +75,7 @@ func TestParseLLMMaxRetriesRejected(t *testing.T) {
 
 // TestParsedLLMMaxRetriesReachesTheClient closes the loop from env string to
 // the budget the SDK will actually enforce — the wiring that did not exist at
-// all before MUL-6364, which is why the field was configurable in name only.
+// all before ENA-6364, which is why the field was configurable in name only.
 func TestParsedLLMMaxRetriesReachesTheClient(t *testing.T) {
 	parsed, err := parseLLMMaxRetries("0")
 	if err != nil {

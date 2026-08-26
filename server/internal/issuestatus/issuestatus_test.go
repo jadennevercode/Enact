@@ -83,7 +83,7 @@ func custom(key, category string) db.IssueStatus {
 }
 
 // TestEffectiveIsIdentityOnBuiltInsWithoutQuerying is the load-bearing
-// guarantee of MUL-6243: every pre-existing status check keeps its exact
+// guarantee of ENA-6243: every pre-existing status check keeps its exact
 // meaning, and no existing code path gains a database round trip.
 func TestEffectiveIsIdentityOnBuiltInsWithoutQuerying(t *testing.T) {
 	q := newFakeQuerier()

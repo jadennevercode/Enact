@@ -87,32 +87,32 @@ enact workspace member invite admin@example.com --role admin
 ```bash
 # 表示と検索
 enact issue list
-enact issue get MUL-123
+enact issue get ENA-123
 enact issue search "ログイン失敗"
 
 # 作成と更新
 enact issue create --title "ログイン失敗を修正"
-enact issue status MUL-123 in_progress
-enact issue assign MUL-123 --to "Backend Agent"
+enact issue status ENA-123 in_progress
+enact issue assign ENA-123 --to "Backend Agent"
 
 # コメントと実行履歴
-enact issue comment list MUL-123
-enact issue comment add MUL-123 --content "まず回帰テストを確認してください"
-enact issue runs MUL-123
+enact issue comment list ENA-123
+enact issue comment add ENA-123 --content "まず回帰テストを確認してください"
+enact issue runs ENA-123
 ```
 
 長い説明やコメントは stdin から読み込むと、改行や引用符の扱いに悩まずに済みます:
 
 ```bash
 enact issue create --title "アップグレードメモ" --description-stdin < notes.md
-enact issue comment add MUL-123 --content-stdin < review.md
+enact issue comment add ENA-123 --content-stdin < review.md
 ```
 
 1 回の実行のメッセージを表示する、またはタスクを停止する:
 
 ```bash
-enact issue run-messages <task-id> --issue MUL-123
-enact issue cancel-task <task-id> --issue MUL-123
+enact issue run-messages <task-id> --issue ENA-123
+enact issue cancel-task <task-id> --issue ENA-123
 ```
 
 ## エージェントとスキル
@@ -180,7 +180,7 @@ enact runtime activity <runtime-id>
 
 ## ID と出力形式
 
-イシューには `MUL-123` のようなキーまたは完全な UUID を使います。UUID の短いプレフィックスは受け付けません。
+イシューには `ENA-123` のようなキーまたは完全な UUID を使います。UUID の短いプレフィックスは受け付けません。
 
 その他のリソースの `list` コマンドは通常、コピーできる短い ID を表示し、`--full-id` で完全な UUID を出力できます。短い ID が一意に定まらない場合、CLI は文字の追加か完全な UUID への切り替えを求めます。タスクの短い ID は、所属するイシューを `--issue` で指定する必要もあります。
 

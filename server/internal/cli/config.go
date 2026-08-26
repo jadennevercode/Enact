@@ -145,7 +145,7 @@ type CLIConfig struct {
 	Backends *BackendOverrides `json:"backends,omitempty"`
 
 	// ProfileCommandOverrides is a per-machine map of custom runtime
-	// profile_id -> absolute executable path (MUL-3284). A workspace custom
+	// profile_id -> absolute executable path (ENA-3284). A workspace custom
 	// runtime profile records the command_name the daemon resolves on PATH,
 	// but the same logical profile may live at a different path on each
 	// machine (or not be on PATH at all). This map lets an operator pin the

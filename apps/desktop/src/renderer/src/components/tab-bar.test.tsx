@@ -191,7 +191,7 @@ describe("TabBar hover action buttons", () => {
     expect(within(pinnedTab).getByText("Issues")).toBeTruthy();
   });
 
-  // MUL-4370: each tab renders the shared ResourceLeadingVisual keyed off its
+  // ENA-4370: each tab renders the shared ResourceLeadingVisual keyed off its
   // URL. (Which visual/title a URL resolves to is covered by the views
   // tab-presentation tests; here we only assert the strip wires it in.)
   it("renders the resource leading visual for every tab", () => {
@@ -226,14 +226,14 @@ describe("TabBar hover action buttons", () => {
 
 describe("TabBar active-tab title persistence", () => {
   it("persists the resolved title only for the active tab", () => {
-    pres.title = "MUL-1: Fixed";
+    pres.title = "ENA-1: Fixed";
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues/i1", title: "Issues", pinned: false },
       { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
     ];
     state.byWorkspace.acme.activeTabId = "tA";
     render(<TabBar />);
-    expect(state.updateTab).toHaveBeenCalledWith("tA", { title: "MUL-1: Fixed" });
+    expect(state.updateTab).toHaveBeenCalledWith("tA", { title: "ENA-1: Fixed" });
     expect(state.updateTab).not.toHaveBeenCalledWith("tB", expect.anything());
     expect(state.updateTab).toHaveBeenCalledTimes(1);
   });
@@ -287,7 +287,7 @@ describe("TabBar merged-tab chrome", () => {
   // A flare overhangs the neighbouring tab by 9px, so the backing above may only
   // cover the arc and the canvas fill: left over the notch it prints a square of
   // strip colour on top of whatever the neighbour draws there, which is how the
-  // hover pill lost its corner to a dark bite (MUL-6160). The notch is therefore
+  // hover pill lost its corner to a dark bite (ENA-6160). The notch is therefore
   // masked out of the flare entirely, and the mask has to close before the arc's
   // anti-aliasing starts (r - 1.2) or the arc loses the backing it needs.
   it("punches the notch out rather than filling it with strip colour", () => {
@@ -534,18 +534,18 @@ describe("TabBar context menu", () => {
       {
         id: "tA",
         url: "/acme/issues/issue-1?comment=comment-1",
-        title: "MUL-1: Fix tabs",
+        title: "ENA-1: Fix tabs",
         pinned: false,
       },
     ];
 
     const { findByText, getByLabelText } = render(<TabBar />);
-    fireEvent.contextMenu(getByLabelText("MUL-1: Fix tabs"));
+    fireEvent.contextMenu(getByLabelText("ENA-1: Fix tabs"));
     fireEvent.click(await findByText("Open as new window"));
 
     expect(state.openIssueWindow).toHaveBeenCalledWith({
       path: "/acme/issues/issue-1?comment=comment-1",
-      title: "MUL-1: Fix tabs",
+      title: "ENA-1: Fix tabs",
     });
   });
 

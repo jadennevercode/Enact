@@ -6,7 +6,7 @@
 // It deliberately does NOT wrap the SDK in another HTTP client — it composes
 // *sdk.Client directly through the SDK interface so tests can drop in a fake.
 //
-// MVP scope (MUL-3720): toolkits are discovered dynamically. The
+// MVP scope (ENA-3720): toolkits are discovered dynamically. The
 // toolkit→auth-config mapping is resolved at request time from Composio's
 // /auth_configs endpoint (cached briefly), so a toolkit becomes connectable the
 // moment an auth config is enabled for it in the Composio dashboard — no env
@@ -204,7 +204,7 @@ type MCPSession struct {
 // exactly the fields the Settings UI renders plus a Connectable flag.
 //
 // Connectable means the project has an enabled auth config for the toolkit, so
-// BeginConnect would succeed. Since MUL-4009 ListToolkits only returns
+// BeginConnect would succeed. Since ENA-4009 ListToolkits only returns
 // connectable toolkits, so this is always true on the wire; the field is
 // retained for backward compatibility with older desktop clients that branch on
 // it (removing it would make them treat every entry as non-connectable).
@@ -485,7 +485,7 @@ func rowToConnection(row db.UserComposioConnection) Connection {
 
 // ListToolkits returns only the Composio toolkits the project can actually
 // connect (those with an enabled auth config). Toolkits with no enabled auth
-// config are filtered out entirely (MUL-4009): a card the user can't act on is
+// config are filtered out entirely (ENA-4009): a card the user can't act on is
 // noise, and the old "Not configured" grey label existed only to avoid a dead
 // button — dropping the entry removes the need for it. It fetches all pages
 // (capped by maxToolkitPages) so the UI gets the complete connectable list in

@@ -751,7 +751,7 @@ func buildClaudeArgs(opts ExecOptions, logger *slog.Logger) []string {
 	// SystemPrompt is intentionally not forwarded as --append-system-prompt:
 	// Claude Code loads the per-task CLAUDE.md the daemon writes into the
 	// workdir, so inlining the same runtime brief would duplicate it on every
-	// turn. Verified against Claude Code 2.1.220 (MUL-5392).
+	// turn. Verified against Claude Code 2.1.220 (ENA-5392).
 	if opts.ResumeSessionID != "" {
 		args = append(args, "--resume", opts.ResumeSessionID)
 	}
@@ -1097,7 +1097,7 @@ func cleanupMcpConfigTemp(path string) {
 // detectVersionTimeout bounds a single `<cli> --version` probe. Version
 // detection runs inside the daemon's blocking preflight (registerRuntimesForWorkspace),
 // so a CLI that never returns from `--version` — e.g. a brew-installed claude
-// wedged by a bun regression (MUL-3812) — would otherwise stall the whole
+// wedged by a bun regression (ENA-3812) — would otherwise stall the whole
 // registration loop, the daemon would never flip /health from "starting" to
 // "running", and *every* runtime on the host would appear disconnected. A real
 // `--version` returns well under this bound even on a cold cache or with
@@ -1123,7 +1123,7 @@ func detectCLIVersion(ctx context.Context, runtimeCmd Command) (string, error) {
 		// One provider-agnostic boundary for probes: DetectVersion routes every
 		// provider through here, so an ENOEXEC diagnosis added at this point
 		// reaches the reason the daemon reports for a skipped runtime
-		// (MUL-6164).
+		// (ENA-6164).
 		return "", fmt.Errorf("detect version for %s: %w", runtimeCmd, ExplainExecError(err))
 	}
 	return extractVersionLine(string(data)), nil

@@ -67,7 +67,7 @@ func cleanupSessionTasks(t *testing.T, sessionID string) {
 }
 
 // TestStartMikaOnboarding_WritesTheOpeningWithoutRunningAnAgent covers the
-// endpoint's whole reason to exist after MUL-5827: the member's first message
+// endpoint's whole reason to exist after ENA-5827: the member's first message
 // from Mika is already final when this call returns, and no agent ran to
 // produce it. The hidden kickoff is written alongside it, unowned, waiting for
 // the member's first real send to adopt it.

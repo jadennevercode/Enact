@@ -93,7 +93,7 @@ func TestUpdateIssue_SquadPrivateLeader_PlainMemberBlocked(t *testing.T) {
 // TestCreateIssue_SquadPrivateLeader_OwnerAllowed verifies that the LEADER
 // AGENT's owner can assign an issue to a squad with a private leader. Named
 // "OwnerAllowed" for the agent owner — a workspace owner/admin who does not own
-// the leader is denied (MUL-3963), which is what the sibling
+// the leader is denied (ENA-3963), which is what the sibling
 // PlainMemberBlocked / assertInvokeForbidden cases pin.
 func TestCreateIssue_SquadPrivateLeader_OwnerAllowed(t *testing.T) {
 	if testHandler == nil || testPool == nil {
@@ -115,7 +115,7 @@ func TestCreateIssue_SquadPrivateLeader_OwnerAllowed(t *testing.T) {
 		testPool.Exec(context.Background(), `DELETE FROM squad WHERE id = $1`, squadID)
 	})
 
-	// The AGENT OWNER assigns — allowed. (MUL-3963: workspace owner/admin no
+	// The AGENT OWNER assigns — allowed. (ENA-3963: workspace owner/admin no
 	// longer bypasses a private leader's invocation gate.)
 	w := httptest.NewRecorder()
 	r := newRequestAs(ownerID, "POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
@@ -203,7 +203,7 @@ func TestComment_SquadPrivateLeader_PlainMemberNoEnqueue(t *testing.T) {
 // TestChildDone_SquadPrivateLeader_PlainMemberWakesLeader verifies that when
 // a plain member completes a child issue whose parent is assigned to a
 // private-leader squad, the leader IS woken. Child-done no longer re-checks
-// leader invocation permission (MUL-4063 / GH #4928): the parent was already
+// leader invocation permission (ENA-4063 / GH #4928): the parent was already
 // assigned to the squad — which passed the invocation gate — so waking that
 // squad's own leader to advance the next stage is a coordination handoff, not
 // a fresh invocation. This mirrors the ungated agent-parent path
@@ -229,7 +229,7 @@ func TestChildDone_SquadPrivateLeader_PlainMemberWakesLeader(t *testing.T) {
 	})
 
 	// Create parent issue assigned to the squad (as the AGENT OWNER, who is
-	// allowed to invoke the private leader under MUL-3963).
+	// allowed to invoke the private leader under ENA-3963).
 	w := httptest.NewRecorder()
 	r := newRequestAs(ownerID, "POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title":         "parent with private-leader squad",
@@ -300,7 +300,7 @@ func TestChildDone_SquadPrivateLeader_PlainMemberWakesLeader(t *testing.T) {
 	}
 }
 
-// TestChildDone_SquadPrivateLeader_AgentActorWakesLeader is the core MUL-4063
+// TestChildDone_SquadPrivateLeader_AgentActorWakesLeader is the core ENA-4063
 // regression: an AGENT (a squad worker) closes a child under a private-leader
 // squad parent, and the child's completing agent has NO human originator who
 // could invoke the private leader. This is the exact process-squad pipeline
@@ -328,7 +328,7 @@ func TestChildDone_SquadPrivateLeader_AgentActorWakesLeader(t *testing.T) {
 		testPool.Exec(context.Background(), `DELETE FROM squad WHERE id = $1`, squadID)
 	})
 
-	// Parent assigned to the squad by the agent owner (allowed under MUL-3963).
+	// Parent assigned to the squad by the agent owner (allowed under ENA-3963).
 	w := httptest.NewRecorder()
 	r := newRequestAs(ownerID, "POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title":         "parent with private-leader squad (agent child-done)",
@@ -413,7 +413,7 @@ func TestChildDone_SquadPrivateLeader_AgentActorWakesLeader(t *testing.T) {
 		t.Fatalf("count tasks: %v", err)
 	}
 	if count == 0 {
-		t.Fatalf("private leader got 0 queued tasks from agent child-done; want >=1 (MUL-4063)")
+		t.Fatalf("private leader got 0 queued tasks from agent child-done; want >=1 (ENA-4063)")
 	}
 }
 
@@ -456,7 +456,7 @@ func TestComment_SquadPrivateLeader_AgentActorAllowed(t *testing.T) {
 	})
 
 	// Create a task for the other agent whose top-of-chain originator is the
-	// private leader's OWNER. Under MUL-3963 A2A is judged by that originator,
+	// private leader's OWNER. Under ENA-3963 A2A is judged by that originator,
 	// so the agent-actor squad mention resolves to the owner and may invoke
 	// the private leader.
 	var taskID string
@@ -486,7 +486,7 @@ func TestComment_SquadPrivateLeader_AgentActorAllowed(t *testing.T) {
 
 	// The private leader SHOULD have a queued task — the agent-actor mention's
 	// top-of-chain originator is the leader's owner, so A2A-by-originator
-	// admits it (MUL-3963).
+	// admits it (ENA-3963).
 	var count int
 	if err := testPool.QueryRow(ctx,
 		`SELECT count(*) FROM agent_task_queue WHERE issue_id = $1 AND agent_id = $2 AND status = 'queued'`,

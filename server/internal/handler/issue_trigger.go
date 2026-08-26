@@ -85,7 +85,7 @@ func (h *Handler) dispatchIssueRun(ctx context.Context, issue db.Issue, trigger 
 	switch trigger.AssigneeType {
 	case "agent":
 		// The member who performed this assign/promote is the accountable human
-		// for the run (MUL-4302 §4). An agent actor is not a human, so only a
+		// for the run (ENA-4302 §4). An agent actor is not a human, so only a
 		// member actor is threaded; otherwise attribution falls back to the chain.
 		_, _ = h.TaskService.EnqueueTaskForIssueWithHandoff(ctx, issue, handoffNote, memberActorUserID(actorType, actorID))
 	case "squad":
@@ -96,7 +96,7 @@ func (h *Handler) dispatchIssueRun(ctx context.Context, issue db.Issue, trigger 
 // memberActorUserID returns the acting member's user id as a pgtype.UUID when the
 // actor is a member, and an invalid UUID otherwise (an agent actor id is not a
 // human and must never become an accountable human). Used to thread the
-// assign/promote actor into the attribution resolver (MUL-4302 §4).
+// assign/promote actor into the attribution resolver (ENA-4302 §4).
 func memberActorUserID(actorType, actorID string) pgtype.UUID {
 	if actorType != "member" {
 		return pgtype.UUID{}
@@ -146,7 +146,7 @@ type IssueTriggerPreviewResponse struct {
 // returns the runs that would start, without any side effect. It is the single
 // authority the four entry points (create / single assign / single status /
 // batch) consult so the frontend never re-implements the enqueue rule
-// (MUL-3375). Mirrors PreviewCommentTriggers.
+// (ENA-3375). Mirrors PreviewCommentTriggers.
 func (h *Handler) PreviewIssueTrigger(w http.ResponseWriter, r *http.Request) {
 	userID, ok := requireUserID(w, r)
 	if !ok {

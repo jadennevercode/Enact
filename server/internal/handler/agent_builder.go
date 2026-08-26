@@ -150,7 +150,7 @@ type AgentBuilderSessionSummary struct {
 	Title     string `json:"title"`
 	// RuntimeID is the carrier's runtime — where this conversation actually
 	// executes. The client seeds its runtime picker from it so the picker can
-	// never disagree with what answers the next message (MUL-5163).
+	// never disagree with what answers the next message (ENA-5163).
 	RuntimeID string `json:"runtime_id"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
@@ -378,7 +378,7 @@ type SwitchAgentBuilderRuntimeResponse struct {
 // SwitchAgentBuilderRuntime re-points a live builder conversation at another
 // runtime. The live-draft runtime picker used to mutate React state only, so the
 // UI could show runtime B while every subsequent message still enqueued against
-// the carrier agent frozen to runtime A at session create time (MUL-5163).
+// the carrier agent frozen to runtime A at session create time (ENA-5163).
 //
 // The rebind runs under LockChatSessionForRuntimeBind, the same row lock
 // SendDirectChatMessage takes, so "no reply is in flight" and "the carrier now

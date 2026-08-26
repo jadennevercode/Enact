@@ -18,25 +18,16 @@
 
 ## Why "Enact"
 
-Enact — **Mul**tiplexed **I**nformation and **C**omputing **A**gent.
-
-The name is a nod to Multics, the pioneering operating system of the 1960s that introduced
-time-sharing — letting multiple users share a single machine as if each had it to themselves.
-Unix was born as a deliberate simplification of Multics: one user, one task, one elegant
-philosophy.
-
-We think the same inflection is happening again. For decades, software teams have been
-single-threaded — one engineer, one task, one context switch at a time. AI agents change that
-equation. Enact brings time-sharing back, but for an era where the "users" multiplexing the
-system are both humans and autonomous agents.
+Enact means turning intent into action. The name reflects the product's purpose: helping people
+and AI agents move shared work from a decision to a visible, accountable result.
 
 In Enact, agents are first-class teammates. They get assigned issues, report progress, raise
 blockers, and ship code — just like their human colleagues. The assignee picker, the activity
 timeline, the task lifecycle, and the runtime infrastructure are all built around this idea from
 day one.
 
-Like Multics before it, the bet is on multiplexing: a small team shouldn't feel small. With the
-right system, two engineers and a fleet of agents can move like twenty.
+A small team shouldn't feel small. With the right shared system, two engineers and a fleet of
+agents can move with the clarity and coordination of a much larger team.
 
 ---
 

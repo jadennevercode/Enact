@@ -104,7 +104,7 @@ type ChatQuickActionsLLM interface {
 // user message; this prompt only says that rule wins. Naming a specific
 // language in these stable instructions is what this file must avoid — a model
 // reading "…in Chinese" in a rule about button width will sometimes take it as
-// permission to answer in Chinese (MUL-5689).
+// permission to answer in Chinese (ENA-5689).
 //
 // The word "JSON" must stay in this text: response_format=json_object is
 // rejected upstream without it.
@@ -155,7 +155,7 @@ No prose, no markdown, no code fences.`
 // instead of waiting for the window to tip.
 //
 // Everything else is named and excluded explicitly, because each one has been
-// observed to pull the output the wrong way (MUL-5689): the agent may reply in
+// observed to pull the output the wrong way (ENA-5689): the agent may reply in
 // another language, the system prompt is English, and ALREADY SUGGESTED
 // replays the previous turn's labels — which is what made one bad pass stick,
 // each Chinese label seeding the next round.

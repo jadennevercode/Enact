@@ -102,7 +102,7 @@ func (n *RelayNotifier) NotifyWorkspacesChanged(userID string) {
 
 // NotifyPendingWork fans a runtime-scoped "heartbeat now" hint out to the local
 // hub and, when Redis is configured, through the relay so the API node that
-// actually holds the daemon's WebSocket delivers it (MUL-5444). Shard key is the
+// actually holds the daemon's WebSocket delivers it (ENA-5444). Shard key is the
 // runtime ID: hints for one runtime stay ordered relative to each other, and a
 // dropped hint only costs the daemon its normal heartbeat delay.
 func (n *RelayNotifier) NotifyPendingWork(runtimeID, kind string) {

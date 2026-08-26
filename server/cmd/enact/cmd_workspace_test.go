@@ -371,7 +371,7 @@ func TestFetchWorkspacesExplainsPortOnlyFailClosedContext(t *testing.T) {
 	t.Setenv("ENACT_DAEMON_PORT", "20032")
 	t.Setenv("ENACT_SERVER_URL", "https://api.example.test")
 	t.Setenv("ENACT_TOKEN", "")
-	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "mul_owner_pat"}); err != nil {
+	if err := cli.SaveCLIConfig(cli.CLIConfig{Token: "enact_owner_pat"}); err != nil {
 		t.Fatalf("seed config: %v", err)
 	}
 

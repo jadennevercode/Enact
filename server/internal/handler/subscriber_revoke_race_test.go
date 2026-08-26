@@ -11,7 +11,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// TestSubtreeUnsubscribe_LosesToConcurrentRevoke covers MUL-5483 review round 8,
+// TestSubtreeUnsubscribe_LosesToConcurrentRevoke covers ENA-5483 review round 8,
 // finding 2.
 //
 // The handler validated membership from its own MVCC snapshot and only opened

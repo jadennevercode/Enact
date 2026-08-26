@@ -10,7 +10,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// Concurrency regressions for MUL-5483 review round 7.
+// Concurrency regressions for ENA-5483 review round 7.
 //
 // The earlier cut checked membership and ancestor opt-out in their own round
 // trips and then inserted in another, so a competing request could invalidate

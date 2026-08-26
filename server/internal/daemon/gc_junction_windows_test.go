@@ -11,7 +11,7 @@ import (
 )
 
 // The per-task codex-home links shared user content into the task directory —
-// skills (MUL-6000), the Codex session store, the plugin cache. On Windows
+// skills (ENA-6000), the Codex session store, the plugin cache. On Windows
 // those links are directory junctions whenever os.Symlink is denied, which is
 // the default without Developer Mode.
 //

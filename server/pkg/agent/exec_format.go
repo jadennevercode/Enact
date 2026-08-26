@@ -28,7 +28,7 @@ import (
 // executable file) while execve rejects it (no shebang, no native header), so
 // the CLI reads as installed everywhere the daemon looks and only fails at the
 // moment of truth — with a bare "fork/exec <path>: exec format error" that
-// names neither the cause nor the fix (MUL-6164).
+// names neither the cause nor the fix (ENA-6164).
 //
 // The executable path is read back out of the error instead of being passed
 // in, so this stays one provider-agnostic call per boundary rather than a wrap

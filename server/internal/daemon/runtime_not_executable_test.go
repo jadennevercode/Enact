@@ -17,7 +17,7 @@ import (
 
 // stubNotExecutableProbe makes every version probe fail the way the OS fails a
 // file it will not execute — an npm placeholder stub whose postinstall was
-// blocked (MUL-6164) — wrapped exactly as detectCLIVersion wraps it, so the
+// blocked (ENA-6164) — wrapped exactly as detectCLIVersion wraps it, so the
 // daemon sees the same error shape it sees in the field.
 func stubNotExecutableProbe(t *testing.T, path string) {
 	t.Helper()
@@ -232,7 +232,7 @@ func TestDetectBuiltinRuntimes_HealthyProbeClearsPendingVerdict(t *testing.T) {
 // again sends no reason, the server is left with a bare "offline". Every
 // admission path then reads that as "the machine will come back" and goes right
 // back to queueing, which is the behaviour this change exists to remove
-// (MUL-6164).
+// (ENA-6164).
 func TestDeregisterRevivedRuntimes_ReattachesTheUnusableReason(t *testing.T) {
 	stubConfirmWindow(t, 0)
 	// Stable ids before the first registration: the interleave only exists when

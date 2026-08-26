@@ -773,7 +773,7 @@ func TestValidateThinkingLevel_ExplicitModel(t *testing.T) {
 	}
 }
 
-// TestValidateThinkingLevel_CodexEmptyModelFailsClosed pins the MUL-4347
+// TestValidateThinkingLevel_CodexEmptyModelFailsClosed pins the ENA-4347
 // fix: an explicit codex model is validated against its own per-model
 // catalog, but an EMPTY model (follow config.toml, which can resolve to any
 // installed model) must NOT borrow the flagged Default entry's catalog. The
@@ -1055,7 +1055,7 @@ func TestThinkingCacheKeyDistinct(t *testing.T) {
 	assertLevel("C", c, "c")
 }
 
-// ── Shared injection fixture (Trump's MUL-2339 constraint) ───────────
+// ── Shared injection fixture (Trump's ENA-2339 constraint) ───────────
 //
 // The three Codex injection points (thread/start.config,
 // thread/resume.config, turn/start.effort) must encode the same

@@ -17,7 +17,7 @@ function mk(id: string, position: number): Issue {
     id,
     workspace_id: "ws-1",
     number: 1,
-    identifier: `MUL-${id}`,
+    identifier: `ENA-${id}`,
     title: id,
     description: null,
     status: "todo",
@@ -100,7 +100,7 @@ describe("insertIdByPosition", () => {
  * assertion here is a card on a custom status: bucketing it by the raw key
  * produced a column id no column has, so the card was dropped from the board
  * and the list — filtering by that status left a visibly empty column next to
- * a non-zero header count (MUL-6409).
+ * a non-zero header count (ENA-6409).
  */
 describe("status grouping with custom statuses", () => {
   const custom = {

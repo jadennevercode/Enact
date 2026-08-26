@@ -17,7 +17,7 @@ import (
 // `X-User-ID` header — so downstream handlers don't have to care which
 // token kind the caller used:
 //
-//   - JWT cookie / mul_ PAT  → X-User-ID = the human's user id.
+//   - JWT cookie / enact_ PAT  → X-User-ID = the human's user id.
 //     X-Actor-Source is left empty.
 //   - mat_ task token        → X-User-ID = the OWNING human's user id,
 //     plus X-Agent-ID, X-Task-ID, and the
@@ -31,7 +31,7 @@ import (
 //     mat_ (machine running owner-scoped
 //     code) for authorization purposes.
 //
-// The mat_ and mcn_ designs (MUL-2600 and the cloud-node PAT story
+// The mat_ and mcn_ designs (ENA-2600 and the cloud-node PAT story
 // respectively) were both deliberately built this way: every request
 // the agent / node makes is treated as the owner's, so they can
 // post comments, claim issues, register runtimes, etc., as if the

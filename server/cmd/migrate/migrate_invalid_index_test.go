@@ -359,7 +359,7 @@ func TestRunMigrationsRepairsInvalidConcurrentIndexDuringRollback(t *testing.T) 
 	}
 }
 
-// TestRunMigrationsRepairsInvalidTerminalCompletedAtIndex is the MUL-5823
+// TestRunMigrationsRepairsInvalidTerminalCompletedAtIndex is the ENA-5823
 // counterpart of the test above, for the 261/262 partial-index swap.
 //
 // The hazard is identical but the blast radius is different: 261 builds the
@@ -524,7 +524,7 @@ func TestRunMigrationsRepairsInvalidTerminalCompletedAtIndex(t *testing.T) {
 	}
 }
 
-// TestRunMigrationsRepairsShareLinkIndexesBeforeRetry covers the MUL-6288 batch
+// TestRunMigrationsRepairsShareLinkIndexesBeforeRetry covers the ENA-6288 batch
 // (migrations 327–331) against the real migration files and the real registered
 // hooks, run inside a private schema so the unqualified index names in
 // production resolve through search_path.

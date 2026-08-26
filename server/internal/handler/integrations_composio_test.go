@@ -232,7 +232,7 @@ func TestComposio_ListToolkits(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 	// Only notion has an enabled auth config; github is filtered out server-side
-	// (MUL-4009), so a single connectable toolkit comes back.
+	// (ENA-4009), so a single connectable toolkit comes back.
 	if len(toolkits) != 1 {
 		t.Fatalf("expected 1 toolkit, got %d (%s)", len(toolkits), w.Body.String())
 	}
@@ -250,7 +250,7 @@ func TestComposio_ListToolkits(t *testing.T) {
 }
 
 // TestComposio_ListToolkits_ResolverErrorIs502 pins the key behavior of this
-// PR (MUL-4009): when the service can't resolve which toolkits are connectable
+// PR (ENA-4009): when the service can't resolve which toolkits are connectable
 // (auth-config lookup fails), ListComposioToolkits must return 502 rather than
 // silently degrading to an empty catalog. A regression back to a soft empty
 // list would render as a misleading "no apps configured" state.

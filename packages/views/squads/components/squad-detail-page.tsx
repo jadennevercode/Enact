@@ -111,7 +111,7 @@ export function SquadDetailPage() {
   // creator manages the squads they created. Mirrors canManageSquad in
   // server/internal/handler/squad.go so editable controls appear exactly when
   // the API will accept the write, and everyone else gets a read-only view
-  // instead of controls that 403 (MUL-4223).
+  // instead of controls that 403 (ENA-4223).
   const canManage =
     isWorkspaceAdmin || (!!currentUser && squad?.creator_id === currentUser.id);
 

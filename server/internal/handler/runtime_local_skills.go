@@ -30,7 +30,7 @@ const (
 	// RuntimeLocalSkillConflict is a terminal state set when a fresh import
 	// hits an existing same-name skill. It is not an error: the request carries
 	// structured Conflict metadata so the caller (Desktop UI / CLI) can offer
-	// overwrite / rename / skip instead of silently failing. See MUL-2800.
+	// overwrite / rename / skip instead of silently failing. See ENA-2800.
 	RuntimeLocalSkillConflict RuntimeLocalSkillRequestStatus = "conflict"
 )
 
@@ -97,7 +97,7 @@ type LocalSkillListStore interface {
 // contract: only clients that opt in receive the `conflict` terminal status;
 // older clients keep the legacy `failed` ("a skill with this name already
 // exists") behavior so an already-installed Desktop build doesn't regress when
-// it talks to an upgraded backend. See MUL-2800.
+// it talks to an upgraded backend. See ENA-2800.
 type LocalSkillImportRequestInput struct {
 	RuntimeID        string
 	CreatorID        string

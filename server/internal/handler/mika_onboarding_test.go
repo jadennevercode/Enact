@@ -46,7 +46,7 @@ func TestBuildMikaOnboardingKickoffSelectsSkillWithKnownContext(t *testing.T) {
 // it (the per-turn chat prompt frames every task as "respond to their
 // message"), and stop Mika from introducing herself a second time. She has no
 // memory of the opening — the server wrote it — so it has to be quoted here to
-// be knowable at all (MUL-5827).
+// be knowable at all (ENA-5827).
 func TestBuildMikaOnboardingKickoffCarriesTheOpeningAlreadySent(t *testing.T) {
 	opening := "Hi — welcome to Venus. I'm Mika, your Chief of Staff here."
 	prompt := buildMikaOnboardingKickoff("English", "Venus", "Asia/Shanghai", questionnaireAnswers{}, opening)
@@ -117,7 +117,7 @@ func TestBuildMikaOnboardingKickoffProfileVariants(t *testing.T) {
 // defaults an absent timezone to UTC. The member's zone therefore has to reach
 // the model, and its absence has to be visible rather than silent — otherwise
 // the skill proposes "every morning at 09:00" and the member outside UTC gets
-// an afternoon digest (MUL-5765).
+// an afternoon digest (ENA-5765).
 func TestBuildMikaOnboardingKickoffCarriesMemberTimezone(t *testing.T) {
 	t.Run("known zone travels with the profile", func(t *testing.T) {
 		prompt := buildMikaOnboardingKickoff("English", "Venus", "Asia/Shanghai", questionnaireAnswers{

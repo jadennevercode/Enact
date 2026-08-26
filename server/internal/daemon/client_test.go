@@ -40,7 +40,7 @@ func TestClient_IdentityHeaders_PostJSON(t *testing.T) {
 			protocol.DaemonCapabilityCoalescedCommentsV1,
 			// The worktree gate is decided entirely from this header: if the
 			// daemon stops advertising it, every worktree task on this machine
-			// is cancelled with an upgrade prompt (MUL-5707). Pin it here so
+			// is cancelled with an upgrade prompt (ENA-5707). Pin it here so
 			// dropping it from the list can never be a silent change.
 			protocol.DaemonCapabilityLocalWorktreeV1,
 		} {
@@ -102,7 +102,7 @@ func TestClient_ResolveRemoteMCPCredentialUsesExplicitDaemonToken(t *testing.T) 
 	defer srv.Close()
 
 	c := NewClient(srv.URL)
-	c.SetToken("mul_owner_pat")
+	c.SetToken("enact_owner_pat")
 	headers, err := c.ResolveRemoteMCPCredential(context.Background(), "mdt_task_broker", "task-1", "contribution-1")
 	if err != nil {
 		t.Fatalf("ResolveRemoteMCPCredential: %v", err)
@@ -110,7 +110,7 @@ func TestClient_ResolveRemoteMCPCredentialUsesExplicitDaemonToken(t *testing.T) 
 	if got := headers.Get("Authorization"); got != "Bearer upstream" {
 		t.Fatalf("resolved credential = %q", got)
 	}
-	if got := c.Token(); got != "mul_owner_pat" {
+	if got := c.Token(); got != "enact_owner_pat" {
 		t.Fatalf("client PAT was mutated to %q", got)
 	}
 }
@@ -337,7 +337,7 @@ func TestPostJSONWithRetry_TransientThenSuccess(t *testing.T) {
 }
 
 // TestFailTask_RetriesOnTransient5xxThenSucceeds pins the callback half of
-// MUL-5305 Must-fix 1: FailTask's terminal transaction is now the sole
+// ENA-5305 Must-fix 1: FailTask's terminal transaction is now the sole
 // persistence point for the withheld session and continuity-gap flag, so if the
 // server returns a transient 5xx (the terminal tx rolled back), the daemon MUST
 // retry until it lands — a 400 would make it bail immediately
@@ -442,7 +442,7 @@ func TestPostJSONWithRetry_CtxCancelStopsRetries(t *testing.T) {
 }
 
 func TestDefaultTerminalRetrySchedule_MatchesAgreedPlan(t *testing.T) {
-	// MUL-2780 settled on a 5-step exponential backoff (4s, 8s, 16s, 32s, 64s).
+	// ENA-2780 settled on a 5-step exponential backoff (4s, 8s, 16s, 32s, 64s).
 	// Pin it so a future "tidy this up" refactor can't silently flatten or
 	// shorten the recovery window without explicit discussion.
 	want := []time.Duration{4 * time.Second, 8 * time.Second, 16 * time.Second, 32 * time.Second, 64 * time.Second}

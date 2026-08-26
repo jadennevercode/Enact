@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// TestCreateComment_WorkerAgentCommentWakesSquadLeader_MUL4015 pins the
-// full CreateComment behavior for the scenario reported in MUL-4015:
+// TestCreateComment_WorkerAgentCommentWakesSquadLeader_ENA4015 pins the
+// full CreateComment behavior for the scenario reported in ENA-4015:
 //
 //   - Issue is assigned to a squad (leader L).
 //   - L delegates work by @-mentioning a distinct worker agent W. That
@@ -28,7 +28,7 @@ import (
 // agent as its own worker via is_leader_task=false). A pure worker agent has
 // its own task row, its own OriginatorUserID lineage, and posts via the full
 // HTTP CreateComment surface.
-func TestCreateComment_WorkerAgentCommentWakesSquadLeader_MUL4015(t *testing.T) {
+func TestCreateComment_WorkerAgentCommentWakesSquadLeader_ENA4015(t *testing.T) {
 	if testHandler == nil || testPool == nil {
 		t.Skip("database not available")
 	}
@@ -173,8 +173,8 @@ func TestCreateComment_WorkerAgentCommentDoesNotWakeLeader_WhenLeaderTaskPending
 	}
 }
 
-// TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_MUL4015 pins
-// the private-leader case of the MUL-4015 regression. The default agent
+// TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_ENA4015 pins
+// the private-leader case of the ENA-4015 regression. The default agent
 // permission_mode is 'private' (owner-only invocation), so this is the common
 // production shape when the assigning member ALSO owns the squad's leader.
 //
@@ -198,7 +198,7 @@ func TestCreateComment_WorkerAgentCommentDoesNotWakeLeader_WhenLeaderTaskPending
 // The fix: HTTP CreateComment must stamp source_task_id on agent-authored
 // comments (using X-Task-ID) so the trigger-chain originator inheritance
 // survives the mention hop.
-func TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_MUL4015(t *testing.T) {
+func TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_ENA4015(t *testing.T) {
 	if testHandler == nil || testPool == nil {
 		t.Skip("database not available")
 	}
@@ -226,14 +226,14 @@ func TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_MUL4015(t *test
 		return agentID
 	}
 
-	leaderID := privateAgent("MUL-4015 Private Leader")
-	workerID := privateAgent("MUL-4015 Private Worker")
+	leaderID := privateAgent("ENA-4015 Private Leader")
+	workerID := privateAgent("ENA-4015 Private Worker")
 
 	// Squad with the private leader.
 	var squadID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO squad (workspace_id, name, description, leader_id, creator_id)
-		VALUES ($1, 'MUL-4015 Private Squad', '', $2, $3)
+		VALUES ($1, 'ENA-4015 Private Squad', '', $2, $3)
 		RETURNING id
 	`, testWorkspaceID, leaderID, testUserID).Scan(&squadID); err != nil {
 		t.Fatalf("create private squad: %v", err)
@@ -247,7 +247,7 @@ func TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_MUL4015(t *test
 	var issueID string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO issue (workspace_id, creator_type, creator_id, title, assignee_type, assignee_id)
-		VALUES ($1, 'member', $2, 'private squad worker-comment MUL-4015', 'squad', $3)
+		VALUES ($1, 'member', $2, 'private squad worker-comment ENA-4015', 'squad', $3)
 		RETURNING id
 	`, testWorkspaceID, testUserID, squadID).Scan(&issueID); err != nil {
 		t.Fatalf("create private squad issue: %v", err)
@@ -353,7 +353,7 @@ func TestCreateComment_WorkerAgentCommentWakesPrivateSquadLeader_MUL4015(t *test
 		t.Fatalf("count queued leader tasks: %v", err)
 	}
 	if leaderTasksQueued != 1 {
-		t.Fatalf("after worker done: expected 1 queued leader task for private L, got %d — leader→worker→leader loop broken for private leader (MUL-4015)",
+		t.Fatalf("after worker done: expected 1 queued leader task for private L, got %d — leader→worker→leader loop broken for private leader (ENA-4015)",
 			leaderTasksQueued)
 	}
 }

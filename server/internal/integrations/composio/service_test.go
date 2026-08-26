@@ -313,7 +313,7 @@ func TestBeginConnect_PrefersCustomAuthConfig(t *testing.T) {
 }
 
 // TestListToolkits_FiltersToConnectable: only toolkits with an enabled auth
-// config are returned (MUL-4009); the rest are dropped from the catalog, and
+// config are returned (ENA-4009); the rest are dropped from the catalog, and
 // every surfaced entry is Connectable by construction.
 func TestListToolkits_FiltersToConnectable(t *testing.T) {
 	t.Parallel()
@@ -363,7 +363,7 @@ func TestListToolkits_FiltersToConnectable(t *testing.T) {
 
 // TestListToolkits_ResolverErrorReturnsError: an /auth_configs failure is
 // surfaced as an error rather than silently degrading to an empty catalog
-// (MUL-4009). With filtering in place, masking the error would render as a
+// (ENA-4009). With filtering in place, masking the error would render as a
 // misleading "no apps configured" empty state, so the handler must be able to
 // return a 502 instead.
 func TestListToolkits_ResolverErrorReturnsError(t *testing.T) {

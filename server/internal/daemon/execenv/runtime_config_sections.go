@@ -7,10 +7,10 @@ import (
 	"github.com/enact-ai/enact/server/internal/runtimeapps"
 )
 
-// This file holds the runtime brief assembler — the post-MUL-3560 path
+// This file holds the runtime brief assembler — the post-ENA-3560 path
 // that `buildMetaSkillContent` delegates to. It used to be one of two
 // paths gated by the `runtime_brief_slim` feature flag against a legacy
-// verbose brief; the flag was retired in MUL-4297 and this is now the
+// verbose brief; the flag was retired in ENA-4297 and this is now the
 // only brief.
 //
 // Layout:
@@ -32,7 +32,7 @@ import (
 //     Comment Formatting, Always Use CLI, Background Task Safety, Task Initiator,
 //     Repositories, Output are all tightened. Test-asserted phrases either
 //     survive verbatim or are renegotiated to new semantic anchors in the
-//     same PR (MUL-5442 established that discipline); no assertion is
+//     same PR (ENA-5442 established that discipline); no assertion is
 //     dropped without a replacement.
 //
 // Background Task Safety is emitted by `writeBackgroundTaskSafetySlim`
@@ -45,14 +45,14 @@ func writeHeader(b *strings.Builder) {
 }
 
 // writeBackgroundTaskSafetySlim emits the Background Task Safety section
-// in its judgment form (MUL-5442): three paragraphs — the platform fact
+// in its judgment form (ENA-5442): three paragraphs — the platform fact
 // everything else derives from (turn exit is task-terminal, no wakeup
 // exists, never background-and-yield), the external-systems/CI boundary
 // with its single explicit-ask exception, and the persistent-service
 // handoff contract. The pinned anchors the tests assert are the fact,
 // each boundary, both exceptions, and the handoff triple.
 //
-// MUL-5223: the external-work boundary alone did not stop agents from
+// ENA-5223: the external-work boundary alone did not stop agents from
 // blocking on CI. Two holes are closed here. First, the boundary was
 // stated as a concept while the section's only concrete "how to wait"
 // example was a blocking foreground call — and `gh pr checks --watch` is
@@ -70,7 +70,7 @@ func writeHeader(b *strings.Builder) {
 // auto-merge is not a wait and stays allowed — only waiting for it to
 // land is banned.
 //
-// MUL-5274 adds one narrow lifetime exception: a user-requested local
+// ENA-5274 adds one narrow lifetime exception: a user-requested local
 // development/test service may be handed off after its readiness and cleanup
 // contract are complete. It is not a future result or wakeup. The brief keeps
 // this separate from tests, builds, monitors, and CI polling, which remain
@@ -85,14 +85,14 @@ func writeHeader(b *strings.Builder) {
 // dropped: the boundary paragraph carries its own scope ("are not
 // run-owned").
 //
-// MUL-5442 stage 2 (owner-authorized judgment rewrite): enforcement details
+// ENA-5442 stage 2 (owner-authorized judgment rewrite): enforcement details
 // a frontier model derives from the platform fact were deliberately dropped
 // — the run-owned work enumeration, the tool-promise enumeration, the
 // wait/collect split rule, the persistent-service scope bullet, the
 // auto-merge and snapshot elaborations. Their pins were retired in the same
-// change. The incident history above (MUL-5223, MUL-5274, MUL-4091) remains
+// change. The incident history above (ENA-5223, ENA-5274, ENA-4091) remains
 // the WHY for what stays: the named --watch/watch/poll ban and merge-gate
-// denial survive because MUL-5223 proved the principle alone did not stop
+// denial survive because ENA-5223 proved the principle alone did not stop
 // CI-watching, and the handoff paragraph is review-locked verbatim
 // (URL/logs/stop triple, general cleanup handle) — do not reword it without
 // a fresh review decision.
@@ -154,14 +154,14 @@ func writeRequestingUser(b *strings.Builder, ctx TaskContextForEnv) {
 }
 
 // BuildTaskInitiatorBlock renders the Task Initiator block for the per-turn
-// user message. Both MUL-2645 test-pinned phrases ("apply any per-person
+// user message. Both ENA-2645 test-pinned phrases ("apply any per-person
 // privacy or access rules" and "credentials stay scoped to the runtime
 // owner") are kept.
 //
 // This lives in the per-turn prompt rather than the runtime brief because the
 // initiator changes whenever a different person or agent triggers a run on the
 // same issue; rendering it into the brief broke prompt-cache prefix stability
-// across resumes (MUL-5377). Returns "" when no initiator name resolves.
+// across resumes (ENA-5377). Returns "" when no initiator name resolves.
 func BuildTaskInitiatorBlock(initiatorType, initiatorName, initiatorEmail string) string {
 	safeInitiator := sanitizeNameForBriefMarkdown(initiatorName)
 	if safeInitiator == "" {
@@ -195,7 +195,7 @@ func writeWorkspaceContext(b *strings.Builder, ctx TaskContextForEnv) {
 // BuildConnectedAppsBlock renders the Connected Apps block for the per-turn
 // user message. The app set is per-run state (runtime MCP overlays are
 // resolved at enqueue time), so it cannot live in the runtime brief without
-// breaking prompt-cache prefix stability across resumes (MUL-5377).
+// breaking prompt-cache prefix stability across resumes (ENA-5377).
 // Returns "" when no app resolves.
 func BuildConnectedAppsBlock(apps []runtimeapps.ConnectedApp) string {
 	if len(apps) == 0 {
@@ -250,7 +250,7 @@ func sanitizeBriefCodeToken(s string) string {
 // create/update tasks" intro phrase, and `enact issue comment add
 // --help`.
 //
-// The fold-aware `--full` flag from MUL-3555 is documented inline on the
+// The fold-aware `--full` flag from ENA-3555 is documented inline on the
 // comment-list bullet so the slim brief preserves the same agent
 // behaviour as the legacy brief on that path.
 func writeAvailableCommands(b *strings.Builder, ctx TaskContextForEnv) {
@@ -275,11 +275,11 @@ func writeAvailableCommands(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("- `enact repo checkout <url> [--ref <branch-or-sha>]` — repository checkout on a dedicated branch.\n\n")
 	// Squad maintenance is squad-leader surface: an agent that leads no squad
 	// has no squad to change roles in, so this shipped to every run as dead
-	// weight (MUL-5442). IsSquadLeader is a PER-TASK role (the daemon derives
+	// weight (ENA-5442). IsSquadLeader is a PER-TASK role (the daemon derives
 	// it from the claim's is_leader_task / squad_id), so gating brief content
 	// on it does cost byte-stability across runs of one session whenever the
 	// role flips. That is an owner-accepted tradeoff, not an open action item;
-	// the decision is recorded in MUL-5811.
+	// the decision is recorded in ENA-5811.
 	if ctx.IsSquadLeader {
 		b.WriteString("### Squad maintenance\n")
 		b.WriteString("- `enact squad member set-role <squad-id> --member-id <id> --member-type <agent|member> --role <role> [--output json]` — change role in place (use this instead of remove+add).\n\n")
@@ -296,7 +296,7 @@ var briefStatusCategoryOrder = []string{"backlog", "todo", "in_progress", "in_re
 // writeIssueStatusCommand emits the `enact issue status` bullet.
 //
 // With no custom statuses on the claim (the overwhelmingly common case, and
-// every old-server case) it emits the exact pre-MUL-6460 line — byte-identical
+// every old-server case) it emits the exact pre-ENA-6460 line — byte-identical
 // so existing deployments see no brief change and no prompt-cache loss.
 //
 // With custom statuses it replaces the seven-value enumeration with the
@@ -364,7 +364,7 @@ func writeAvailableCommandsQuickCreate(b *strings.Builder) {
 	b.WriteString("**Use `--output json` for structured data.** For anything beyond `issue create`, run `enact --help` or `enact <command> --help`.\n\n")
 	b.WriteString("`--output json` writes JSON to stdout; confirmations and warnings go to stderr. Do not merge them (`2>&1`) into anything that parses the output — that makes a write that SUCCEEDED look like it failed and invites a duplicate retry.\n\n")
 	b.WriteString("### Core\n")
-	b.WriteString("- `enact issue create --title \"...\" [--description \"...\" | --description-file <path> | --description-stdin] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--project <project-id>] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — Create a new issue; `--attachment` may be repeated. For agent-authored long descriptions, prefer `--description-file <path>` over `--description-stdin` (flags after a HEREDOC terminator can be silently swallowed, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths, and treat a failed write as fatal — the CLI rejects a path outside the workdir so a stale file from another run can't leak in (MUL-4252).\n\n")
+	b.WriteString("- `enact issue create --title \"...\" [--description \"...\" | --description-file <path> | --description-stdin] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--project <project-id>] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — Create a new issue; `--attachment` may be repeated. For agent-authored long descriptions, prefer `--description-file <path>` over `--description-stdin` (flags after a HEREDOC terminator can be silently swallowed, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths, and treat a failed write as fatal — the CLI rejects a path outside the workdir so a stale file from another run can't leak in (ENA-4252).\n\n")
 }
 
 // writeIssueBodyFormatting emits the default Markdown hierarchy for issue
@@ -385,10 +385,10 @@ func writeIssueBodyFormatting(b *strings.Builder) {
 func writeCommentFormatting(b *strings.Builder) {
 	b.WriteString("## Comment Formatting\n\n")
 	if runtimeGOOS == "windows" {
-		b.WriteString("On Windows, **always write the comment body to a UTF-8 file with your file-write tool first, then post it with `--content-file <path>`** — do NOT pipe via `--content-stdin` (Windows PowerShell 5.1's `$OutputEncoding` may replace non-ASCII characters with `?`). Never use inline `--content` for agent-authored comments. Write the file inside your working directory, never `/tmp` or shared paths (MUL-4252). Keep the same `--parent` value from the trigger comment when replying. Delete the temp file (`Remove-Item ./reply.md`) after posting; do not rely on `\\n` escapes.\n\n")
+		b.WriteString("On Windows, **always write the comment body to a UTF-8 file with your file-write tool first, then post it with `--content-file <path>`** — do NOT pipe via `--content-stdin` (Windows PowerShell 5.1's `$OutputEncoding` may replace non-ASCII characters with `?`). Never use inline `--content` for agent-authored comments. Write the file inside your working directory, never `/tmp` or shared paths (ENA-4252). Keep the same `--parent` value from the trigger comment when replying. Delete the temp file (`Remove-Item ./reply.md`) after posting; do not rely on `\\n` escapes.\n\n")
 		return
 	}
-	b.WriteString("For issue comments, **always write the comment body to a UTF-8 file with your file-write tool first, then post it with `--content-file <path>`**. Never use inline `--content` for agent-authored comments (MUL-2904); never use `--content-stdin` HEREDOCs alongside other flags (#4182). Write the file inside your working directory, never `/tmp` or shared paths (MUL-4252). Keep the same `--parent` value from the trigger comment when replying; delete the temp file (`rm ./reply.md`) after posting; do not rely on `\\n` escapes.\n\n")
+	b.WriteString("For issue comments, **always write the comment body to a UTF-8 file with your file-write tool first, then post it with `--content-file <path>`**. Never use inline `--content` for agent-authored comments (ENA-2904); never use `--content-stdin` HEREDOCs alongside other flags (#4182). Write the file inside your working directory, never `/tmp` or shared paths (ENA-4252). Keep the same `--parent` value from the trigger comment when replying; delete the temp file (`rm ./reply.md`) after posting; do not rely on `\\n` escapes.\n\n")
 }
 
 // writeRepositories emits the Repositories section when at least one repo
@@ -456,7 +456,7 @@ func writeIssueMetadata(b *strings.Builder) {
 // forbid. It and workflow step 3 were added together in #3802 and each carried
 // its own list; the lists then disagreed — this one named status changes, the
 // step named issue create/update and delegation, and neither contained the
-// other. MUL-5442 merges them here so adding an action type is a one-place
+// other. ENA-5442 merges them here so adding an action type is a one-place
 // edit. Step 4 keeps only what this section cannot express: the delegation-only
 // role's "stop once the delegation is delivered" rule.
 func writeInstructionPrecedence(b *strings.Builder) {
@@ -469,7 +469,7 @@ func writeInstructionPrecedence(b *strings.Builder) {
 // The SessionContinuityNotice* family tells the agent a resume the task
 // expected could not be honored. The daemon has already cleared the resume
 // flags, so without this the run would silently reappear as a brand-new
-// conversation (MUL-4424).
+// conversation (ENA-4424).
 //
 // There are three because the surfaces lose different things, and saying so
 // accurately matters more than saying it loudly. The question that separates
@@ -498,7 +498,7 @@ func writeInstructionPrecedence(b *strings.Builder) {
 //
 // Emitted into the per-turn user message rather than the runtime brief: it is
 // true of one run and false of the next on the same issue, so rendering it into
-// the brief broke prompt-cache prefix stability across resumes (MUL-5377).
+// the brief broke prompt-cache prefix stability across resumes (ENA-5377).
 const SessionContinuityNoticeIssue = "## Session Continuity Notice\n\n" +
 	"This run was meant to continue an earlier conversation, but that provider session could not be restored, so you are on a fresh one. The issue and its full comment history are unaffected — that record is the authoritative version of this conversation, and reading it (which your workflow already requires) reconstructs it. What is gone is only your own working memory from earlier turns: what you already tried, what you ruled out, and how far you had got. Re-derive what you need instead of assuming it, and do not claim continuity the record cannot back up. Do not open your reply by announcing this — raise it only where it actually matters, such as when the user refers to reasoning you never wrote down.\n\n"
 
@@ -532,7 +532,7 @@ func writeWorkflowHeader(b *strings.Builder) {
 //
 // Room shape is run context rather than an agent/provider invariant, so it is
 // emitted by daemon.BuildPrompt instead of fragmenting this cached brief across
-// group, direct, and unknown-audience chat sessions (MUL-5377, MUL-5442).
+// group, direct, and unknown-audience chat sessions (ENA-5377, ENA-5442).
 func writeWorkflowChat(b *strings.Builder) {
 	b.WriteString("**You are in chat mode.**\n\n")
 	b.WriteString("- Respond conversationally and helpfully to the user's message\n")
@@ -557,7 +557,7 @@ func writeWorkflowQuickCreate(b *strings.Builder) {
 // AutopilotIssueCommandsGuard is the run-only autopilot issue-command boundary,
 // shared verbatim by the runtime brief (writeWorkflowAutopilot) and the
 // per-turn prompt (daemon.buildAutopilotPrompt). Both land in the same context
-// window; MUL-5696 found the two hand-maintained copies had drifted into an
+// window; ENA-5696 found the two hand-maintained copies had drifted into an
 // unconditional ban on one surface and a conditional one on the other.
 const AutopilotIssueCommandsGuard = "Do not run `enact issue get`, `enact issue comment add`, or `enact issue status` for this run unless the autopilot instructions explicitly tell you to create or update an issue"
 
@@ -595,14 +595,14 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 // One section with no per-trigger branching, because this text lands in
 // messages[0] — ahead of the whole conversation — and any divergence between
 // the first run and later runs on the same resumed session throws away the
-// prompt cache for the entire history (MUL-5377). So nothing here may depend
+// prompt cache for the entire history (ENA-5377). So nothing here may depend
 // on which trigger fired this turn, and no per-run identifier (trigger comment
 // id, thread id, new-comment delta, reply targets) may be interpolated. Those
 // travel in the per-turn user message instead; see daemon.buildCommentPrompt.
 //
-// There is deliberately no "turn mode" anymore (MUL-6417). The Reply/Ownership
-// split dated from PR #205 and was already merged in substance by MUL-5377
-// (one section, mode router) and MUL-6300 (reply turns own the same status
+// There is deliberately no "turn mode" anymore (ENA-6417). The Reply/Ownership
+// split dated from PR #205 and was already merged in substance by ENA-5377
+// (one section, mode router) and ENA-6300 (reply turns own the same status
 // arc); what remained was a marker plus two small blocks restating information
 // the per-turn message already carries as data. The two rules that replace the
 // router:
@@ -614,7 +614,7 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 //     changes about the issue — not from the trigger type, not from the run
 //     lifecycle, and not gated on being the assignee. Lifecycle writes
 //     oscillate under concurrent runs (every run flips its own open/close
-//     pair — the churn MUL-6300's assignee gate existed to stop); fact
+//     pair — the churn ENA-6300's assignee gate existed to stop); fact
 //     writes converge, because agents judging the same fact write the same
 //     value or nothing. A todo issue the agent was only asked to research
 //     correctly stays todo, which the old unconditional arc got wrong twice.
@@ -623,7 +623,7 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 // turn that advances the issue's own ask makes "being worked" true the moment
 // it begins, and the first work turn on a fresh assignment can run for half
 // an hour — judged only at turn end, the board showed todo the whole time
-// (Bohan's post-merge report on MUL-6417). This is the old rule's timing
+// (Bohan's post-merge report on ENA-6417). This is the old rule's timing
 // with the fact anchor's conditionality: an ancillary turn still writes
 // nothing at either moment, so the concurrency convergence is unchanged.
 // The activity indicator still shows the run itself, but columns, filters,
@@ -632,10 +632,10 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 //
 // The start write lives INSIDE step 3, not in the status block below —
 // placement is load-bearing, not style. The first attempt stated it as a
-// bullet under the status heading, and a run on MUL-6460 that verifiably had
+// bullet under the status heading, and a run on ENA-6460 that verifiably had
 // that brief walked steps 1→2→3 and never wrote a status: at the moment the
 // condition triggers the model is executing the numbered list, and a rule
-// outside the list does not fire (the pre-MUL-6417 opening write was
+// outside the list does not fire (the pre-ENA-6417 opening write was
 // reliable precisely because it was an explicit step). Same incident killed
 // the "asked to research stays todo" example from the no-write bullet: that
 // run's work WAS research toward its own issue's ask, so the example
@@ -651,15 +651,15 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 // that is the position that fires. The exit-side check is anchored inside
 // step 5 for the same reason, and the step-3 skip is scoped to the
 // in_progress CATEGORY so a custom status like Planning already counts as
-// recorded once MUL-6460 puts the catalog in front of agents.
+// recorded once ENA-6460 puts the catalog in front of agents.
 //
-// The invariants MUL-6300 pinned survive as consequences instead of gates: a
+// The invariants ENA-6300 pinned survive as consequences instead of gates: a
 // conversational turn changes nothing about the issue's state, so it writes
 // nothing; an @mention pull-in on someone else's (or an unassigned) issue
 // almost never changes its state, so it writes nothing — but a turn that
 // genuinely does move the work may now record it, whoever the assignee is.
 //
-// Step 2 asks for a roots scan first, not `--recent 10` (MUL-5372). `--recent N`
+// Step 2 asks for a roots scan first, not `--recent 10` (ENA-5372). `--recent N`
 // caps THREADS, not comments: each returned thread carries its root plus every
 // descendant with no depth cap, so on an issue with fewer than N root threads it
 // returns the entire comment history. Because this step is mandatory and fires on
@@ -684,7 +684,7 @@ func writeWorkflowAutopilot(b *strings.Builder, ctx TaskContextForEnv) {
 //
 // ctx.IsSquadLeader is a PER-TASK role, not agent configuration: branching on
 // it here does move brief bytes when the same agent runs leader one turn and
-// worker the next. Owner-accepted tradeoff; decision recorded in MUL-5811.
+// worker the next. Owner-accepted tradeoff; decision recorded in ENA-5811.
 func writeWorkflowIssue(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("**Every issue turn runs the same workflow.** The per-turn user message carries what triggered this run — an assignment handoff, or a triggering comment with its id and your `--parent` value — plus this issue's real id and ready-to-run context-read commands; assemble other calls from `## Available Commands`.\n\n")
 
@@ -706,7 +706,7 @@ func writeWorkflowIssue(b *strings.Builder, ctx TaskContextForEnv) {
 	if ctx.IsSquadLeader {
 		b.WriteString("- Squad leader: dispatching members is not delivery — a dispatch turn leaves the parent `in_progress`, and it moves to `in_review` only on the later turn (a member update or stage-barrier re-trigger) where you confirm the overall goal is met.\n")
 	}
-	// Emitted only when the workspace has custom statuses (MUL-6460): the
+	// Emitted only when the workspace has custom statuses (ENA-6460): the
 	// bullets above stay category rules and need no rewording, but the agent
 	// needs the bridge from "category rule" to "which specific status key to
 	// write" when a category holds more than one.
@@ -718,7 +718,7 @@ func writeWorkflowIssue(b *strings.Builder, ctx TaskContextForEnv) {
 
 // writeSubIssueCreation emits the Sub-issue Creation section.
 //
-// MUL-5442 demotes the full todo/backlog/stage playbook to the
+// ENA-5442 demotes the full todo/backlog/stage playbook to the
 // enact-working-on-issues built-in skill: the semantics are only needed at
 // the moment an agent is about to create sub-issues, and that moment is
 // exactly what triggers the skill. The brief keeps the one-line map so the
@@ -734,7 +734,7 @@ func writeSubIssueCreation(b *strings.Builder) {
 // daemon writes and builds its own listing from their frontmatter, so repeating
 // the descriptions here bought a second, more expensive copy of what the model
 // already had — measured at ~3,100 tokens per brief on a real task, 40% of the
-// whole brief — and no extra routing signal (MUL-5529).
+// whole brief — and no extra routing signal (ENA-5529).
 //
 // The index itself stays because it is the one skill listing Enact controls.
 // Each CLI's own listing is theirs: its format, and whether it exists at all,
@@ -762,14 +762,14 @@ func writeSkills(b *strings.Builder, ctx TaskContextForEnv) {
 func writeMentions(b *strings.Builder) {
 	b.WriteString("## Mentions\n\n")
 	b.WriteString("Mention links are **side-effecting actions**:\n\n")
-	b.WriteString("- `[MUL-123](mention://issue/<issue-id>)` — clickable link (no side effect)\n")
-	// Projects have no `MUL-123`-style identifier to autolink, so unless the
+	b.WriteString("- `[ENA-123](mention://issue/<issue-id>)` — clickable link (no side effect)\n")
+	// Projects have no `ENA-123`-style identifier to autolink, so unless the
 	// agent writes this form (or pastes the project URL, which the reader's
 	// client unfurls into the same chip) a project reference stays dead text.
 	b.WriteString("- `[Project Name](mention://project/<project-id>)` — clickable link (no side effect)\n")
 	b.WriteString("- `[@Name](mention://member/<user-id>)` — **notifies a human**\n")
 	b.WriteString("- `[@Name](mention://agent/<agent-id>)` — **enqueues a new run for that agent**\n\n")
-	// No prescriptive default here (MUL-6417): the mention syntax hides its
+	// No prescriptive default here (ENA-6417): the mention syntax hides its
 	// semantics — it reads like a free social gesture but is a spawn/notify
 	// operation — so what this paragraph must supply is the facts that
 	// invalidate the human-@-culture prior (cc-for-visibility, thanks-@X),
@@ -777,7 +777,7 @@ func writeMentions(b *strings.Builder) {
 	// notifying followers who already see the comment (completion wakes are
 	// platform-owned too), courtesy (a thank-you run whose only reply is
 	// another thank-you run), or reference — the @-form used merely to write
-	// someone's name (MUL-6528: an agent attributing a product decision to
+	// someone's name (ENA-6528: an agent attributing a product decision to
 	// "@Steve Jobs" in prose enqueued a run for the agent it was crediting).
 	// The notify caveat is scoped to FOLLOWERS on
 	// purpose — for a human who does not follow the issue, a mention is
@@ -791,7 +791,7 @@ func writeMentions(b *strings.Builder) {
 func writeAttachments(b *strings.Builder) {
 	b.WriteString("## Attachments\n\n")
 	b.WriteString("Fetch issue/comment attachments via the authenticated CLI (`enact attachment --help`); never open Enact resource URLs directly.\n")
-	// Closes the inbound half of the MUL-4899 loop: an attachment the agent
+	// Closes the inbound half of the ENA-4899 loop: an attachment the agent
 	// just downloaded is the most tempting local path to echo back, because it
 	// came from the conversation and *feels* shared. It is not — the download
 	// landed in this run's private workdir.
@@ -808,7 +808,7 @@ func writeAlwaysUseCLI(b *strings.Builder) {
 // writeDeliveryInvariant emits the always-on delivery contract, shared by every
 // task kind.
 //
-// MUL-4899: agents were writing runtime-local paths into deliverables as
+// ENA-4899: agents were writing runtime-local paths into deliverables as
 // clickable links (`[screenshot](/Users/agent/work/shot.png)`). Two things were
 // wrong with that and the brief stated neither: the link is dead for every
 // reader (the path exists only on the machine that ran the agent), and on
@@ -835,12 +835,12 @@ func writeOutput(b *strings.Builder, kind taskKind, ctx TaskContextForEnv) {
 	case kindQuickCreate:
 		b.WriteString("This is a quick-create task. There is NO existing issue to comment on. Your final stdout is captured automatically and the platform writes the user's success/failure inbox notification based on whether `enact issue create` succeeded.\n\n")
 		b.WriteString("- Do NOT call `enact issue comment add` — the issue you just created has no conversation context for this run.\n")
-		b.WriteString("- Print exactly one final line: `Created <identifier-or-id>: <title>` after a successful `enact issue create`, using the created issue's `identifier` from JSON output (fall back to its `id`; never assume a workspace issue prefix such as `MUL-`).\n")
+		b.WriteString("- Print exactly one final line: `Created <identifier-or-id>: <title>` after a successful `enact issue create`, using the created issue's `identifier` from JSON output (fall back to its `id`; never assume a workspace issue prefix such as `ENA-`).\n")
 		b.WriteString("- On CLI failure, exit with the CLI error as the only output — the platform turns it into a `quick_create_failed` inbox item for the user.\n\n")
 		b.WriteString("**Delivering files here:** your stdout is text-only. A file that belongs to the new issue goes on the `enact issue create` call itself via `--attachment <path>`; never put its path in the description or in your stdout line.\n")
 	case kindChat:
 		b.WriteString("This is a chat session. Your reply is delivered directly to the chat window the user is reading.\n\n")
-		// Two-layer channel policy (MUL-4899). This is the DELIVERY layer, and
+		// Two-layer channel policy (ENA-4899). This is the DELIVERY layer, and
 		// the brief answers only the half that is stable for the whole session.
 		//
 		// `attachment upload` binds a file to the Enact chat reply whatever
@@ -848,7 +848,7 @@ func writeOutput(b *strings.Builder, kind taskKind, ctx TaskContextForEnv) {
 		// of the deployment — its object storage, and whether the server is new
 		// enough to report the hop at all. Both change under a session that
 		// resumes across the change, and this file is the prompt-cache prefix
-		// (MUL-5377), so rendering the verdict here made one resumed chat
+		// (ENA-5377), so rendering the verdict here made one resumed chat
 		// produce two different briefs. The verdict therefore lives in the
 		// per-turn chat prompt, which carries both branches
 		// (daemon.buildChatPrompt), and the copy below points at it.
@@ -879,9 +879,9 @@ func writeOutput(b *strings.Builder, kind taskKind, ctx TaskContextForEnv) {
 	writeDeliveryInvariant(b)
 }
 
-// buildMetaSkillContentSlim is the post-MUL-3560 brief assembler.
+// buildMetaSkillContentSlim is the post-ENA-3560 brief assembler.
 // Called from buildMetaSkillContent (runtime_config.go). The
-// `runtime_brief_slim` flag that once gated it was retired in MUL-4297.
+// `runtime_brief_slim` flag that once gated it was retired in ENA-4297.
 //
 // The Section × Kind matrix encoded below (skip = elide section, keep
 // = always emit, △ = data-driven inside the helper):
@@ -911,7 +911,7 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 	// Session Continuity Notice, Task Initiator and Connected Apps used to be
 	// rendered here. They are per-run values, so emitting them into this file
 	// broke prompt-cache prefix stability on every resume; they now travel in
-	// the per-turn user message (daemon.BuildPrompt) instead. See MUL-5377.
+	// the per-turn user message (daemon.BuildPrompt) instead. See ENA-5377.
 	writeHeader(&b)
 	writeBackgroundTaskSafetySlim(&b)
 	writeAgentIdentity(&b, ctx)

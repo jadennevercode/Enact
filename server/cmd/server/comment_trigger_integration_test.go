@@ -417,7 +417,7 @@ func TestCommentTriggerAtAllSuppression(t *testing.T) {
 		}
 	})
 
-	// MUL-5411: @all suppresses only the IMPLICIT routes. An explicit @agent in
+	// ENA-5411: @all suppresses only the IMPLICIT routes. An explicit @agent in
 	// the same comment is a direct request and must still enqueue that agent.
 	t.Run("@all with explicit @agent still triggers the agent", func(t *testing.T) {
 		clearTasks(t, issueID)

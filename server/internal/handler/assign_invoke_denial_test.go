@@ -15,7 +15,7 @@ import (
 // The expected sentence stays an argument on purpose — the test making the claim
 // keeps it. What the helper contributes is the leak scan, which is the same
 // property in every case and is exactly what a status-only assertion missed:
-// before MUL-6380 these endpoints answered "cannot assign to private agent",
+// before ENA-6380 these endpoints answered "cannot assign to private agent",
 // disclosing the mode to a caller just told they may not use the target, and
 // mislabelling a `public_to` agent scoped to specific people as private.
 func assertDenialReason(t *testing.T, resp *testutil.Response, want string) {
@@ -58,7 +58,7 @@ func TestAssignAgent_DenialReasonNamesPermissionNotMode(t *testing.T) {
 	}
 
 	// A workspace OWNER who does not own the agent. Management access is not
-	// invoke access (MUL-3963), and the refusal must not tell them why in terms
+	// invoke access (ENA-3963), and the refusal must not tell them why in terms
 	// of the agent's configuration.
 	t.Run("workspace owner is refused without naming the mode", func(t *testing.T) {
 		resp := testutil.Call(t, testHandler.CreateIssue,

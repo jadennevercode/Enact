@@ -6,7 +6,7 @@
  * one- or two-line preview:
  *
  *   - mention links   `[@Alice](mention://member/uuid)` → `@Alice`
- *   - issue mentions  `[MUL-123](mention://issue/uuid)` → `MUL-123`
+ *   - issue mentions  `[ENA-123](mention://issue/uuid)` → `ENA-123`
  *   - images          `![filename](url)` / `![](url)`  → `📷`
  *   - plain links     `[label](https://...)`           → `label`
  *

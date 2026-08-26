@@ -11,7 +11,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
-// TestLockSubscriberWrites_KeyedOnUUIDValueNotSpelling covers MUL-5483 review
+// TestLockSubscriberWrites_KeyedOnUUIDValueNotSpelling covers ENA-5483 review
 // round 8, finding 1.
 //
 // The lock key used to be hashtext() over the caller's raw string. PostgreSQL

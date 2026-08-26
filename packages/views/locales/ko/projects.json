@@ -166,5 +166,33 @@
     "direction_desc": "내림차순",
     "section_columns": "열",
     "view": "보기"
+  },
+  "artifacts": {
+    "title": "산출물",
+    "subtitle": "이 프로젝트에서 생성된 파일을 출처 태스크별로 묶어 보여줍니다.",
+    "open_action": "산출물",
+    "search_placeholder": "파일과 태스크 검색",
+    "count_other": "파일 {{count}}개",
+    "empty_title": "아직 산출물이 없습니다",
+    "empty_hint": "이 프로젝트의 태스크와 댓글에 올린 파일이 여기에 표시됩니다.",
+    "empty_search_title": "일치하는 파일이 없습니다",
+    "empty_search_hint": "다른 파일 이름이나 태스크로 검색해 보세요.",
+    "truncated": "처음 {{count}}개 파일만 표시합니다. 검색으로 범위를 좁혀 이전 파일을 찾으세요.",
+    "load_failed": "산출물을 불러오지 못했습니다",
+    "retry": "다시 시도",
+    "unfiled_folder": "미분류",
+    "unfiled_folder_hint": "이 파일들은 태스크를 추적할 수 없습니다.",
+    "select_prompt": "파일을 선택하면 버전이 표시됩니다.",
+    "versions_title": "버전",
+    "version_label": "v{{version}}",
+    "version_current": "현재",
+    "version_count_other": "버전 {{count}}개",
+    "download": "다운로드",
+    "preview": "미리보기",
+    "open_issue": "태스크 열기",
+    "uploaded_by_member": "멤버가 업로드",
+    "uploaded_by_agent": "에이전트가 생성",
+    "column_size": "크기",
+    "column_uploaded": "업로드"
   }
 }

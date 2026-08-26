@@ -7,7 +7,7 @@ import (
 
 // providerHTTP5xxRe matches a 3-digit number starting with 5 (5xx HTTP
 // status code) that isn't surrounded by other digits. Mirrors the SQL
-// regex `(^|[^0-9])5[0-9][0-9]([^0-9]|$)` from MUL-1949 — keeps phrases
+// regex `(^|[^0-9])5[0-9][0-9]([^0-9]|$)` from ENA-1949 — keeps phrases
 // like "1500ms" or "1.5.0" from accidentally landing in
 // provider_server_error.
 //
@@ -27,8 +27,8 @@ var providerHTTP5xxRe = regexp.MustCompile(`(^|[^0-9])5[0-9][0-9]([^0-9]|$)`)
 // can't cause a spurious retry: the auth / quota / capacity buckets these
 // regexes guard are all non-retryable. The only agent_error.* reason on
 // internal/service/task.go's retryableReasons allowlist is provider_network
-// — MUL-4910 — and these regexes never route into it.) The 5xx bucket was
-// already anchored for exactly this reason (MUL-1949); these codes were not.
+// — ENA-4910 — and these regexes never route into it.) The 5xx bucket was
+// already anchored for exactly this reason (ENA-1949); these codes were not.
 var (
 	httpAuthCodeRe     = regexp.MustCompile(`(^|[^0-9])(401|403)([^0-9]|$)`)
 	httpQuotaCodeRe    = regexp.MustCompile(`(^|[^0-9])402([^0-9]|$)`)
@@ -40,7 +40,7 @@ var (
 // Reason; falls back to ReasonAgentUnknown when no rule matches and for
 // empty input.
 //
-// The rule order mirrors the SQL CASE expression in MUL-1949
+// The rule order mirrors the SQL CASE expression in ENA-1949
 // (db-boy's offline backfill query). The SQL is the source of truth:
 // when the two diverge, this Go classifier is wrong and should be
 // updated to match. Keeping them in lock-step is required so that
@@ -166,13 +166,13 @@ func Classify(rawError string) Reason {
 	//    ("API Error: Connection closed mid-response. ...") so a transient cut
 	//    lands in the retryable provider_network bucket (with session resume)
 	//    instead of falling through to agent_error.unknown / process_failure
-	//    and terminating the task (MUL-4910). Checked before rule 13 so the
+	//    and terminating the task (ENA-4910). Checked before rule 13 so the
 	//    "... exited with error: exit status N ..." variant still routes here.
 	//
 	//    "deadline exceeded" covers every Go-side context deadline that
 	//    reaches the classifier as text — `context deadline exceeded` from a
 	//    cancelled request, and net/http's `Client.Timeout exceeded while
-	//    awaiting headers` variant. Before MUL-5370 these all landed in
+	//    awaiting headers` variant. Before ENA-5370 these all landed in
 	//    agent_error.unknown, which is not on the retry allowlist, so a
 	//    transient stall became a terminal failure with no usable label.
 	//    Note this only catches deadlines that arrive as a bare string;
@@ -190,7 +190,7 @@ func Classify(rawError string) Reason {
 	//    matching rule 13 by accident) and agent_error.unknown respectively;
 	//    neither is on the retry allowlist, so a transient cut ended the task
 	//    outright and max_attempts never applied (#6522).
-	//    Mirror these substrings into the MUL-1949 offline backfill SQL.
+	//    Mirror these substrings into the ENA-1949 offline backfill SQL.
 	case containsAny(lower,
 		"stream disconnected",
 		opencodeStreamEndedPrefix,
@@ -238,7 +238,7 @@ func Classify(rawError string) Reason {
 	// 11. Runner CLI binary missing, or present but not runnable on this
 	//     machine — the npm placeholder stub left behind when a package's
 	//     postinstall was blocked passes every "is it installed" check and
-	//     only fails at execve (MUL-6164). Operationally the two are the same
+	//     only fails at execve (ENA-6164). Operationally the two are the same
 	//     verdict: this host has no usable CLI, and re-running cannot fix it.
 	case containsAny(lower,
 		"executable not found",
@@ -321,7 +321,7 @@ func ProviderUnconfigured(errText string) bool {
 // Each is an unambiguous witness on its own, which is what lets
 // NormalizeDaemonReason reuse them to upgrade an older daemon's catchall
 // server-side. Matched against pre-lowercased text.
-// Mirror these substrings into the MUL-1949 offline backfill SQL.
+// Mirror these substrings into the ENA-1949 offline backfill SQL.
 //
 // terminal_reason=prompt_too_long joins them for GH #6402: it is the structured
 // enum value Claude Code puts on the result frame when the turn ended because
@@ -337,7 +337,7 @@ var contextWindowExceededWitnesses = []string{
 	TerminalReasonPromptTooLong,
 }
 
-// legacySkillBundlePrefix is the exact wrapper a pre-MUL-5370 daemon put on a
+// legacySkillBundlePrefix is the exact wrapper a pre-ENA-5370 daemon put on a
 // failed skill-bundle download. It is an unambiguous witness: no other code
 // path ever produced it, and a current daemon writes "skill bundle
 // unavailable: ..." instead.
@@ -347,7 +347,7 @@ const legacySkillBundlePrefix = "resolve skill bundles:"
 // could land that failure in. All three mean "we only knew it was some
 // transport fault": agent_error.unknown from a daemon predating the deadline
 // rule, agent_error.provider_network from one that has it, and the
-// pre-MUL-1949 coarse agent_error. None of them carries information that
+// pre-ENA-1949 coarse agent_error. None of them carries information that
 // upgrading would discard.
 var legacySkillBundleReasons = map[string]bool{
 	string(ReasonAgentUnknown):         true,
@@ -358,7 +358,7 @@ var legacySkillBundleReasons = map[string]bool{
 // legacyContextOverflowReasons are the buckets an older daemon lands the
 // response-side context overflow in: agent_error.unknown from its own
 // classifier (its rule 1 predates contextWindowExceededWitnesses) and the
-// pre-MUL-1949 coarse agent_error.
+// pre-ENA-1949 coarse agent_error.
 //
 // Deliberately narrower than legacySkillBundleReasons. A refined reason means
 // the old daemon matched an earlier rule on the same text — process_failure on
@@ -384,7 +384,7 @@ var legacyOpenclawCLITimeoutWitnesses = []string{
 // legacyOpenclawCLITimeoutReasons are the buckets an older daemon lands that
 // timeout in. provider_network is what its own rule 7 produces from
 // "deadline exceeded" text, and agent_error / agent_error.unknown cover the
-// coarser pre-MUL-1949 shapes.
+// coarser pre-ENA-1949 shapes.
 //
 // Worth upgrading at the server rather than waiting for the fleet: the stale
 // label is not merely imprecise, it is actively harmful — it puts a
@@ -406,7 +406,7 @@ const opencodeStreamEndedPrefix = "opencode stream ended"
 // legacyOpencodeStreamEndedReasons are the buckets a daemon predating rule 7's
 // entry lands these errors in: process_failure for the two "terminal signal"
 // variants, whose word "signal" its rule 13 matches by accident, unknown for
-// anything its rules miss, and the pre-MUL-1949 coarse agent_error.
+// anything its rules miss, and the pre-ENA-1949 coarse agent_error.
 //
 // Wider than legacyContextOverflowReasons on purpose, and the witness is why.
 // That rule leaves refined reasons alone because a phrase appearing somewhere
@@ -424,7 +424,7 @@ var legacyOpencodeStreamEndedReasons = map[string]bool{
 // onto the taxonomy this server understands, using the raw error text as the
 // witness. It returns the reason unchanged when nothing applies.
 //
-// Why this exists (MUL-5370): installed daemons upgrade on their own cadence,
+// Why this exists (ENA-5370): installed daemons upgrade on their own cadence,
 // so a fix that only labels a failure correctly on the daemon side reaches
 // nobody until every host updates. The daemon reports a non-empty reason, so
 // FailTask's "classify when empty" guard does not fire, and the server would

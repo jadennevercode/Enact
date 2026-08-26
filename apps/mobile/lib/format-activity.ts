@@ -28,7 +28,7 @@ const PRIORITY_LABEL: Record<IssuePriority, string> = {
  * the catalog never heard of) a built-in still gets its own copy and anything
  * else falls back to the raw key rather than rendering blank. Mirrors web's
  * `statusLabel` in packages/views/issues/components/issue-detail.tsx.
- * (MUL-6243)
+ * (ENA-6243)
  */
 function statusName(
   s: string | undefined,
@@ -126,4 +126,3 @@ export function formatActivity(
       return entry.action ?? "";
   }
 }
-

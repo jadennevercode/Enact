@@ -29,7 +29,7 @@ type WorkspaceMcpBinding struct {
 //
 //	bound workspace servers  <  agent's own servers  <  per-task overlay
 //
-// The contract (GH #6062, MUL-5421):
+// The contract (GH #6062, ENA-5421):
 //
 //   - Only servers explicitly bound to this agent and left enabled are folded
 //     in. A workspace MCP server is a LIBRARY entry, exactly like a workspace

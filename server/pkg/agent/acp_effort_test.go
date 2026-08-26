@@ -367,7 +367,7 @@ func TestApplyACPEffortOptionSurvivesUnconfirmedApply(t *testing.T) {
 
 // TestACPCatalogProviderGate: reasonix now takes the dynamic path, while an ACP
 // runtime that has not opted in stays closed. Hermes is the guard case — its
-// ACP surface accepts a level and ignores it (MUL-5770), so accepting one here
+// ACP surface accepts a level and ignores it (ENA-5770), so accepting one here
 // would promise something no code can deliver.
 func TestACPCatalogProviderGate(t *testing.T) {
 	t.Parallel()
@@ -407,7 +407,7 @@ const jcodeEffortSessionResult = `{"sessionId":"ses-jcode",` +
 
 // hermesAgentSessionResult is what Hermes Agent actually returns. Captured
 // from `hermes acp` v0.20.0 on 2026-08-11 — the keys are exactly these four,
-// with no configOptions, unchanged from the v0.18.2 finding in MUL-5770.
+// with no configOptions, unchanged from the v0.18.2 finding in ENA-5770.
 const hermesAgentSessionResult = `{"_meta":{},"sessionId":"ses-hermes",` +
 	`"models":{"currentModelId":"hermes-4","availableModels":[{"modelId":"hermes-4","name":"Hermes 4"}]},` +
 	`"modes":{}}`

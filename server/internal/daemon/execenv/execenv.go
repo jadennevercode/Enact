@@ -52,7 +52,7 @@ type PrepareParams struct {
 	EnvRootPreclaimed bool
 	// Profile is the daemon's profile name (empty = default). It namespaces the
 	// per-issue Codex session store so a second profile-daemon sharing the same
-	// ~/.codex cannot see or GC this daemon's stores (MUL-4424).
+	// ~/.codex cannot see or GC this daemon's stores (ENA-4424).
 	Profile      string
 	Provider     string // agent provider (determines runtime config and skill injection paths)
 	CodexVersion string // detected Codex CLI version (only used when Provider == "codex")
@@ -77,7 +77,7 @@ type PrepareParams struct {
 	// the user's directory in place. The daemon still creates envRoot for
 	// output/, logs/, and .gc_meta.json; only the workdir slot is
 	// substituted. Used by the local_directory project_resource flow
-	// (MUL-2663). When set, the envRoot/workdir directory is not created.
+	// (ENA-2663). When set, the envRoot/workdir directory is not created.
 	LocalWorkDir string
 	// LocalWorktree, when non-nil, is the worktree-mode counterpart of
 	// LocalWorkDir: instead of running in the user's directory, the task gets
@@ -119,7 +119,7 @@ type PrepareParams struct {
 	// CodexCustomArgs are the effective Codex CLI args this task launches with
 	// (daemon defaults + profile-fixed + per-agent custom_args). Only the
 	// Windows sandbox decision reads them, to honor a `-c windows.sandbox=...`
-	// override that never lands in config.toml (MUL-4957).
+	// override that never lands in config.toml (ENA-4957).
 	CodexCustomArgs []string
 	Task            TaskContextForEnv // context data for writing files
 }
@@ -130,7 +130,7 @@ type TaskContextForEnv struct {
 	TriggerCommentID string // comment that triggered this task (empty for on_assign)
 	TriggerThreadID  string // root comment ID for the triggering thread; falls back to TriggerCommentID when empty
 	// CommentReplyTargets is set for a comment run that coalesced comments
-	// spanning MORE THAN ONE root thread (MUL-4348). When it has >=2 entries the
+	// spanning MORE THAN ONE root thread (ENA-4348). When it has >=2 entries the
 	// workflow's reply step fans out — one reply per thread — instead of the
 	// single --parent=trigger cookbook, keeping this persistent brief in sync
 	// with the per-turn prompt so a cross-thread run cannot get one source
@@ -146,7 +146,7 @@ type TaskContextForEnv struct {
 	// gone, or the Codex rollout was not present in the task CODEX_HOME). The
 	// brief surfaces this so the agent tells the user its previous conversation
 	// context is gone and this run starts fresh — turning a silent context loss
-	// into a user-visible one (MUL-4424). Distinct from an ordinary cold start,
+	// into a user-visible one (ENA-4424). Distinct from an ordinary cold start,
 	// which never had a prior session to lose.
 	PriorSessionResumeUnavailable bool
 	AgentID                       string // unique ID of the dispatched agent
@@ -163,7 +163,7 @@ type TaskContextForEnv struct {
 	// ChatChannelType is the IM platform behind a chat session ("slack",
 	// "feishu", "wecom"); empty for a web/mobile chat. It names the surface in
 	// the brief's copy; what that surface can DELIVER is the separate field
-	// below (MUL-4899). The orthogonal audience and history policies live in
+	// below (ENA-4899). The orthogonal audience and history policies live in
 	// the per-turn chat prompt (daemon/prompt.go) — the server has no history
 	// reader for any other channel.
 	ChatChannelType string
@@ -180,7 +180,7 @@ type TaskContextForEnv struct {
 	// per-turn value: a server upgrade that starts sending it, or object
 	// storage being turned on or off, flips it under a chat session that
 	// resumes across the change, and the brief is the prompt-cache prefix
-	// (MUL-5377). The agent-facing verdict is emitted by the per-turn chat
+	// (ENA-5377). The agent-facing verdict is emitted by the per-turn chat
 	// prompt (daemon.buildChatPrompt) instead, and
 	// TestBriefByteIdenticalAcrossRunsForEveryKind is what keeps this field out
 	// of the brief.
@@ -193,15 +193,15 @@ type TaskContextForEnv struct {
 	AutopilotSource         string
 	AutopilotTriggerPayload string
 	QuickCreatePrompt       string // non-empty for quick-create tasks
-	HandoffNote             string // assignment handoff instruction; rendered into issue_context.md (MUL-3375)
-	IsSquadLeader           bool   // true when THIS TASK runs the agent in the squad-leader role (may exit silently on no_action); derived from the claim's is_leader_task / squad_id, never sniffed from instructions text (MUL-5811)
+	HandoffNote             string // assignment handoff instruction; rendered into issue_context.md (ENA-3375)
+	IsSquadLeader           bool   // true when THIS TASK runs the agent in the squad-leader role (may exit silently on no_action); derived from the claim's is_leader_task / squad_id, never sniffed from instructions text (ENA-5811)
 	// WorkspaceContext is the workspace-level system prompt (workspace.context
 	// in the DB). Rendered into the brief as `## Workspace Context` when
 	// non-empty so every agent in the workspace sees the same shared context,
 	// regardless of issue / chat / autopilot / quick-create.
 	WorkspaceContext string
 	// IssueStatuses is the workspace's active CUSTOM status catalog from the
-	// claim payload (MUL-6460), in catalog order. Rendered into the brief's
+	// claim payload (ENA-6460), in catalog order. Rendered into the brief's
 	// status-command line so agents can see and use statuses beyond the seven
 	// built-ins. Like WorkspaceContext, this is durable workspace configuration,
 	// not per-turn state: it may legitimately change brief bytes when an admin
@@ -230,7 +230,7 @@ type TaskContextForEnv struct {
 	// as `## Task Initiator` when a name is present; InitiatorEmail is shown
 	// only for member initiators. Empty for on-assign / autopilot /
 	// quick-create tasks, which have no attributable human initiator. See
-	// MUL-2645.
+	// ENA-2645.
 	InitiatorType  string
 	InitiatorID    string
 	InitiatorName  string
@@ -239,7 +239,7 @@ type TaskContextForEnv struct {
 
 // SkillContextForEnv represents a skill to be written into the execution environment.
 // IssueStatusForEnv is one active custom workspace status rendered into the
-// brief (MUL-6460). Name and Description are user-authored text and MUST pass
+// brief (ENA-6460). Name and Description are user-authored text and MUST pass
 // through the brief sanitizers before rendering; Key is constrained by the
 // storage CHECK to `^[a-z0-9][a-z0-9_]{0,31}$` but is still guarded with
 // sanitizeBriefCodeToken as defense-in-depth.
@@ -526,7 +526,7 @@ func Prepare(params PrepareParams, logger *slog.Logger) (*Environment, error) {
 	// Prepare, and the caller receives no Environment on any failure path, so
 	// none of the teardown defers that normally undo this tree are ever
 	// registered. Without this rollback the files stay on disk with no record
-	// of what to remove (MUL-6132).
+	// of what to remove (ENA-6132).
 	//
 	// In place only. Worktree mode discards the whole worktree on failure just
 	// above, and a cloud envRoot is wiped wholesale by the GC — only the
@@ -646,7 +646,7 @@ func Prepare(params PrepareParams, logger *slog.Logger) (*Environment, error) {
 		// In place the manifest is the ONLY record of what we wrote into the
 		// user's own directory, so losing it strands the sidecar tree there
 		// permanently — no crash required, a disk or permission hiccup is
-		// enough (MUL-6132). Fail so the rollback registered above removes the
+		// enough (ENA-6132). Fail so the rollback registered above removes the
 		// tree now, while we still hold the in-memory manifest. Elsewhere the
 		// manifest is a convenience the GC can do without, so a warning stays
 		// the right response.
@@ -700,7 +700,7 @@ type ReuseParams struct {
 	// only used while migrating a legacy per-task home whose sessions/ still
 	// symlinks the shared ~/.codex/sessions — the single rollout for this ID is
 	// exposed into the new task-local sessions dir so thread/resume still finds
-	// it. Empty means a fresh thread. See prepareCodexSessionsDir (MUL-4424).
+	// it. Empty means a fresh thread. See prepareCodexSessionsDir (ENA-4424).
 	ResumeSessionID string
 	OpenclawBin     string // only used when Provider == "openclaw"; empty = PATH lookup
 	// McpConfig is the agent's saved `mcp_config` JSON. Reused on reuse so a
@@ -715,7 +715,7 @@ type ReuseParams struct {
 	OpenclawGateway OpenclawGatewayPin
 	// Profile is the daemon's profile name (empty = default), mirroring
 	// PrepareParams.Profile so a reused task keys its per-issue Codex session
-	// store into the same profile namespace (MUL-4424).
+	// store into the same profile namespace (ENA-4424).
 	Profile string
 	// LocalDirectory is true when the reused WorkDir is a user-supplied
 	// directory (the local_directory flow). The flag is propagated into
@@ -737,7 +737,7 @@ type ReuseParams struct {
 	ReasonixEnv map[string]string
 	// CodexCustomArgs mirrors PrepareParams.CodexCustomArgs on reuse so the
 	// Windows sandbox decision honors a `-c windows.sandbox=...` override here
-	// too (MUL-4957).
+	// too (ENA-4957).
 	CodexCustomArgs []string
 	Task            TaskContextForEnv // refreshed context files / skills
 }
@@ -1094,7 +1094,7 @@ const ManagedEnvProvenanceManagedBy = "enact-daemon-managed-env"
 // task-complete handler reconciles the follow-up and wakes the runtime before
 // the prior task's daemon handler writes .gc_meta.json. Keying reuse
 // eligibility off .gc_meta.json therefore raced: the successor read a
-// not-yet-written file and started a fresh session (MUL-4886). This marker is
+// not-yet-written file and started a fresh session (ENA-4886). This marker is
 // on disk from the moment the env is created, so the successor can prove reuse
 // safety inside that window. It is written only for non-local managed issue or
 // chat envs, so its presence is itself the "safe to reuse, not a user

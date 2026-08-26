@@ -80,7 +80,7 @@ var ErrLeaseNotAcquired = errors.New("engine: ws lease held elsewhere")
 type InstallationStore interface {
 	// ListActiveInstallations returns every active installation across ALL
 	// channel types. There is no per-platform filter here — that hard-coded
-	// "feishu" was the whole limitation MUL-3620 removes.
+	// "feishu" was the whole limitation ENA-3620 removes.
 	ListActiveInstallations(ctx context.Context) ([]Installation, error)
 }
 

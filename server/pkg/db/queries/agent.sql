@@ -16,7 +16,7 @@ ORDER BY created_at ASC;
 -- rows, which carry no kind filter of their own: a system carrier runs real
 -- tasks and books real usage, so a per-agent rollup returns it whether or not
 -- any list endpoint will ever name it. Those surfaces need the full population
--- to decide what to hide (MUL-5409). Do NOT use this to build a user-facing
+-- to decide what to hide (ENA-5409). Do NOT use this to build a user-facing
 -- agent list — `kind = 'system'` must stay out of every picker and assignee
 -- surface.
 SELECT * FROM agent
@@ -103,7 +103,7 @@ WHERE id = $1 AND kind = 'system' AND system_key LIKE 'agent_builder:%';
 --
 -- Callers MUST hold LockChatSessionForRuntimeBind on the owning chat_session for
 -- the whole transaction, otherwise a concurrent send can stamp a task with the
--- pre-switch runtime after the pending-task check has already passed (MUL-5163).
+-- pre-switch runtime after the pending-task check has already passed (ENA-5163).
 --
 -- chat_session.runtime_id is deliberately left untouched: the daemon only resumes
 -- a stored provider session when chat_session.runtime_id matches the claiming
@@ -312,7 +312,7 @@ LIMIT 5;
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- head_sha stamps the commit under review into the task's context JSONB so the
 -- reviewer-loop dedup (HasPendingTaskForIssueAndAgent) can tell a pending run
 -- against an OLD head apart from a fresh request against a NEW head (TEN-356).
@@ -365,7 +365,7 @@ RETURNING *;
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- Channel /issue media resolves after issue creation. Persist the assigned
 -- issue task up front for crash safety, but keep it inert until attachment
 -- binding settles or the fire_at fallback is promoted by the normal sweeper.
@@ -429,13 +429,13 @@ WHERE id = @id
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- Quick-create tasks have no issue / chat / autopilot link; the entire job
 -- description (prompt, requester, workspace) lives in context JSONB. The
 -- daemon detects this variant via context.type == "quick_create".
 -- The requester who opened the quick-create modal is a direct_human originator
 -- and accountable; attribution provenance is stamped so this path is not a
--- NULL-source enqueue bypass (MUL-4302 §2).
+-- NULL-source enqueue bypass (ENA-4302 §2).
 INSERT INTO agent_task_queue (
     agent_id, runtime_id, issue_id, status, priority, context, originator_user_id,
     accountable_user_id, runtime_mcp_overlay, runtime_connected_apps,
@@ -459,14 +459,14 @@ RETURNING *;
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- Deferred tasks are inert until PromoteDueDeferredTasksForRuntime flips them
 -- to queued. Used for comment-routing escalation: a thread-owner primary task
 -- gets a delayed assignee fallback without waking both agents at t=0.
 -- Attribution is resolved and stamped at creation (not at promotion), from the
 -- same trigger comment as the primary task, so the fallback assignee's run
 -- carries a non-NULL source and evidence rather than bypassing attribution
--- (MUL-4302 §2).
+-- (ENA-4302 §2).
 INSERT INTO agent_task_queue (
     agent_id, runtime_id, issue_id, status, priority, trigger_comment_id,
     trigger_summary, is_leader_task, squad_id, escalation_for_task_id, fire_at,
@@ -496,7 +496,7 @@ RETURNING *;
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 -- Attaches the issue a quick-create task produced back to the task row, once
 -- the agent has finished and the issue exists. Guarded by `issue_id IS NULL`
 -- so this never overwrites an issue id that was set at task creation (only
@@ -511,7 +511,7 @@ WHERE id = $1 AND issue_id IS NULL
 -- Fenced against workspace teardown: lock_task_owner_rows (migration 284)
 -- locks the owners' workspace rows in the writer's own transaction and returns
 -- false once they are gone, so this statement writes no row instead of stranding
--- a task in a workspace that has just been deleted (MUL-5999).
+-- a task in a workspace that has just been deleted (ENA-5999).
 --
 -- Fenced against slot contention too: ON CONFLICT DO NOTHING yields the single
 -- queued/dispatched slot idx_one_pending_task_per_issue_agent_v2 allows per
@@ -543,9 +543,9 @@ WHERE id = $1 AND issue_id IS NULL
 -- originator_user_id is inherited so the Composio overlay decision sees the
 -- same top-of-chain human across the retry: the user behind the original
 -- run has not changed. The Composio overlay follows the agent's invocation
--- permission and uses the agent owner's connection (MUL-3963); originator is
+-- permission and uses the agent owner's connection (ENA-3963); originator is
 -- carried for A2A/audit, not as an originator == agent.owner_id gate.
--- A system retry is NOT a new attribution event (MUL-4302 §5): it inherits the
+-- A system retry is NOT a new attribution event (ENA-4302 §5): it inherits the
 -- parent's accountable human, source label, delegation lineage, rule version,
 -- and trigger evidence UNCHANGED, and records retry_of_task_id = p.id so retry
 -- and manual rerun stay separable in reporting. parent_task_id keeps its
@@ -553,7 +553,7 @@ WHERE id = $1 AND issue_id IS NULL
 -- attribution-facing lineage column.
 --
 -- chat_input_task_id is inherited straight from the parent so the whole retry
--- chain keeps consuming the ORIGINAL root input batch (MUL-4351): the root
+-- chain keeps consuming the ORIGINAL root input batch (ENA-4351): the root
 -- direct task set it to its own id, every descendant copies that value, and a
 -- claim always reads the same user messages. A plain copy (not
 -- COALESCE(parent.chat_input_task_id, parent.id)) is deliberate: legacy/channel
@@ -572,14 +572,14 @@ WHERE id = $1 AND issue_id IS NULL
 -- PromoteDueDeferredTasksForRuntime sweeper (run promote-first on every claim
 -- poll) flips it to 'queued'. Used for runtime_offline so the child waits for a
 -- healthy runtime, and for provider_network's final attempt so it waits ~5s
--- instead of firing back-to-back with the immediate retry (MUL-4910). NULL
+-- instead of firing back-to-back with the immediate retry (ENA-4910). NULL
 -- keeps the historical behaviour: an immediately-claimable 'queued' child.
 --
 -- max_attempts overrides the inherited budget when non-NULL (NULL inherits
 -- p.max_attempts unchanged). Callers persist the reason-aware effective ceiling
 -- here so the row stays self-consistent — e.g. provider_network's chain records
 -- attempt=3, max_attempts=3 rather than leaking attempt=3, max_attempts=2 to the
--- task API (MUL-4910). The Go retryAttemptCeiling already refuses to raise a
+-- task API (ENA-4910). The Go retryAttemptCeiling already refuses to raise a
 -- disabled (max_attempts<=1) task, so this only ever widens, never revives.
 INSERT INTO agent_task_queue (
     agent_id, runtime_id, issue_id, chat_session_id, autopilot_run_id,
@@ -625,7 +625,7 @@ RETURNING *;
 -- caller can reconcile each agent's status and broadcast task:cancelled events
 -- (#1587). Prior :exec form silently dropped that info, leaving agents stuck at
 -- status="working" with no self-correction. Only issue-deletion cleanup calls
--- this now; a status flip to cancelled/done no longer does (MUL-4465).
+-- this now; a status flip to cancelled/done no longer does (ENA-4465).
 UPDATE agent_task_queue
 SET status = 'cancelled', completed_at = now(), prepare_lease_expires_at = NULL
 WHERE issue_id = $1 AND status IN ('queued', 'dispatched', 'running', 'waiting_local_directory', 'deferred')
@@ -842,7 +842,7 @@ WHERE id = (
 RETURNING *;
 
 -- name: ReclaimStaleDispatchedTasksForRuntimes :many
--- Batch variant of ReclaimStaleDispatchedTaskForRuntime (MUL-4257): re-delivers
+-- Batch variant of ReclaimStaleDispatchedTaskForRuntime (ENA-4257): re-delivers
 -- up to @max_tasks tasks across the whole runtime set in one round trip, so a
 -- machine-level batch claim recovers lost-response dispatches for every runtime
 -- it hosts without one query per runtime. Same eligibility as the singular
@@ -918,7 +918,7 @@ WHERE id = $1 AND status = 'dispatched'
 RETURNING *;
 
 -- name: CompleteAgentTask :one
--- session_rollout_missing (MUL-5305): when true the daemon withheld this task's
+-- session_rollout_missing (ENA-5305): when true the daemon withheld this task's
 -- Codex session because its rollout was never written to the store. Forcing
 -- session_id NULL and flagging the row happen in THIS terminal transaction so an
 -- auto-retry created and woken by the same commit can never observe the bad
@@ -949,7 +949,7 @@ RETURNING *;
 -- daemon restart, runtime offline, or sweeper timeout), and the daemon pins
 -- the resume pointer mid-flight via UpdateAgentTaskSession. Without this,
 -- an auto-retry of a mid-run failure would silently start a fresh
--- conversation and lose the in-flight context — exactly what MUL-1128's B
+-- conversation and lose the in-flight context — exactly what ENA-1128's B
 -- branch is meant to fix.
 --
 -- A cancelled task is in exactly the same position, and excluding it was the
@@ -968,7 +968,7 @@ RETURNING *;
 -- force_fresh_session=true purely as a rollback-safe signal: an OLD claim
 -- handler that predates the rerun_of_task_id branch falls back to this query,
 -- and force_fresh_session=true makes it start clean instead of resuming the
--- wrong execution (MUL-4869).
+-- wrong execution (ENA-4869).
 --
 -- Tasks that ended in a known "poisoned" terminal state are also excluded
 -- here so even auto-retry does not inherit the bad session. The daemon
@@ -980,11 +980,11 @@ RETURNING *;
 -- (oversized image, malformed base64, etc.), a Codex semantic inactivity
 -- timeout whose recorded session may replay the same stuck state, a context
 -- window overflow that would immediately overflow again on resume, or a Codex
--- thread/resume response too large to read back (MUL-5722). Keep this
+-- thread/resume response too large to read back (ENA-5722). Keep this
 -- list in sync with resumeUnsafeFailureReason and GetLastChatTaskSession.
 --
 -- The error-text ILIKE clause is defense-in-depth for the api_invalid_request
--- shape: a legacy row tagged 'agent_error' (pre-MUL-1921), a deploy-window
+-- shape: a legacy row tagged 'agent_error' (pre-ENA-1921), a deploy-window
 -- row that the old code wrote between migration and rollout, or a future
 -- error format that escapes the daemon classifier all still get filtered
 -- here as long as the canonical Anthropic 400 marker is present in the
@@ -1016,7 +1016,7 @@ RETURNING *;
 -- exactly as narrow as classifyPoisonedError and the Kiro detector — an
 -- unrelated error that only mentions image dimensions is NOT excluded.
 --
--- MUL-5722 needed a different shape, and the reason is worth stating because
+-- ENA-5722 needed a different shape, and the reason is worth stating because
 -- the first attempt got it wrong: a row-level guard like the ones above CANNOT
 -- work for an overflowed resume. That failure happens before the turn starts,
 -- so the backend has no session id to report and the row lands with session_id
@@ -1092,7 +1092,7 @@ WHERE session_id NOT IN (SELECT session_id FROM retired_sessions)
                AND COALESCE(error, '') ~* 'role[^a-z0-9]{0,2}assistant|assistant message|message at position|messages\.[0-9]|messages\[[0-9]')
     )
   )
-  -- MUL-5722: a resume that overflowed the reader names no session, so it can
+  -- ENA-5722: a resume that overflowed the reader names no session, so it can
   -- only be excluded by time, not by matching the failed row. Drop every
   -- session whose last terminal activity predates the newest such failure: one
   -- of them IS the oversized thread, and the row that would tell us which is
@@ -1108,7 +1108,7 @@ LIMIT 1;
 
 -- name: GetLatestTaskRolloutMissing :one
 -- Reports whether the most recent terminal task for (agent_id, issue_id)
--- withheld its Codex session because the rollout was missing (MUL-5305). When
+-- withheld its Codex session because the rollout was missing (ENA-5305). When
 -- true, GetLastTaskSession fell back to an older session, so the next run must
 -- disclose that the most recent turn's context could not be carried over. Any
 -- later task that records a real session resets this to FALSE by being the new
@@ -1121,7 +1121,7 @@ ORDER BY COALESCE(completed_at, started_at, dispatched_at, created_at) DESC
 LIMIT 1;
 
 -- name: GetLatestChatTaskRolloutMissing :one
--- Chat-session counterpart of GetLatestTaskRolloutMissing (MUL-5305): reports
+-- Chat-session counterpart of GetLatestTaskRolloutMissing (ENA-5305): reports
 -- whether the most recent terminal task on this chat session withheld its Codex
 -- session because the rollout was missing. When true the next chat claim resumed
 -- an older session (or none), so it must disclose the continuity gap.
@@ -1155,7 +1155,7 @@ LIMIT 1;
 -- failure_reason is a coarse classifier consumed by the auto-retry path;
 -- 'agent_error' is the safe default when the daemon doesn't supply one.
 --
--- session_rollout_missing (MUL-5305): when true the daemon withheld this task's
+-- session_rollout_missing (ENA-5305): when true the daemon withheld this task's
 -- Codex session (its rollout was missing). Force session_id NULL — overriding
 -- the COALESCE that would otherwise preserve a stale mid-flight pin — and flag
 -- the row, in the SAME transaction that creates and wakes the auto-retry, so the
@@ -1294,7 +1294,7 @@ RETURNING *;
 
 -- name: ExpireStaleQueuedTasks :many
 -- Fails tasks that have been sitting in 'queued' for longer than the TTL.
--- This is the cleanup arm of the MUL-1899 "queued backlog" fix: even with the
+-- This is the cleanup arm of the ENA-1899 "queued backlog" fix: even with the
 -- new dispatch-time admission gate that refuses to enqueue when the runtime
 -- is offline, we still need to drain the historical 87k+ doomed rows and
 -- handle edge cases where a runtime goes offline AFTER a task is already
@@ -1657,7 +1657,7 @@ WHERE issue_id = @issue_id
   );
 
 -- name: MergeCommentIntoPendingTask :one
--- MUL-4195: fold a newly-arrived comment into an existing task for (issue,
+-- ENA-4195: fold a newly-arrived comment into an existing task for (issue,
 -- agent) that has NOT yet been claimed, instead of letting the
 -- HasPendingTaskForIssueAndAgent dedup silently DROP it. The task's prior
 -- trigger_comment_id becomes a coalesced ("also cover") comment and
@@ -1665,7 +1665,7 @@ WHERE issue_id = @issue_id
 -- the latest deliberate instruction while the single run is still told to
 -- address every folded comment.
 --
--- Target is restricted to a pre-claim task on purpose (MUL-4195 review rounds
+-- Target is restricted to a pre-claim task on purpose (ENA-4195 review rounds
 -- 2–4). This merge is reached when HasPendingTaskForIssueAndAgent matched a
 -- 'queued'/'dispatched' task, or the channel-media deferred task described
 -- below. 'dispatched' is deliberately NOT a
@@ -1681,7 +1681,7 @@ WHERE issue_id = @issue_id
 -- plan; the claim path records the actual embedded subset in
 -- delivered_comment_ids.
 --
--- Recompute-on-merge (MUL-4195 review must-fix #1): originator_user_id,
+-- Recompute-on-merge (ENA-4195 review must-fix #1): originator_user_id,
 -- runtime_mcp_overlay and runtime_connected_apps are re-stamped to the NEW
 -- trigger comment's originator (computed by the caller). Earlier this only
 -- repointed the trigger and kept the old originator's overlay/attribution, so a
@@ -1707,7 +1707,7 @@ SET coalesced_comment_ids = (
     ),
     trigger_comment_id = @new_trigger_comment_id::uuid,
     trigger_summary = COALESCE(sqlc.narg('new_trigger_summary'), trigger_summary),
-    -- Re-attribution is ATOMIC (MUL-4302): folding a newly-arrived comment moves the
+    -- Re-attribution is ATOMIC (ENA-4302): folding a newly-arrived comment moves the
     -- WHOLE attribution snapshot to that comment's human — person columns, source
     -- label, delegation lineage, rule version, and evidence — computed by the caller
     -- as one attribution.Result. Re-stamping only the person columns would leave a
@@ -1766,7 +1766,7 @@ RETURNING id, coalesced_comment_ids;
 -- attribution. A queued target must therefore go through the ATOMIC
 -- MergeCommentIntoPendingTask (which re-stamps trigger/originator/accountable/
 -- overlay), never a bare planned append — otherwise a second member's comment
--- could execute under the first member's identity/connected-apps (MUL-4302).
+-- could execute under the first member's identity/connected-apps (ENA-4302).
 -- Only claim-receipt statuses (already-built delivered set) are safe planned-id
 -- targets.
 UPDATE agent_task_queue
@@ -1938,7 +1938,7 @@ ORDER BY recovery.created_at ASC, recovery.id ASC
 LIMIT @max_per_tick;
 
 -- name: HasActiveTaskForIssueAndAgent :one
--- MUL-4195: true when the (issue, agent) pair has any non-terminal task in a
+-- ENA-4195: true when the (issue, agent) pair has any non-terminal task in a
 -- state whose completion will run completion reconciliation — queued,
 -- dispatched, running, waiting_local_directory, or the explicitly-marked
 -- channel-media deferred state. Used by the comment enqueue
@@ -2076,7 +2076,7 @@ WHERE id IN (SELECT id FROM due WHERE issue_id IS NULL OR rn = 1)
 RETURNING *;
 
 -- name: ListQueuedClaimCandidatesByRuntimes :many
--- Batch variant of ListQueuedClaimCandidatesByRuntime (MUL-4257): returns
+-- Batch variant of ListQueuedClaimCandidatesByRuntime (ENA-4257): returns
 -- queued claim candidates across every runtime_id in the input set in ONE round
 -- trip, so a daemon can list candidates for all of its runtimes with a single
 -- query instead of one per runtime. Ordering matches the singular query
@@ -2091,7 +2091,7 @@ WHERE runtime_id = ANY(@runtime_ids::uuid[]) AND status = 'queued'
 ORDER BY priority DESC, created_at ASC;
 
 -- name: PromoteDueDeferredTasksForRuntimes :many
--- Batch variant of PromoteDueDeferredTasksForRuntime (MUL-4257): promotes all
+-- Batch variant of PromoteDueDeferredTasksForRuntime (ENA-4257): promotes all
 -- due deferred tasks across the runtime set in one UPDATE. Carries the same two
 -- fences as the singular query; see its comment for why.
 WITH due AS (
@@ -2206,7 +2206,7 @@ ORDER BY atq.agent_id, bucket;
 --   - Each agent's most recent OUTCOME task (completed / failed) — NOT part of
 --     presence since #1823; it is the "last activity" line the Squad hover card
 --     renders (agent-live-peek-card.tsx). Kept in this response because shipped
---     desktop builds read it from here; see MUL-5436 for the plan to move it to
+--     desktop builds read it from here; see ENA-5436 for the plan to move it to
 --     a dedicated lazy endpoint.
 --
 -- Cancelled tasks are excluded from the outcome half on purpose: cancel is a

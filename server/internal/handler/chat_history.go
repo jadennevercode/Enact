@@ -25,7 +25,7 @@ import (
 // own. Two operations back the two agent commands: ChannelOverview is the
 // channel table-of-contents (`enact chat history`), Thread reads one thread's
 // messages (`enact chat thread [id]`). Both are scoped server-side to the
-// session's own channel (MUL-3871).
+// session's own channel (ENA-3871).
 type ChatChannelHistoryReader interface {
 	ChannelOverview(ctx context.Context, chatSessionID pgtype.UUID, opts channel.HistoryOptions) (channel.HistoryPage, error)
 	Thread(ctx context.Context, chatSessionID pgtype.UUID, threadID string, opts channel.HistoryOptions) (channel.HistoryPage, error)
@@ -209,7 +209,7 @@ func (h *Handler) GetChatThread(w http.ResponseWriter, r *http.Request) {
 // chatHistorySession authorizes the request and returns the caller's own chat
 // session. It is authorized by the task-scoped token alone: middleware stamps
 // the token's task into X-Actor-Source=task_token + X-Task-ID (a normal JWT /
-// mul_ PAT leaves X-Actor-Source empty and does NOT strip a client-forged
+// enact_ PAT leaves X-Actor-Source empty and does NOT strip a client-forged
 // X-Task-ID), so requiring the task-token actor is load-bearing — without it a
 // member could forge X-Task-ID and read another session's history.
 func (h *Handler) chatHistorySession(w http.ResponseWriter, r *http.Request) (pgtype.UUID, bool) {

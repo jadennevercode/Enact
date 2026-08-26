@@ -25,7 +25,7 @@ import (
 // Adding a field to IssueResponse without adding it to IssueToMap must fail
 // here rather than in the UI.
 func TestIssueToMap_KeysMatchIssueResponse(t *testing.T) {
-	const prefix = "MUL"
+	const prefix = "ENA"
 	issue := fullyPopulatedIssue(t)
 
 	responseKeys := jsonKeys(t, issueToResponse(issue, prefix))
@@ -49,7 +49,7 @@ func TestIssueToMap_KeysMatchIssueResponse(t *testing.T) {
 // which keys exist — a number sent as a string, or a date formatted
 // differently, breaks clients just as quietly as a missing field.
 func TestIssueToMap_ValuesMatchIssueResponse(t *testing.T) {
-	const prefix = "MUL"
+	const prefix = "ENA"
 	issue := fullyPopulatedIssue(t)
 
 	response, err := json.Marshal(issueToResponse(issue, prefix))
@@ -88,7 +88,7 @@ func TestIssueToMap_ValuesMatchIssueResponse(t *testing.T) {
 func TestIssueToMap_UnsetJSONBagsAreEmptyObjects(t *testing.T) {
 	issue := db.Issue{Number: 42}
 
-	raw, err := json.Marshal(service.IssueToMap(issue, "MUL"))
+	raw, err := json.Marshal(service.IssueToMap(issue, "ENA"))
 	if err != nil {
 		t.Fatalf("marshal IssueToMap: %v", err)
 	}
@@ -109,8 +109,8 @@ func TestIssueToMap_UnsetJSONBagsAreEmptyObjects(t *testing.T) {
 // stray "-42", and the chat reply and the broadcast payload must not disagree
 // about it (both call service.IssueIdentifier).
 func TestIssueIdentifier_DegradesWithoutPrefix(t *testing.T) {
-	if got := service.IssueIdentifier("MUL", 42); got != "MUL-42" {
-		t.Errorf("IssueIdentifier(\"MUL\", 42) = %q; want MUL-42", got)
+	if got := service.IssueIdentifier("ENA", 42); got != "ENA-42" {
+		t.Errorf("IssueIdentifier(\"ENA\", 42) = %q; want ENA-42", got)
 	}
 	if got := service.IssueIdentifier("", 42); got != "#42" {
 		t.Errorf("IssueIdentifier(\"\", 42) = %q; want #42", got)

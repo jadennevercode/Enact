@@ -28,7 +28,7 @@ function issueToMentionItem(
     status: issue.status,
     // Carried, not dropped: the list picks its glyph and its dimming from the
     // category, so losing it here made a custom done status in Current/Recent
-    // render as an active Todo. (MUL-6243)
+    // render as an active Todo. (ENA-6243)
     statusCategory: issueStatusCategory(issue) ?? undefined,
     group,
   };
@@ -122,4 +122,3 @@ export function useChatContextItems(wsId: string): MentionItem[] {
     return [...currentItems, ...recentItems];
   }, [currentIssue, currentProject, recentQueries, visibleRecentEntries]);
 }
-

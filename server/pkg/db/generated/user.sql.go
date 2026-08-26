@@ -113,7 +113,7 @@ type GetUsersByIDsRow struct {
 
 // Batch lookup from the GLOBAL user table (not gated on membership, so departed
 // members still render). Used to enrich attribution initiator / originator refs on
-// task responses without an N+1 (MUL-4302 §9). Returns only the display fields.
+// task responses without an N+1 (ENA-4302 §9). Returns only the display fields.
 func (q *Queries) GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]GetUsersByIDsRow, error) {
 	rows, err := q.db.Query(ctx, getUsersByIDs, ids)
 	if err != nil {

@@ -122,6 +122,7 @@ type NavKey =
   | "squads"
   | "usage"
   | "runtimes"
+  | "ontologies"
   | "skills"
   | "settings";
 
@@ -138,6 +139,7 @@ type NavLabelKey =
   | "squads"
   | "usage"
   | "runtimes"
+  | "ontologies"
   | "skills"
   | "settings";
 
@@ -161,6 +163,7 @@ const workspaceNav: { key: NavKey; labelKey: NavLabelKey }[] = [
 
 const configureNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "runtimes", labelKey: "runtimes" },
+  { key: "ontologies", labelKey: "ontologies" },
   { key: "skills", labelKey: "skills" },
   { key: "settings", labelKey: "settings" },
 ];
@@ -470,7 +473,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
   // count with no matching row. "Reading right now" = a session is active, a
   // chat surface is actually showing it (chat page route or the floating
   // window), AND the app is in the foreground. When the app is backgrounded,
-  // auto mark-read is suppressed (MUL-4485) so the reply stays unread — the
+  // auto mark-read is suppressed (ENA-4485) so the reply stays unread — the
   // badge must count it, or the notification is silently eaten while the user
   // is away. A remembered selection while both surfaces are closed also still
   // counts, for the same reason.
@@ -565,7 +568,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
     mutationFn: (id: string) => api.acceptInvitation(id),
     // After accepting an invitation, navigate INTO the newly-joined workspace.
     // Otherwise the user stays on their current workspace and just sees the
-    // new one appear in the dropdown — silent and confusing (this is MUL-820).
+    // new one appear in the dropdown — silent and confusing (this is ENA-820).
     onSuccess: async (_, invitationId) => {
       const invitation = myInvitations.find((i) => i.id === invitationId);
       queryClient.invalidateQueries({ queryKey: workspaceKeys.myInvitations() });

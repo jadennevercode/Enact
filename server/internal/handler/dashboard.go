@@ -32,7 +32,7 @@ import (
 // N+1 cutoff makes the leaderboard and the Run time / Tasks KPIs cover one
 // calendar day more than the chart and the Cost / Tokens KPIs beside them —
 // at 1D that let a single agent's row read higher than the workspace total
-// (MUL-5551). Keep the two halves of each pair on matching windows.
+// (ENA-5551). Keep the two halves of each pair on matching windows.
 //
 // Cost is computed client-side from a per-model pricing table — the model
 // dimension is intentionally preserved on the wire (same convention as the
@@ -280,7 +280,7 @@ func (h *Handler) GetDashboardUsageByAgent(w http.ResponseWriter, r *http.Reques
 	// carrying no date cannot be trimmed that way. On the N+1 cutoff this
 	// leaderboard covered one calendar day more than the Tokens/Cost KPI and
 	// the chart directly above it, so at 1D a single agent's row could read
-	// higher than the workspace total (MUL-5551).
+	// higher than the workspace total (ENA-5551).
 	tz := h.resolveViewingTZ(r)
 	since := parseExactSinceParamInTZ(r, 30, tz)
 
@@ -400,7 +400,7 @@ func (h *Handler) GetDashboardAgentRunTime(w http.ResponseWriter, r *http.Reques
 	// the extra calendar day `parseSinceParamInTZ` returns. This response
 	// feeds BOTH the leaderboard's Time/Tasks columns and the Run time /
 	// Tasks KPI tiles, so the N+1 cutoff put those two tiles on a wider
-	// window than the Cost / Tokens tiles beside them (MUL-5551).
+	// window than the Cost / Tokens tiles beside them (ENA-5551).
 	tz := h.resolveViewingTZ(r)
 	since := parseExactSinceParamInTZ(r, 30, tz)
 

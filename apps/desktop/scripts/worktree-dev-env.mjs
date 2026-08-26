@@ -79,7 +79,7 @@ export function rendererPortForPath(path) {
 }
 
 // Worktree → a readable, unique, filesystem-safe suffix "<folder>-<offset>".
-// The dev app then shows e.g. "Enact Canary mul-3724-194" in Cmd+Tab and gets
+// The dev app then shows e.g. "Enact Canary ena-3724-194" in Cmd+Tab and gets
 // its own userData / single-instance lock under that name. The offset is what
 // makes the lock unique: the folder name alone collides for worktrees that share
 // a basename at different paths (e.g. /a/enact vs /b/enact) or whose names

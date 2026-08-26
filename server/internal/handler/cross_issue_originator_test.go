@@ -8,9 +8,9 @@ import (
 	"github.com/enact-ai/enact/server/internal/testutil"
 )
 
-// MUL-6490 / GH #7328 — the authorization chain must survive a cross-issue hop.
+// ENA-6490 / GH #7328 — the authorization chain must survive a cross-issue hop.
 //
-// The invariant under test (MUL-3963): a run always acts "on behalf of" exactly
+// The invariant under test (ENA-3963): a run always acts "on behalf of" exactly
 // one human U, and every A2A delegation is judged by whether U is on the target's
 // allow-list — never by the agent principal doing the asking. The chain's carrier
 // is comment.source_task_id: an agent's comment records the run that wrote it, and
@@ -46,12 +46,12 @@ type crossIssueChain struct {
 // unattributed run, e.g. a schedule/webhook autopilot dispatch).
 func newCrossIssueChain(t *testing.T, ownerUserID string, originatorUserID any) crossIssueChain {
 	t.Helper()
-	coordinator := seedAllowListedAgent(t, "MUL-6490 coordinator", ownerUserID, "private")
-	issueX := seedChainIssue(t, "MUL-6490 originating issue", coordinator)
+	coordinator := seedAllowListedAgent(t, "ENA-6490 coordinator", ownerUserID, "private")
+	issueX := seedChainIssue(t, "ENA-6490 originating issue", coordinator)
 	return crossIssueChain{
 		CoordinatorID: coordinator,
 		IssueX:        issueX,
-		IssueY:        seedChainIssue(t, "MUL-6490 coordinated issue", coordinator),
+		IssueY:        seedChainIssue(t, "ENA-6490 coordinated issue", coordinator),
 		TaskA: dbfx.Task(t, coordinator, testutil.Cols{
 			"runtime_id":          handlerTestRuntimeID(t),
 			"issue_id":            issueX,
@@ -149,7 +149,7 @@ func agentCreatesSubIssue(t *testing.T, agentID, taskID, parentIssueID, targetAg
 	t.Helper()
 	resp := testutil.Call(t, testHandler.CreateIssue, asRun(
 		newRequest(http.MethodPost, "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-			"title":           "MUL-6490 delegated sub-issue for " + targetAgentID,
+			"title":           "ENA-6490 delegated sub-issue for " + targetAgentID,
 			"status":          "todo",
 			"priority":        "medium",
 			"assignee_type":   "agent",
@@ -236,7 +236,7 @@ func TestCrossIssueDelegation_OriginatorChainSurvivesTheHop(t *testing.T) {
 	}
 	// bohan owns the coordinator and is the only member on the worker's allow-list.
 	bohan := testUserID
-	worker := seedAllowListedAgent(t, "MUL-6490 worker", bohan, "public_to", bohan)
+	worker := seedAllowListedAgent(t, "ENA-6490 worker", bohan, "public_to", bohan)
 
 	for _, tc := range []struct {
 		name  string
@@ -274,7 +274,7 @@ func TestCrossIssueDelegation_OriginatorChainSurvivesTheHop(t *testing.T) {
 			// exactly one boundary. Entry-point coverage is in the sibling test.
 			t.Run("the chain continues past the woken run", func(t *testing.T) {
 				runTo(t, taskID)
-				second := seedAllowListedAgent(t, "MUL-6490 second worker", bohan, "public_to", bohan)
+				second := seedAllowListedAgent(t, "ENA-6490 second worker", bohan, "public_to", bohan)
 
 				agentComments(t, worker, taskID, target, mention(second), triggerCommentOf(t, taskID)).
 					Want(http.StatusCreated)
@@ -306,8 +306,8 @@ func TestCrossIssueDelegation_EveryEntryPointJudgesTheSameHuman(t *testing.T) {
 	// firstHop admits both members, so every case reaches the second hop and the
 	// difference isolates to whose authority the chain carries. secondHop admits
 	// ONLY bohan — it is the agent an owner fallback would wrongly unlock.
-	firstHop := seedAllowListedAgent(t, "MUL-6490 shared worker", bohan, "public_to", bohan, alice)
-	secondHop := seedAllowListedAgent(t, "MUL-6490 bohan-only worker", bohan, "public_to", bohan)
+	firstHop := seedAllowListedAgent(t, "ENA-6490 shared worker", bohan, "public_to", bohan, alice)
+	secondHop := seedAllowListedAgent(t, "ENA-6490 bohan-only worker", bohan, "public_to", bohan)
 
 	for _, tc := range []struct {
 		name    string
@@ -394,7 +394,7 @@ func TestCrossIssueDelegation_GateAndStampAgreeOnTheHuman(t *testing.T) {
 		t.Skip("database not available")
 	}
 	bohan := testUserID
-	worker := seedAllowListedAgent(t, "MUL-6490 agreement worker", bohan, "public_to", bohan)
+	worker := seedAllowListedAgent(t, "ENA-6490 agreement worker", bohan, "public_to", bohan)
 	chain := newCrossIssueChain(t, bohan, bohan)
 
 	agentComments(t, chain.CoordinatorID, chain.TaskA, chain.IssueY, mention(worker), "").

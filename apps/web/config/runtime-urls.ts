@@ -25,7 +25,7 @@ function cleanHttpUrl(raw: string | undefined): string | undefined {
 // `/api/**`, avatars resolve `/uploads/**`, realtime connects `/ws`), and the
 // backend serves all three at the root (server/cmd/server/router.go). A base
 // ending in `/api` therefore yields `/api/api/**` requests and 404s every
-// upload — the most common self-hosting mistake (#6619, MUL-5922). Strip that
+// upload — the most common self-hosting mistake (#6619, ENA-5922). Strip that
 // one suffix instead of honouring it. Any other path is preserved: a reverse
 // proxy may legitimately mount the whole backend under a prefix such as
 // `https://host/enact`.
@@ -107,6 +107,56 @@ export function resolveBrowserWsUrl(env: RuntimeEnv): string | undefined {
   return apiUrl ? tryDeriveWsUrl(apiUrl) : undefined;
 }
 
+/**
+ * Host-published backend port injected by the official self-host Compose file.
+ * This stays server-only: RootLayout passes the validated value to the browser
+ * instead of exposing arbitrary process.env contents.
+ */
+export function resolveBrowserBackendPort(env: RuntimeEnv): string | undefined {
+  const raw = env.ENACT_BROWSER_BACKEND_PORT?.trim();
+  if (!raw || !/^\d+$/.test(raw)) return undefined;
+  const port = Number(raw);
+  return Number.isInteger(port) && port >= 1 && port <= 65535
+    ? String(port)
+    : undefined;
+}
+
+/**
+ * Default realtime URL when no public API / WS URL was configured.
+ *
+ * Next's HTTP rewrite handles /api in the self-host image, but it cannot carry
+ * a WebSocket Upgrade through the runtime proxy. For the plain HTTP loopback
+ * Compose topology, connect to the host-published backend port directly. A
+ * remote or HTTPS deployment keeps the same-origin /ws URL so its real reverse
+ * proxy (Caddy/nginx) remains responsible for the Upgrade.
+ */
+export function deriveBrowserWsUrlFromPage(
+  pageUrl: string,
+  loopbackBackendPort?: string,
+): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(pageUrl);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+
+  const loopback =
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "[::1]";
+  if (url.protocol === "http:" && loopback && loopbackBackendPort) {
+    url.port = loopbackBackendPort;
+  }
+
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "/ws";
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/, "");
+}
+
 export function runtimeRewriteDestination(
   pathname: string,
   env: RuntimeEnv,
@@ -152,7 +202,7 @@ function isBackendAuthPath(pathname: string): boolean {
 // prefix-mounted deployment would break in one direction while working in the
 // other. `apps/desktop/src/shared/runtime-config.ts` derives it the same way,
 // so both clients read one configured value identically. The regression that
-// motivated MUL-5922 — `NEXT_PUBLIC_API_URL=https://host/api` deriving
+// motivated ENA-5922 — `NEXT_PUBLIC_API_URL=https://host/api` deriving
 // `wss://host/api/ws` while the backend serves `/ws` at the root — is fixed
 // upstream in the base itself (see stripApiPathSuffix), not here.
 function tryDeriveWsUrl(apiUrl: string): string | undefined {

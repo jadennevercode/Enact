@@ -32,7 +32,7 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate and set up workspaces",
 	Long:  "Log in to Enact, then automatically discover and watch all your workspaces.",
-	// Up to one positional is accepted so `--token mul_...` / `--token mcn_...`
+	// Up to one positional is accepted so `--token enact_...` / `--token mcn_...`
 	// (space form) can recover the token in runAuthLogin even though pflag
 	// won't bind it.
 	Args: cobra.MaximumNArgs(1),
@@ -42,7 +42,7 @@ var loginCmd = &cobra.Command{
 // tokenPromptSentinel is the value pflag assigns to `--token` when the flag
 // is supplied without an explicit value. runAuthLoginToken treats it as
 // "prompt me interactively", preserving the legacy `enact login --token`
-// no-value form alongside the documented `--token mul_...` / `--token mcn_...`
+// no-value form alongside the documented `--token enact_...` / `--token mcn_...`
 // value form.
 //
 // The sentinel must be printable: pflag renders NoOptDefVal verbatim in help
@@ -55,9 +55,9 @@ const tokenPromptSentinel = "prompt"
 func init() {
 	// No backticks in the usage string: pflag's UnquoteUsage treats the first
 	// backquoted segment as the flag's value placeholder in help output.
-	loginCmd.Flags().String("token", "", "Authenticate using a personal access token (mul_... user PAT or mcn_... Cloud Node PAT). Pass --token mul_... / --token mcn_... to supply it inline, or --token alone to be prompted interactively.")
+	loginCmd.Flags().String("token", "", "Authenticate using a personal access token (enact_... user PAT or mcn_... Cloud Node PAT). Pass --token enact_... / --token mcn_... to supply it inline, or --token alone to be prompted interactively.")
 	// NoOptDefVal lets `--token` (no value) keep its old prompt-mode behavior
-	// while `--token mul_...` / `--token mcn_...` and the `=value` form
+	// while `--token enact_...` / `--token mcn_...` and the `=value` form
 	// consume the value normally.
 	loginCmd.Flags().Lookup("token").NoOptDefVal = tokenPromptSentinel
 	loginCmd.Flags().String(callbackHostFlag, "", callbackHostFlagHelp)

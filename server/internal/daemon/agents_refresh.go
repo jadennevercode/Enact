@@ -44,7 +44,7 @@ var agentVersionRefreshInterval = 10 * time.Minute
 
 // agentDiscoveryLoop keeps the registered runtime set converged on the agent
 // CLIs actually installed on this machine, so a CLI installed while the daemon
-// is running comes online without a restart (MUL-5439).
+// is running comes online without a restart (ENA-5439).
 //
 // Each tick does the cheap half unconditionally: re-probe availability and
 // publish anything new. The expensive half (version probes + registration) runs
@@ -355,7 +355,7 @@ func (d *Daemon) refreshAgentVersions(ctx context.Context) {
 // version's policy.
 //
 // A CLI that cannot exec reaches the same dead end by a different road
-// (MUL-6164): an npm placeholder stub passes every "is it installed" check the
+// (ENA-6164): an npm placeholder stub passes every "is it installed" check the
 // daemon makes, so the runtime stays online and every task it claims dies at
 // fork/exec. Treating that as transient meant the user saw the same failure once
 // per task instead of once, and had no signal the runtime was the problem.
@@ -422,7 +422,7 @@ func (d *Daemon) demoteUnusableRuntimes(ctx context.Context, causes map[string]r
 			demotedProviders[rt.Provider] = cause.reason
 			// Carried to the server per runtime row: a client asking "why is my
 			// agent offline" reads it from there, and only this side knows both
-			// the verdict and the repair command (MUL-6164).
+			// the verdict and the repair command (ENA-6164).
 			if cause.offline != nil {
 				offlineReasons[rid] = *cause.offline
 			}
@@ -495,7 +495,7 @@ func (d *Daemon) deregisterRevivedRuntimes(ctx context.Context, workspaceID stri
 	// Re-send the cause: that register's upsert overwrote the runtime row's
 	// metadata, so the reason the demotion stored is gone and the server would
 	// otherwise be left with a bare "offline" — which reads as "wait for the
-	// machine" on every admission path (MUL-6164).
+	// machine" on every admission path (ENA-6164).
 	if err := d.client.Deregister(ctx, runtimeIDs, revived.reasonsFor(runtimeIDs)); err != nil {
 		d.logger.Warn("deregister of revived demoted runtimes failed",
 			"workspace_id", workspaceID, "runtime_ids", runtimeIDs, "error", err)
@@ -591,7 +591,7 @@ func (d *Daemon) providersMissingRuntimes() []string {
 //
 // RecoverOrphans is deliberately NOT called: unlike the runtime_gone recovery
 // path, the surviving runtime IDs may still be executing tasks for the user,
-// and failing those as orphans would kill live work (MUL-3332).
+// and failing those as orphans would kill live work (ENA-3332).
 func (d *Daemon) convergeRuntimeRegistrations(ctx context.Context) {
 	// detectBuiltinRuntimes version-gates the availability set and publishes
 	// this round's drops for /health, so a provider that cannot register still

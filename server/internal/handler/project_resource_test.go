@@ -248,7 +248,7 @@ func TestIsValidGitRepoURL(t *testing.T) {
 }
 
 // TestProjectResourceLocalDirectoryLifecycle covers the full CRUD path for the
-// local_directory resource type added in MUL-2662. Unlike github_repo, the
+// local_directory resource type added in ENA-2662. Unlike github_repo, the
 // ref schema requires local_path + daemon_id and forbids any path that isn't
 // absolute. Two project-scoped resources pointing at the same daemon_id /
 // local_path on different projects must be allowed — Bohan explicitly chose
@@ -701,7 +701,7 @@ func TestCreateProjectRollsBackOnInvalidResource(t *testing.T) {
 	}
 }
 
-// TestProjectResourceUpdateLifecycle covers the PUT endpoint added in MUL-2662:
+// TestProjectResourceUpdateLifecycle covers the PUT endpoint added in ENA-2662:
 // editing label / position / resource_ref independently must succeed, and a
 // missing resource_type swap is enforced implicitly because the request body
 // has no resource_type field.
@@ -748,7 +748,7 @@ func TestProjectResourceUpdateLifecycle(t *testing.T) {
 	// Update only the label. Path/daemon/type must stay untouched, but the
 	// ref's embedded label FOLLOWS the rename: older desktop builds read (and
 	// write) only that copy, so leaving it behind would show them the previous
-	// name forever (MUL-6323).
+	// name forever (ENA-6323).
 	w = httptest.NewRecorder()
 	req = newRequest("PUT", "/api/projects/"+project.ID+"/resources/"+created.ID, map[string]any{
 		"label": "renamed",
@@ -873,7 +873,7 @@ func TestProjectResourceUpdateLifecycle(t *testing.T) {
 // which those builds both read first and write renames into). The server is
 // the only writer that sees both client generations, so every write must
 // leave the two agreeing — otherwise each generation edits its own copy and
-// the same row shows different names on different devices (MUL-6323).
+// the same row shows different names on different devices (ENA-6323).
 func TestProjectResourceLabelConvergence(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{

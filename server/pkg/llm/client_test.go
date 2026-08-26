@@ -15,7 +15,7 @@ import (
 
 // retries builds a Config.MaxRetries value, failing loudly on a budget Retries
 // rejects. Tests that assert an exact upstream request count pass retries(0) to
-// take SDK retries out of the picture; before MUL-6364 that required the
+// take SDK retries out of the picture; before ENA-6364 that required the
 // negative -1, because a plain 0 was indistinguishable from unset and quietly
 // restored the default budget.
 func retries(n int) *RetryOverride {

@@ -67,7 +67,7 @@ const TAB_ENTRY_EASE = [0.22, 1, 0.36, 1] as const;
 // The backing may only reach as far as it is needed, though. A flare hangs 9px
 // past the tab's edge, over the neighbouring tab, so an opaque square there
 // prints over whatever that neighbour draws: its hover pill lost the whole
-// corner it shares with the flare and read as a dark bite (MUL-6160). Masking
+// corner it shares with the flare and read as a dark bite (ENA-6160). Masking
 // the notch away removes the backing exactly where the gradient is transparent
 // anyway, so the notch is a hole rather than a painted-on copy of the strip and
 // shows whatever is actually behind it — bare strip usually, the neighbour's

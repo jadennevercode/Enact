@@ -23,9 +23,9 @@ These have sensible defaults and only need to be set when tuning a large or cons
 | `DATABASE_MAX_CONNS` | pgxpool max connections per pod. `pod_count × DATABASE_MAX_CONNS` should stay well below the Postgres `max_connections` ceiling. With a connection pooler (PgBouncer / RDS Proxy / Supavisor) in front, this can be raised significantly. | `25` |
 | `DATABASE_MIN_CONNS` | pgxpool warm baseline connections per pod. Auto-clamped to `DATABASE_MAX_CONNS`. | `5` |
 
-### Email (Required for Authentication)
+### Email (Optional, for Invitations)
 
-Enact supports two email backends. `SMTP_HOST` takes priority when set; otherwise `RESEND_API_KEY` is used. With neither configured, verification codes are printed to the server log — copy them from there to log in.
+Enact supports two email backends for workspace invitations. `SMTP_HOST` takes priority when set; otherwise `RESEND_API_KEY` is used. With neither configured, invitation links are printed to the server log.
 
 #### Option A: Resend (recommended for cloud deployments)
 
@@ -50,7 +50,7 @@ Use this option when your deployment cannot reach the public internet or you alr
 
 STARTTLS is used automatically when advertised by the server. Port 465 (SMTPS / implicit TLS) is supported and auto-enables implicit TLS; set `SMTP_TLS=implicit` (aliases `smtps`, `ssl`) to force it on a non-standard port.
 
-> **Note:** If neither Resend nor SMTP is configured, generated verification codes are printed to backend logs — copy them from there to log in. A fixed local testing code (e.g. `888888`) is **opt-in only**: set `ENACT_DEV_VERIFICATION_CODE=888888` in `.env` and keep `APP_ENV` non-production. The Docker self-host stack pins `APP_ENV=production`, so the shortcut is ignored there. **Never enable a fixed code on a publicly reachable instance.**
+> **Note:** If neither Resend nor SMTP is configured, workspace invitation links are printed to backend logs instead of being emailed.
 
 ### Google OAuth (Optional)
 
@@ -253,7 +253,7 @@ cd server && go run ./cmd/migrate up
 
 ## Usage Dashboard Rollup
 
-The Usage and Runtime dashboards read from `task_usage_hourly`, a derived table populated by `rollup_task_usage_hourly()`. As of MUL-2957 the backend runs this rollup **in-process** on every replica via a DB-backed scheduler (`sys_cron_executions`); a fresh self-host install needs no operator action — the bundled `pgvector/pgvector:pg17` image works without changes.
+The Usage and Runtime dashboards read from `task_usage_hourly`, a derived table populated by `rollup_task_usage_hourly()`. As of ENA-2957 the backend runs this rollup **in-process** on every replica via a DB-backed scheduler (`sys_cron_executions`); a fresh self-host install needs no operator action — the bundled `pgvector/pgvector:pg17` image works without changes.
 
 ### How the in-process scheduler works
 
@@ -277,7 +277,7 @@ SELECT cron.unschedule('rollup_task_usage_hourly')
   FROM cron.job WHERE jobname = 'rollup_task_usage_hourly';
 ```
 
-External cron / systemd / Kubernetes `CronJob` setups that call `SELECT rollup_task_usage_hourly()` directly are also still valid — they were the only option before MUL-2957 and remain a supported compatibility path. They are no longer the recommended setup; new deployments should rely on the in-process scheduler.
+External cron / systemd / Kubernetes `CronJob` setups that call `SELECT rollup_task_usage_hourly()` directly are also still valid — they were the only option before ENA-2957 and remain a supported compatibility path. They are no longer the recommended setup; new deployments should rely on the in-process scheduler.
 
 ### Standalone backfill command
 
@@ -305,9 +305,9 @@ After backfill completes, the rollup-state watermark is stamped to `now() - 5 mi
 
 ### `v0.3.4 → v0.3.5+` upgrade order
 
-Migration `103` adds a fail-closed guard that refuses to drop the legacy daily rollups until `task_usage_hourly` has caught up. As of MUL-2957 the migrate command runs an idempotent monthly-slice backfill (under advisory lock 4246) **automatically** immediately before applying migration `103`, so v0.3.4 → v0.3.5+ upgrades complete in a single `migrate up` invocation — no operator step is required.
+Migration `103` adds a fail-closed guard that refuses to drop the legacy daily rollups until `task_usage_hourly` has caught up. As of ENA-2957 the migrate command runs an idempotent monthly-slice backfill (under advisory lock 4246) **automatically** immediately before applying migration `103`, so v0.3.4 → v0.3.5+ upgrades complete in a single `migrate up` invocation — no operator step is required.
 
-If you are upgrading from a binary that pre-dates MUL-2957 (or the auto-hook fails for an environmental reason), recovery is the manual path: run `backfill_task_usage_hourly` against the database, then re-run `migrate up` (or restart the backend container — migrations run automatically on startup). **Fresh installs are exempt** — the guard short-circuits when `task_usage` is empty, and the in-process scheduler picks up new buckets from the first tick.
+If you are upgrading from a binary that pre-dates ENA-2957 (or the auto-hook fails for an environmental reason), recovery is the manual path: run `backfill_task_usage_hourly` against the database, then re-run `migrate up` (or restart the backend container — migrations run automatically on startup). **Fresh installs are exempt** — the guard short-circuits when `task_usage` is empty, and the in-process scheduler picks up new buckets from the first tick.
 
 ## Manual Setup (Without Docker Compose)
 
@@ -499,7 +499,7 @@ location /ws {
 
 See [WebSocket for LAN / Non-localhost Access](#websocket-for-lan--non-localhost-access) for why the rewrites cannot carry the `Upgrade` handshake.
 
-This keeps cookies, CORS, and the WebSocket origin check on a single origin. It is both the configuration least likely to break and the safer one: the session cookie stays host-only, so no sibling subdomain can ever receive it. An `api.example.com` vhost can still be kept for CLI and daemon use: those clients authenticate with a `mul_` personal access token over `Authorization: Bearer`, which never goes through the cookie or CSRF path.
+This keeps cookies, CORS, and the WebSocket origin check on a single origin. It is both the configuration least likely to break and the safer one: the session cookie stays host-only, so no sibling subdomain can ever receive it. An `api.example.com` vhost can still be kept for CLI and daemon use: those clients authenticate with a `enact_` personal access token over `Authorization: Bearer`, which never goes through the cookie or CSRF path.
 
 ## LAN / Non-localhost Access
 

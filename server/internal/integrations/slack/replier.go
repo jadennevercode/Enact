@@ -18,7 +18,7 @@ import (
 )
 
 // This file is the Slack OutboundReplier — the engine seam that delivers a
-// verdict-driven reply back to the user (MUL-3666, completing the stage-3
+// verdict-driven reply back to the user (ENA-3666, completing the stage-3
 // Replier=nil tail). It posts through the same bot-token Send path as the
 // EventChatDone outbound subscriber, so it needs no new transport.
 //

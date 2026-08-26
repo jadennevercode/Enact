@@ -20,7 +20,7 @@ import (
 )
 
 // This file is the SHARED, channel-agnostic chat-session service every IM
-// adapter reuses (MUL-3516). It was lifted out of the Feishu-specific
+// adapter reuses (ENA-3516). It was lifted out of the Feishu-specific
 // lark.chatSessionService so that adding an IM never re-implements the
 // session/append/`/issue` machinery — the platform adapter contributes only a
 // channel_type, its session titles, and (because enrichment is

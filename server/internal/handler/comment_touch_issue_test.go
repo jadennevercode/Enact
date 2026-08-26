@@ -18,7 +18,7 @@ import (
 	"github.com/enact-ai/enact/server/pkg/protocol"
 )
 
-// TestCreateComment_BumpsIssueActivity pins MUL-5009 and MUL-6343: a new
+// TestCreateComment_BumpsIssueActivity pins ENA-5009 and ENA-6343: a new
 // comment advances both the legacy updated_at clock and the semantic activity
 // clock in the same statement.
 func TestCreateComment_BumpsIssueActivity(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCreateComment_BumpsIssueActivity(t *testing.T) {
 }
 
 // TestCreateComment_WorkspaceMismatchPersistsNothing pins the tenant-integrity
-// guarantee of the CreateComment CTE (MUL-5009 nit2): CreateComment is the
+// guarantee of the CreateComment CTE (ENA-5009 nit2): CreateComment is the
 // single carrier of "a comment always belongs to an issue in the same
 // workspace and always bumps it". If the passed workspace does not match the
 // target issue's workspace, the leading UPDATE matches no issue row, the

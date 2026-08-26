@@ -2,28 +2,26 @@ package handler
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/subtle"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/logger"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // SignupError represents signup restriction errors
@@ -37,8 +35,6 @@ func (e SignupError) Error() string {
 
 var ErrSignupProhibited = SignupError{Message: "user registration is disabled on this self-hosted instance"}
 var ErrEmailNotAllowed = SignupError{Message: "email address or domain not allowed on this instance"}
-
-const devVerificationCodeEnv = "ENACT_DEV_VERIFICATION_CODE"
 
 // supportedLanguages mirrors `SUPPORTED_LOCALES` in packages/core/i18n/types.ts.
 // Keep both lists in sync when adding a locale — the user-controlled `language`
@@ -68,7 +64,7 @@ type UserResponse struct {
 }
 
 // MaxProfileDescriptionLen caps the user-supplied profile_description body.
-// Picked at 2000 chars per MUL-2406: enough room for role / stack / a few
+// Picked at 2000 chars per ENA-2406: enough room for role / stack / a few
 // preferences, short enough that injecting it into every agent brief
 // doesn't move the needle on prompt cost.
 const MaxProfileDescriptionLen = 2000
@@ -102,51 +98,8 @@ type LoginResponse struct {
 	User  UserResponse `json:"user"`
 }
 
-type SendCodeRequest struct {
+type EmailLoginRequest struct {
 	Email string `json:"email"`
-}
-
-type VerifyCodeRequest struct {
-	Email string `json:"email"`
-	Code  string `json:"code"`
-}
-
-func generateCode() (string, error) {
-	var buf [4]byte
-	if _, err := rand.Read(buf[:]); err != nil {
-		return "", err
-	}
-	n := binary.BigEndian.Uint32(buf[:]) % 1000000
-	return fmt.Sprintf("%06d", n), nil
-}
-
-func isDevVerificationCode(code string) bool {
-	if isProductionEnv() {
-		return false
-	}
-
-	devCode := strings.TrimSpace(os.Getenv(devVerificationCodeEnv))
-	if !isSixDigitCode(devCode) {
-		return false
-	}
-
-	return subtle.ConstantTimeCompare([]byte(code), []byte(devCode)) == 1
-}
-
-func isProductionEnv() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production")
-}
-
-func isSixDigitCode(code string) bool {
-	if len(code) != 6 {
-		return false
-	}
-	for _, ch := range code {
-		if ch < '0' || ch > '9' {
-			return false
-		}
-	}
-	return true
 }
 
 func (h *Handler) issueJWT(user db.User) (string, error) {
@@ -165,8 +118,7 @@ func (h *Handler) issueJWT(user db.User) (string, error) {
 
 // findOrCreateUser returns the existing user for an email, or creates one if
 // none exists. isNew reports whether this call created the user — the signup
-// event fires on that edge, covering both the verification-code and Google
-// OAuth entry points.
+// event fires on that edge for both direct email and Google OAuth entry points.
 func (h *Handler) findOrCreateUser(ctx context.Context, email string) (user db.User, isNew bool, err error) {
 	if auth.IsTemporarilyDisabledUserEmail(email) {
 		return db.User{}, false, auth.ErrTemporarilyDisabledUser
@@ -275,8 +227,8 @@ func contains(slice []string, s string) bool {
 	return false
 }
 
-func (h *Handler) SendCode(w http.ResponseWriter, r *http.Request) {
-	var req SendCodeRequest
+func (h *Handler) EmailLogin(w http.ResponseWriter, r *http.Request) {
+	var req EmailLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -287,118 +239,9 @@ func (h *Handler) SendCode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "email is required")
 		return
 	}
-	if auth.IsTemporarilyDisabledUserEmail(email) {
-		writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
-		return
-	}
-
-	// Check signup restrictions before sending magic link
-	existingUser, err := h.Queries.GetUserByEmail(r.Context(), email)
-	if err != nil {
-		if !isNotFound(err) {
-			// Real database/query error → return 500
-			writeError(w, http.StatusInternalServerError, "failed to lookup user")
-			return
-		}
-		// User does not exist → treat as new user
-		isNewUser := true
-		if err := h.checkSignupAllowed(email, isNewUser); err != nil {
-			var signupErr SignupError
-			if errors.As(err, &signupErr) {
-				writeError(w, http.StatusForbidden, signupErr.Error())
-			} else {
-				writeError(w, http.StatusForbidden, "user registration is disabled")
-			}
-			return
-		}
-	} else {
-		// User already exists → always allowed to login
-		if auth.IsTemporarilyDisabledUser(uuidToString(existingUser.ID), existingUser.Email) {
-			writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
-			return
-		}
-		isNewUser := false
-		if err := h.checkSignupAllowed(email, isNewUser); err != nil {
-			// This should rarely happen, but handle it anyway
-			var signupErr SignupError
-			if errors.As(err, &signupErr) {
-				writeError(w, http.StatusForbidden, signupErr.Error())
-			} else {
-				writeError(w, http.StatusForbidden, "user registration is disabled")
-			}
-			return
-		}
-	}
-
-	// Rate limit: max 1 code per 60 seconds per email
-	latest, err := h.Queries.GetLatestCodeByEmail(r.Context(), email)
-	if err == nil && time.Since(latest.CreatedAt.Time) < 60*time.Second {
-		writeError(w, http.StatusTooManyRequests, "please wait before requesting another code")
-		return
-	}
-
-	code, err := generateCode()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to generate code")
-		return
-	}
-
-	_, err = h.Queries.CreateVerificationCode(r.Context(), db.CreateVerificationCodeParams{
-		Email:     email,
-		Code:      code,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(10 * time.Minute), Valid: true},
-	})
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to store verification code")
-		return
-	}
-
-	if err := h.EmailService.SendVerificationCode(email, code); err != nil {
-		slog.Error("failed to send verification code", "email", email, "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to send verification code")
-		return
-	}
-
-	// Best-effort cleanup of expired codes
-	_ = h.Queries.DeleteExpiredVerificationCodes(r.Context())
-
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Verification code sent"})
-}
-
-func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
-	var req VerifyCodeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	email := strings.ToLower(strings.TrimSpace(req.Email))
-	code := strings.TrimSpace(req.Code)
-
-	if email == "" || code == "" {
-		writeError(w, http.StatusBadRequest, "email and code are required")
-		return
-	}
-	if auth.IsTemporarilyDisabledUserEmail(email) {
-		writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
-		return
-	}
-
-	dbCode, err := h.Queries.GetLatestVerificationCode(r.Context(), email)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid or expired code")
-		return
-	}
-
-	isDevCode := isDevVerificationCode(code)
-	if !isDevCode && subtle.ConstantTimeCompare([]byte(code), []byte(dbCode.Code)) != 1 {
-		_ = h.Queries.IncrementVerificationCodeAttempts(r.Context(), dbCode.ID)
-		writeError(w, http.StatusBadRequest, "invalid or expired code")
-		return
-	}
-
-	if err := h.Queries.MarkVerificationCodeUsed(r.Context(), dbCode.ID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to verify code")
+	parsed, err := mail.ParseAddress(email)
+	if err != nil || !strings.EqualFold(parsed.Address, email) {
+		writeError(w, http.StatusBadRequest, "invalid email address")
 		return
 	}
 
@@ -417,7 +260,9 @@ func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isNew {
-		obsmetrics.RecordEvent(h.Analytics, h.Metrics, analytics.Signup(uuidToString(user.ID), user.Email, signupSourceFromRequest(r)))
+		evt := analytics.Signup(uuidToString(user.ID), user.Email, signupSourceFromRequest(r))
+		evt.Properties["auth_method"] = "email"
+		obsmetrics.RecordEvent(h.Analytics, h.Metrics, evt)
 	}
 
 	tokenString, err := h.issueJWT(user)
@@ -426,7 +271,7 @@ func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
 			return
 		}
-		slog.Warn("login failed", append(logger.RequestAttrs(r), "error", err, "email", req.Email)...)
+		slog.Warn("login failed", append(logger.RequestAttrs(r), "error", err, "email", email)...)
 		writeError(w, http.StatusInternalServerError, "failed to generate token")
 		return
 	}

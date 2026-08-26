@@ -48,7 +48,7 @@ type historyClient interface {
 
 // History reads a Slack conversation on demand — the pull side of the unified
 // `enact chat history` (channel overview) and `enact chat thread [id]`
-// (one thread) commands (MUL-3871). Both are scoped to the session's OWN
+// (one thread) commands (ENA-3871). Both are scoped to the session's OWN
 // channel: the channel is resolved server-side from the binding and never taken
 // from the agent, so a thread id is only a within-channel locator. Sessions with
 // no Slack binding return ErrNoSlackSession.
@@ -282,7 +282,7 @@ const maxDerivedTextLen = 4000
 // (Grafana cards, incoming webhooks) carry their whole body in attachments or
 // Block Kit blocks and leave the top-level Text empty; without this fallback
 // such a message is indistinguishable from a join/system marker and gets
-// dropped (MUL-3931 / #4803). Order: top-level text, then each attachment's
+// dropped (ENA-3931 / #4803). Order: top-level text, then each attachment's
 // rendered text/fields, then last-resort fallback text, then a best-effort
 // blocks flatten. Returns "" only when nothing renderable exists — a real
 // system marker.

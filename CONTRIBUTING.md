@@ -407,17 +407,10 @@ done
 
 #### 2. Create a test user and token (automated auth)
 
-For deterministic local automation, set `ENACT_DEV_VERIFICATION_CODE=888888`
-in your env file before starting the backend:
-
 ```bash
-curl -s -X POST "$SERVER/auth/send-code" \
+JWT=$(curl -s -X POST "$SERVER/auth/email-login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "dev@localhost"}'
-
-JWT=$(curl -s -X POST "$SERVER/auth/verify-code" \
-  -H "Content-Type: application/json" \
-  -d '{"email": "dev@localhost", "code": "888888"}' | jq -r '.token')
+  -d '{"email": "dev@example.com"}' | jq -r '.token')
 
 PAT=$(curl -s -X POST "$SERVER/api/tokens" \
   -H "Authorization: Bearer $JWT" \
@@ -511,9 +504,7 @@ This automatically:
 3. Starts and manages its own daemon instance
 4. Connects to the local backend
 
-Login in the Desktop UI with `dev@localhost` and the generated code from the
-backend logs. If you set `ENACT_DEV_VERIFICATION_CODE=888888` before starting
-the backend, you can use `888888` instead.
+Log in to the Desktop UI with `dev@example.com`; the account is created or reused immediately.
 
 If the backend runs on a non-default port (worktree), create
 `apps/desktop/.env.development.local`:

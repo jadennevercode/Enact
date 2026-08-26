@@ -17,7 +17,7 @@ import (
 // on: the kickoff row is written with no task, and the member's first real send
 // is what delivers it to a runtime. If this stops working the profile block and
 // the "you already greeted them" instruction never reach the model, and Mika
-// introduces herself a second time (MUL-5827).
+// introduces herself a second time (ENA-5827).
 func TestAdoptOrphanOnboardingKickoff(t *testing.T) {
 	pool := newResolveOriginatorPool(t)
 	ctx := context.Background()
@@ -95,7 +95,7 @@ func TestAdoptOrphanOnboardingKickoff(t *testing.T) {
 // itself now, and the kickoff rides into the member's FIRST REAL turn — so a
 // completion that sees kickoff input must still persist a plain 'message'.
 // Stamping it would render the starter cards a second time, under a reply that
-// is not an opening (MUL-5827).
+// is not an opening (ENA-5827).
 func TestWriteChatCompletionOutcomeNeverStampsOnboardingOpening(t *testing.T) {
 	pool := newResolveOriginatorPool(t)
 	ctx := context.Background()
