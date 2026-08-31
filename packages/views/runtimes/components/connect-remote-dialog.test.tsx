@@ -79,6 +79,12 @@ describe("ConnectRemoteDialog", () => {
   it("uses cloud setup commands by default", () => {
     const { baseElement } = renderDialog();
 
+    expect(baseElement).toHaveTextContent(
+      "curl -fsSL https://enact.ai/cli/install/unix | sh",
+    );
+    expect(baseElement).toHaveTextContent(
+      "irm https://enact.ai/cli/install/windows | iex",
+    );
     expect(baseElement).toHaveTextContent("enact setup");
     expect(baseElement).not.toHaveTextContent("enact setup self-host");
     expect(baseElement).toHaveTextContent(
@@ -98,6 +104,13 @@ describe("ConnectRemoteDialog", () => {
     expect(baseElement).toHaveTextContent(
       "enact setup self-host --server-url https://api.example.com --app-url https://app.example.com",
     );
+    expect(baseElement).toHaveTextContent(
+      "curl -fsSL https://app.example.com/cli/install/unix | sh",
+    );
+    expect(baseElement).toHaveTextContent(
+      "irm https://app.example.com/cli/install/windows | iex",
+    );
+    expect(baseElement).not.toHaveTextContent("raw.githubusercontent.com");
     expect(baseElement).toHaveTextContent(
       "enact config set server_url https://api.example.com",
     );

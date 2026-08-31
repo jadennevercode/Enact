@@ -189,8 +189,10 @@
   "queued_other": "キュー待ち {{count}} 件",
   "connect": {
     "title": "コンピュータを追加",
-    "description": "追加したいコンピュータで、この 2 つのコマンドを実行してください。デーモンがオンラインになった瞬間に検出します。",
+    "description": "そのコンピュータ用のインストールコマンドを実行してから、デーモンを起動してください。オンラインになった瞬間に検出します。",
     "step1_label": "Enact CLI をインストール",
+    "step1_unix_label": "Enact CLI をインストール（macOS / Linux）",
+    "step1_windows_label": "Enact CLI をインストール（Windows PowerShell）",
     "step2_label": "デーモンを起動",
     "step2_hint": "サインインのためにブラウザを開き、その後デーモンをバックグラウンドで実行し続けます。",
     "live_listening": "あなたのコンピュータを待っています",

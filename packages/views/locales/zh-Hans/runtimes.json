@@ -189,8 +189,10 @@
   "queued_other": "{{count}} 个排队中",
   "connect": {
     "title": "添加电脑",
-    "description": "在要添加的电脑上运行这两条命令。守护进程一上线，这里就会自动识别。",
+    "description": "先运行这台电脑对应的安装命令，再启动守护进程。守护进程一上线，这里就会自动识别。",
     "step1_label": "安装 Enact CLI",
+    "step1_unix_label": "安装 Enact CLI（macOS / Linux）",
+    "step1_windows_label": "安装 Enact CLI（Windows PowerShell）",
     "step2_label": "启动守护进程",
     "step2_hint": "会打开浏览器登录，然后在后台保持守护进程运行。",
     "live_listening": "等待你的电脑上线",

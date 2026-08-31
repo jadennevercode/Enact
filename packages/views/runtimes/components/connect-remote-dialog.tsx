@@ -30,13 +30,19 @@ import { useT } from "../../i18n";
 
 type Step = "instructions" | "success";
 
-const INSTALL_CMD =
-  "curl -fsSL https://raw.githubusercontent.com/enact-ai/enact/main/scripts/install.sh | bash";
 const CLOUD_SERVER_URL = "https://api.enact.ai";
 const CLOUD_APP_URL = "https://enact.ai";
 
 function normalizeCommandURL(url: string | undefined) {
   return url?.trim().replace(/\/+$/, "") ?? "";
+}
+
+function installCommands(appUrl: string | undefined) {
+  const baseUrl = normalizeCommandURL(appUrl) || CLOUD_APP_URL;
+  return {
+    unix: `curl -fsSL ${baseUrl}/cli/install/unix | sh`,
+    windows: `irm ${baseUrl}/cli/install/windows | iex`,
+  };
 }
 
 function daemonCommands(serverUrl: string | undefined, appUrl: string | undefined) {
@@ -197,7 +203,7 @@ function CommandStep({
   cmd,
   copyAria,
 }: {
-  n: number;
+  n: number | string;
   label: string;
   cmd: string;
   copyAria: string;
@@ -234,6 +240,7 @@ function InstructionsStep({ onClose }: { onClose: () => void }) {
   const { t } = useT("runtimes");
   const daemonServerUrl = useConfigStore((s) => s.daemonServerUrl);
   const daemonAppUrl = useConfigStore((s) => s.daemonAppUrl);
+  const install = installCommands(daemonAppUrl);
   const { setupCmd, tokenCmd } = daemonCommands(daemonServerUrl, daemonAppUrl);
   return (
     <>
@@ -249,9 +256,16 @@ function InstructionsStep({ onClose }: { onClose: () => void }) {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         <div className="space-y-4">
           <CommandStep
-            n={1}
-            label={t(($) => $.connect.step1_label)}
-            cmd={INSTALL_CMD}
+            n="1a"
+            label={t(($) => $.connect.step1_unix_label)}
+            cmd={install.unix}
+            copyAria={t(($) => $.connect.copy_aria)}
+          />
+
+          <CommandStep
+            n="1b"
+            label={t(($) => $.connect.step1_windows_label)}
+            cmd={install.windows}
             copyAria={t(($) => $.connect.copy_aria)}
           />
 
