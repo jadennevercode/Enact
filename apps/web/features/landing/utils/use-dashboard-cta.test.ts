@@ -53,8 +53,8 @@ describe("resolveDashboardCtaHref", () => {
     );
   });
 
-  it("sends an onboarded visitor with no workspace to /workspaces/new", () => {
-    expect(resolveDashboardCtaHref(fetched([]))).toBe(paths.newWorkspace());
+  it("sends an onboarded visitor with no workspace to automatic setup", () => {
+    expect(resolveDashboardCtaHref(fetched([]))).toBe(paths.onboarding());
   });
 
   it("falls back to /issues while the list has not resolved yet", () => {

@@ -1,0 +1,50 @@
+# 数据字典 —— 落 metadata/data-dictionary.yaml。
+#
+# 一行 = 一个来源表页。这是数据血缘与可复现的唯一事实源；
+# 没有它，三个月后没人能回答「这个数是怎么算出来的」。
+meta:
+  step: published-dataset/publish
+  skill: data-engine
+  generated: ""                   # 生成时间，带时区
+  grounding:
+    - { path: "data/published/manifest.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+
+# Theme ∈ {ODS, DW, DIM}
+#   ODS  一个源表一行的原始宽表，字段全是字符串   ods_<域>_<主题>_<颗粒度>
+#   DW   一个数据源一张表，已经是长表形状        dw_task<N>_<域>_<主题>_yyyymm
+#   DIM  主数据 / 映射表                        dim_<域>_<主题>_mapping
+entries:
+  - theme: ODS
+    sheetName: ""                 # 人话名字
+    sourceSheet: ""               # 原始表页名
+    location: ""                  # 物理位置：数据库 / 对象存储路径 / 文件名
+    sourceSystem: ""              # 数据库直取 / 手工数据
+    granularity: ""               # monthly / weekly / …
+    servesL4: ""                  # 服务于哪一个 L4 因子。**必填**
+    etl: ""                       # 加工逻辑，一句话
+    timeRange: ""                 # 例："202210-202510"
+    role: X                       # X | Y。**必填**
+    tableName: ""                 # 目标表名
+    department: ""                # 归口部门
+    provider: ""                  # 提供方
+
+# 列级加工逻辑，一个目标表一段。Comments 只能是五个封闭动词之一：
+# Hardcode / Direct / Mapping / Transform / Calculation
+tables:
+  - tableName: ""
+    theme: DW
+    displayName: ""
+    description: ""
+    columns:
+      - column: ""                # 目标列名
+        sourceTable: ""           # 从哪张表来；Hardcode 时留空
+        logic: ""                 # 表达式或源列名
+        comments: Direct          # 五个动词之一
+
+changeLog:
+  - at: ""                        # 时间，带时区
+    by: ""                        # 谁改的
+    version: ""                   # 版本
+    why: ""                       # 原因
+    what: ""                      # 改了什么

@@ -1,0 +1,44 @@
+# tools/catalog/data.clean.yaml
+id: data.clean
+kind: data
+purpose: 在只读沙箱里执行这批交付的清洗脚本，把原始表变成目标结构的长表。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」——清洗脚本起草好之后跑。
+  跑完必须接 data.conform（形状对不对）和 data.reconcile（还是不是同一批数据）两道检查，
+  两道都过了这批交付才有资格进发布表。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --asset
+    required: true
+    what: 这批交付的编号。脚本从 data/clean/<asset>/clean.sql 读，原始表从 data/raw/<asset>/ 读
+output:
+  path: data/clean/{asset}/result.parquet
+  shape: |
+    一张长表，列按统一的长表列约定（不足的列在发布时补空）：
+      task_name        任务名
+      brand            品牌
+      province_group   省份分组
+      channel_type     渠道大类；留空表示全国口径
+      channel          渠道
+      year             年
+      month            月，形如 202401
+      source           这一行来自哪批交付（系统列，逐行来源记录靠它）
+      l1 … l8          因子层级，从粗到细
+      metric_type      指标角色；Y 表示响应，spending 表示花费，其余为一般驱动
+      metric           指标名
+      value            数值
+    没被脚本写出来的列会在屏幕上点名，发布时会补成空字符串。
+stdout: |
+  delivery-a · 18420 rows × 17 columns
+  not emitted: l5, l6, l7, l8
+
+  Ran in the sandbox: single read-only query, no file or network access.
+  Next: data.conform and data.reconcile decide whether it is usable.
+example: ~/.local/bin/mmm tool data.clean --workspace <工作区> --asset delivery-a
+notes: |
+  脚本里可以写 {{enum:<清单名>:<原始列>}} 占位符，执行前会被替换成一段 CASE：
+  来源是 metadata/schema/enums/<清单名>.yaml 的 aliases，加上这批交付
+  enum-map.yaml 里 status 为 accepted 的条目。CASE 的 ELSE 分支保留原值——
+  没声明过的值因此会一路走到 data.conform 被报出来；映射成空或默认值等于把该看见的藏起来。
+  三种失败都是判失败并说明原因，不会静默通过：没有脚本、没有原始表、脚本跑出零行。
+  沙箱只允许一条只读查询，不给文件和网络访问。

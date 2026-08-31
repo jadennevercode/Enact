@@ -11,10 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const acquireSDLCDefaultsLock = `-- name: AcquireSDLCDefaultsLock :exec
+SELECT pg_advisory_xact_lock(
+    hashtext('enact-sdlc-defaults:' || $1::uuid::text)
+)
+`
+
+func (q *Queries) AcquireSDLCDefaultsLock(ctx context.Context, workspaceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, acquireSDLCDefaultsLock, workspaceID)
+	return err
+}
+
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
 `
 
 type CreateWorkspaceParams struct {
@@ -48,6 +59,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
 	)
 	return i, err
 }
@@ -213,7 +225,7 @@ func (q *Queries) GetDaemonWorkspace(ctx context.Context, id pgtype.UUID) (GetDa
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
 WHERE id = $1
 `
 
@@ -234,6 +246,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
 	)
 	return i, err
 }
@@ -253,7 +266,7 @@ func (q *Queries) GetWorkspaceAttributionFailClosed(ctx context.Context, id pgty
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
 WHERE slug = $1
 `
 
@@ -274,6 +287,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
 	)
 	return i, err
 }
@@ -331,7 +345,8 @@ func (q *Queries) ListDaemonWorkspaces(ctx context.Context, userID pgtype.UUID) 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
        w.created_at, w.updated_at, w.context, w.repos,
-       w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed
+       w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
+       w.sdlc_defaults_version
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
 WHERE m.user_id = $1
@@ -361,7 +376,65 @@ func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Wor
 			&i.IssueCounter,
 			&i.AvatarUrl,
 			&i.AttributionFailClosed,
+			&i.SdlcDefaultsVersion,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkspacesNeedingSDLCDefaults = `-- name: ListWorkspacesNeedingSDLCDefaults :many
+SELECT
+    w.id AS workspace_id,
+    owner.user_id AS owner_id,
+    runtime.id AS runtime_id
+FROM workspace w
+JOIN LATERAL (
+    SELECT m.user_id
+    FROM member m
+    WHERE m.workspace_id = w.id
+    ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.id ASC
+    LIMIT 1
+) owner ON TRUE
+LEFT JOIN LATERAL (
+    SELECT ar.id
+    FROM agent_runtime ar
+    WHERE ar.workspace_id = w.id AND ar.status = 'online'
+    ORDER BY (ar.provider = 'codex') DESC,
+             ar.last_seen_at DESC NULLS LAST,
+             ar.created_at ASC,
+             ar.id ASC
+    LIMIT 1
+) runtime ON TRUE
+WHERE w.sdlc_defaults_version < $1
+ORDER BY w.created_at ASC, w.id ASC
+`
+
+type ListWorkspacesNeedingSDLCDefaultsRow struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	OwnerID     pgtype.UUID `json:"owner_id"`
+	RuntimeID   pgtype.UUID `json:"runtime_id"`
+}
+
+// Returns one stable owner and the best currently-online runtime for each
+// workspace that has not received the current product-owned SDLC bundle.
+// Codex is preferred because the shipped portfolio was authored and verified
+// against Codex; another online runtime is still a usable portable fallback.
+func (q *Queries) ListWorkspacesNeedingSDLCDefaults(ctx context.Context, sdlcDefaultsVersion int32) ([]ListWorkspacesNeedingSDLCDefaultsRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspacesNeedingSDLCDefaults, sdlcDefaultsVersion)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkspacesNeedingSDLCDefaultsRow{}
+	for rows.Next() {
+		var i ListWorkspacesNeedingSDLCDefaultsRow
+		if err := rows.Scan(&i.WorkspaceID, &i.OwnerID, &i.RuntimeID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -416,6 +489,23 @@ func (q *Queries) LockWorkspaceForDelete(ctx context.Context, id pgtype.UUID) (p
 	return id_2, err
 }
 
+const setWorkspaceSDLCDefaultsVersion = `-- name: SetWorkspaceSDLCDefaultsVersion :exec
+UPDATE workspace
+SET sdlc_defaults_version = $2,
+    updated_at = now()
+WHERE id = $1
+`
+
+type SetWorkspaceSDLCDefaultsVersionParams struct {
+	ID                  pgtype.UUID `json:"id"`
+	SdlcDefaultsVersion int32       `json:"sdlc_defaults_version"`
+}
+
+func (q *Queries) SetWorkspaceSDLCDefaultsVersion(ctx context.Context, arg SetWorkspaceSDLCDefaultsVersionParams) error {
+	_, err := q.db.Exec(ctx, setWorkspaceSDLCDefaultsVersion, arg.ID, arg.SdlcDefaultsVersion)
+	return err
+}
+
 const updateWorkspace = `-- name: UpdateWorkspace :one
 UPDATE workspace SET
     name = COALESCE($2, name),
@@ -427,7 +517,7 @@ UPDATE workspace SET
     avatar_url = COALESCE($8, avatar_url),
     updated_at = now()
 WHERE id = $1
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
 `
 
 type UpdateWorkspaceParams struct {
@@ -467,6 +557,7 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
 	)
 	return i, err
 }

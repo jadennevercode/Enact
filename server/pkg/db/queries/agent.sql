@@ -2408,6 +2408,60 @@ WHERE workspace_id = $1 AND system_key = $2 AND archived_at IS NULL
 ORDER BY created_at ASC, id ASC
 LIMIT 1;
 
+-- name: FindSDLCDefaultAgentForUpdate :one
+-- A deployment upgrading from the original VOMS workspace may already have
+-- the legacy-named agent without a system_key. Adopt that row instead of
+-- creating a duplicate; once adopted, system_key is the only identity.
+SELECT * FROM agent
+WHERE workspace_id = @workspace_id
+  AND (
+      system_key = @system_key
+      OR (system_key IS NULL AND name IN (@default_name, @legacy_name))
+  )
+ORDER BY (system_key = @system_key) DESC,
+         (archived_at IS NULL) DESC,
+         created_at ASC,
+         id ASC
+LIMIT 1
+FOR UPDATE;
+
+-- name: ApplySDLCDefaultAgent :one
+-- Product-owned fields converge to the manifest. Runtime choice is preserved
+-- once a workspace has bound the role; only an unbound row adopts the selected
+-- portable runtime. Exact legacy instructions are cleared because the same
+-- text now ships as the read-only system layer; edited text remains as
+-- workspace notes.
+UPDATE agent
+SET system_key = @system_key,
+    name = @name,
+    description = @description,
+    avatar_url = @avatar_url,
+    runtime_mode = 'local',
+    runtime_id = COALESCE(runtime_id, sqlc.narg('runtime_id')),
+    visibility = 'workspace',
+    permission_mode = 'public_to',
+    max_concurrent_tasks = 1,
+    instructions = CASE
+        WHEN regexp_replace(instructions, '[[:space:]]+', '', 'g') =
+             regexp_replace(@legacy_instructions, '[[:space:]]+', '', 'g') THEN ''
+        ELSE instructions
+    END,
+    archived_at = NULL,
+    archived_by = NULL,
+    updated_at = now()
+WHERE id = @id
+RETURNING *;
+
+-- name: BindUnboundSDLCDefaultAgents :execrows
+UPDATE agent
+SET runtime_id = @runtime_id,
+    runtime_mode = 'local',
+    updated_at = now()
+WHERE workspace_id = @workspace_id
+  AND system_key = ANY(@system_keys::text[])
+  AND runtime_id IS NULL
+  AND archived_at IS NULL;
+
 -- name: CreateSystemUserAgent :one
 -- Creates a product-defined agent that members can still see, chat with, and
 -- assign issues to. Deliberately kind='user': kind='system' hides the row from
@@ -2416,7 +2470,8 @@ LIMIT 1;
 -- because the system half ships with the binary and is layered in at claim
 -- time, leaving this column free for the workspace's own notes.
 --
--- CONTRACT: call only while holding the per-workspace mika advisory lock. The
+-- CONTRACT: call only while holding the relevant per-workspace product-agent
+-- advisory lock. The
 -- one-per-workspace invariant rests on a check inside that lock, not on a
 -- unique index — migration 172's index keys on (workspace_id, owner_id,
 -- runtime_id, system_key), so two different owners or runtimes are distinct

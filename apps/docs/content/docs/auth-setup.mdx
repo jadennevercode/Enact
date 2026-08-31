@@ -1,15 +1,17 @@
 ---
 title: Sign-in and signup
-description: Configure direct email sign-in, Google sign-in, and who can sign up.
+description: Configure email-and-password sign-in, Google sign-in, and who can sign up.
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-Enact signs users in directly with their email address by default; Google OAuth can be added on top. Existing users can always sign in again — signup restrictions only decide whether new accounts can be created.
+Enact supports email-and-password accounts by default; Google OAuth can be added on top. Existing users can always sign in again — signup restrictions only decide whether new accounts can be created.
 
-## Direct email sign-in
+## Email-and-password sign-in
 
-After the user enters an email address and continues, Enact creates or reuses the matching account and immediately issues a sign-in cookie. There is no verification-code step.
+New users register with a username, a `@deloittecn.com.cn` email address, and a password of at least 8 characters. The username is shown to teammates throughout the product. Returning users sign in with their email and password; passwords are stored only as secure hashes.
+
+Accounts created before password authentication was introduced can use the registration form once to set their initial username and password. After that first setup, the email is treated as an existing account and cannot be registered again.
 
 ## Invitation email delivery
 
@@ -86,7 +88,7 @@ The URLs in the Google Console and in `GOOGLE_REDIRECT_URI` must match exactly, 
 
 ## Signup restrictions
 
-Three variables together decide whether a new account can be created:
+Registration has a mandatory `@deloittecn.com.cn` domain gate. The three deployment variables below can narrow registration further, but cannot allow another email domain:
 
 | Variable | Effect |
 |---|---|
@@ -96,21 +98,22 @@ Three variables together decide whether a new account can be created:
 
 The evaluation order is:
 
-1. The email matches `ALLOWED_EMAILS` — allow.
-2. Or its domain matches `ALLOWED_EMAIL_DOMAINS` — allow.
-3. With no match, if `ALLOW_SIGNUP=false` — reject.
-4. With `ALLOW_SIGNUP=true` but any allowlist configured and no match — still reject.
-5. With no allowlist configured and `ALLOW_SIGNUP=true` — allow.
+1. Reject any email outside `@deloittecn.com.cn`.
+2. The email matches `ALLOWED_EMAILS` — allow.
+3. Or its domain matches `ALLOWED_EMAIL_DOMAINS` — allow.
+4. With no match, if `ALLOW_SIGNUP=false` — reject.
+5. With `ALLOW_SIGNUP=true` but any allowlist configured and no match — still reject.
+6. With no allowlist configured and `ALLOW_SIGNUP=true` — allow.
 
 Common configurations:
 
 ```dotenv
 # Company domain only
 ALLOW_SIGNUP=false
-ALLOWED_EMAIL_DOMAINS=company.com
+ALLOWED_EMAIL_DOMAINS=deloittecn.com.cn
 
-# Also admit one external collaborator
-ALLOWED_EMAILS=partner@example.net
+# Or admit only named Deloitte China accounts
+ALLOWED_EMAILS=person@deloittecn.com.cn
 ```
 
 <Callout type="info">
@@ -124,7 +127,7 @@ Invitations do not automatically bypass signup restrictions:
 - If the invitee already has a Enact account, they can sign in and accept the invitation.
 - If they do not, their email must satisfy the signup rules above.
 
-To invite a new member on an instance with open signup disabled, add their email to `ALLOWED_EMAILS` first. Once the account is created and the invitation accepted, you can remove the entry again.
+To invite a new member on an instance with open signup disabled, add their `@deloittecn.com.cn` email to `ALLOWED_EMAILS` first. Once the account is created and the invitation accepted, you can remove the entry again.
 
 ## Session lifetime
 

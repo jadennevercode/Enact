@@ -8,20 +8,21 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // ── Response types ──────────────────────────────────────────────────────────
 
 type SquadResponse struct {
 	ID            string                       `json:"id"`
+	SystemKey     string                       `json:"system_key,omitempty"`
 	WorkspaceID   string                       `json:"workspace_id"`
 	Name          string                       `json:"name"`
 	Description   string                       `json:"description"`
@@ -62,6 +63,7 @@ type SquadMemberResponse struct {
 func (h *Handler) squadToResponse(s db.Squad) SquadResponse {
 	return SquadResponse{
 		ID:            uuidToString(s.ID),
+		SystemKey:     s.SystemKey.String,
 		WorkspaceID:   uuidToString(s.WorkspaceID),
 		Name:          s.Name,
 		Description:   s.Description,

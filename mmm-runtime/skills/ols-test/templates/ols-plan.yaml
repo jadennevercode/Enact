@@ -1,0 +1,57 @@
+# 建模方案 —— 照这份填，不要自创结构。填法见 ../references/plan.md。
+# candidates 由 ols.plan 算出来，不许删、不许只留推荐的那条：客户看的是对比。
+# chosen 是人的裁决，重新测量不会覆盖它。
+meta:
+  step: ols-test/plan
+  skill: ols-test
+  generated: ""                      # 生成时间，带时区
+  grounding:
+    - { path: "artifacts/s1/project-profile.yaml", chars: 0, truncated: false }
+  dataSource: project                # project | reference
+
+# ── 候选切法，一种一条 ──
+candidates:
+  - scheme: ""                       # total | by-brand | by-channel | channel-x-brand
+    recommended: false               # 推荐"可行的最细那一档"，不是"按住最少的那一档"
+    feasibility: ""                  # ok 都放得下 | tight 有变量放不下 | infeasible 有格子拟不了
+    objectCount: 0
+    objects:
+      - object: ""                   # 模型对象 id；`*` 表示这一维不切
+        label: ""
+        months: 0
+        survivingDrivers: 0          # 这个格子看得见几个存活驱动
+        affordableDrivers: 0         # 月数能识别几个 = max(1, 月数 − 控制项 − 1 − 10)
+        heldOutCount: 0              # 放不下要按住的个数。**这不是对指标的判决**
+        responseCoverage: 0.0        # 这个格子的响应占全量的比例
+        blocked: ""                  # 月数不够根本拟不了时写这里
+    totalHeldOut: 0
+    minMonths: 0
+    skippedObjects:
+      - { object: "", label: "", reason: "" }   # reason: no-driver | no-response
+    note: ""
+
+# ── 人定的那一条 ──
+chosen:
+  scheme: ""
+  decidedBy: ""                      # human | assumed
+  at: ""
+  rationale: ""                      # 必填。粒度定成这样的原因，只有这里记得住
+  customObjects: []
+
+# ── 数据范围 ──
+window:
+  from: ""
+  to: ""
+  months: 0
+excludedPeriods:                     # 删数据。与异常窗口（加控制列）在同一段上只能选一个
+  - { from: "", to: "", reason: "", conflictsWithAnomaly: false }
+
+allTight: false                      # 是不是每种切法都有变量放不下
+noneFeasible: false
+
+assumptions:
+  - question: ""
+    answer: ""
+    decidedBy: ""
+    at: ""
+    assumed: false

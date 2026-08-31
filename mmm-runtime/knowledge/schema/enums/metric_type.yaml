@@ -1,0 +1,15 @@
+# The modeling role contract. CLOSED: the OLS engine picks Y and the drivers by
+# this tag, so a value outside the three is not an unfamiliar spelling — it is a
+# row the model will silently ignore.
+column: metric_type
+closed: true
+values:
+  - canonical: "Y"
+    label: "Response — the KPI being explained"
+    aliases: ["y", "KPI", "response", "本品销量", "sell-out", "sellout"]
+  - canonical: spending
+    label: "Paid spend — ROI-eligible driver"
+    aliases: ["spend", "花费", "投放金额", "cost", "investment"]
+  - canonical: "X"
+    label: "Driver that is not spend — price, weather, distribution, competitor activity"
+    aliases: ["x", "driver", "factor"]

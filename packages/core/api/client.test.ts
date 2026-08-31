@@ -93,14 +93,17 @@ describe("ApiClient email login", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await new ApiClient("https://api.example.test").emailLogin("alice@example.com");
+    const result = await new ApiClient("https://api.example.test").emailLogin(
+      "alice@example.com",
+      "secret123",
+    );
 
     expect(result).toMatchObject({ token: "token-1", user: { id: "user-1" } });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.example.test/auth/email-login",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ email: "alice@example.com" }),
+        body: JSON.stringify({ email: "alice@example.com", password: "secret123" }),
       }),
     );
   });
@@ -117,8 +120,44 @@ describe("ApiClient email login", () => {
     );
 
     await expect(
-      new ApiClient("https://api.example.test").emailLogin("alice@example.com"),
+      new ApiClient("https://api.example.test").emailLogin("alice@example.com", "secret123"),
     ).rejects.toThrow();
+  });
+
+  it("posts registration fields and validates the response", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        token: "token-2",
+        user: {
+          id: "user-2",
+          name: "Alice",
+          email: "alice@deloittecn.com.cn",
+          avatar_url: null,
+        },
+      }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new ApiClient("https://api.example.test").register(
+      "alice@deloittecn.com.cn",
+      "secret123",
+      "Alice",
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/auth/register",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          email: "alice@deloittecn.com.cn",
+          password: "secret123",
+          name: "Alice",
+        }),
+      }),
+    );
   });
 });
 

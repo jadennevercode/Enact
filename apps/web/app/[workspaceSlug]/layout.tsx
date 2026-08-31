@@ -8,7 +8,6 @@ import { workspaceBySlugOptions } from "@enact/core/workspace";
 import { setCurrentWorkspace } from "@enact/core/platform";
 import { useAuthStore } from "@enact/core/auth";
 import { NoAccessPage } from "@enact/views/workspace/no-access-page";
-import { WelcomeAfterOnboarding } from "@enact/views/workspace/welcome-after-onboarding";
 import { EnactIcon } from "@enact/ui/components/common/enact-icon";
 import { useWorkspaceSeen } from "@enact/views/workspace/use-workspace-seen";
 import { workspaceSlugFromPathname } from "@/lib/workspace-slug-from-pathname";
@@ -123,11 +122,6 @@ export default function WorkspaceLayout({
   return (
     <WorkspaceSlugProvider slug={workspaceSlug}>
       {children}
-      {/* Reads the welcome-store transient signal parked by
-       *  OnboardingFlow.handleRuntimeNext. Runtime path → loading veil →
-       *  blocking Modal with Helper + starter cards. Skip path → Modal
-       *  with two seeded issues. No signal → null. */}
-      <WelcomeAfterOnboarding />
     </WorkspaceSlugProvider>
   );
 }

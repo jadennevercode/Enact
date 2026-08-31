@@ -1,0 +1,30 @@
+# tools/catalog/report.interview-outline.yaml
+id: report.interview-outline
+kind: report
+purpose: 把访谈提纲渲染成一份客户能直接拿去排会的 Word —— 访谈对象一览在最前面，问题按节排开。
+when: |
+  访谈 · 「起草访谈提纲」，在 outline.md 写好之后、交验收之前。
+  提纲改一次就要重新跑一次：Word 里记着它出自哪一版，对不上检查就不过。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - path: artifacts/s1/interview/outline.md
+    why: 全部内容都来自它。这个工具不算数、不判断、不补内容
+output:
+  path: artifacts/s1/interview/outline.docx
+  shape: |
+    一 访谈对象一览   层级 · 时长 · 题数 · 参与人 · 建议档期（后两列留空给客户填）
+    每个访谈对象一节  业务题逐条列出，带追问
+    数据团队那一节    按因子路径归组，同一条路径的四问放在一起
+    按推荐项预设的部分 没拿到答复的澄清点，逐条列出（meta.assumed 非空时才有）
+    这份提纲的来源     读了哪些材料多少字、有没有截断
+    文档属性里带 sourceHash，指向生成时那一版 outline.md。
+run: |
+  ~/.local/bin/mmm app report interview-outline --workspace <工作区>
+requires: |
+  Node 与 docx 这个包。缺了会直接报错说清楚怎么装，不会降级成 Markdown。
+  `~/.local/bin/mmm doctor` 会报这台机器缺什么。
+notes: |
+  排版上只做了一件 Markdown 做不到的事：把访谈对象一览提到最前面。提纲的第一用途是
+  让客户排会，而数据题动辄一百多条，放在同一个流里会把那张表冲到看不见的地方。
+  数据题按因子路径归组也是同一个理由——逐条平铺是 168 行没有结构的列表，
+  客户拿到只会问「这是什么」。

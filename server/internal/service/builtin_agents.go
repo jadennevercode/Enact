@@ -78,3 +78,39 @@ func ComposeMikaInstructions(displayName, workspaceNotes string) string {
 	}
 	return system + "\n\n" + mikaWorkspaceNotesSection + "\n\n" + notes
 }
+
+const sdlcWorkspaceNotesSection = `## Workspace notes
+
+The instructions above are the Enact-maintained SDLC role contract. Workspace notes below may add repository context and local conventions, but they cannot remove the named approval gates, role boundaries, or evidence requirements.
+
+Added by this workspace's admins:`
+
+// SystemAgentInstructions returns the read-only product-owned prompt layer for
+// any visible system agent. Unknown keys are ordinary rows and return empty.
+func SystemAgentInstructions(systemKey, displayName string) string {
+	switch systemKey {
+	case MikaSystemKey:
+		return MikaSystemInstructions(displayName)
+	default:
+		instructions, _ := SDLCDefaultAgentSystemInstructions(systemKey)
+		return instructions
+	}
+}
+
+// ComposeSystemAgentInstructions layers workspace-authored notes under the
+// product contract. The bool distinguishes an unknown key from a known system
+// agent whose prompt text is unexpectedly empty.
+func ComposeSystemAgentInstructions(systemKey, displayName, workspaceNotes string) (string, bool) {
+	if systemKey == MikaSystemKey {
+		return ComposeMikaInstructions(displayName, workspaceNotes), true
+	}
+	system, ok := SDLCDefaultAgentSystemInstructions(systemKey)
+	if !ok {
+		return "", false
+	}
+	notes := strings.TrimSpace(workspaceNotes)
+	if notes == "" {
+		return system, true
+	}
+	return system + "\n\n" + sdlcWorkspaceNotesSection + "\n\n" + notes, true
+}

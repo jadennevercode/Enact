@@ -1,0 +1,37 @@
+# tools/catalog/quality.accuracy.yaml
+id: quality.accuracy
+kind: quality
+purpose: 准确性维度的两个子项——数值准确性、业务准确性，各打 0 / 0.5 / 1 分。
+when: |
+  数据质量评分 · 「按四个维度给指标打分」的一步。
+  四个维度各跑一次，四份结果再由 quality.scorecard 卷成总分。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/quality-accuracy.json
+  shape: |
+    dimension        恒为 accuracy
+    signature        本次打分的行集指纹；卷积时四份必须一致
+    rows[]           每个已打分的指标一项：
+      id · l1 · l2 · l3 · l4 · indicator · treeRowId · dataStatus
+      score          准确性维度分 = 该维度全部阻断型子项里最低的那个
+      subScores[]    两个子项：
+        key          accuracy.numeric / accuracy.business
+        label · score · note · computed · blocking
+    skipped          {no-data: n, inherited-drop: n}
+    orphanCount      数据里有、因子树没要过的指标数
+stdout: |
+  准确性：18 条序列打分 · 1 个 0.5 分 · 17 个 1 分
+  未校验（缺对照输入，恒 1 分且不阻断）：业务准确性
+    视图上这几项必须渲染成「未校验」。没查和查了没问题不能长得一样。
+example: ~/.local/bin/mmm tool quality.accuracy --workspace <工作区>
+notes: |
+  数值准确性算的是 (非有限值 + 非法负值) / 总行数。
+  **非法负值只对花费与响应计**——温度、增长率、指数出现负值是合法的。
+  自然波动不是错误：尖峰归业务校验那一层的异常处置，不在这里扣分。
+
+  业务准确性要一个外部口径才成立：metadata/reference-totals.yaml 里登记
+  财务或其他系统给的合计（带 l4、indicator、period、value、source）。
+  登记了就真算：|本表合计 − 登记值| / 登记值，对照 5% / 10% 两档，且阻断。
+  没登记就 computed=false、恒 1 分、不阻断，并报成「未校验」。
+  这一格是全表最容易被误读的一格——1 分看起来像对上了账，实际是没对过账。

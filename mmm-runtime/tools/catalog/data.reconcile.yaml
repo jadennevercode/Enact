@@ -1,0 +1,82 @@
+# tools/catalog/data.reconcile.yaml
+id: data.reconcile
+kind: data
+purpose: 判定清洗出来的还是不是原来那批数据——行数、数值合计、时间跨度三样对不对得上。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」，与 data.conform 并列，每批交付一次。
+  两者问的是不同的问题：conform 问形状对不对，它问内容还在不在。
+  一条多写了 WHERE 的清洗脚本能产出一张完全合规、却少了三分之二行的表，只有这道检查能发现。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --asset
+    required: true
+    what: 这批交付的编号
+  - flag: --raw-value
+    required: false
+    what: |
+      原始表里那一列数值列的列名，用来跟清洗结果的 value 合计对账。
+      **不给就对不了账**——不做数值对账时 ok 一律为 false。
+
+      源表是宽表、一条原始行被 UNION ALL 拆成好几个指标时，改用逗号分隔的
+      `<原始列>:<指标名>` 列表，每个指标各自对账，例如：
+      `--raw-value "本品ND:本品ND,本品WD:本品WD,货架份额SOS:货架份额（SOS）"`。
+      这几个指标单位往往不一样（箱/个/%/元），把它们的 value 加在一起对总账，
+      对上了也说明不了什么——单指标对账才是这道检查真正要的东西。
+
+      **指标名本身不是行的身份。** 目标结构的行身份是 L1-L4 + 指标名（见
+      `target_schema.DEFAULT_GRAIN_KEYS`），同一个指标名（比如「花费」）合法地在
+      不同 L4 下各出现一次——POSM 的花费和冰柜的花费，因子树里都叫「花费」，
+      靠 L4 才分得开。这种情况下两段式的 `<原始列>:<指标名>` 会分不清该数哪一份，
+      改用三段式 `<原始列>:<L4>:<指标名>`，例如
+      `POSM花费:POSM和陈列物料（POSM&Rack）:花费,冰柜花费:自有冰柜:花费`。
+      工具自己会先查一遍：一个指标名如果在清洗结果里对应不止一个 L4，两段式写法
+      会被直接拒绝并报出是哪几个 L4 在冲突，而不是把两条不相关的序列悄悄加成一个数。
+output:
+  path: data/clean/{asset}/reconcile.json
+  shape: |
+    ok             notes 为空才是 true；没做数值对账时一定为 false
+    valueChecked   数值合计到底比对过没有。false 时 ok 不可能为 true
+    rawRows        原始表合计行数
+    cleanRows      清洗结果行数
+    rowsDropped    rawRows - cleanRows（做过行列转换时这是正常的负数或正数）
+    rawSum         原始数值列合计；没给 --raw-value 时是 0；按指标对账时是各指标之和
+    cleanSum       清洗结果 value 列合计；按指标对账时是各指标之和
+    valueDriftPct  两者的相对偏差，百分数保留四位；超过一根头发丝就意味着行被丢了、翻倍了或被换算过
+    monthMin       清洗结果里最早的月份
+    monthMax       最晚的月份
+    notes[]        对不上的原因，每条一句人话；ok 为 false 时就是这里的内容
+    byMetric[]     只在按 <原始列>:<指标名> 对账时出现，每个指标一项：
+      rawColumn    原始表里的列名
+      metric       清洗结果里的 metric 值
+      l4           三段式写法给了 L4 时才有值，否则是 null
+      rawSum       该列原始合计
+      cleanSum     清洗结果里该 metric（在给定 L4 内，若有）的 value 合计
+      driftPct     该指标自己的相对偏差
+      ok           该指标是否在容差内；指标名在清洗结果里冲突到不止一个 L4、
+                   又没有用三段式指明是哪一个时，也是 false，原因在 notes 里
+    bySource[]     按来源拆开的分项，每项：
+      source       来自哪批交付
+      rows         行数
+      value        数值合计，保留四位
+      metrics      去重后的指标个数
+      monthMin     最早月份
+      monthMax     最晚月份
+stdout: |
+  delivery-a · 18420 rows, value reconciles (202301–202512)
+  raw 23800 rows → clean 18420 rows
+  value 88420193.00 → 88420193.00  (0.000% drift)
+example: |
+  ~/.local/bin/mmm tool data.reconcile --workspace <工作区> --asset delivery-a --raw-value 花费
+  ~/.local/bin/mmm tool data.reconcile --workspace <工作区> --asset sales-distribution \
+    --raw-value "本品ND:本品ND,本品WD:本品WD,货架份额SOS:货架份额（SOS）"
+  ~/.local/bin/mmm tool data.reconcile --workspace <工作区> --asset trade-execution \
+    --raw-value "POSM花费:POSM和陈列物料（POSM&Rack）:花费,冰柜花费:自有冰柜:花费"
+notes: |
+  不给 --raw-value 时数值对账不跑，而且这批交付**判为没对上账**。
+  以前它会跳过比对却照样报通过，于是这个模块里最重要的一条不变量成了可选的、而且是静默的。
+  源表是多值宽表、没有单一数值列时，要先约定按哪几列求和作为基准——
+  那是人做的决定，不是报告替人做的默认；`<原始列>:<指标名>` 语法就是这个决定的写法，
+  每个指标各自对账，而不是把不同单位的数字混在一起加成一个没有意义的总数。
+  行列转换（宽表转长表）会合法地改变行数，所以只有在没做数值对账、又没有别的发现时，
+  行数变少才会被记成一条问题。
+  数值用浮点相加，DuckDB 和 pandas 的加法顺序不同，所以对账留了 1e-4 的容差。

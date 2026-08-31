@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mmm-engine"
+version = "0.2.0"
+description = "The MMM computation engine for mmm-runtime — vendored from the AgenticMMM platform, and importing none of it."
+requires-python = ">=3.11"
+dependencies = [
+  "numpy==2.5.0",
+  "pandas==3.0.3",
+  "duckdb==1.5.4",
+  "pyarrow==24.0.0",
+  "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+xlsx = ["openpyxl>=3.1"]
+
+[project.scripts]
+mmm-tool = "mmm_engine.cli.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

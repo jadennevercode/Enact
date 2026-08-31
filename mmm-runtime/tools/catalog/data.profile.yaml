@@ -1,0 +1,40 @@
+# tools/catalog/data.profile.yaml
+id: data.profile
+kind: data
+purpose: 给一批交付的每一列出一份体检单——类型、空值率、去重个数、数值区间、类别列的高频取值。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」，紧跟在 data.extract 之后。
+  这份体检单是起草清洗脚本时唯一允许看的依据——原始行不读，
+  写清洗脚本只看这份体检单，这既控住了上下文规模，也堵住了数据层的来源缺口。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --asset
+    required: true
+    what: 这批交付的编号，也就是 data/raw/<asset>/ 那个目录名
+output:
+  path: data/raw/{asset}/profile.json
+  shape: |
+    asset                  这批交付的编号
+    tables[]               每份表一项
+      name                 表名（就是 parquet 的文件名）
+      rows                 行数
+      columns[]            每一列一项
+        name               列名
+        dtype              pandas 读出来的类型字符串
+        nullPct            空值占比，百分数保留两位
+        distinct            去重后的取值个数
+        looksNumeric       八成以上的值能转成数字则为 true
+        min / max / mean   仅当 looksNumeric 为 true 时出现，保留四位小数
+        topValues[]        仅当去重取值 ≤ 40 个（也就是这列确实是类别列）时出现，
+                           取前 12 项，每项 {value, rows}
+                           —— 两万个不同 id 的列不会带出取值清单，那是噪音
+stdout: |
+  asset delivery-a · 2 table(s) · 20 column(s)
+    t                       23800 rows · 4 numeric · 6 categorical
+    t_2                      4120 rows · 2 numeric · 4 categorical
+
+  This profile is what the mapping is drafted from. The rows are not read.
+example: ~/.local/bin/mmm tool data.profile --workspace <工作区> --asset delivery-a
+notes: |
+  必须先跑 data.extract；这批交付一份表都没有时它直接判失败并说明原因。
+  topValues 缺席不代表这列没问题，只代表它取值太多、不是类别列。

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { sanitizeNextUrl, useAuthStore } from "@enact/core/auth";
 import { workspaceKeys } from "@enact/core/workspace/queries";
-import { paths, resolvePostAuthDestination } from "@enact/core/paths";
+import { paths } from "@enact/core/paths";
 import { api } from "@enact/core/api";
 import { validateCliCallback, redirectToCliCallback } from "@enact/views/auth";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@enact/ui/components/ui/card";
 import { Button } from "@enact/ui/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { resolveWebPostAuthDestination } from "@/features/auth/post-auth-destination";
 
 function CallbackContent() {
   const router = useRouter();
@@ -129,13 +130,10 @@ function CallbackContent() {
             }
           }
 
-          // 3. Default: hand off to the resolver (onboarding for first-timers,
-          //    first workspace for returning users, /workspaces/new for
-          //    onboarded users with zero workspaces). Source-attribution
-          //    backfill for onboarded users with no recorded source is
-          //    handled by `<SourceBackfillModal />` inside the dashboard
-          //    shell — not a route detour, so we route straight to dest.
-          router.push(resolvePostAuthDestination(wsList, onboarded));
+          // 3. Default: hand off to the resolver. Existing workspaces open
+          //    directly; users without one go through automatic workspace
+          //    setup. No product-tour route is shown.
+          router.push(resolveWebPostAuthDestination(wsList, onboarded));
         })
         .catch((err) => {
           setError(err instanceof Error ? err.message : "Login failed");

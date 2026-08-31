@@ -1,0 +1,37 @@
+# tools/catalog/data.extract.yaml
+id: data.extract
+kind: data
+purpose: 把客户交来的一个文件原样拆成表——每个工作表一份，一个字不改，不做任何清洗。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」的第一步，每份客户文件跑一次。
+  后面的 data.profile、data.clean 都读它拆出来的表。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --file
+    required: true
+    what: 客户交付文件的路径（相对工作区），支持 xlsx / xlsm / xls / csv / tsv / txt / parquet
+  - flag: --asset
+    required: false
+    what: 这批交付的编号；不给就取文件名（去扩展名）并转成小写连字符形式
+output:
+  path: data/raw/<asset>/<表名>.parquet（一个工作表一份）
+  shape: |
+    每份文件就是那个工作表的原样，列名、列序、单元格内容都不动。
+    两处需要知道的改写：
+      表名   会被改成只含 [0-9a-zA-Z_] 的安全名；中文表名会退化成同一个通用名，
+             因此同名冲突时自动加 _2、_3 后缀，并在屏幕上打出「原名 → 新名」。
+             clean.sql 里必须引用箭头右边的新名。
+      列值   混了数字和文本（比如数字列里塞着 " - " 或 "N/A"）的列整列保留为文本，
+             并在检查项里点名。转型交给 clean.sql 的 CAST，转不动的由 data.conform 报出来。
+    这个工具不写单独的结果文件，写出的每份 parquet 各自留一条运行记录。
+stdout: |
+  投放明细                     23800 rows × 12 cols  (花费 kept as text)
+  销量明细                      4120 rows ×  8 cols
+
+  asset delivery-a · 2 table(s) from inputs/data/2024投放.xlsx
+  renamed for SQL: 投放明细 → t; 销量明细 → t_2
+example: ~/.local/bin/mmm tool data.extract --workspace <工作区> --file inputs/data/2024投放.xlsx --asset delivery-a
+notes: |
+  一份工作簿最多取前 40 个工作表，超出会在检查项里说明。
+  全部工作表都是空的会直接判失败——空结果是一条发现，不是一次成功。
+  不是表格类文件（比如 pdf、docx）直接拒绝，并说明它只读哪几种格式。

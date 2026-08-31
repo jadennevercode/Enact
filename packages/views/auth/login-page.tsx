@@ -51,11 +51,8 @@ interface LoginPageProps {
   onTokenObtained?: () => void;
   /** Override Google login handler (e.g. desktop opens browser externally). When provided, renders the Google button even if `google` config is omitted. */
   onGoogleLogin?: () => void;
-  /** Slot rendered at the bottom of the sign-in card, below the
-   *  Google button. The web shell uses it for a "Prefer the desktop
-   *  app?" prompt; desktop omits it (a download prompt inside the app
-   *  would be absurd). */
-  extra?: ReactNode;
+  /** Whether users may switch to account registration. */
+  allowSignup?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,12 +96,15 @@ export function LoginPage({
   cliCallback,
   onTokenObtained,
   onGoogleLogin,
-  extra,
+  allowSignup = true,
 }: LoginPageProps) {
   const { t } = useT("auth");
   const qc = useQueryClient();
   const [step, setStep] = useState<"email" | "cli_confirm">("email");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [existingUser, setExistingUser] = useState<User | null>(null);
@@ -148,18 +148,40 @@ export function LoginPage({
       });
   }, [cliCallback]);
 
-  const handleEmailLogin = useCallback(
+  const handleEmailAuth = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
       if (!email) {
         setError(t(($) => $.common.email_required));
         return;
       }
+      if (!password) {
+        setError(t(($) => $.common.password_required));
+        return;
+      }
+      if (mode === "register" && !name.trim()) {
+        setError(t(($) => $.common.name_required));
+        return;
+      }
+      if (
+        mode === "register" &&
+        !email.trim().toLowerCase().endsWith("@deloittecn.com.cn")
+      ) {
+        setError(t(($) => $.signup.domain_error));
+        return;
+      }
+      if (mode === "register" && password.length < 8) {
+        setError(t(($) => $.signup.password_hint));
+        return;
+      }
       setLoading(true);
       setError("");
       try {
         if (cliCallback) {
-          const { token } = await api.emailLogin(email);
+          const { token } =
+            mode === "register"
+              ? await api.register(email, password, name.trim())
+              : await api.emailLogin(email, password);
           localStorage.setItem("enact_token", token);
           api.setToken(token);
           onTokenObtained?.();
@@ -171,7 +193,13 @@ export function LoginPage({
         // caller's onSuccess can read it synchronously to compute a destination
         // URL (first workspace's slug, or /workspaces/new for zero-workspace
         // users).
-        await useAuthStore.getState().loginWithEmail(email);
+        if (mode === "register") {
+          await useAuthStore
+            .getState()
+            .registerWithEmail(email, password, name.trim());
+        } else {
+          await useAuthStore.getState().loginWithEmail(email, password);
+        }
         const wsList = await api.listWorkspaces();
         qc.setQueryData(workspaceKeys.list(), wsList);
         onTokenObtained?.();
@@ -186,7 +214,17 @@ export function LoginPage({
         setLoading(false);
       }
     },
-    [email, onSuccess, cliCallback, onTokenObtained, qc, t],
+    [
+      email,
+      password,
+      name,
+      mode,
+      onSuccess,
+      cliCallback,
+      onTokenObtained,
+      qc,
+      t,
+    ],
   );
 
   const handleCliAuthorize = async () => {
@@ -289,25 +327,71 @@ export function LoginPage({
         <CardHeader className="text-center">
           {logo && <div className="mx-auto mb-4">{logo}</div>}
           <CardTitle className="text-display-sm">
-            {t(($) => $.signin.title)}
+            {mode === "register"
+              ? t(($) => $.signup.title)
+              : t(($) => $.signin.title)}
           </CardTitle>
           <CardDescription>
-            {t(($) => $.signin.description)}
+            {mode === "register"
+              ? t(($) => $.signup.description)
+              : t(($) => $.signin.description)}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="login-form" onSubmit={handleEmailLogin} className="space-y-4">
+          <form id="login-form" onSubmit={handleEmailAuth} className="space-y-4">
+            {mode === "register" && (
+              <div className="space-y-2">
+                <Label htmlFor="register-name">{t(($) => $.common.name)}</Label>
+                <Input
+                  id="register-name"
+                  type="text"
+                  placeholder={t(($) => $.common.name_placeholder)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  maxLength={50}
+                  autoFocus
+                  required
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="login-email">{t(($) => $.common.email)}</Label>
               <Input
                 id="login-email"
                 type="email"
-                placeholder={t(($) => $.common.email_placeholder)}
+                placeholder={
+                  mode === "register"
+                    ? t(($) => $.signup.email_placeholder)
+                    : t(($) => $.common.email_placeholder)
+                }
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoFocus
+                autoComplete="email"
+                autoFocus={mode === "login"}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">
+                {t(($) => $.common.password)}
+              </Label>
+              <Input
+                id="login-password"
+                type="password"
+                placeholder={t(($) => $.common.password_placeholder)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={
+                  mode === "register" ? "new-password" : "current-password"
+                }
+                required
+              />
+              {mode === "register" && (
+                <p className="text-caption text-muted-foreground">
+                  {t(($) => $.signup.password_hint)}
+                </p>
+              )}
             </div>
             {error && (
               <p className="text-body text-destructive">{error}</p>
@@ -320,13 +404,22 @@ export function LoginPage({
             form="login-form"
             className="w-full"
             size="lg"
-            disabled={!email || loading}
+            disabled={
+              !email ||
+              !password ||
+              (mode === "register" && !name.trim()) ||
+              loading
+            }
           >
             {loading
-              ? t(($) => $.signin.sending)
-              : t(($) => $.signin.continue)}
+              ? mode === "register"
+                ? t(($) => $.signup.creating)
+                : t(($) => $.signin.sending)
+              : mode === "register"
+                ? t(($) => $.signup.submit)
+                : t(($) => $.signin.submit)}
           </Button>
-          {(google || onGoogleLogin) && (
+          {mode === "login" && (google || onGoogleLogin) && (
             <Button
               type="button"
               variant="outline"
@@ -356,7 +449,25 @@ export function LoginPage({
               {t(($) => $.signin.google)}
             </Button>
           )}
-          {extra && <div className="w-full pt-1 text-center">{extra}</div>}
+          {allowSignup && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setMode((current) =>
+                  current === "login" ? "register" : "login",
+                );
+                setError("");
+                setPassword("");
+              }}
+              disabled={loading}
+            >
+              {mode === "register"
+                ? t(($) => $.signup.back_to_login)
+                : t(($) => $.signup.switch_to_signup)}
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>

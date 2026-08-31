@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+# Built workspaces never live in the plugin — they go to ~/mmm-engagements/.
+# These two lines remain so an older checkout that still has them stays clean.
+fixtures/danone-mizone/
+fixtures/aurelia-skincare/
+node_modules/
+# Build metadata for the editable engine install. A committed entry_points.txt
+# ships one machine's install layout to every other machine.
+*.egg-info/

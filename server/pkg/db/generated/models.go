@@ -1149,6 +1149,7 @@ type Squad struct {
 	ArchivedBy   pgtype.UUID        `json:"archived_by"`
 	AvatarUrl    pgtype.Text        `json:"avatar_url"`
 	Instructions string             `json:"instructions"`
+	SystemKey    pgtype.Text        `json:"system_key"`
 }
 
 type SquadMember struct {
@@ -1282,7 +1283,8 @@ type User struct {
 	Language                pgtype.Text        `json:"language"`
 	ProfileDescription      string             `json:"profile_description"`
 	// User-preferred IANA timezone for report rendering (Viewing tz). NULL means "use the browser-detected tz at render time". Affects dashboards, charts, and any "today" label shown to this user. Does not affect data materialisation — all rollups remain in UTC.
-	Timezone pgtype.Text `json:"timezone"`
+	Timezone     pgtype.Text `json:"timezone"`
+	PasswordHash pgtype.Text `json:"password_hash"`
 }
 
 type UserComposioConnection struct {
@@ -1393,7 +1395,8 @@ type Workspace struct {
 	IssueCounter int32              `json:"issue_counter"`
 	AvatarUrl    pgtype.Text        `json:"avatar_url"`
 	// When TRUE, an agent run that resolves to no precise accountable human (would be owner_fallback) is refused at enqueue instead of degrading to the agent owner (ENA-4302 §3.5). Default FALSE = owner_fallback. Never affects authorization (originator_user_id).
-	AttributionFailClosed bool `json:"attribution_fail_closed"`
+	AttributionFailClosed bool  `json:"attribution_fail_closed"`
+	SdlcDefaultsVersion   int32 `json:"sdlc_defaults_version"`
 }
 
 type WorkspaceInvitation struct {

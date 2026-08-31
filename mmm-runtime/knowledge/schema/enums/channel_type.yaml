@@ -1,0 +1,21 @@
+# CLOSED, and deliberately so: a model object is one (channel_type, brand) cell,
+# so an unrecognised channel silently creates a model nobody asked for.
+#
+# BLANK IS NOT A MISSING VALUE. A row with no channel_type is NATIONAL — media
+# bought once for the country — and is shared into every model object. Requiring a
+# channel is what once made per-channel modeling delete national media entirely.
+#
+# Replace these with the client's real channels. They are a starting point, not a
+# taxonomy anyone should inherit.
+column: channel_type
+closed: true
+values:
+  - canonical: MT
+    label: "Modern trade"
+    aliases: ["现代渠道", "Modern Trade", "KA", "modern"]
+  - canonical: TT
+    label: "Traditional trade"
+    aliases: ["传统渠道", "Traditional", "traditional"]
+  - canonical: EC
+    label: "E-commerce"
+    aliases: ["电商", "E-commerce", "Ecom", "online"]

@@ -1,0 +1,93 @@
+# 统计检验打分表 —— 照这份填，不要自创结构。填法见 ../references/score.md 与 review.md。
+# 每个数逐字抄自 data/derived/stat-panel.json：不四舍五入、不心算、不重算。
+# 检查项 scorecard_matches_payload 会逐行比对——对不上就是抄错了。
+meta:
+  step: stat-screening/score
+  skill: stat-screening
+  generated: ""                      # 生成时间，带时区
+  grounding:                         # 读过的每份材料，一份一条；字数写真实值
+    - { path: "data/derived/stat-panel.json", chars: 0, truncated: false }
+    - { path: "data/derived/stat-volatility.json", chars: 0, truncated: false }
+    - { path: "data/derived/stat-correlation.json", chars: 0, truncated: false }
+    - { path: "data/derived/stat-collinearity.json", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+    - { path: "artifacts/s2/ledger.md", chars: 0, truncated: false }
+    - { path: "knowledge/methodology/statistical-scoring.json", chars: 0, truncated: false }
+  knowledgeRecall: none              # 行业先例来源；召回为空写 none
+  derivedFrom: data/derived/stat-panel.json
+  payloadHash: ""                    # 上面那份结果的哈希
+  reviewedAt: ""                     # 人逐行定完之后写上时间，不覆盖 generated
+
+# ── 这一次检验是在什么形状上做的。整段抄计算结果的 panel 块 ──
+panel:
+  panel: ""                          # 例："18 indicators × 4 model object(s)"
+  months: 0
+  detrend: ""                        # 例："34 year-over-year periods × 4 object(s)"
+                                     # 太短没差分时写 "(too short to detrend)"
+  vifDesign: ""                      # 例："each against a 12-driver design"
+  vifRegime: exact                   # exact | pairwise-proxy
+                                     # pairwise-proxy 表示变量数 ≥ 观测数，完整多元共线性
+                                     # 指标不存在，报的是两两近似值 —— 这句话必须出现在视图上
+  formula: "Total = CV × Pearson × VIF"   # 已裁定的口径，不改
+  bands: "Total >= 0.5 Good · 0 < Total < 0.5 Acceptable · Total = 0 unconsiderable"
+  severeVif: 10.0                    # 超过它一律建议剔除，不论总分
+
+inheritedDrops: 0                    # 上游已否、这次没参与检验的指标条数。抄，不要自己数
+orphanCount: 0                       # 数据里有、因子树没要过的指标数。抄，并在呈现时说一句
+
+# ── 一行 = 因子树里一条已采纳的（L1 × L2 × L3 × L4 × 指标）──
+# 排序：总分最低的排最前，让复核的人先看到风险最高的行；没有总分的行排最后。
+rows:
+  - id: ""                           # 抄计算结果的行编号，形如 s-0007
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""
+    treeRowId: ""                    # 连回因子树
+    object: ""                       # 空表示这条判定对全部模型对象生效
+    source: ""                       # 本行誊抄自结果里的哪一条。**必填**
+
+    # scored 已检验 / no-data 树上要了但一条数据都没到 / inherited-drop 上游已判不做。
+    dataStatus: scored
+
+    # 原始统计量。dataStatus 不是 scored 时**写 null，不要写 0**。
+    # 共线性尤其要紧：1.0 是「好」的那一端，默认的 1.0 会让没人筛过的序列
+    # 读起来像「无共线性」。
+    cv: null                         # 4 位
+    pearson: null                    # 有符号，4 位
+    vif: null                        # 3 位
+    # 三项分值（工作簿的正式列，不能只留原始统计量）
+    cvScore: null                    # 0 | 0.5 | 1
+    pearsonScore: null
+    vifScore: null
+    total: null                      # 三项相乘。抄，不要自己乘一遍
+    severeCollinearity: false        # 共线性 ≥ 10。true 时一律建议剔除，不论总分
+    zeroReason: ""                   # 总分为 0 时点名是哪一项挂的：波动性 / 相关性 / 共线性
+                                     # 观测月数不足时写 "观测月数 N < 12"
+    autoVerdict: ""                  # Good | Acceptable | unconsiderable |
+                                     # no-data | inherited-drop | response | not-screened
+    disposition: ""                  # include | drop —— 人裁决后只能是这两个之一。
+                                     # review 是过渡态，留着会卡住验收
+    decidedBy: ""                    # 人裁决后写 "human" 或人名；写了就钉住这一行
+    decidedAt: ""
+    rationale: ""                    # ≤22 词，只基于该行自己的三个数与判定，不得造数
+    note: ""                         # 人改判时必填
+
+# ── 因子级预警 ──
+# 某个 L4 的全部候选指标都判不可用 → 模型里将没有任何东西代表这个因子。
+# 这不是打分表里的一行，是一段要单独上报的预警（见 review.md）。
+factorAlerts:
+  - l4: ""
+    indicators: []
+    allFailed: true
+    reason: ""                       # 例："全部候选指标不达标（波动性）"
+    action: "回流业务理解，寻找替代指标"
+
+# ── 澄清登记 ──
+assumptions:
+  - question: ""
+    answer: ""
+    decidedBy: ""
+    at: ""
+    assumed: false                   # true 表示没问到人，按推荐项走的

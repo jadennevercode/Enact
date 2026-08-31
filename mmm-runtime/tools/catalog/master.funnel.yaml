@@ -1,0 +1,80 @@
+# tools/catalog/master.funnel.yaml
+id: master.funnel
+kind: assemble
+purpose: 给因子树收口——当初声明过的每一行，最后是什么下场，在哪一层定的。
+when: |
+  模型输入 · 「装配主数据表」，与 master.assemble 同一步。
+  它产出的漏斗表就是「锁定模型输入」那一道确认要看的依据。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: artifacts/s2/funnel.yaml
+  shape: |
+    meta                  说明这份产物是谁在哪一步生成的（task · skill · mode ·
+                          generated · grounding[] · knowledgeRecall）
+    layers[]              合并所有模型对象的漏斗，六层各一项：
+      layer               层名：mapping / quality / signoff / statistical / selection / range
+      task                该层对应的平台任务号（仅作出处引用）
+      label               该层的名字
+      intake              进入这一层的条数
+      rejected            这一层否掉的条数
+      survivors           活着出去的条数
+      dropped[]           这一层否掉的每一条：{l4, indicator, reason}
+    byObject              {模型对象: [同上的六层]}，每个渠道自己的漏斗
+                          —— 同一个指标可能在不同渠道死在不同层，或者干脆活着
+    factorTree[]          因子树的每一行一项，字段带着这一行的身份和归宿：
+      l1 · l2 · l3 · l4 · indicator   因子身份
+      supplyingMetrics[]  实际供给它的数据侧指标名
+      verdict             归宿，五种取值：
+                          adopted     所有考虑过它的模型都留下了它
+                          rejected    所有模型都否了它
+                          partial     有的留有的否；objects 说清是哪些
+                          notModeled  有数据但不作为候选驱动（历史太短、没有变异、
+                                      或它的数据被另一行因子先认领了）
+                          notSupplied 从来没有数据供给这一行
+      objects[]           逐个模型对象的判定：{object, adopted, rejectedAt, reason}
+      rejectedAt          最早否掉它的层名；未被否则为空
+      rejectedAtLabel     那一层的名字
+      rejectedAtTask      那一层对应的平台任务号
+      reason              一句话说明为什么是这个归宿
+      role                仅响应那一行有，取值 "response"
+      claimedBy           仅 notModeled 且数据被别人认领时有，指出被哪一行认领
+    missingFactors[]      模型将要对之失语的因子，一个 L4 一项：
+      l4                  因子
+      indicators[]        它名下的全部候选指标
+      reason              "全部候选指标不达标" 或 "从未拿到数据"
+      failedAt            最早否掉它的层；从没拿到数据时为 notSupplied
+      action              交付说明里要写的那句预警
+    lockedSelection       锁定时冻结的选择快照 —— 建模将要训练在其上的那张表：
+      y                   每个模型对象确认过的响应变量
+      exclude             逐对象的排除集
+      include             逐对象勾选的变量集；null 表示未确认过勾选
+      params              变换与控制项参数
+      adoptedCount        已采纳指标数
+      variables[]         建模编号，一个已采纳指标一项：
+                          {variable 英文机器名, variableNo 变量编号,
+                           metricNo 指标编号, l4, indicator, role}
+stdout: |
+    layer            reached   rejected
+    Data Processing  46        8
+    Data Quality     38        3
+
+    every declared factor: 19 adopted · 12 rejected · 4 partial · 6 notSupplied
+
+    6 factor(s) nothing ever supplied:
+        竞品促销                     竞品折扣率
+example: ~/.local/bin/mmm tool master.funnel --workspace <工作区>
+notes: |
+  这里以因子树为主干，不是以数据为主干。归宿账是按数据交来的东西排的，
+  于是「从来没人供给」的因子在任何一张表上都没有行、直接从故事里掉出去了——
+  而那正是收口必须交代的一类。
+  notSupplied 和 rejected 是刻意分开的：前者没人判过它，是数据没到；
+  后者是有人判了。前者属于下一轮收数的发现，不是一个建模判定。
+  响应那一行被单独识别出来标成 adopted / role=response，
+  否则整个模型赖以成立的那一个因子会被报成「没有数据供给」。
+  missingFactors 和漏斗里的被拒清单不是一回事：漏斗列的是指标，这一段列的是
+  模型将要对之失语的生意板块，两者对客户的意义完全不同。
+  lockedSelection 是「锁定」这个动作的实体：只记一条批准而不冻结已解析的选择，
+  上游任何一次重跑都会让建模训练在一张与人签过字的表不同的表上，而表面上看不出来。
+  ⚠️ 流程定义里「装配主数据表」把 artifacts/s2/funnel.yaml 列在产出里，
+  但 computed_by 只写了 master.assemble 和 export.xlsx，没写这份漏斗表由谁产出。

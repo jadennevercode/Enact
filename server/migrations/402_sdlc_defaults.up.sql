@@ -1,0 +1,5 @@
+ALTER TABLE workspace
+    ADD COLUMN IF NOT EXISTS sdlc_defaults_version INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE squad
+    ADD COLUMN IF NOT EXISTS system_key TEXT;

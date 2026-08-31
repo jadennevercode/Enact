@@ -1,0 +1,35 @@
+# tools/catalog/ols.factors-import.yaml
+id: ols.factors-import
+kind: model
+purpose: 把客户在因子审阅表上改过的判定读回评分卡——他改了哪几行、写了什么理由，落到 YAML 里，而不是靠人誊抄。
+when: |
+  OLS 预验证 · 「逐因子对照行业区间判读」这一步，把导给客户的 Excel 收回来之后跑。
+  客户没在 Excel 上批注、直接口头给结论的，就不用跑它，在评分卡里填。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - "--from  客户另存的那份 ols-scorecard.xlsx"
+output:
+  path: artifacts/s2/ols-scorecard.yaml
+  shape: |
+    与 ols.scorecard 产出的结构相同，只有 factors[] 里被客户改过的那几行不一样：
+      disposition   改成客户填的采纳 / 否决
+      note          客户写的理由
+      decidedBy     改成 human —— 这一行从此被钉住，重跑不会覆盖
+    meta 另加 amendedAt（回写时间）与 amendedFrom（从哪份文件读的）
+stdout: |
+    3 个因子，其中 1 个被客户改过
+      POSM和陈列物料 · 花费 → reject（客户说这个渠道今年根本没投）
+example: ~/.local/bin/mmm tool ols.factors-import --workspace <工作区> --from ~/Downloads/客户已审.xlsx
+notes: |
+  **只读三样东西**：人工判定、备注，以及用来对行的那几列。其余全是算出来的，
+  客户在 Excel 上把某个系数改了也不会生效——他改不了一个系数，只能改对它的判定。
+
+  **来源指纹对不上就拒绝。** 工作簿上盖着它是照哪一版评分卡出的。评分卡后来又变过的话，
+  照一份旧工作簿回写会把中间那些改动悄悄盖掉，而且是往旧的方向盖。
+  这种情况重新导一份给客户，或者先确认中间的改动要不要保留。
+
+  **只有真的改过的行才算人工裁决。** 判定和备注都与导出去时一模一样的行，是没被动过，
+  不是被审过。因为在工作簿里出现过就把每一行标成人工裁决，等于伪造一次没发生的评审——
+  而人工裁决一旦标上，后面每次重拟合都会保护它。
+
+  客户什么都没改也是结论，工具会明说「没有东西要回写」，把这件事记进人工确认里。

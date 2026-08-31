@@ -1,0 +1,973 @@
+# 交付物依赖图 —— 这个文件就是流程本身，Skill 执行它，不背诵它。
+#
+# 架构依据：docs/specs/2026-08-08-architecture-and-methodology.md 公理 A5
+#   流程的单位是交付物，不是任务编号。层级 = 阶段 → 交付物 → 构建步骤。
+#   一个 Skill 执行一件事 = 产出一个交付物。
+#
+# 字段说明
+#   deliverables[].id      交付物身份，就是它的名字（无编号）
+#   deliverables[].skill   产出它的唯一 Skill；别的 Skill 不写它的产出物
+#   deliverables[].internal 该交付物构建过程中产生、但不作为交付物示人的中间产物
+#   steps[].id             步骤名；全局唯一标识是 <交付物>/<步骤>
+#   steps[].klass          M 确定性计算 · A 可自动生成 · C 认知判断 · H 人担责
+#   steps[].depends_on     步骤级依赖，用 <交付物>/<步骤> 全称。这是权威的 DAG，
+#                          因为访谈会回流改因子树——交付物之间是有环的，步骤之间不是。
+#   steps[].optional       这一步不做也算做完了。它照样出现在「下一步能做什么」里，
+#                          但不拦着交付物走到 confirmed。用于能力式的交付物：一个
+#                          能力用不用得上，取决于手上有没有那份输入，不取决于流程。
+#                          没有 `skipped` 这个状态——跳没跳过是从磁盘上推导出来的
+#                          （那份产出物在不在），记下来的状态会和磁盘分叉。
+#   steps[].reads          该步骤的取材白名单，唯一权威副本
+#   steps[].produces       该步骤写出的文件
+#   steps[].computed_by    产物路径（可用通配）→ 必须由哪个 Tool 写出
+#   steps[].verify         关闭该步骤前必须全部通过的判定式
+#   steps[].gate           人工确认点。门的 id 就是步骤全称——一步最多一道门，
+#                          所以不再需要 g-/d- 两套编号。
+#
+# 交付物状态由其步骤状态推导，六态见 shared/deliverable-states.md：
+#   locked → queued → building → needs-you → ready → confirmed
+
+version: 3
+
+stages:
+  - id: s1
+    name: 业务理解
+  - id: s2
+    name: 数据
+    requires: engine
+  - id: s3
+    name: 收尾
+
+deliverables:
+
+  # ══ 业务理解 ═══════════════════════════════════════════════════════
+
+  - id: project-profile
+    name: 项目档案
+    stage: s1
+    skill: scoping
+    summary: 客户签的 SOW 说要分析什么——把它变成锁定的分析口径：目标、时间颗粒度、模型范围、响应指标。
+    template: skills/scoping/templates/project-profile.yaml
+    requires: []
+    steps:
+      - id: intake
+        name: 提供 SOW 与立项说明
+        klass: H
+        depends_on: []
+        reads: ["inputs/project-background/**"]
+        verify:
+          - files_exist:inputs/project-background
+        gate:
+          kind: intake
+          question: >
+            项目名称、品牌、所属行业都定了吗？已签署的 SOW 和立项说明到位了吗？
+            没有正式 SOW 也可以往下走——放一份 NONE.md 说明情况，范围改由问答推导出来。
+          evidence: inputs/project-background
+
+      - id: build
+        name: 框定并锁定项目档案
+        klass: C
+        depends_on: [project-profile/intake]
+        produces:
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s1/project-profile.docx"
+          - "metadata/granularity.yaml"
+        computed_by:
+          "artifacts/s1/project-profile.docx": report.project-profile
+        reads: ["inputs/project-background/**", "mmm.yaml"]
+        verify:
+          - frontmatter_valid:artifacts/s1/project-profile.yaml
+          - grounding_within_allowlist
+          - engagement_identified
+          - profile_complete
+          - scope_advisories
+          - granularity_matches_profile
+          - doc_current:artifacts/s1/project-profile.docx:artifacts/s1/project-profile.yaml
+          - profile_locked
+          - signed_off:project-profile/build
+        gate:
+          kind: approval
+          question: 档案与 SOW 一致吗？锁定它就固定了分析颗粒度和模型范围，后面每一层都按它走。
+          evidence: artifacts/s1/project-profile.docx
+          rework: project-profile/build
+
+  - id: factor-tree
+    name: 因子树
+    stage: s1
+    skill: factor-tree
+    summary: 生意受什么影响——L1/L2 锁定的骨架上长出 L3/L4 与指标，逐行采纳或剔除，每个 L4 一个主指标。
+    template: skills/factor-tree/templates/factor-tree.yaml
+    requires: [project-profile]
+    internal:
+      - path: artifacts/s1/materials-index.md
+        name: 材料索引
+        why: 记录客户报告与竞品资料的清单，以及因子树的起底方式
+      - path: artifacts/s1/knowledge-package.md
+        name: 行业知识包
+        why: 从知识库召回的、供推导引用的先例；因子树的每一条 template 来源都指回它
+    steps:
+      - id: materials
+        name: 匹配行业知识、收报告资料、定起底方式
+        klass: H
+        depends_on: [project-profile/build]
+        produces: ["artifacts/s1/materials-index.md"]
+        reads:
+          - "inputs/industry-reference/**"
+          - "inputs/client-factor-tree/**"
+          - "artifacts/s1/project-profile.yaml"
+          - "mmm.yaml"
+        verify:
+          - files_exist:inputs/industry-reference
+          - frontmatter_valid:artifacts/s1/materials-index.md
+          - grounding_within_allowlist
+          - baseline_choice_recorded
+        gate:
+          kind: intake
+          question: 行业匹配到知识包了吗？客户自己的因子树和品牌资料到位了吗？这棵树从哪起底？
+          evidence: artifacts/s1/materials-index.md
+
+      - id: knowledge
+        name: 召回可用的行业知识
+        klass: C
+        depends_on: [factor-tree/materials]
+        produces: ["artifacts/s1/knowledge-package.md"]
+        reads:
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s1/materials-index.md"
+          - "inputs/industry-reference/**"
+          - "inputs/client-factor-tree/**"
+        verify:
+          - frontmatter_valid:artifacts/s1/knowledge-package.md
+          - grounding_within_allowlist
+
+      - id: derive
+        name: 推导因子树与候选指标
+        klass: C
+        depends_on: [factor-tree/knowledge]
+        produces: ["artifacts/s1/factor-tree.yaml", "artifacts/s1/factor-tree.xlsx"]
+        # `web:*` 是这套流程里两处联网取材许可之一（另一处是 interview/pre-answer）。
+        # 判准是同一条：只有**推导**性质的步骤可以联网，因为它是在为客户材料没覆盖的
+        # 因子去查外部口径；确认与回写那两步在人已经看过的东西上做判断，中途去捞新
+        # 材料，人批的就不是他看见的那份。
+        reads:
+          - "artifacts/s1/knowledge-package.md"
+          - "artifacts/s1/materials-index.md"
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s1/factor-tree.yaml"
+          - "inputs/industry-reference/**"
+          - "inputs/client-factor-tree/**"
+          - "web:*"
+        verify:
+          - frontmatter_valid:artifacts/s1/factor-tree.yaml
+          - grounding_within_allowlist
+          - tree_has_rows
+          - workbook_current:artifacts/s1/factor-tree.xlsx:artifacts/s1/factor-tree.yaml
+
+      - id: confirm
+        name: 确认因子树
+        klass: H
+        depends_on: [factor-tree/derive]
+        reads:
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s1/factor-tree.xlsx"
+          - "artifacts/s1/knowledge-package.md"
+          - "artifacts/s1/project-profile.yaml"
+        verify:
+          - tree_has_rows
+          - no_undecided_rows
+          - primary_indicator_per_l4
+          - aggregation_declared
+          - workbook_current:artifacts/s1/factor-tree.xlsx:artifacts/s1/factor-tree.yaml
+          - signed_off:factor-tree/confirm
+        gate:
+          kind: approval
+          question: 确认推导出的 L3/L4 以及每个 L4 的主指标？要动 L1/L2 的话，先看清楚代价。
+          evidence: artifacts/s1/factor-tree.xlsx
+          rework: factor-tree/derive
+
+      # 访谈回流：这一步依赖访谈，所以因子树的最终形态在访谈之后才定。
+      # 交付物之间因此是有环的，步骤之间不是——这就是 DAG 建在步骤上的原因。
+      - id: amend
+        name: 采纳访谈带来的因子改动
+        klass: H
+        depends_on: [interview/digest]
+        produces:
+          - "exports/factor-tree-*-访谈校正.xlsx"
+        computed_by:
+          "exports/factor-tree-*-访谈校正.xlsx": workbook.factor_tree
+        reads:
+          - "artifacts/s1/interview/proposals-*.yaml"
+          - "artifacts/s1/interview/minutes-*.md"
+          - "artifacts/s1/factor-tree.yaml"
+        verify:
+          - proposals_resolved
+          - tree_has_rows
+          - no_undecided_rows
+          - primary_indicator_per_l4
+          - aggregation_declared
+          - workbook_current:artifacts/s1/factor-tree.xlsx:artifacts/s1/factor-tree.yaml
+          - amended_workbook_archived
+          - grounding_within_allowlist
+          - signed_off:factor-tree/amend
+        gate:
+          kind: approval
+          question: 访谈提出了这些因子改动，采纳进因子树吗？
+          evidence: artifacts/s1/factor-tree.xlsx
+          rework: interview/digest
+
+  # 访谈是能力式的，不是流程式的：五个步骤对应五个能力，人可以只用其中任何一个。
+  # 交付物级的依赖仍然成立——因子树没确认之前整个交付物 locked，因为数据题是从树上
+  # 逐行派生的，提案也是对着树提的。解锁之后，步骤之间只剩真实的数据依赖：
+  #   outline ─> pre-answer（可选旁支）
+  #   minutes ─┬─> digest ─> factor-tree/amend
+  #            └─> insights（可选旁支）
+  # minutes 曾经依赖 pre-answer，那是顺序不是依赖：一份逐字稿不需要先有预答才能整理。
+  - id: interview
+    name: 访谈
+    stage: s1
+    skill: interview
+    summary: 因子树里客户才知道答案的部分——提纲、先答一版、访谈纪要、因子改动建议、洞察与关键假设。
+    template: skills/interview/templates/
+    requires: [project-profile, factor-tree]
+    steps:
+      - id: outline
+        name: 起草访谈提纲
+        klass: A
+        depends_on: [factor-tree/confirm]
+        produces:
+          - "artifacts/s1/interview/outline.md"
+          - "artifacts/s1/interview/outline.docx"
+        computed_by:
+          "artifacts/s1/interview/outline.docx": report.interview-outline
+        reads:
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s1/knowledge-package.md"
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s1/materials-index.md"
+          - "inputs/org-structure/**"
+          # 出题前要读的两份知识文件。它们一直是必读的，却不在这份白名单里——
+          # 如实申报就取材越界，想通过就只能不申报，而不申报正是 conventions §7 禁止的。
+          - "knowledge/methodology/interview-framework.yaml"
+          - "knowledge/industry/**"
+        verify:
+          - frontmatter_valid:artifacts/s1/interview/outline.md
+          - grounding_within_allowlist
+          - every_question_tagged
+          - data_questions_complete
+          - doc_current:artifacts/s1/interview/outline.docx:artifacts/s1/interview/outline.md
+
+      - id: pre-answer
+        name: 先按现有材料答一版
+        klass: C
+        optional: true
+        depends_on: [interview/outline]
+        produces:
+          - "artifacts/s1/interview/pre-answers.md"
+          - "artifacts/s1/interview/pre-answers.docx"
+        computed_by:
+          "artifacts/s1/interview/pre-answers.docx": report.interview-pre-answers
+        reads:
+          - "artifacts/s1/interview/outline.md"
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s1/knowledge-package.md"
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s1/materials-index.md"
+          - "inputs/industry-reference/**"
+          - "knowledge/methodology/interview-framework.yaml"
+          - "knowledge/industry/**"
+          # 这套流程第二处联网取材的许可，理由与 factor-tree/derive 那处相同：
+          # 预答是给访谈者的简报，不是拿给人批的判断，所以中途取新材料不会让人
+          # 批到他没看见的东西。边界由 web_grounding_scoped 管住——只有业务题
+          # 能联网，数据题不能：「这个指标在哪个系统」网上没有答案，搜到的一定是编的。
+          - "web:*"
+        verify:
+          - frontmatter_valid:artifacts/s1/interview/pre-answers.md
+          - grounding_within_allowlist
+          - every_question_pre_answered
+          - web_grounding_scoped
+          - doc_current:artifacts/s1/interview/pre-answers.docx:artifacts/s1/interview/pre-answers.md
+
+      - id: minutes
+        name: 整理访谈纪要
+        klass: H
+        depends_on: [factor-tree/confirm]
+        produces:
+          - "artifacts/s1/interview/minutes-*.md"
+          - "artifacts/s1/interview/minutes-*.docx"
+        computed_by:
+          "artifacts/s1/interview/minutes-*.docx": report.interview-minutes
+        reads:
+          - "inputs/interview-minutes/**"
+          - "artifacts/s1/interview/outline.md"
+        verify:
+          - files_exist:inputs/interview-minutes
+          - artifact_exists:artifacts/s1/interview/minutes-*.md
+          - frontmatter_valid:artifacts/s1/interview/minutes-*.md
+          - grounding_within_allowlist
+          - minutes_declare_gaps
+          - minutes_cover_outline
+          - doc_current:artifacts/s1/interview/minutes-*.docx:artifacts/s1/interview/minutes-*.md
+        gate:
+          kind: intake
+          question: 访谈纪要或转录到位了吗？
+          evidence: inputs/interview-minutes
+
+      - id: digest
+        name: 消化纪要，产出因子改动建议
+        klass: C
+        depends_on: [interview/minutes]
+        produces:
+          - "artifacts/s1/interview/proposals-*.yaml"
+        reads:
+          - "artifacts/s1/interview/minutes-*.md"
+          - "artifacts/s1/interview/outline.md"
+          - "artifacts/s1/interview/pre-answers.md"
+          - "artifacts/s1/factor-tree.yaml"
+        verify:
+          - artifact_exists:artifacts/s1/interview/proposals-*.yaml
+          - frontmatter_valid:artifacts/s1/interview/proposals-*.yaml
+          - grounding_within_allowlist
+          - proposals_have_evidence
+
+      - id: insights
+        name: 从纪要里提洞察与关键假设
+        klass: C
+        optional: true
+        depends_on: [interview/minutes]
+        produces:
+          - "artifacts/s1/interview/insights.yaml"
+          - "artifacts/s1/interview/assumptions.yaml"
+          - "artifacts/s1/interview/insights.docx"
+        computed_by:
+          "artifacts/s1/interview/insights.docx": report.interview-insights
+        reads:
+          - "artifacts/s1/interview/minutes-*.md"
+          - "artifacts/s1/interview/outline.md"
+          - "artifacts/s1/interview/pre-answers.md"
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s1/project-profile.yaml"
+        verify:
+          - frontmatter_valid:artifacts/s1/interview/insights.yaml
+          - frontmatter_valid:artifacts/s1/interview/assumptions.yaml
+          - grounding_within_allowlist
+          - insights_actionable
+          - assumptions_answerable
+          - doc_current:artifacts/s1/interview/insights.docx:artifacts/s1/interview/insights.yaml
+
+  - id: data-request
+    name: 数据需求与验收
+    stage: s1
+    skill: data-request
+    summary: 因子树要什么数据——每个 L3 一个工作簿、每个 L4 一个表，列是颗粒度加指标，客户签收后收数开始。
+    template: skills/data-request/templates/coverage.md
+    requires: [factor-tree]
+    steps:
+      - id: build
+        name: 生成数据需求包
+        klass: A
+        depends_on: [factor-tree/amend]
+        produces:
+          - "artifacts/s1/data-request/*.xlsx"
+          - "artifacts/s1/data-request/coverage.md"
+        computed_by:
+          "artifacts/s1/data-request/*.xlsx": workbook.data-request
+        reads:
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s1/project-profile.yaml"
+        verify:
+          - workbooks_exist
+          - computed_by_tool:artifacts/s1/data-request/*.xlsx
+          - frontmatter_valid:artifacts/s1/data-request/coverage.md
+          - grounding_within_allowlist
+          - coverage_complete
+
+      - id: signoff
+        name: 客户签收数据需求
+        klass: H
+        depends_on: [data-request/build]
+        reads:
+          - "artifacts/s1/data-request/coverage.md"
+          - "artifacts/s1/factor-tree.yaml"
+        verify:
+          - coverage_complete
+          - signed_off:data-request/signoff
+        gate:
+          kind: signoff
+          question: 客户签收了数据需求吗——字段、颗粒度、对接人都确认过？
+          evidence: artifacts/s1/data-request/coverage.md
+          rework: data-request/build
+        closes_stage: true
+
+  # ══ 数据 ═══════════════════════════════════════════════════════════
+  #
+  # 这一段的每一份产出都是数字，而数字不能由模型写出。两族判定式承担这件事：
+  #   computed_by_tool:<路径>              产物必须对得上一次真实的工具运行
+  #   view_derived_from:<文档>:<产物>       文档必须声明它读的是哪份产物
+  # 依据 shared/numbers-provenance.md。业务理解阶段的产出是论证，可以不要；
+  # 这一段的产出是数字，模型写的数字不算数。
+
+  - id: published-dataset
+    name: 发布数据集
+    stage: s2
+    skill: data-engine
+    summary: 客户发来一堆表格，模型要的是一张规定形状的长表——先声明形状，再清洗、核对、发布。
+    template: skills/data-engine/templates/
+    requires: [data-request]
+    steps:
+      - id: schema
+        name: 声明目标表结构与取值范围
+        klass: H
+        depends_on: [data-request/signoff]
+        produces: ["metadata/schema/target-schema.yaml"]
+        reads: ["metadata/schema/**", "artifacts/s1/project-profile.yaml"]
+        verify:
+          - schema_declared
+          - grain_matches_profile
+          - grounding_within_allowlist
+          - signed_off:published-dataset/schema
+        gate:
+          kind: approval
+          question: >
+            数据必须落成的形状就是这个吗？先声明它，后面每一道检查才是机械的——
+            看过数据之后才写的结构，对这批数据什么也证明不了。
+          evidence: metadata/schema/target-schema.yaml
+          rework: published-dataset/schema
+
+      - id: intake
+        name: 提供客户交付的数据
+        klass: H
+        depends_on: [published-dataset/schema]
+        reads: ["inputs/data/**"]
+        verify:
+          - files_exist:inputs/data
+        gate:
+          kind: intake
+          question: 客户按数据需求交付的数据到位了吗？
+          evidence: inputs/data
+
+      - id: clean
+        name: 把每一批交付清洗到目标结构
+        klass: C
+        depends_on: [published-dataset/intake]
+        produces:
+          - "data/raw/*/profile.json"
+          - "data/clean/*/result.parquet"
+          - "data/clean/*/conformance.json"
+          - "data/clean/*/reconcile.json"
+        computed_by:
+          "data/raw/*/profile.json": data.profile
+          "data/clean/*/result.parquet": data.clean
+          "data/clean/*/conformance.json": data.conform
+          "data/clean/*/reconcile.json": data.reconcile
+        reads:
+          - "data/raw/*/profile.json"
+          - "metadata/schema/**"
+          - "artifacts/s1/factor-tree.yaml"
+          - "metadata/granularity.yaml"
+        verify:
+          - computed_by_tool:data/clean/*/result.parquet
+          - conformance_ok
+          - reconciles_with_raw
+          - enum_proposals_resolved
+          - grounding_within_allowlist
+
+      - id: publish
+        name: 发布为项目的建模长表
+        klass: H
+        depends_on: [published-dataset/clean]
+        produces: ["data/published/long.parquet", "data/published/coverage.yaml"]
+        computed_by:
+          "data/published/long.parquet": data.publish
+          "data/published/coverage.yaml": data.claim
+        reads:
+          - "data/clean/*/conformance.json"
+          - "data/published/manifest.yaml"
+          - "artifacts/s1/project-profile.yaml"
+        verify:
+          - computed_by_tool:data/published/long.parquet
+          - long_table_present
+          - window_matches_profile
+          - response_present
+          - coverage_claimed
+          - signed_off:published-dataset/publish
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            把这份数据发布为项目的建模表？后面每一层都在它上面打分，
+            这里多出来的指标就是因子树从没要过的东西。
+          evidence: data/published/manifest.yaml
+          rework: published-dataset/clean
+
+  - id: factor-map
+    name: 因子映射
+    stage: s2
+    skill: factor-map
+    summary: 因子树说要什么指标，数据里来的是另一套叫法——两边配上对，配不上的要么标明没有数据，要么明确不做。
+    template: skills/factor-map/templates/factor-map.yaml
+    requires: [published-dataset, factor-tree]
+    steps:
+      - id: map
+        name: 把因子树与已发布数据配对
+        klass: C
+        depends_on: [published-dataset/publish]
+        produces: ["artifacts/s2/factor-map.yaml", "artifacts/s2/data-intake.md"]
+        reads:
+          - "data/published/coverage.yaml"
+          - "artifacts/s1/factor-tree.yaml"
+          - "data/published/manifest.yaml"
+        verify:
+          - frontmatter_valid:artifacts/s2/factor-map.yaml
+          - factor_map_resolved
+          - grounding_within_allowlist
+
+      - id: confirm
+        name: 确认映射
+        klass: H
+        depends_on: [factor-map/map]
+        produces: ["artifacts/s2/ledger.md"]
+        computed_by:
+          "data/derived/selection.json": ledger.derive
+        reads: ["artifacts/s2/factor-map.yaml", "data/derived/selection.json"]
+        verify:
+          - factor_map_resolved
+          - view_derived_from:artifacts/s2/ledger.md:data/derived/selection.json
+          - signed_off:factor-map/confirm
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            每个在用的因子，要么有数据供给，要么明确不做——都对上了吗？
+            这里标"不做"会被后面每一层继承，不是一句备注。
+          evidence: artifacts/s2/factor-map.yaml
+          rework: factor-map/map
+
+  - id: data-quality
+    name: 数据质量评分
+    stage: s2
+    skill: data-quality
+    summary: 因子树上每个指标按一致性、准确性、完整性、颗粒度打分——能用的留下，边缘的人来定，不能用的弃用并预警，一条数据都没到的单列出来。
+    template: skills/data-quality/templates/quality-scorecard.yaml
+    requires: [factor-map]
+    steps:
+      - id: score
+        name: 按四个维度给指标打分
+        klass: A
+        depends_on: [factor-map/confirm]
+        produces: ["artifacts/s2/quality-scorecard.yaml"]
+        computed_by:
+          "data/derived/quality-consistency.json": quality.consistency
+          "data/derived/quality-accuracy.json": quality.accuracy
+          "data/derived/quality-completeness.json": quality.completeness
+          "data/derived/quality-granularity.json": quality.granularity
+          "data/derived/quality-evidence.json": quality.scorecard
+        reads:
+          - "data/derived/quality-evidence.json"
+          - "data/derived/quality-consistency.json"
+          - "data/derived/quality-accuracy.json"
+          - "data/derived/quality-completeness.json"
+          - "data/derived/quality-granularity.json"
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s2/factor-map.yaml"
+          - "metadata/reference-totals.yaml"
+          - "knowledge/methodology/validation-scoring.json"
+        verify:
+          - computed_by_tool:data/derived/quality-consistency.json
+          - computed_by_tool:data/derived/quality-accuracy.json
+          - computed_by_tool:data/derived/quality-completeness.json
+          - computed_by_tool:data/derived/quality-granularity.json
+          - computed_by_tool:data/derived/quality-evidence.json
+          - frontmatter_valid:artifacts/s2/quality-scorecard.yaml
+          - scorecard_matches_payload:artifacts/s2/quality-scorecard.yaml:data/derived/quality-evidence.json
+          - layer_inherits_drops:quality
+          - grounding_within_allowlist
+
+      - id: review
+        name: 处置边缘分值与弃用项
+        klass: H
+        depends_on: [data-quality/score]
+        produces: ["artifacts/s2/quality-scorecard.xlsx"]
+        reads: ["artifacts/s2/quality-scorecard.yaml"]
+        verify:
+          - no_undecided_scorecard:artifacts/s2/quality-scorecard.yaml
+          - workbook_current:artifacts/s2/quality-scorecard.xlsx:artifacts/s2/quality-scorecard.yaml
+          - signed_off:data-quality/review
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            哪些指标可用？这里标弃用的，会被业务校验、统计检验、OLS 预验证和模型输入
+            一路继承——不再重新打分，也永远进不了模型。标「没有数据」的那些不是被判死，
+            是还没到，要回数据需求追交付。
+          evidence: artifacts/s2/quality-scorecard.xlsx
+          rework: data-quality/score
+
+  - id: business-validation
+    name: 业务校验与签核
+    stage: s2
+    skill: business-validation
+    summary: 一个因子路径一张卡，销量作底、驱动叠加，客户当场换维度看——异常逐条定案，他否掉的后面每一层都不再用。
+    template: skills/business-validation/templates/
+    requires: [data-quality]
+    steps:
+      - id: page
+        name: 一个因子路径一张卡，把驱动画在销量上
+        klass: C
+        depends_on: [data-quality/review]
+        produces:
+          - "artifacts/s2/chart-analyses.yaml"
+          - "artifacts/s2/business-validation.md"
+          - "artifacts/s2/chart-book.html"
+        computed_by:
+          "data/derived/validation-panel.json": validation.panel
+          "data/derived/validation-facts.json": validation.facts
+          "data/derived/chart-analyses.json": validation.analyses
+          "artifacts/s2/chart-book.html": charts.book
+          "artifacts/s2/business-validation.md": charts.book
+        reads:
+          - "data/derived/validation-panel.json"
+          - "data/derived/validation-facts.json"
+          - "data/derived/chart-analyses.json"
+          - "artifacts/s1/factor-tree.yaml"
+          - "data/published/coverage.yaml"
+          - "artifacts/s2/quality-scorecard.yaml"
+          - "inputs/interview-minutes/**"
+        verify:
+          - computed_by_tool:data/derived/validation-panel.json
+          - computed_by_tool:data/derived/validation-facts.json
+          - computed_by_tool:data/derived/chart-analyses.json
+          - computed_by_tool:artifacts/s2/chart-book.html
+          - computed_by_tool:artifacts/s2/business-validation.md
+          - fold_selfcheck:artifacts/s2/chart-book.html
+          - chart_analyses_bind
+          - grounding_within_allowlist
+
+      - id: anomalies
+        name: 逐条解释异常，并定下它在模型里怎么处理
+        klass: C
+        depends_on: [business-validation/page]
+        produces: ["artifacts/s2/anomalies.yaml"]
+        computed_by:
+          "data/derived/anomalies.json": validation.anomalies
+        reads:
+          - "data/derived/anomalies.json"
+          - "data/derived/validation-panel.json"
+          - "data/derived/validation-facts.json"
+          - "inputs/interview-minutes/**"
+          - "inputs/industry-reference/**"
+        verify:
+          - computed_by_tool:data/derived/anomalies.json
+          - frontmatter_valid:artifacts/s2/anomalies.yaml
+          - every_anomaly_ruled
+          - anomaly_cards_bind
+          - grounding_within_allowlist
+
+      - id: signoff
+        name: 客户过目，把他否掉的记下来
+        klass: H
+        depends_on: [business-validation/anomalies]
+        produces: ["artifacts/s2/signoffs.yaml"]
+        reads:
+          - "artifacts/s2/business-validation.md"
+          - "artifacts/s2/anomalies.yaml"
+          - "artifacts/s2/chart-book.html"
+          - "data/derived/validation-panel.json"
+          - "data/derived/validation-facts.json"
+        verify:
+          - signoff_denials_explicit
+          - signed_off:business-validation/signoff
+          - grounding_within_allowlist
+        gate:
+          kind: signoff
+          question: >
+            客户能从这些曲线里认出自己的生意吗？这一关只记他明确否掉的指标——
+            否掉的，统计检验、OLS 预验证、模型输入都不再用，中途任何一步不得复活；
+            他没提的，按认可算。
+          evidence: artifacts/s2/signoffs.yaml
+          rework: business-validation/page
+
+  - id: stat-screening
+    name: 统计检验
+    stage: s2
+    skill: stat-screening
+    summary: 变异度、相关性、共线性三项打分——总分是三项相乘，一项不合格就归零。
+    template: skills/stat-screening/templates/stat-scorecard.yaml
+    requires: [business-validation]
+    steps:
+      - id: score
+        name: 按波动性、相关性、共线性筛查
+        klass: A
+        depends_on: [business-validation/signoff]
+        produces: ["artifacts/s2/stat-scorecard.yaml"]
+        computed_by:
+          "data/derived/stat-volatility.json": stat.cv
+          "data/derived/stat-correlation.json": stat.pearson
+          "data/derived/stat-collinearity.json": stat.vif
+          "data/derived/stat-panel.json": stat.scorecard
+        reads:
+          - "data/derived/stat-panel.json"
+          - "data/derived/stat-volatility.json"
+          - "data/derived/stat-correlation.json"
+          - "data/derived/stat-collinearity.json"
+          - "artifacts/s1/factor-tree.yaml"
+          - "artifacts/s2/ledger.md"
+          - "knowledge/methodology/statistical-scoring.json"
+          # 访谈问出来的关键假设（滞后、衰减长度、渠道重叠这些）在这里第一次派上用场：
+          # 一个统计上被判掉的因子，如果客户明说过它有三周滞后，判掉的可能是口径不是因子。
+          - "artifacts/s1/interview/assumptions.yaml"
+        verify:
+          - computed_by_tool:data/derived/stat-volatility.json
+          - computed_by_tool:data/derived/stat-correlation.json
+          - computed_by_tool:data/derived/stat-collinearity.json
+          - computed_by_tool:data/derived/stat-panel.json
+          - frontmatter_valid:artifacts/s2/stat-scorecard.yaml
+          - scorecard_matches_payload:artifacts/s2/stat-scorecard.yaml:data/derived/stat-panel.json
+          - layer_inherits_drops:statistical
+          - grounding_within_allowlist
+
+      - id: review
+        name: 定下哪些指标进模型
+        klass: H
+        depends_on: [stat-screening/score]
+        produces: ["artifacts/s2/stat-scorecard.xlsx"]
+        reads: ["artifacts/s2/stat-scorecard.yaml"]
+        verify:
+          - no_undecided_scorecard:artifacts/s2/stat-scorecard.yaml
+          - workbook_current:artifacts/s2/stat-scorecard.xlsx:artifacts/s2/stat-scorecard.yaml
+          - signed_off:stat-screening/review
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            总分是三项检验相乘，任何一项不合格总分就是零；总分 0.5 以下需要你确认。
+            哪些指标留下来？共线性高的要成组定，不要逐行砍。
+          evidence: artifacts/s2/stat-scorecard.xlsx
+          rework: stat-screening/score
+
+  - id: ols-test
+    name: OLS 预验证
+    stage: s2
+    skill: ols-test
+    summary: 正式建模前先用最简单的模型跑一遍——贡献度和投资回报落在常识范围内吗，不对就回头查数据。
+    template: skills/ols-test/templates/ols-scorecard.yaml
+    requires: [stat-screening]
+    steps:
+      - id: plan
+        name: 定这次用哪些数据、切成几个模型
+        klass: H
+        depends_on: [stat-screening/review]
+        produces: ["artifacts/s2/ols-plan.yaml"]
+        computed_by:
+          "artifacts/s2/ols-plan.yaml": ols.plan
+        reads:
+          - "artifacts/s2/ols-plan.yaml"
+          - "artifacts/s1/project-profile.yaml"
+          - "artifacts/s2/stat-scorecard.yaml"
+          # 可行性是从已发布的长表上量出来的：每个格子有多少个月、
+          # 看得见几个存活驱动、响应占多大比例，只有这张表答得了。
+          - "data/published/long.parquet"
+        verify:
+          - plan_scheme_chosen
+          - plan_feasibility_disclosed
+          - excluded_periods_justified
+          - signed_off:ols-test/plan
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            这次建模用哪些数据、切成几个模型。切得越细，每个模型能识别的驱动越少；
+            切得越粗，不同产品的系数会被平均成一个数。每种切法要按住几个变量都算给你看了。
+            选定之后参数与拟合都跟着它走。
+          evidence: artifacts/s2/ols-plan.yaml
+          rework: stat-screening/review
+
+      - id: params
+        name: 定变换与控制项参数
+        klass: H
+        depends_on: [ols-test/plan]
+        produces: ["artifacts/s2/ols-config.yaml"]
+        computed_by:
+          "artifacts/s2/ols-config.yaml": ols.propose
+        reads:
+          - "artifacts/s2/ols-config.yaml"
+          - "artifacts/s2/ols-plan.yaml"
+          - "data/derived/stat-panel.json"
+        verify:
+          - params_confirmed
+          - locked_params_untouched
+          - price_declared_when_volume
+          - signed_off:ols-test/params
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            这些参数决定每个渠道的钱多久见效、投多了会不会边际递减、
+            以及有多少销量算在"本来就会发生"的基线里。默认值可以直接用；
+            改了哪个，交付里会写明是你定的。判据那几条是固定的，列出来给你看，但不开放。
+          evidence: artifacts/s2/ols-config.yaml
+          rework: ols-test/plan
+
+      - id: fit
+        name: 按选定的方案各拟合一个模型
+        klass: M
+        depends_on: [ols-test/params]
+        produces: ["artifacts/s2/ols-test.md"]
+        computed_by:
+          "data/derived/ols-fit.json": ols.fit
+          "data/derived/selection.json": ledger.derive
+        reads:
+          - "data/derived/ols-fit.json"
+          - "artifacts/s2/ols-plan.yaml"
+          - "artifacts/s2/ols-config.yaml"
+          - "data/derived/stat-panel.json"
+          - "artifacts/s2/stat-scorecard.yaml"
+          - "knowledge/industry/**"
+          # 客户在访谈里说过的建模假设。系数方向与先验区间的判读要看它——
+          # 一个符号"不对"的因子，如果客户说过这个渠道就是防守性投放，符号是对的。
+          - "artifacts/s1/interview/assumptions.yaml"
+        verify:
+          - computed_by_tool:data/derived/ols-fit.json
+          - selection_is_derived
+          - runs_are_declared
+          - adoption_reason_is_legal
+          - fit_matches_selection
+          - drivers_within_df_limit
+          - no_collinear_driver_fitted
+          - view_derived_from:artifacts/s2/ols-test.md:data/derived/ols-fit.json
+          - grounding_within_allowlist
+
+      - id: review
+        name: 逐因子对照行业区间判读
+        klass: H
+        depends_on: [ols-test/fit]
+        produces: ["artifacts/s2/ols-scorecard.yaml"]
+        reads:
+          - "data/derived/ols-fit.json"
+          - "artifacts/s2/ols-scorecard.yaml"
+          - "knowledge/industry/**"
+        verify:
+          - range_verdicts_binary
+          - factor_recommendations_complete
+          - human_verdicts_preserved
+          - fit_is_fixed_point
+          - signed_off:ols-test/review
+          - grounding_within_allowlist
+        gate:
+          kind: approval
+          question: >
+            逐个因子看该不该进正式模型。建议分五档：直接入模、有条件入模、
+            保留观察、建议剔除、数据不足以判断；你的裁决只有采纳或否决两种。
+            否掉会触发重新拟合，而你的判定会被钉住，后面每次重拟合都不会覆盖它。
+          evidence: artifacts/s2/ols-scorecard.xlsx
+          rework: business-validation/page
+
+      - id: report
+        name: 出建模报告
+        klass: A
+        depends_on: [ols-test/review]
+        produces: ["artifacts/s2/ols-report.docx"]
+        reads:
+          - "artifacts/s2/ols-scorecard.yaml"
+          - "artifacts/s2/ols-plan.yaml"
+          - "artifacts/s2/ols-config.yaml"
+          - "data/derived/ols-fit.json"
+        verify:
+          - doc_current:artifacts/s2/ols-report.docx:artifacts/s2/ols-scorecard.yaml
+          - grounding_within_allowlist
+
+  - id: model-input
+    name: 模型输入
+    stage: s2
+    skill: master-data
+    summary: 一路筛下来活着的因子装配成建模用的主数据表——这是整个项目的交付终点。
+    template: skills/master-data/templates/funnel.yaml
+    requires: [ols-test]
+    steps:
+      - id: assemble
+        name: 装配主数据表
+        klass: M
+        depends_on: [ols-test/review]
+        produces:
+          - "artifacts/s2/master-data.md"
+          - "artifacts/s2/funnel.yaml"
+          - "artifacts/s2/model-input.xlsx"
+        computed_by:
+          "data/derived/master/*.csv": master.assemble
+          "artifacts/s2/funnel.yaml": master.funnel
+          "artifacts/s2/model-input.xlsx": export.xlsx
+        reads:
+          - "data/derived/selection.json"
+          - "artifacts/s2/ledger.md"
+          - "artifacts/s1/factor-tree.yaml"
+        verify:
+          - computed_by_tool:data/derived/master/*.csv
+          - master_matches_adopted
+          - national_rows_scoped
+          - view_derived_from:artifacts/s2/master-data.md:data/derived/selection.json
+          - grounding_within_allowlist
+
+      - id: lock
+        name: 锁定模型输入
+        klass: H
+        depends_on: [model-input/assemble]
+        reads: ["artifacts/s2/master-data.md", "artifacts/s2/funnel.yaml"]
+        verify:
+          - master_matches_adopted
+          - signed_off:model-input/lock
+        gate:
+          kind: approval
+          question: >
+            锁定这份模型输入。因子树当初列出的每个因子现在都有了归宿——采用、部分采用、
+            否决、不建模、或是从没拿到数据——漏斗表说清了每个是在哪一步掉队的。
+          evidence: artifacts/s2/funnel.yaml
+          rework: ols-test/fit
+        closes_stage: true
+
+  # ══ 收尾 ═══════════════════════════════════════════════════════════
+  #
+  # 唯一一份往回写的交付物。别的交付物都只写项目目录；这一份经人签核之后写插件——
+  # 知识库和 Skill 文件本身。所以它有一道签核门，而且门在落地之前：
+  # 动所有后续项目共用的东西，必须先留痕。
+
+  - id: retrospective
+    name: 复盘与沉淀
+    stage: s3
+    skill: retrospect
+    summary: 项目学到的东西汇进知识库，用户教的做法改进 Skill 本身——两个环都要人逐条拍板。
+    template: skills/retrospect/templates/retrospective.md
+    requires: [model-input]
+    steps:
+      - id: harvest
+        name: 汇总候选
+        klass: C
+        # 「项目还没到终点就不该沉淀」是这个交付物最硬的一条规矩，所以它是一条依赖，
+        # 不是一句叮嘱：中途的结论会被后面的检验推翻，而一条已经进了知识库的错结论，
+        # 之后每一个同行业项目都会把它当成行业先例读出来。
+        depends_on: [model-input/lock]
+        produces:
+          - "artifacts/s3/retrospective.md"
+        reads:
+          - "metadata/change-ledger.jsonl"
+          - "metadata/skill-feedback.jsonl"
+          - "artifacts/**"
+          - "state/decisions.log"
+          - "mmm.yaml"
+        verify:
+          - frontmatter_valid:artifacts/s3/retrospective.md
+          - grounding_within_allowlist
+
+      - id: promote
+        name: 落库与改进
+        klass: H
+        depends_on: [retrospective/harvest]
+        reads: ["artifacts/s3/retrospective.md"]
+        verify:
+          - signed_off:retrospective/promote
+        gate:
+          kind: signoff
+          question: >
+            复盘报告里每条沉淀候选、每条 Skill 改进都有裁决了吗？批准的会写进知识库、
+            会改插件里的 Skill 文件——对之后所有项目立即生效，包括别的行业的项目。
+          evidence: artifacts/s3/retrospective.md
+          rework: retrospective/harvest
+        closes_stage: true

@@ -279,7 +279,8 @@ func TestConfigRouteIsPublic(t *testing.T) {
 // ---- Auth ----
 
 func TestEmailLogin(t *testing.T) {
-	const email = "integration-email-login@enact.ai"
+	const email = "integration-email-login@deloittecn.com.cn"
+	const password = "secret123"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
@@ -302,7 +303,21 @@ func TestEmailLogin(t *testing.T) {
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	})
 
-	body, _ := json.Marshal(map[string]string{"email": email})
+	registerBody, _ := json.Marshal(map[string]string{
+		"email": email, "password": password, "name": "Integration User",
+	})
+	registerResp, err := http.Post(testServer.URL+"/auth/register", "application/json", bytes.NewReader(registerBody))
+	if err != nil {
+		t.Fatalf("register failed: %v", err)
+	}
+	if registerResp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(registerResp.Body)
+		registerResp.Body.Close()
+		t.Fatalf("register: expected 201, got %d: %s", registerResp.StatusCode, respBody)
+	}
+	registerResp.Body.Close()
+
+	body, _ := json.Marshal(map[string]string{"email": email, "password": password})
 	resp, err := http.Post(testServer.URL+"/auth/email-login", "application/json", bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("email-login failed: %v", err)
@@ -342,7 +357,7 @@ func TestEmailLogin(t *testing.T) {
 }
 
 func TestEmailLoginNewUserHasNoWorkspace(t *testing.T) {
-	const email = "new-integration-email-login@enact.ai"
+	const email = "new-integration-email-login@deloittecn.com.cn"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
@@ -351,13 +366,15 @@ func TestEmailLoginNewUserHasNoWorkspace(t *testing.T) {
 
 	testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 
-	body, _ := json.Marshal(map[string]string{"email": email})
-	resp, err := http.Post(testServer.URL+"/auth/email-login", "application/json", bytes.NewReader(body))
+	body, _ := json.Marshal(map[string]string{
+		"email": email, "password": "secret123", "name": "New Integration User",
+	})
+	resp, err := http.Post(testServer.URL+"/auth/register", "application/json", bytes.NewReader(body))
 	if err != nil {
-		t.Fatalf("email-login failed: %v", err)
+		t.Fatalf("register failed: %v", err)
 	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("email-login: expected 200, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("register: expected 201, got %d", resp.StatusCode)
 	}
 
 	var loginResp struct {

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 func newTestHandler(cfg Config) *Handler {
@@ -24,12 +24,13 @@ func TestSignupGating(t *testing.T) {
 		isNew   bool
 		wantErr bool
 	}{
-		{"allow_signup_true_new", Config{AllowSignup: true}, "a@x.com", true, false},
-		{"allow_signup_false_new", Config{AllowSignup: false}, "a@x.com", true, true},
+		{"allow_signup_true_new", Config{AllowSignup: true}, "a@deloittecn.com.cn", true, false},
+		{"allow_signup_false_new", Config{AllowSignup: false}, "a@deloittecn.com.cn", true, true},
 		{"allow_signup_false_existing", Config{AllowSignup: false}, "a@x.com", false, false},
-		{"domain_allowlist_match", Config{AllowSignup: false, AllowedEmailDomains: []string{"company.com"}}, "user@company.com", true, false},
-		{"domain_allowlist_mismatch", Config{AllowSignup: false, AllowedEmailDomains: []string{"company.com"}}, "user@other.com", true, true},
-		{"email_allowlist_match", Config{AllowSignup: false, AllowedEmails: []string{"boss@x.com"}}, "boss@x.com", true, false},
+		{"required_domain_mismatch", Config{AllowSignup: true}, "user@other.com", true, true},
+		{"domain_allowlist_match", Config{AllowSignup: false, AllowedEmailDomains: []string{"deloittecn.com.cn"}}, "user@deloittecn.com.cn", true, false},
+		{"domain_allowlist_mismatch", Config{AllowSignup: false, AllowedEmailDomains: []string{"company.com"}}, "user@deloittecn.com.cn", true, true},
+		{"email_allowlist_match", Config{AllowSignup: false, AllowedEmails: []string{"boss@deloittecn.com.cn"}}, "boss@deloittecn.com.cn", true, false},
 	}
 
 	for _, tt := range tests {
@@ -71,7 +72,7 @@ func TestFindOrCreateUserGating(t *testing.T) {
 		h := newTestHandler(cfg)
 		h.Queries = db.New(&mockDB{getUserErr: pgx.ErrNoRows})
 
-		_, isNew, err := h.findOrCreateUser(context.Background(), "new@blocked.com")
+		_, isNew, err := h.findOrCreateUser(context.Background(), "new@deloittecn.com.cn")
 		if err == nil {
 			t.Fatal("expected error for new user when signup disabled")
 		}
@@ -99,14 +100,14 @@ func TestFindOrCreateUserGating(t *testing.T) {
 	})
 
 	t.Run("whitelisted_user_allowed", func(t *testing.T) {
-		cfg := Config{AllowSignup: false, AllowedEmails: []string{"whitelisted@test.com"}}
+		cfg := Config{AllowSignup: false, AllowedEmails: []string{"whitelisted@deloittecn.com.cn"}}
 		h := newTestHandler(cfg)
 		h.Queries = db.New(&mockDB{getUserErr: pgx.ErrNoRows})
 
 		// This will pass checkSignupAllowed and move to CreateUser.
 		// Our mockDB Exec returns success, but Queries.CreateUser might expect QueryRow for RETURNING id.
 		// Let's see if it works.
-		_, _, err := h.findOrCreateUser(context.Background(), "whitelisted@test.com")
+		_, _, err := h.findOrCreateUser(context.Background(), "whitelisted@deloittecn.com.cn")
 		if err != nil && strings.Contains(err.Error(), "registration is disabled") {
 			t.Fatalf("expected whitelisted user to pass signup check, but got %v", err)
 		}

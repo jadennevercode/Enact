@@ -1,0 +1,37 @@
+# tools/catalog/master.assemble.yaml
+id: master.assemble
+kind: assemble
+purpose: 用一路筛下来还活着的指标，为每个模型对象装配出一张建模用的特征表。
+when: |
+  模型输入 · 「装配主数据表」的主计算。
+  export.xlsx 把同一批表导成工作簿，master.funnel 交代每个因子的归宿。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --object
+    required: false
+    what: 只装配这一个模型对象；不给就每个对象都装配一张
+output:
+  path: data/derived/master/<模型对象>.csv（一个模型对象一份）
+  shape: |
+    宽表，一行一个期间，一列一个采用的指标：
+      第一列   Period    期间标签，例如 2024-01
+      其后各列 <指标名>  该期间该指标的值，保留四位；缺值留空
+      响应列排在最前——它是模型输入的一部分，不是一份因子清单
+    这个工具不写单独的结果文件，写出的每份 CSV 各自留一条运行记录。
+stdout: |
+  电商                 36 period(s) × 11 column(s)
+  现代渠道             36 period(s) ×  9 column(s)
+
+  3 adopted indicator(s) role(s): 1 response · 18 driver
+example: ~/.local/bin/mmm tool master.assemble --workspace <工作区>
+notes: |
+  「哪些指标被采用了」只有这一个答案。粒度参考、数据站、导出和收口曾经各答各的，
+  同一个案子上答出过 7、5、8 三个数。
+  两条容易丢、丢了代价很大的性质：
+    响应是模型输入的一部分。没有任何一层对响应下判定——驱动是用来解释它的——
+    所以它在归宿账里没有行，凡是按归宿账过滤的界面都会悄悄把它删掉，
+    导出的模型输入就少了被解释的那一列。
+    全国口径的行跟着留下它的那个模型走。拿所有对象排除项的并集去筛一条没有渠道的行，
+    看起来是稳妥方向，其实不是：曾经一个渠道用一个贡献度 43% 的驱动拟合得好好的，
+    主数据表却因为另外两个渠道否掉了它而把它删了。
+  一条指标都没活到这里时判失败——那是一条发现，不是一次空通过。

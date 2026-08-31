@@ -1,0 +1,52 @@
+# 访谈洞察 —— 照这份填，不要自创结构。
+# 产出到 artifacts/s1/interview/insights.yaml。写法见 ../references/insights.md。
+#
+# 只有两类洞察：gap（覆盖链上的断点）与 conflict（已确认的结论之间打架）。
+# 关联与联想那两类需要跨项目的语料和向量检索，这套 runtime 一次只看一个目录，不做。
+#
+# 三条约束是一起生效的，缺一条这份文件就退化成一堆读起来很全面、但谁也不会去动的观察：
+#   1. 每条至少两个证据锚点 —— 一个锚点是轶事，不是发现
+#   2. 每条必须带可执行建议 —— 没有建议的观察是噪音，而噪音会把真要动的那几条淹掉
+#   3. 忽略掉的要写理由 —— "看过了，决定不管"和"没看见"是两件事
+meta:
+  step: interview/insights               # 固定值，不要改
+  skill: interview
+  generated: ""                          # 生成时间，带时区
+  grounding:
+    - { path: "artifacts/s1/interview/minutes-<来源>.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/interview/outline.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+  counts: { insights: 0, gap: 0, conflict: 0, ignored: 0 }
+  note: ""                               # insights 为空时必填：这几份纪要覆盖了什么、
+                                         # 为什么既没有缺口也没有矛盾
+
+insights:
+  - id: i-001
+    kind: gap                            # gap 覆盖链断点 | conflict 已确认结论打架
+    title: ""                            # 一句话，说的是发现本身，不是你的感想
+    finding: ""                          # 断在哪 / 谁和谁矛盾，写具体到能被反驳的程度
+    anchors:                             # ≥2 条。每条 = 出处 + 那里到底说了什么
+      - ""                               # 例：'minutes-执行层-媒介 §5：「直播的花费在代理那边，我们这儿只有曝光」'
+      - ""                               # 例：'artifacts/s1/factor-tree.yaml f-0041：indicator 是「直播投放花费」'
+    recommendation: ""                   # 一句能执行的话：谁、做什么、什么时候
+    affects: ""                          # 它落在哪个交付物或哪一行上，例："f-0041" / "data-request"
+    ignored: false                       # 人看过并决定不处理时改成 true
+    ignoredReason: ""                    # ignored 为 true 时必填
+
+# 一条洞察都没有时，写成这样，并把 meta.note 写满：
+#
+# meta:
+#   counts: { insights: 0, gap: 0, conflict: 0, ignored: 0 }
+#   note: "这三场访谈覆盖了 Q14–Q42，因子树上每一行都能指到人，客户已确认的口径之间没有互相打架的。"
+# insights: []
+#
+# 什么算 gap：
+#   提纲上的一类问题从头到尾没人能答 —— 那一段业务没有主人
+#   某个 L4 的指标客户明说拿不到，而它下游还在被数据需求请求
+#   某个渠道在纪要里反复出现，因子树上一行都没有
+#
+# 什么算 conflict：
+#   两个团队对同一个口径给了不同说法（收数时一定会炸的地方）
+#   客户签过字的结论和后来访谈里说的对不上
+#   材料里写的和受访人说的不一致

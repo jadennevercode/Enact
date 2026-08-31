@@ -1,0 +1,12 @@
+# OPEN by default: the brands in a dataset are discovered, not declared in advance,
+# and a competitor appearing for the first time is data rather than an error.
+#
+# Close it once the roster is known. An open enum reports unfamiliar values for
+# review; a closed one blocks publish on them.
+#
+# Note a brand with drivers but no response is MARKET CONTEXT — its rows are shared
+# into every product's model in that channel, because competitor spend drives all of
+# them and belongs to none.
+column: brand
+closed: false
+values: []

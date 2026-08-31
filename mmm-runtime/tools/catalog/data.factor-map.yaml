@@ -1,0 +1,61 @@
+# tools/catalog/data.factor-map.yaml
+id: data.factor-map
+kind: data
+purpose: 把因子树的每一行判成三种状态之一——有数据供给、明确不做、还没定。
+when: |
+  因子映射 · 「把因子树与已发布数据配对」，产出供人逐条裁决的那张表。
+  裁决完之后由「确认映射」收口。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: artifacts/s2/factor-map.yaml
+  shape: |
+    meta                 说明这份产物是谁在哪一步生成的：
+      step · skill · generated（生成时间）
+      grounding[]        它读过的文件清单，每项 {path, chars: 0, truncated: false}
+      knowledgeRecall    用了哪个行业知识包；没有就是 "none"
+    summary              一眼看规模：
+      total · mapped · ignored · pending
+      complete           total>0 且 pending==0
+      orphans            已发布但没有因子行认领的指标数
+      suggested          至少有一个候选的待定行数
+    rows[]               因子树的每一行一项：
+      id                 因子行编号
+      l1 · l2 · l3 · l4  因子层级
+      indicator          这一行要的指标
+      status             mapped 有数据供给 / ignored 明确不做 / pending 还没定
+      metricType         Y / X / excluded，由目标表结构决定，这里只报不改
+      aggregation        sum / average，同上
+      suppliedBy[]       供给它的每一条数据，每项：
+        coverageId · assetId · assetName · metric
+        coverageStart · coverageEnd · rows · boundBy（human 人钉的 / auto 自动匹配的）
+                         一行可以有多条；一个指标只能出现在一行里
+      candidates[]       只有待定行才有：分数 >= 0.30 的前 5 个候选，每项：
+        coverageId · metric · assetName · unit · coverageStart · coverageEnd
+        score          0.45×名称 + 0.35×路径 + 0.12×单位 + 0.08×覆盖
+        parts          上面四项各自的得分
+        reason         一句话解释；措辞按分数分档，档位不改分数
+      ignoreNote         判成不做时的理由；重新生成时会从上一版原样搬过来
+      decidedBy          是谁定的，从上一版搬过来
+    orphans[]            已发布但没有因子行认领的指标，只列不裁：
+      coverageId · metric · assetName · l1 · l4 · rows · note
+    ignores              {因子行编号: 不做的理由}，只收 status 为 ignored 且写了理由的行
+stdout: |
+  46 factor row(s): 31 mapped · 8 ignored · 7 pending
+
+  needing a decision — supplied by nothing, not yet ignored:
+      竞品促销                    竞品折扣率
+example: ~/.local/bin/mmm tool data.factor-map --workspace <工作区>
+notes: |
+  两边是通过因子桥按编号配对的，不是按名字——因子树说的是 (l4, indicator)，
+  数据说的是 (l4, metric)。早先按名字配对时，人已经排除掉的 123 行因子匹配到零个数据键，
+  于是「继承上游排除」这道过滤器一次都没生效，被否掉的因子照样被打分、筛查、拟合。
+  判成「不做」会被后面每一层继承，是一条决定不是一句备注，所以人写的理由会跨重算保留。
+  因子树是空的或不存在时判失败。
+  suppliedBy 此前恒为空数组——工具读的属性名是 sources，而实际的字段叫 coverages，
+  于是每一个「有数据」的行都说不出是被什么供给的，人没法复核。
+  候选的分数是算出来的，不是模型挑的：同样的输入永远给同样的排序，
+  低于 0.30 的根本不呈现（一个 0.2 分的建议消耗的注意力比它值的多），
+  最多 5 个。只有那句 reason 可以由模型改写，分数与匹配本身永不经过模型。
+  ⚠️ 这个工具写的是 artifacts/ 下的产物，而流程定义里「把因子树与已发布数据配对」
+  是认知判断步骤、没有声明 computed_by，也就是说这份文件的所有权在流程定义里没写清。

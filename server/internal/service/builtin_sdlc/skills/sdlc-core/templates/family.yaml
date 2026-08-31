@@ -1,0 +1,87 @@
+# FamilySpec —— 一类工作的阶段序列与交接约定。
+# 放在 .sdlc/family.yaml。不存在时 wi_status.py 回退到内置的 AI-native delivery 序列，
+# 所以现有项目不需要建这个文件；只有要改阶段序列、或声明第二个 Family 时才需要。
+#
+# 编辑权限：orchestrator 环节拥有本文件。改它等于改整条交付链的形状——
+# 走 sdlc-learn 的 Lesson 流程，不要就地改。
+
+family: ai-native-delivery
+description: 软件交付：从请求到可评审契约、受控实施、独立验证、发布与学习
+
+# ---------------------------------------------------------------------------
+# stages：状态 → 下一步该找谁。
+# `status` 必须是 state-machine.md 里的合法状态；顺序即阶段序列。
+# 终态（Completed / Held / Cancelled）不用写，脚本会补。
+# ---------------------------------------------------------------------------
+stages:
+  - status: Proposed
+    stage: Intake / Enact
+    next_skill: sdlc-explore
+    next_action: 澄清需求与边界
+    exit_artifact: work-item.yaml
+    gate: null
+
+  - status: Exploring
+    stage: Explore
+    next_skill: sdlc-contract
+    next_action: 把探索结论固化为 Execution Contract
+    exit_artifact: exploration.md
+    gate: null                      # 自检清单，非正式 Gate
+
+  - status: Contracted
+    stage: Design & Contract
+    next_skill: sdlc-build
+    next_action: 声明变更范围并实施
+    exit_artifact: contract.yaml
+    gate: contract-approval         # 人工
+
+  - status: Planned
+    stage: Build
+    next_skill: sdlc-build
+    next_action: 开始实施
+    exit_artifact: change-scope.yaml
+    gate: null
+
+  - status: Executing
+    stage: Build
+    next_skill: sdlc-qa
+    next_action: 独立验证
+    exit_artifact: build-evidence.md
+    # 一个阶段可以挂多个 Gate，所以这里是列表。Build 有两个：
+    #   build-review    进 QA 之前的方向审查——**无条件**，quick lane 可具名降级
+    #   scope-expansion 仅在越界时触发
+    # 声明新 Family 时不要只抄一个：漏掉 build-review 会得到一条没人看过代码的交付链。
+    gate: [build-review, scope-expansion]
+
+  - status: Verifying
+    stage: QA
+    next_skill: sdlc-release
+    next_action: 组装 Evidence Case
+    exit_artifact: qa-report.md
+    gate: null                      # 覆盖自检，确定性
+
+  - status: Decision
+    stage: Release
+    next_skill: sdlc-release
+    next_action: 等待 Release 决定
+    exit_artifact: evidence-case.md
+    gate: release                   # 人工
+
+# ---------------------------------------------------------------------------
+# 不在主序列上的两个环节：它们由事件触发，不由状态推进。
+# ---------------------------------------------------------------------------
+event_driven:
+  - skill: sdlc-operate
+    triggered_by: 线上故障 / 回滚 / 用户报告异常
+    produces: incident.md
+  - skill: sdlc-learn
+    triggered_by: 复盘 / 反复出现的模式 / 任一环节标记的 Lesson 候选
+    produces: lesson.md
+    gate: lesson-approval           # 人工
+
+# ---------------------------------------------------------------------------
+# 声明第二个 Family 时改什么：stages 的 status 可以复用同一套状态机
+#（那是 Work Item 的通用生命周期），但 next_skill 与 exit_artifact 换成
+# 该领域自己的环节与产物。gate 的位置通常不变——需要人接受风险的地方
+# 在哪个领域都差不多。
+# ---------------------------------------------------------------------------

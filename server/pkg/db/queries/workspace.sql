@@ -1,7 +1,8 @@
 -- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
        w.created_at, w.updated_at, w.context, w.repos,
-       w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed
+       w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
+       w.sdlc_defaults_version
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
 WHERE m.user_id = $1
@@ -43,6 +44,47 @@ WHERE id = $1;
 INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
+
+-- name: ListWorkspacesNeedingSDLCDefaults :many
+-- Returns one stable owner and the best currently-online runtime for each
+-- workspace that has not received the current product-owned SDLC bundle.
+-- Codex is preferred because the shipped portfolio was authored and verified
+-- against Codex; another online runtime is still a usable portable fallback.
+SELECT
+    w.id AS workspace_id,
+    owner.user_id AS owner_id,
+    runtime.id AS runtime_id
+FROM workspace w
+JOIN LATERAL (
+    SELECT m.user_id
+    FROM member m
+    WHERE m.workspace_id = w.id
+    ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.id ASC
+    LIMIT 1
+) owner ON TRUE
+LEFT JOIN LATERAL (
+    SELECT ar.id
+    FROM agent_runtime ar
+    WHERE ar.workspace_id = w.id AND ar.status = 'online'
+    ORDER BY (ar.provider = 'codex') DESC,
+             ar.last_seen_at DESC NULLS LAST,
+             ar.created_at ASC,
+             ar.id ASC
+    LIMIT 1
+) runtime ON TRUE
+WHERE w.sdlc_defaults_version < $1
+ORDER BY w.created_at ASC, w.id ASC;
+
+-- name: SetWorkspaceSDLCDefaultsVersion :exec
+UPDATE workspace
+SET sdlc_defaults_version = $2,
+    updated_at = now()
+WHERE id = $1;
+
+-- name: AcquireSDLCDefaultsLock :exec
+SELECT pg_advisory_xact_lock(
+    hashtext('enact-sdlc-defaults:' || sqlc.arg('workspace_id')::uuid::text)
+);
 
 -- name: UpdateWorkspace :one
 UPDATE workspace SET

@@ -1,0 +1,38 @@
+# tools/catalog/knowledge.range.yaml
+id: knowledge.range
+kind: knowledge
+purpose: 查一个因子在本行业的投资回报与贡献度基准区间，精确匹配，绝不做模糊匹配。
+when: |
+  OLS 预验证 · 「逐因子对照行业区间判读」——需要单独核一个因子的基准从哪来时用它。
+  批量的区间比对由 ols.scorecard 一次做完，这个工具是查单条用的。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --l4
+    required: true
+    what: 要查的 L4 因子名
+  - flag: --indicator
+    required: false
+    what: 指标名。给了就先按 (l4, 指标) 精确匹配，匹配不上再退回只按 l4 匹配。
+output:
+  path: 无默认落点。要留档就自己给 --out（写成 .json 或 .yaml 都可以）。
+  shape: |
+    anchor       用的是哪个行业知识包（相对 knowledge/industry/ 的路径）；没有就是 "none"
+    l4           查询用的 L4
+    indicator    查询用的指标名
+    match        命中的那一行原样返回，没命中就是 null。行里常见的字段：
+      l4 / L4 / l4Name              因子名（手工维护的材料两种拼法都可能出现）
+      indicator / 指标 / metric      指标名
+      roiRange                      投资回报区间
+      contributionYearly            年度贡献度区间
+      contributionRange             贡献度区间
+      其余字段照材料原样带出，不做裁剪
+stdout: |
+  industry pack: fmcg/beverage
+  roi:          1.5-4.0
+  contribution: 3%-9%
+example: ~/.local/bin/mmm tool knowledge.range --workspace <工作区> --l4 电商投放 --indicator 直播花费
+notes: |
+  匹配是精确的。曾经有过按子串匹配的版本，它把「Connected TV」匹配到了「TV」，
+  凭空造出四个基准，所以这条路径现在根本不存在。
+  查不到就是查不到：没有基准意味着「这项检查没跑」，永远不等于「超出区间」。
+  这个行业压根没有基准库时它照样正常收工，明说每次查询都会返回空，并把 match 记成 null。

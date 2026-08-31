@@ -106,6 +106,88 @@ func (q *Queries) AcknowledgeExhaustedDelegatedFailureRecovery(ctx context.Conte
 	return i, err
 }
 
+const applySDLCDefaultAgent = `-- name: ApplySDLCDefaultAgent :one
+UPDATE agent
+SET system_key = $1,
+    name = $2,
+    description = $3,
+    avatar_url = $4,
+    runtime_mode = 'local',
+    runtime_id = COALESCE(runtime_id, $5),
+    visibility = 'workspace',
+    permission_mode = 'public_to',
+    max_concurrent_tasks = 1,
+    instructions = CASE
+        WHEN regexp_replace(instructions, '[[:space:]]+', '', 'g') =
+             regexp_replace($6, '[[:space:]]+', '', 'g') THEN ''
+        ELSE instructions
+    END,
+    archived_at = NULL,
+    archived_by = NULL,
+    updated_at = now()
+WHERE id = $7
+RETURNING id, workspace_id, name, avatar_url, runtime_mode, runtime_config, visibility, status, max_concurrent_tasks, owner_id, created_at, updated_at, description, runtime_id, instructions, archived_at, archived_by, custom_env, custom_args, mcp_config, model, thinking_level, composio_toolkit_allowlist, permission_mode, kind, system_key, disabled_runtime_skills, service_tier
+`
+
+type ApplySDLCDefaultAgentParams struct {
+	SystemKey          pgtype.Text `json:"system_key"`
+	Name               string      `json:"name"`
+	Description        string      `json:"description"`
+	AvatarUrl          pgtype.Text `json:"avatar_url"`
+	RuntimeID          pgtype.UUID `json:"runtime_id"`
+	LegacyInstructions string      `json:"legacy_instructions"`
+	ID                 pgtype.UUID `json:"id"`
+}
+
+// Product-owned fields converge to the manifest. Runtime choice is preserved
+// once a workspace has bound the role; only an unbound row adopts the selected
+// portable runtime. Exact legacy instructions are cleared because the same
+// text now ships as the read-only system layer; edited text remains as
+// workspace notes.
+func (q *Queries) ApplySDLCDefaultAgent(ctx context.Context, arg ApplySDLCDefaultAgentParams) (Agent, error) {
+	row := q.db.QueryRow(ctx, applySDLCDefaultAgent,
+		arg.SystemKey,
+		arg.Name,
+		arg.Description,
+		arg.AvatarUrl,
+		arg.RuntimeID,
+		arg.LegacyInstructions,
+		arg.ID,
+	)
+	var i Agent
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.AvatarUrl,
+		&i.RuntimeMode,
+		&i.RuntimeConfig,
+		&i.Visibility,
+		&i.Status,
+		&i.MaxConcurrentTasks,
+		&i.OwnerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Description,
+		&i.RuntimeID,
+		&i.Instructions,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.CustomEnv,
+		&i.CustomArgs,
+		&i.McpConfig,
+		&i.Model,
+		&i.ThinkingLevel,
+		&i.ComposioToolkitAllowlist,
+		&i.PermissionMode,
+		&i.Kind,
+		&i.SystemKey,
+		&i.DisabledRuntimeSkills,
+		&i.ServiceTier,
+	)
+	return i, err
+}
+
 const archiveAgent = `-- name: ArchiveAgent :one
 UPDATE agent SET archived_at = now(), archived_by = $2, updated_at = now()
 WHERE id = $1
@@ -293,6 +375,31 @@ func (q *Queries) ArchiveAgentsByRuntime(ctx context.Context, arg ArchiveAgentsB
 		return nil, err
 	}
 	return items, nil
+}
+
+const bindUnboundSDLCDefaultAgents = `-- name: BindUnboundSDLCDefaultAgents :execrows
+UPDATE agent
+SET runtime_id = $1,
+    runtime_mode = 'local',
+    updated_at = now()
+WHERE workspace_id = $2
+  AND system_key = ANY($3::text[])
+  AND runtime_id IS NULL
+  AND archived_at IS NULL
+`
+
+type BindUnboundSDLCDefaultAgentsParams struct {
+	RuntimeID   pgtype.UUID `json:"runtime_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	SystemKeys  []string    `json:"system_keys"`
+}
+
+func (q *Queries) BindUnboundSDLCDefaultAgents(ctx context.Context, arg BindUnboundSDLCDefaultAgentsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, bindUnboundSDLCDefaultAgents, arg.RuntimeID, arg.WorkspaceID, arg.SystemKeys)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const cancelAgentTask = `-- name: CancelAgentTask :one
@@ -3040,7 +3147,8 @@ type CreateSystemUserAgentParams struct {
 // because the system half ships with the binary and is layered in at claim
 // time, leaving this column free for the workspace's own notes.
 //
-// CONTRACT: call only while holding the per-workspace mika advisory lock. The
+// CONTRACT: call only while holding the relevant per-workspace product-agent
+// advisory lock. The
 // one-per-workspace invariant rests on a check inside that lock, not on a
 // unique index — migration 172's index keys on (workspace_id, owner_id,
 // runtime_id, system_key), so two different owners or runtimes are distinct
@@ -3733,6 +3841,72 @@ func (q *Queries) FailStaleTasks(ctx context.Context, arg FailStaleTasksParams) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const findSDLCDefaultAgentForUpdate = `-- name: FindSDLCDefaultAgentForUpdate :one
+SELECT id, workspace_id, name, avatar_url, runtime_mode, runtime_config, visibility, status, max_concurrent_tasks, owner_id, created_at, updated_at, description, runtime_id, instructions, archived_at, archived_by, custom_env, custom_args, mcp_config, model, thinking_level, composio_toolkit_allowlist, permission_mode, kind, system_key, disabled_runtime_skills, service_tier FROM agent
+WHERE workspace_id = $1
+  AND (
+      system_key = $2
+      OR (system_key IS NULL AND name IN ($3, $4))
+  )
+ORDER BY (system_key = $2) DESC,
+         (archived_at IS NULL) DESC,
+         created_at ASC,
+         id ASC
+LIMIT 1
+FOR UPDATE
+`
+
+type FindSDLCDefaultAgentForUpdateParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	SystemKey   pgtype.Text `json:"system_key"`
+	DefaultName string      `json:"default_name"`
+	LegacyName  string      `json:"legacy_name"`
+}
+
+// A deployment upgrading from the original VOMS workspace may already have
+// the legacy-named agent without a system_key. Adopt that row instead of
+// creating a duplicate; once adopted, system_key is the only identity.
+func (q *Queries) FindSDLCDefaultAgentForUpdate(ctx context.Context, arg FindSDLCDefaultAgentForUpdateParams) (Agent, error) {
+	row := q.db.QueryRow(ctx, findSDLCDefaultAgentForUpdate,
+		arg.WorkspaceID,
+		arg.SystemKey,
+		arg.DefaultName,
+		arg.LegacyName,
+	)
+	var i Agent
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.AvatarUrl,
+		&i.RuntimeMode,
+		&i.RuntimeConfig,
+		&i.Visibility,
+		&i.Status,
+		&i.MaxConcurrentTasks,
+		&i.OwnerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Description,
+		&i.RuntimeID,
+		&i.Instructions,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.CustomEnv,
+		&i.CustomArgs,
+		&i.McpConfig,
+		&i.Model,
+		&i.ThinkingLevel,
+		&i.ComposioToolkitAllowlist,
+		&i.PermissionMode,
+		&i.Kind,
+		&i.SystemKey,
+		&i.DisabledRuntimeSkills,
+		&i.ServiceTier,
+	)
+	return i, err
 }
 
 const getAgent = `-- name: GetAgent :one

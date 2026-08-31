@@ -6,13 +6,13 @@ import (
 	"strings"
 
 	"encoding/json"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/logger"
 	"github.com/enact-ai/enact/server/internal/service"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"log/slog"
 	"net/http"
 )
@@ -316,8 +316,5 @@ func (h *Handler) getOrCreateMikaSession(ctx context.Context, agent db.Agent, wo
 // prompt so the UI can show it read-only. Ordinary agents get "" — their whole
 // prompt is already in the editable Instructions field.
 func systemInstructionsFor(a db.Agent) string {
-	if a.SystemKey.String == service.MikaSystemKey {
-		return service.MikaSystemInstructions(a.Name)
-	}
-	return ""
+	return service.SystemAgentInstructions(a.SystemKey.String, a.Name)
 }

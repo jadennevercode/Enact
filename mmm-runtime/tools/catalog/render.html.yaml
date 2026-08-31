@@ -1,0 +1,47 @@
+# tools/catalog/render.html.yaml
+id: render.html
+kind: render
+purpose: 把一份算好的曲线结果渲染成一个自带一切的 HTML 页面，供人直接打开看图。
+when: |
+  把任何一份带 charts[] 结构的计算结果渲染成一页静态图。
+  **业务校验已经不用它了** —— 那份交付物改成了 apps/charts 出的可交互图册（架构 D10），
+  这张卡留着是因为这个工具本身仍然干净可用，不是因为还有人在调它。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --payload
+    required: true
+    what: 要渲染的计算结果路径（相对工作区），必须含有 charts[] 结构，例如 data/derived/validation-series.json
+  - flag: --title
+    required: false
+    what: 页面标题，默认 "Business validation"
+  - flag: --out
+    required: true
+    what: 页面写到哪里。这个工具没有默认落点，不给会判失败。
+output:
+  path: 由 --out 指定，例如 artifacts/s2/business-validation.html
+  shape: |
+    一个 HTML 文件，没有任何外部依赖——SVG 和 CSS 全部内联，
+    从本地文件系统打开、放进邮件、五年后再打开都能看。
+    页面顶部固定印着两件事，方便回查：
+      rendered from <被渲染的结果路径>
+      sha256 <该结果文件哈希的前 16 位>
+    每条曲线渲染成一个 figure：
+      figcaption   "<l4> · <指标>" 加一个画法角标
+      svg          画法由结果里的 role 决定：area 面积 / line 折线 / bar 柱状
+                   带一条基线、首中末三个横轴刻度、最高最低两个纵轴刻度
+    页面同时适配浅色和深色两种阅读环境。
+stdout: |
+  17 chart(s) rendered from data/derived/validation-series.json
+  payload sha256 3f2a1c9d8b7e6f50… stamped into the page
+
+  A view, not a document: nobody edits it, and re-rendering replaces it.
+example: >-
+  ~/.local/bin/mmm tool render.html --workspace <工作区>
+  --payload data/derived/validation-series.json
+  --out artifacts/s2/business-validation.html
+notes: |
+  渲染出来的页面是一份呈现，不是文档：没人编辑它，下一次渲染会整个替换它。
+  页面上印的哈希就是「这份页面是从哪份结果来的」的凭据，后面的检查会核对它。
+  源文件不存在、里面没有 charts[]、或者没给 --out，三种情况都判失败并说明原因。
+  按架构文档 §2.3 的归类，它其实是组装线错位成了工具，后续会迁去 App 层；
+  在那之前它仍按工具的统一契约调用。

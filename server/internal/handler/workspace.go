@@ -11,15 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/logger"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
+	"github.com/enact-ai/enact/server/internal/service"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var nonAlpha = regexp.MustCompile(`[^a-zA-Z]`)
@@ -289,6 +290,14 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	// be created before its status can be resolved. (ENA-6243)
 	if err := issuestatus.Ensure(r.Context(), qtx, ws.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to seed issue statuses: "+err.Error())
+		return
+	}
+
+	// Product-owned SDLC skills, roles, and squad are part of the workspace
+	// invariant. Keep provisioning in this transaction so a newly visible
+	// workspace is never missing part of the portable delivery system.
+	if err := service.EnsureSDLCDefaultsInTx(r.Context(), qtx, ws.ID, parseUUID(userID), pgtype.UUID{}); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to seed SDLC defaults: "+err.Error())
 		return
 	}
 

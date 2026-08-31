@@ -1,0 +1,181 @@
+# .sdlc/config.yaml —— 项目级配置。sdlc_init.py 生成，之后由人维护。
+
+# ---------------------------------------------------------------------------
+# roles：谁担哪个角色。Gate 按角色要求签署，所以这里决定了每道 Gate 能不能签下去。
+# 这不是形式：Gate 的意义是把风险接受落到具体的人身上。
+# ---------------------------------------------------------------------------
+# 角色是受控词表，五个，不能自造：
+#   业务负责人 / 架构 / 开发 / QA / 运维
+# 它问的是"需要哪一种判断"，不是"公司有哪些岗位"。
+#
+# **一个人可以担多个角色，这是常态而不是将就。** 小团队里同一个人既定业务
+# 又定架构，如实写进多个角色即可——他签一次、覆盖多个角色，记录里看得出来
+# 这几件事是同一个人拍的板。这比找不到第二个人就干脆不签要诚实得多。
+roles:
+  业务负责人: []              # 对业务结果与验收标准负责
+  架构:       []              # 对方案、变更边界、技术决定负责
+  开发:       []              # 对实现方式负责
+  QA:         []              # 对验证充分性负责
+  运维:       []              # 对发布、回退、监控负责
+
+# ---------------------------------------------------------------------------
+# phase_review：每个阶段结束时，谁来 review 它的产出。
+#
+# 前提是这套流程的基本形态：**每个阶段都由 Agent 执行，由人评审。**
+# 所以"QA 阶段由 QA 角色评审"不是自己审自己——审的是 Agent 做的验证。
+#
+# 有 Gate 的四个阶段（contract / build / release / learn），**那次签署就是这次评审**，
+# 不是两件事。改这里就等于改了对应 Gate 要谁签，两处不会各写一份漂开。
+#
+# 没有 Gate 的四个阶段（intake / explore / qa / operate），评审落成一条
+# `phase_reviewed` 证据事件：不阻塞，但要有人真的看过。缺了 sdlc_audit.py 会报。
+#
+# 改窄之前想清楚少了谁会漏什么。contract 少一个角色，就有一块内容没人认领——
+# `coverage_stats.py --phase contract` 会把它报出来。
+# ---------------------------------------------------------------------------
+phase_review:
+  intake:   [业务负责人]      # 这是不是该做的事，框对了吗
+  explore:  [业务负责人]      # 这些结论和假设成立吗
+  contract: [业务负责人, 架构, 运维]   # 合起来要盖满 contract 的全部内容块
+  build:    [开发]            # 做法方向对不对
+  qa:       [QA]              # 验得够不够
+  release:  [业务负责人, 运维]         # 面向用户的风险 + 运行时风险
+  operate:  [运维]            # 处置与根因判断对不对
+  learn:    [架构]            # 该不该固化成标准
+
+# ---------------------------------------------------------------------------
+# gates：不属于任何阶段出口的 Gate，以及权重调节。
+# **只能调谁签和权重，不能调有没有**——五个人工 Gate 是套件的骨架。
+#
+# 四个阶段出口 Gate 的签署角色来自上面的 phase_review，这里不重复声明。
+# scope-expansion 是唯一的例外：它发生在 build 中途、有东西要越出已声明范围时，
+# 不是阶段出口，所以自己声明。
+# ---------------------------------------------------------------------------
+gates:
+  scope-expansion:
+    require: [架构]
+  build-review:
+    # quick lane 要不要人工签 build-review。默认 required。
+    # 改成 self-check 必须同时填 self_check_decided_by，否则按 required 处理——
+    # 不签名就能关掉的人工审查等于没有人工审查。
+    quick_lane: required      # required | self-check
+    self_check_decided_by: ""
+
+# ---------------------------------------------------------------------------
+# protected_paths：默认保护的路径，进入每个 change-scope 的 protected。
+# 共享接口、数据模型、基础设施、安全配置、CI 配置属于默认保护对象。
+# ---------------------------------------------------------------------------
+protected_paths:
+  - "infra/**"
+  - ".github/workflows/**"
+  - "**/secrets*"
+  - "**/*.pem"
+
+# ---------------------------------------------------------------------------
+# explore_dimensions：默认启用的探索维度。按项目风险裁剪。
+# 关掉一个维度意味着"这类问题在本项目不会出事"——这是个真实的判断，值得想一下。
+# ---------------------------------------------------------------------------
+explore_dimensions:
+  outcome_value: true
+  stakeholder_journey: true
+  scope_behavior: true
+  data_semantics: true
+  integration_compatibility: true
+  architecture_nfr: true
+  security_compliance: true
+  operations_sla: true
+  acceptance_rollout: true
+  constraints_decisions: true
+
+# ---------------------------------------------------------------------------
+# tool_actions：项目级的命令类别默认值。change-scope 可以收紧，不能放宽。
+# ---------------------------------------------------------------------------
+# vcs-commit 默认允许，push 永远禁止——这两件事经常被当成一件。
+# 提交是本地的、可 reset 的，而且套件自己要求 ledger 里每个任务写出 commit range；
+# 不允许提交，那一栏就永远填不出真值。推送是把变更交给别人，不可撤销，只能人做。
+tool_actions:
+  allowed_by_default: [lint, unit-test, build, vcs-commit]
+  always_forbidden: [deploy, push, publish, db-migrate]
+
+
+# ---------------------------------------------------------------------------
+# data_policy：密钥与敏感数据。这一段的存在理由很具体——
+# evidence.jsonl 和 ledger.md 是永久保留、进 git、可 PR 评审的，而套件所有规则
+# 都在鼓励"不删除"。一次疏忽写进去的 token 会变成永久泄露。
+#
+# 注意 protected_paths 管的是"不可写"，按"可读可写分开建模"的原则它不约束读取。
+# 密钥必须靠 never_read 拦住。
+# ---------------------------------------------------------------------------
+data_policy:
+  # 不得读入上下文的路径。优先级高于 change-scope 的 read。
+  never_read:
+    - "**/*.pem"
+    - "**/*.key"
+    - "**/.env"
+    - "**/.env.*"
+    - "**/secrets*"
+    - "**/credentials*"
+    - "**/id_rsa*"
+
+  # 写入 evidence.jsonl / ledger.md 前的屏蔽模式。命中即写 [redacted]。
+  evidence_redaction:
+    - "(?i)(token|secret|password|passwd|api[_-]?key|access[_-]?key)\\s*[:=]\\s*\\S+"
+    - "(?i)(postgres|mysql|mongodb|redis)://[^\\s]+"
+    - "(?i)bearer\\s+[A-Za-z0-9._-]{20,}"
+    - "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+
+  # 原始会话记录 / 命令输出的保留期与访问范围。治理元数据（.sdlc/）随 git 永久保留。
+  trace_retention:
+    keep_days: 30
+    access: 项目成员
+  # 允许发送到外部服务的内容范围。默认最小化。
+  external_send: 仅本次任务必需的代码与文档片段；不含 never_read 命中的任何内容
+
+# ---------------------------------------------------------------------------
+# context_budget：上下文预算。超过阈值时不是硬停，而是必须先做摘要或换个读法。
+# 时效那一项管的是"依据的事实会不会已经过期"，与 token 计量是两回事。
+# ---------------------------------------------------------------------------
+context_budget:
+  max_source_files_per_task: 12   # 单个任务 brief 引用的来源文件上限
+  max_doc_age_days: 180           # 超过这个天数的文档，引用时要注明可能已过期
+  on_exceed: summarize            # summarize | replace | ask
+
+# ---------------------------------------------------------------------------
+# test_policy：哪些测试类别不可延后，由项目决定而不是写死在 Skill 里。
+# ---------------------------------------------------------------------------
+test_policy:
+  non_deferrable_classes: [fast, release]
+  budget:
+    max_parallel_workers: 4
+    ci_minutes_per_run: null      # null = 不限制
+  budget_change_requires_approval: true
+
+# ---------------------------------------------------------------------------
+# intelligence_space：把交付结论同步回 Project Intelligence Space。
+#
+# 默认关闭。开启前先确认目标空间存在——本套件不创建 space，那是对方
+# AGENTS.md 明列的结构性变更，要单独提出，不能夹在一次内容同步里做掉。
+#
+# repo_path 一定要加引号：真实路径里出现过尾随空格，不引会被 YAML 吃掉。
+# ---------------------------------------------------------------------------
+intelligence_space:
+  enabled: false
+  repo_path: ""               # Intelligence Space 仓库的绝对路径（主 checkout）
+  space: ""                   # 目标 space slug，必须是该仓库已注册的空间
+  sync_on: [wi-completed, lesson-published]   # 触发时机；留空 = 只在被明确要求时同步
+  author: ""                  # 写进 changelog 的署名。空则用 WI owner
+
+# ---------------------------------------------------------------------------
+# commands：项目的实际命令，供 build 与 qa 直接使用，避免每次重新探测。
+# ---------------------------------------------------------------------------
+commands:
+  lint: ""
+  test: ""
+  build: ""
+
+# quick lane 的适用判据。写清楚可以避免每次争论"这算不算小改动"。
+quick_lane_criteria:
+  - 单点缺陷修复，不涉及接口或数据结构变更
+  - 变更范围在 3 个文件以内
+  - 无新增依赖
+  - 有明确可验证的期望行为

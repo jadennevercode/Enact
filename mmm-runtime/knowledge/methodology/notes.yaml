@@ -1,0 +1,27 @@
+id: general-notes
+kind: notes
+scope: all
+version: 1
+source: "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-general-knowledge（3 条）"
+notes:
+  - id: gk-narrative
+    title: "报告叙事风格"
+    body: "每个结论同时给出量级与占比；ROI 结论必须附「不可线性外推」的口径说明。"
+    tags:
+      - "报告"
+      - "叙事"
+    appliesTo: "ols-test · business-validation —— 报告阶段不在本 runtime 范围内，但「ROI 结论不可线性外推」这一句在区间判读上照样成立"
+  - id: gk-chart
+    title: "Chart book 骨架"
+    body: "Part 0 基本面 → Part 1 全国 → Part 2 区域，逐层下钻，保持同一指标口径。"
+    tags:
+      - "报告"
+      - "结构"
+    appliesTo: business-validation
+  - id: gk-interview
+    title: "分层访谈框架"
+    body: "Layer 1/2/3（高层 / 管理层 / 执行层）× 三段式问题（现状 / 期望 / 数据可得性）。"
+    tags:
+      - "访谈"
+      - "方法"
+    appliesTo: "已展开为 methodology/interview-framework.yaml，此处只留出处"

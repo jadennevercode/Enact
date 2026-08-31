@@ -1,0 +1,126 @@
+# 知识库注册表。
+#
+# 两种检索模式，故意不一样（见 shared/knowledge-recall.md 与 shared/lib/knowledge.py）：
+#
+#   prose recall  —— 模糊，供叙述用，用到的包记在产出物的 knowledgeRecall 字段
+#   keyed lookup  —— 精确 (l4, indicator)，供数字用，永不子串匹配
+#
+# 行业包只有在工作区的行业锚点与它的**目录**相符时才够得着。护肤项目读不到下面
+# 那些饮料区间，是构造不是策略：平台曾把一条 Danone 的区间套到护肤因子上，只有一个
+# 非饮料测试用例发现了它。
+#
+# 这个行业没有包，本身就是一个真答案。它以 knowledgeRecall: none 的形式出现，
+# 比借一条别的行业的基准有用。
+#
+# 本表是 recall 的唯一候选面：没登记在 packs[].files 里的文件，recall 读不到。
+# 见文末 retired。
+version: 2
+packs:
+  - id: methodology
+    kind: rules
+    scope: all
+    description: >
+      机器可读的打分规则 —— 一件事怎么被判，与行业无关。`scoring/rules.py` 直接加载。
+    files:
+      - methodology/validation-scoring.json
+      - methodology/statistical-scoring.json
+
+  - id: factor-tree-skeleton
+    kind: skeleton
+    scope: all
+    description: >
+      因子树的 L1/L2 骨架：4 个 L1 × 8 个 L2，加三条推导硬规则。跨行业，
+      因为 L1/L2 本来就是全行业共用的一层（平台 00 §9「L1/L2 跨包共享，
+      L3/L4+指标按包加载」）。放进行业目录会让护肤、医药项目连开工的骨架都拿不到。
+      **来源只有 Danone Mizone 一次交付**，所以它是目前唯一有实盘背书的骨架，
+      不是经多行业验证的标准。谁读得到：所有工作区。
+    files:
+      - methodology/factor-tree-skeleton.yaml
+
+  - id: interview-framework
+    kind: framework
+    scope: all
+    description: >
+      分层访谈框架：三层（高层/管理层/执行层）+ 合成出来的数据层、各层时长、
+      三类问题标签、以及从因子树逐叶派生的**数据四问**（确定性生成，不靠模型）。
+      另附饮料那次交付的 12 个角色切法作参照。跨行业。谁读得到：所有工作区。
+    files:
+      - methodology/interview-framework.yaml
+
+  - id: general-notes
+    kind: notes
+    scope: all
+    description: >
+      跨行业的表达与结构笔记 3 条（报告叙事口径、Chart book 骨架、分层访谈框架的出处）。
+      来自平台 tpl-general-knowledge。谁读得到：所有工作区。
+    files:
+      - methodology/notes.yaml
+
+  - id: schema
+    kind: rules
+    scope: all
+    description: >
+      库自带的目标 schema 与枚举起底。建工作区时播种进 metadata/schema/，
+      之后归项目所有。
+    files:
+      - schema/target-schema.yaml
+      - schema/enums/metric_type.yaml
+      - schema/enums/channel_type.yaml
+      - schema/enums/brand.yaml
+      - schema/enums/province_group.yaml
+
+  - id: food-bev/beverage
+    kind: industry
+    anchor: { l1: food-bev, l2: beverage }
+    description: >
+      运动与功能饮料。**结构与数字分开放**：factor-tree.yaml 是 94 行 L3/L4 与候选指标
+      （行业的东西，可复用）；factor-ranges.json 是同 94 行的 ROI 与年度贡献区间
+      （Danone Mizone 一次交付的数字，源文件自称「区间为 Danone Mizone 案例示例,
+      新项目须替换」）。区间按 kind: case 对待，逐行带 provenance，新客户必须替换。
+      interview.yaml 是 94 题分层题库（品牌名已换成 {brand} 占位符）；
+      notes.yaml 是三条行业实证。谁读得到：只有 industry 锚点为 food-bev/beverage 的工作区。
+    files:
+      - industry/food-bev/beverage/factor-tree.yaml
+      - industry/food-bev/beverage/interview.yaml
+      - industry/food-bev/beverage/notes.yaml
+      - industry/food-bev/beverage/factor-ranges.json
+      - industry/food-bev/beverage/enums/channel_type.yaml
+    numbers:
+      file: industry/food-bev/beverage/factor-ranges.json
+      kind: case
+      project: Danone Mizone
+      confirmedBy: 1
+      warning: >
+        这些区间是一个客户一次交付的结果，不是行业标准。keyed lookup 命中时必须把
+        provenance 一起带出去，让「我用的是一个案例的数字」跟着数字走到关卡上——
+        注释保护不了下一个不读注释的人。
+      promoteRule: >
+        数字类条目只有被 ≥2 个项目独立确认，才能从案例升为行业先验。单项目数字永远是案例。
+
+  - id: health/medical-nutrition
+    kind: industry
+    anchor: { l1: health, l2: medical-nutrition }
+    description: >
+      **包未建成，这是一条占位。** 上游承诺过医药营养包，但从没建；平台把 HCP 那张
+      花费表明确排除出了产品，它也不是一棵因子树（无 L1/L2/L3、无指标、无区间）。
+      对这个行业，knowledgeRecall: none 是正确答案，**不得回退到 food-bev/beverage**。
+      第一个 HCP 项目开工时，由 promote 通道把它的骨架沉淀进这个空位。
+    files: []
+
+# 已登记过、但没有任何代码或文档读它们的条目。摘出 packs 是为了止血：
+# index.yaml 既是注册表也是 prose recall 的候选面，一个没人维护的文件出现在这里，
+# 会被当成可引用的依据召回，然后落进 knowledgeRecall 戳里 —— 一条谁都没在维护的规则
+# 就这样获得了出处。文件留在磁盘上作平台出处引用，但 recall 够不着。
+retired:
+  - file: methodology/workflow.json
+    why: >
+      2.1→2.35 的流程 DAG。按组件分类法，流程是**机制**不是知识，它的职责已由
+      shared/manifests/s2.yaml 接管（且 runtime 版带 predicates）。留在 knowledge/
+      会让「改流程」有两个入口，而只有一个入口被 check_suite 检查。
+    supersededBy: shared/manifests/s2.yaml
+  - file: methodology/wide-table-schema.json
+    why: >
+      长表列定义。职责已由 knowledge/schema/target-schema.yaml + dataeng/columns.py
+      接管，且 runtime 版更严（带 enum、nullMeans、required）。唯一还有价值的内容是
+      Variable no. / Metric no. 两列，那属于 master.assemble 的编号实现，不是知识。
+    supersededBy: knowledge/schema/target-schema.yaml

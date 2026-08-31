@@ -10,13 +10,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/enact-ai/enact/server/internal/attributionbackfill"
 	"github.com/enact-ai/enact/server/internal/dbstartup"
 	"github.com/enact-ai/enact/server/internal/logger"
 	"github.com/enact-ai/enact/server/internal/migrations"
 	"github.com/enact-ai/enact/server/internal/taskusagebackfill"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // preMigrationHook runs work that must happen before a specific migration is
@@ -250,6 +250,7 @@ var concurrentIndexCleanups = map[string]string{
 	"395_plugin_package_version_package_index":                  "idx_plugin_package_version_package",
 	"396_plugin_package_file_path_index":                        "idx_plugin_package_file_path",
 	"397_plugin_installation_package_version_index":             "idx_plugin_installation_package_version",
+	"403_squad_system_identity":                                 "squad_system_identity_unique",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

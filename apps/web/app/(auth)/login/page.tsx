@@ -9,11 +9,7 @@ import {
   workspaceKeys,
   workspaceListOptions,
 } from "@enact/core/workspace/queries";
-import {
-  paths,
-  resolvePostAuthDestination,
-  useHasOnboarded,
-} from "@enact/core/paths";
+import { paths, useHasOnboarded } from "@enact/core/paths";
 import { api } from "@enact/core/api";
 import type { Workspace } from "@enact/core/types";
 import {
@@ -26,7 +22,7 @@ import {
 import { Button } from "@enact/ui/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { setLoggedInCookie } from "@/features/auth/auth-cookie";
-import Link from "next/link";
+import { resolveWebPostAuthDestination } from "@/features/auth/post-auth-destination";
 import { LoginPage, validateCliCallback } from "@enact/views/auth";
 import { useT } from "@enact/views/i18n";
 
@@ -53,7 +49,7 @@ async function resolveLoggedInDestination(
       // fall through
     }
   }
-  return resolvePostAuthDestination(workspaces, hasOnboarded);
+  return resolveWebPostAuthDestination(workspaces, hasOnboarded);
 }
 
 function LoginPageContent() {
@@ -61,6 +57,7 @@ function LoginPageContent() {
   const qc = useQueryClient();
   const { t } = useT("auth");
   const googleClientId = useConfigStore((state) => state.googleClientId);
+  const allowSignup = useConfigStore((state) => state.allowSignup);
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const searchParams = useSearchParams();
@@ -85,8 +82,8 @@ function LoginPageContent() {
   // session — not from an existing session found on arrival.
   const settledLoggedOutRef = useRef(false);
 
-  // Already authenticated ON ARRIVAL — honor ?next= or fall back to first
-  // workspace (or /onboarding if the user has none). Skip this entire path
+  // Already authenticated ON ARRIVAL — honor ?next= or fall back to the first
+  // workspace (or automatic workspace setup if the user has none). Skip this path
   // when the user arrived to authorize the CLI.
   useEffect(() => {
     if (isLoading) return;
@@ -125,16 +122,25 @@ function LoginPageContent() {
       return;
     }
     // Fetch instead of reading the cache: on a fresh page load the cache is
-    // cold, and `getQueryData() ?? []` would misroute a user who does have
-    // workspaces to /workspaces/new. On fetch failure fall back to [] —
-    // same destination the cold-cache read produced, rather than trapping
-    // the user on the login page.
+    // cold, and `getQueryData() ?? []` would send a user who does have a
+    // workspace through automatic setup. On fetch failure fall back to []
+    // rather than trapping the user on the login page.
     void qc
       .ensureQueryData(workspaceListOptions())
       .catch(() => [] as Workspace[])
       .then((list) => resolveLoggedInDestination(qc, hasOnboarded, list))
       .then((dest) => router.replace(dest));
-  }, [isLoading, user, router, nextUrl, cliCallbackRaw, isDesktopHandoff, hasOnboarded, qc]);
+  }, [
+    isLoading,
+    user,
+    router,
+    nextUrl,
+    cliCallbackRaw,
+    isDesktopHandoff,
+    hasOnboarded,
+    qc,
+    t,
+  ]);
 
   const handleSuccess = async () => {
     // Read the latest user snapshot directly — the closure's `hasOnboarded`
@@ -233,17 +239,7 @@ function LoginPageContent() {
           : undefined
       }
       onTokenObtained={setLoggedInCookie}
-      extra={
-        <span className="text-caption text-muted-foreground">
-          {t(($) => $.web.prefer_desktop)}{" "}
-          <Link
-            href="/download"
-            className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground/70"
-          >
-            {t(($) => $.web.download)}
-          </Link>
-        </span>
-      }
+      allowSignup={allowSignup}
     />
   );
 }

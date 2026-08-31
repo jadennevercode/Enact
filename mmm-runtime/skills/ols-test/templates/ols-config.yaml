@@ -1,0 +1,47 @@
+# 入模参数 —— 照这份填，不要自创结构。填法见 ../references/params.md。
+# params 是引擎实际读的那一份，改参数改它；paramDecisions 只记"谁定的、为什么"。
+# 两个都改，别只改一个——检查项以 params 为准。
+meta:
+  step: ols-test/params
+  skill: ols-test
+  generated: ""
+  grounding: []
+  knowledgeRecall: none
+
+config:
+  dataSource: project                # project | reference
+  yCandidates: []                    # 由 ols.propose 算出：每个对象可选的响应及月份覆盖
+  y: []                              # 每个模型对象确认下来的响应
+  xCandidates: []                    # 候选变量，带 selected；未勾选的是自由度限制，不是判决
+
+  # ── 结构参数：客户可以改，因为每一条都是对生意的假设 ──
+  params:
+    adstock: 0.5                     # 0 ≤ decay < 1。钱投下去多久还在起作用
+    saturation: hill                 # hill | none。投多了会不会边际递减
+    hillHalf: 1.0                    # 半饱和点 = 变换后均值 × 这个系数
+    trend: linear                    # linear | none
+    seasonality: none                # none | fourier | dummies —— 默认就是 none，见 params.md
+    fourierK: 2
+    pricePerUnit: null               # 响应是销量时给了它，投资回报才能和行业带比
+    events: []                       # 来自业务校验的异常窗口，不在这里手改
+    caps: []
+
+  # ── 谁定的。默认值可以不说话；被人挪过的数必须说 ──
+  paramDecisions:
+    - name: ""                       # adstock | saturation | hillHalf | trend |
+                                     # seasonality | fourierK | pricePerUnit
+      value: null                    # 与 params 一致；params 是准的那一份
+      default: null                  # 引擎给这个项目的默认值
+      decidedBy: default             # default | human
+      rationale: ""                  # 与默认值不同时必填
+      at: ""
+
+  # ── 固定判据：列出来给客户看，但不开放 ──
+  # 被判的一方能调的判据就不再是判据。唯一例外是 redDeviation，可按项目挪，代价是写理由。
+  locked:
+    significantT: 2.0
+    minResidualDf: 10
+    maxDesignVif: 100.0
+    redDeviation: 30.0
+    redDeviationRationale: ""
+  proposedAt: ""

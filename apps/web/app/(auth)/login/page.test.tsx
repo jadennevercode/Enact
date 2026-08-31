@@ -41,6 +41,7 @@ const {
   authStateRef: {
     state: {
       loginWithEmail: vi.fn(),
+      registerWithEmail: vi.fn(),
       user: null as null | { id: string; email: string; onboarded_at?: string | null },
       isLoading: false,
     },
@@ -84,6 +85,7 @@ vi.mock("@enact/core/api", () => ({
     listWorkspaces: mockListWorkspaces,
     listMyInvitations: mockListMyInvitations,
     emailLogin: vi.fn(),
+    register: vi.fn(),
     setToken: vi.fn(),
     getMe: vi.fn(),
     issueCliToken: mockIssueCliToken,
@@ -103,22 +105,25 @@ describe("LoginPage", () => {
     mockLoginWithEmail.mockResolvedValue(undefined);
   });
 
-  it("renders login form with email input and continue button", () => {
+  it("renders login form without the Desktop download prompt", () => {
     render(<LoginPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Sign in to Enact")).toBeInTheDocument();
-    expect(screen.getByText("Enter your email to continue")).toBeInTheDocument();
+    expect(screen.getByText("Enter your email and password")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Continue" })
+      screen.getByRole("button", { name: "Sign in" })
     ).toBeInTheDocument();
+    expect(screen.queryByText(/desktop app/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
   });
 
   it("does not log in when email is empty", async () => {
     const user = userEvent.setup();
     render(<LoginPage />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
     expect(mockLoginWithEmail).not.toHaveBeenCalled();
   });
 
@@ -127,10 +132,11 @@ describe("LoginPage", () => {
     render(<LoginPage />, { wrapper: createWrapper() });
 
     await user.type(screen.getByLabelText("Email"), "test@enact.ai");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(screen.getByLabelText("Password"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => {
-      expect(mockLoginWithEmail).toHaveBeenCalledWith("test@enact.ai");
+      expect(mockLoginWithEmail).toHaveBeenCalledWith("test@enact.ai", "secret123");
     });
   });
 
@@ -140,7 +146,8 @@ describe("LoginPage", () => {
     render(<LoginPage />, { wrapper: createWrapper() });
 
     await user.type(screen.getByLabelText("Email"), "test@enact.ai");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(screen.getByLabelText("Password"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => {
       expect(screen.getByText("Signing in...")).toBeInTheDocument();
@@ -153,7 +160,8 @@ describe("LoginPage", () => {
     render(<LoginPage />, { wrapper: createWrapper() });
 
     await user.type(screen.getByLabelText("Email"), "test@enact.ai");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(screen.getByLabelText("Password"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => {
       expect(screen.getByText("Network error")).toBeInTheDocument();

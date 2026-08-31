@@ -1,0 +1,95 @@
+# 漏斗与因子树收口 —— 这份文件由 master.funnel 写出，模板在这里是为了说明每个字段。
+# 填法见 ../references/assemble.md、numbering.md 与 lock.md。
+# 每个计数逐字来自计算结果：不四舍五入、不心算、不重算。漏斗计数是客户会背回来的数字。
+meta:
+  step: model-input/assemble
+  skill: master-data
+  generated: ""                      # 生成时间，带时区
+  grounding:
+    - { path: "data/derived/selection.json", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+
+# ── 漏斗：每层进来多少 / 拒了多少 / 活下来多少 / 拒的是哪几条 ──
+layers:
+  - layer: mapping
+    label: "因子映射"
+    intake: 0
+    dropped: 0
+    survivors: 0
+    dropList:
+      - { l4: "", indicator: "", reason: "" }
+  - { layer: quality,     label: "数据质量",   intake: 0, dropped: 0, survivors: 0, dropList: [] }
+  - { layer: signoff,     label: "业务签核",   intake: 0, dropped: 0, survivors: 0, dropList: [] }
+  - { layer: statistical, label: "统计检验",   intake: 0, dropped: 0, survivors: 0, dropList: [] }
+  - { layer: selection,   label: "变量选择",   intake: 0, dropped: 0, survivors: 0, dropList: [] }
+  - { layer: range,       label: "区间检验",   intake: 0, dropped: 0, survivors: 0, dropList: [] }
+
+# 逐对象拆分：同一个指标可以在一个渠道死在统计层，在另一个渠道活到最后。
+byObject:
+  "<模型对象>": []
+
+# ── 因子树收口：按"当初想要什么"结账 ──
+factorTree:
+  - rowId: ""
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""
+    verdict: ""                      # adopted | partial | rejected | notSupplied | notModeled
+                                     # notSupplied（从没拿到数据）≠ rejected（有人做了判断）
+    diedAt: ""                       # 最早否决它的那一层
+    reason: ""
+    perObject: {}                    # 模型之间不一致时逐对象写
+
+summary:
+  adopted: 0
+  partial: 0
+  rejected: 0
+  notSupplied: 0
+  notModeled: 0
+  total: 0                           # 五个数之和必须等于因子树的活跃行数。对不上就报告并停下
+
+# ── 因子级预警：模型将要对哪几块生意失语 ──
+# 漏斗列的是指标，这张表列的是因子。要进交付说明，也要在锁定时单独摆一段。
+missingFactors:
+  - l4: ""
+    indicators: []
+    reason: ""                       # "全部候选指标不达标" | "从未拿到数据"
+    failedAt: ""                     # 最早否决它的那一层；从没拿到数据写 notSupplied
+    action: "该因子未纳入模型；建模阶段的结论不覆盖这个因子"
+
+# ── 锁定时冻结的选择快照 ──
+# 只记一条批准不算锁：不冻结这一段，上游任何一次重跑都会让建模训练在
+# 一张与人签过字的表不同的表上，而从表面上看不出来。
+lockedSelection:
+  y: {}                              # 每个模型对象确认过的响应变量
+  exclude: {}                        # 逐对象的排除集
+  include: {}                        # 逐对象勾选的变量集；null 表示未确认过勾选
+  params: {}                         # 变换与控制项参数
+  adoptedCount: 0
+  numberingGroupBy: l4               # 建模编号的分组依据，锁定后不许改
+  responseColumn: raw                # raw 原值 | capped 缩尾值 —— 表上必须标注（澄清点 3）
+  variables:                         # 建模编号，逐条。这是相对上游数据集唯一的新增物
+    - variable: ""                   # 英文机器名，全表唯一
+      variableNo: ""                 # 整数
+      metricNo: ""                   # <变量编号>.<序号>
+      l4: ""
+      indicator: ""
+      role: driver                   # response | driver
+
+# ── 表格上限 ──
+caps:
+  dataStationRows: 5000              # 超出明确标注；导出时不设上限
+  wideRows: 400
+  wideCols: 60
+  truncated: false                   # 超出就标 true，并在文档里说清楚。不做无声截断
+
+# ── 澄清登记 ──
+assumptions:
+  - question: ""
+    answer: ""
+    decidedBy: ""
+    at: ""
+    assumed: false

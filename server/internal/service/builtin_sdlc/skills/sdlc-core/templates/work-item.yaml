@@ -1,0 +1,49 @@
+# Work Item —— 唯一主记录。其余产物都挂在它下面。
+# 编辑权限：id/slug/created 由脚本写入后不再改；status 只由对应环节 Skill 在出口动作后改。
+
+id: WI-000
+slug: short-kebab-name
+created: 2026-01-01
+updated: 2026-01-01
+
+# 要改变什么结果，一到两句。不是任务清单——任务属于 contract 和 build。
+objective: ""
+
+# 具名责任人。没有 owner 不得进入 Exploring：无人负责的工作最终无人验收。
+owner: ""
+
+# Proposed | Exploring | Contracted | Planned | Executing | Verifying | Decision | Completed | Held | Cancelled
+status: Proposed
+
+# full = 完整八环节；quick = 小改动/热修，压缩篇幅但不省 Gate。
+lane: full
+
+# 当前生效的产物版本。批准后填，用于判断下游依据的是哪一版。
+contract_version: null
+change_scope_version: null
+
+# 这件事因为什么发生：客户投诉 / 事故 INC-### / 路线图 / 复盘结论。
+# 回答"为什么是现在"——三个月后没人记得起因，但会需要它来判断是否还该做。
+trigger: ""
+
+# 依赖的其他 WI。与 blocked_by 不同：这里记结构性先后（A 完成前 B 做不了），
+# blocked_by 记当前实际卡在谁那里。多 WI 并行时，这一项决定推进顺序。
+dependencies: []
+  # - WI-002
+
+# 外部系统只存链接，不复制内容——它们才是那些信息的权威源。
+external_refs: []
+  # - kind: jira
+  #   url: https://...
+  #   note: 原始需求单
+
+# 进入 Held 时必填全部三项。缺任何一项等于"卡住了但没人知道该干什么"。
+blocked_by: null
+  # what: 需要 DBA 确认历史数据回填窗口
+  # who: 李四
+  # since: 2026-08-21
+  # unblocks_to: Executing
+
+# 回退、lane 变更、阶段压缩的理由。让后来的人知道这里不是漏了步骤。
+notes: []
+  # - "2026-08-21 从 Verifying 退回 Contracted：criteria 1.2 与实际接口矛盾 / 处理人 张三"

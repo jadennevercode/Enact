@@ -1,0 +1,78 @@
+# tools/catalog/stat.scorecard.yaml
+id: stat.scorecard
+kind: statistical
+purpose: 把三项检验的结果卷成总分——三项相乘，出自动判读与因子级预警。
+when: |
+  统计检验 · 「按波动性、相关性、共线性筛查」的最后一步。
+  跑之前先按顺序跑 stat.cv、stat.pearson、stat.vif。
+  哪些指标最终进模型，由下一步的人来定。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/stat-panel.json
+  shape: |
+    panel            这一次检验是在什么形状上做的：
+      panel          面板规模，例 "17 indicators × 4 model object(s)"
+      months         月份数
+      detrend        去趋势方式；太短没差分时写明
+      vifDesign      共线性对着多宽的设计矩阵算
+      vifRegime      exact 精确值 / pairwise-proxy 两两近似值
+      formula        恒为 Total = CV × Pearson × VIF
+      severeVif      恒为 10.0
+      bands          恒为 Total >= 0.5 Good · 0 < Total < 0.5 Acceptable · Total = 0 unconsiderable
+    rows[]           一行 = 因子树里一条已采纳的 (L1×L2×L3×L4×指标)：
+      id · l1 · l2 · l3 · l4 · indicator · treeRowId
+      dataStatus     scored 已检验 / no-data 树上要了但一条数据都没到 /
+                     inherited-drop 上游已判不做
+      cv · pearson · vif            三个原始统计量。**未检验的行为 null，不是 0**
+      cvScore · pearsonScore · vifScore   三个档位分，同样未检验为 null
+      total          三个档位分的乘积；未检验为 null
+      severeCollinearity  共线性 ≥ 10
+      zeroReason     总分为 0 时点名是哪一项挂的：波动性 / 相关性 / 共线性；
+                     观测月数不足时写 "观测月数 N < 12"
+      autoVerdict    Good / Acceptable / unconsiderable / no-data /
+                     inherited-drop / response / not-screened
+      disposition    include 保留 / drop 剔除（人的决定）
+      rationale      这一行入模利弊的一句话，只基于该行自己的三个数
+    counts           {scored: n, no-data: n, inherited-drop: n}
+    factorAlerts[]   某个 L4 的全部候选指标都判不可用时一项：
+      l4 · indicators[] · allFailed · reason · action
+    signature        行集指纹，与三份检验结果比对；对不上就拒绝卷积
+    inheritedDrops   上游已排除、这次没有检验的指标条数
+    orphanCount · orphans[]   数据里有、因子树没要过的指标
+stdout: |
+  因子树 101 行 · 18 行已检验 · 0 行没有数据 · 83 行上游已否
+  判读：3 Acceptable · 3 Good · 1 response · 11 unconsiderable · 83 inherited-drop
+
+  需要你决定的行，最差在前：
+    total  l4                       指标                   cv        pearson   vif
+    0      铺货                       本品ND                 0.104     0.016     1.000
+example: ~/.local/bin/mmm tool stat.scorecard --workspace <工作区>
+notes: |
+  **总分是三项相乘，>= 0.5 良好 / 0 与 0.5 之间交人 / = 0 不可用。**
+  乘法可达的总分只有 1 · 0.5 · 0.25 · 0.125 · 0 五个值，所以「>= 0.5」= 三项全过，
+  或者恰有一项拿半分。一个相关性极好但和别人完全重合的指标不是「三分之二可用」——
+  它在那一对里有一个走人之前完全不可用。
+
+  **行来自因子树，不来自数据。** 一行 = 因子树里一条 status=accepted 的记录，
+  与数据质量评分表逐行对得上——两张表的漏斗数字必须能相互核对。
+  树上要了、数据没到的行标 no-data，三个统计量为 null。
+  **null 不是 0，这里尤其要紧**：VIF 的 1.0 是「好」的那一端，
+  一个默认的 1.0 会让没人筛过的序列读起来像「无共线性」。
+
+  **三种特殊判读：**
+    response      响应指标。驱动因子是对着它做相关性检验的，它不检验自己，也不会被剔除。
+    no-data       没有可检验的序列，回数据需求与验收追交付。
+    not-screened  进不了面板，通常是它在每个建模对象里都没有可用的月度取值。
+
+  **观测月数少于 12 的行仍然产出**（判不可用、总分 0，并写明「只有 N 个观测月」），
+  不静默省略——漏斗计数必须和指标数对得上。
+
+  **某个 L4 的全部候选指标都判不可用 → 预警并回流业务理解找替代指标。**
+  这是明规则不是可选提示：模型里将没有任何东西代表这块生意，而补救的地方在业务理解那一段，
+  不在这里。
+
+  上游否掉的指标根本不参与检验，这不是整洁问题——共线性是整组一起算的，
+  一个已经死掉的指标会把还在场的指标的共线性抬上去。
+  三份检验结果的 signature 对不上时判失败：混着卷积出来的打分表内部自洽、
+  但每个数都错，读的时候看不出来。

@@ -24,7 +24,9 @@ function renderWithI18n(ui: ReactElement) {
 }
 
 const mockLoginWithEmail = vi.hoisted(() => vi.fn());
+const mockRegisterWithEmail = vi.hoisted(() => vi.fn());
 const mockApiEmailLogin = vi.hoisted(() => vi.fn());
+const mockApiRegister = vi.hoisted(() => vi.fn());
 const mockApiListWorkspaces = vi.hoisted(() => vi.fn());
 const mockApiSetToken = vi.hoisted(() => vi.fn());
 const mockApiGetMe = vi.hoisted(() => vi.fn());
@@ -44,16 +46,25 @@ vi.mock("@tanstack/react-query", async () => {
 vi.mock("@enact/core/auth", () => ({
   useAuthStore: Object.assign(
     (selector?: (s: unknown) => unknown) => {
-      const state = { loginWithEmail: mockLoginWithEmail };
+      const state = {
+        loginWithEmail: mockLoginWithEmail,
+        registerWithEmail: mockRegisterWithEmail,
+      };
       return selector ? selector(state) : state;
     },
-    { getState: () => ({ loginWithEmail: mockLoginWithEmail }) },
+    {
+      getState: () => ({
+        loginWithEmail: mockLoginWithEmail,
+        registerWithEmail: mockRegisterWithEmail,
+      }),
+    },
   ),
 }));
 
 vi.mock("@enact/core/api", () => ({
   api: {
     emailLogin: mockApiEmailLogin,
+    register: mockApiRegister,
     listWorkspaces: mockApiListWorkspaces,
     setToken: mockApiSetToken,
     getMe: mockApiGetMe,
@@ -79,13 +90,14 @@ describe("LoginPage", () => {
     });
   });
 
-  it("renders the direct email login form", () => {
+  it("renders the email and password login form", () => {
     renderWithI18n(<LoginPage onSuccess={onSuccess} />);
 
     expect(screen.getByText(/sign in to enact/i)).toBeInTheDocument();
-    expect(screen.getByText(/enter your email to continue/i)).toBeInTheDocument();
+    expect(screen.getByText(/enter your email and password/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toHaveFocus();
-    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeDisabled();
     expect(screen.queryByText(/verification code/i)).not.toBeInTheDocument();
   });
 
@@ -96,10 +108,11 @@ describe("LoginPage", () => {
     renderWithI18n(<LoginPage onSuccess={onSuccess} />);
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
-      expect(mockLoginWithEmail).toHaveBeenCalledWith("test@example.com");
+      expect(mockLoginWithEmail).toHaveBeenCalledWith("test@example.com", "secret123");
       expect(mockApiListWorkspaces).toHaveBeenCalledOnce();
       expect(mockSetQueryData).toHaveBeenCalledWith(
         expect.arrayContaining(["workspaces", "list"]),
@@ -115,7 +128,8 @@ describe("LoginPage", () => {
     renderWithI18n(<LoginPage onSuccess={onSuccess} />);
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(screen.getByText(/signing in/i)).toBeInTheDocument();
   });
@@ -126,10 +140,48 @@ describe("LoginPage", () => {
     renderWithI18n(<LoginPage onSuccess={onSuccess} />);
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(await screen.findByText("Login unavailable")).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("registers a Deloitte China account with a username", async () => {
+    mockRegisterWithEmail.mockResolvedValueOnce(undefined);
+    const user = userEvent.setup();
+    renderWithI18n(<LoginPage onSuccess={onSuccess} />);
+
+    await user.click(screen.getByRole("button", { name: /create an account/i }));
+    await user.type(screen.getByLabelText(/username/i), "Alice");
+    await user.type(screen.getByLabelText(/email/i), "alice@deloittecn.com.cn");
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^create account$/i }));
+
+    await waitFor(() => {
+      expect(mockRegisterWithEmail).toHaveBeenCalledWith(
+        "alice@deloittecn.com.cn",
+        "secret123",
+        "Alice",
+      );
+      expect(onSuccess).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("rejects registration outside the Deloitte China email domain", async () => {
+    const user = userEvent.setup();
+    renderWithI18n(<LoginPage onSuccess={onSuccess} />);
+
+    await user.click(screen.getByRole("button", { name: /create an account/i }));
+    await user.type(screen.getByLabelText(/username/i), "Alice");
+    await user.type(screen.getByLabelText(/email/i), "alice@example.com");
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^create account$/i }));
+
+    expect(
+      await screen.findByText(/limited to @deloittecn\.com\.cn/i),
+    ).toBeInTheDocument();
+    expect(mockRegisterWithEmail).not.toHaveBeenCalled();
   });
 
   it("renders Google OAuth only when configured", () => {
@@ -212,10 +264,11 @@ describe("LoginPage", () => {
       />,
     );
     await user.type(screen.getByLabelText(/email/i), "cli@example.com");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
-      expect(mockApiEmailLogin).toHaveBeenCalledWith("cli@example.com");
+      expect(mockApiEmailLogin).toHaveBeenCalledWith("cli@example.com", "secret123");
       expect(onTokenObtained).toHaveBeenCalledOnce();
       expect(window.location.href).toContain(
         "http://localhost:9876/callback?token=new-jwt-token&state=xyz",

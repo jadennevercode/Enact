@@ -4,7 +4,11 @@ node_modules
 
 # Build outputs
 .next
+**/.next
+.turbo
+**/.turbo
 dist
+**/dist
 server/bin
 server/tmp
 
@@ -30,6 +34,7 @@ Thumbs.db
 # Test
 e2e/test-results
 coverage
+**/coverage
 
 # Docs
 /docs/

@@ -1,0 +1,279 @@
+/* 图册的样式。深浅两套 token 由 palette.py 发，这里只用它们。
+ * 一个文件、零外部请求 —— 这一页要能从文件系统打开、能发邮件、五年后还能读。 */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+
+h1 { font-size: 1.5rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 0; }
+h3 { font-size: 0.98rem; margin: 0 0 6px; }
+
+.lede { color: var(--ink-2); margin: 0; font-size: 0.92rem; }
+
+/* ── 页头 ─────────────────────────────────────────────────────────── */
+
+.page-head { display: grid; grid-template-columns: 1fr auto; align-items: center;
+             gap: 2px 18px; margin: 0 0 18px; }
+.page-head h1 { grid-column: 1; }
+.page-head .lede { grid-column: 1; }
+.response-y { grid-column: 2; grid-row: 1 / span 2; margin: 0;
+              font-size: 0.86rem; color: var(--ink-2); white-space: nowrap; }
+
+/* 提示与异常胶囊折叠起来：产品的页头与第一张卡之间什么都没有，而这些块每一条都在
+   报告一个真实条件 —— 静默缺失比明说糟。折叠是这两件事唯一的交集。 */
+#notices { border: 1px solid var(--border); border-radius: 10px;
+           background: var(--plane); padding: 6px 14px 10px; margin: 0 0 18px; }
+#notices > summary { cursor: pointer; font-size: 0.86rem; color: var(--ink-2);
+                     padding: 4px 0; }
+#notices h2 { font-size: 0.98rem; margin: 10px 0 2px; }
+.notice { border: 0; background: transparent; padding: 6px 0 0; margin: 0; }
+.notice h3 { margin: 0 0 4px; font-size: 0.88rem; }
+.notice ul { margin: 0; padding-left: 18px; font-size: 0.86rem; color: var(--ink-2); }
+
+footer .provenance {
+  font-size: 0.78rem; color: var(--ink-2); margin: 24px 0 0;
+  border-top: 1px solid var(--border); padding-top: 12px;
+}
+footer code { font-size: 0.76rem; }
+
+/* ── 筛选行 ───────────────────────────────────────────────────────── */
+
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+              margin: 0 0 10px; }
+.filter-row .grow { flex: 1 1 auto; }
+
+.segmented { display: inline-flex; border: 1px solid var(--axis); border-radius: 7px;
+             overflow: hidden; }
+.segmented button {
+  border: 0; background: transparent; color: var(--ink); cursor: pointer;
+  padding: 4px 12px; font: inherit; font-size: 0.84rem;
+  border-right: 1px solid var(--axis);
+}
+.segmented button:last-child { border-right: 0; }
+.segmented button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.segmented button:disabled {
+  color: var(--muted); cursor: not-allowed;
+  background: repeating-linear-gradient(45deg, transparent, transparent 4px,
+                                        var(--wash) 4px, var(--wash) 8px);
+}
+
+.pill-wrap { position: relative; display: inline-block; }
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--axis); background: var(--surface); color: var(--ink);
+  border-radius: 7px; padding: 4px 10px; font: inherit; font-size: 0.84rem;
+  cursor: pointer; white-space: nowrap;
+}
+.pill[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.pill .badge { background: var(--accent); color: #fff; border-radius: 999px;
+               padding: 0 6px; font-size: 0.72rem; line-height: 1.5; }
+.pill .chosen { color: var(--ink-2); font-size: 0.78rem; max-width: 9em;
+                overflow: hidden; text-overflow: ellipsis; }
+.pill .caret { color: var(--muted); font-size: 0.68rem; }
+/* 不可用的控件是 span 不是 button：键盘不该停在死控件上，但它留在行里 ——
+   一行的长度恒定，读的人才看得见「这个因子就是没报到那么深」。 */
+.pill.muted { border-style: dashed; color: var(--muted); cursor: default;
+              background: transparent; }
+
+/* `[hidden]` 是 UA 样式，权重低于任何类选择器 —— 不显式写这一条，下面的
+   `display: flex` 会把它压掉，于是每个 popover 一开页就全开着。 */
+.popover[hidden] { display: none; }
+
+.popover {
+  position: absolute; z-index: 20; top: calc(100% + 4px); left: 0;
+  min-width: 190px; max-width: 340px; max-height: 320px; overflow: auto;
+  display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+  padding: 9px 10px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.13);
+}
+.popover .pop-note { flex: 1 0 100%; margin: 0 0 2px; font-size: 0.76rem;
+                     color: var(--ink-2); }
+.popover .opt {
+  border: 1px solid var(--axis); background: transparent; color: var(--ink);
+  border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 0.82rem;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+}
+.popover .opt[aria-pressed="true"] { background: var(--accent); color: #fff;
+                                     border-color: var(--accent); }
+.popover .opt .agg { font-size: 0.68rem; opacity: 0.7; }
+.popover .axis-pair { flex: 1 0 100%; display: flex; align-items: center; gap: 5px; }
+.popover .axis-pair em { font-style: normal; font-size: 0.76rem; color: var(--ink-2);
+                         flex: 0 0 8.5em; }
+.popover input[type="number"] {
+  width: 72px; font: inherit; font-size: 0.8rem; padding: 3px 6px;
+  border: 1px solid var(--axis); border-radius: 6px;
+  background: var(--surface); color: var(--ink);
+}
+.popover pre { flex: 1 0 100%; margin: 4px 0; padding: 8px; overflow-x: auto;
+               background: var(--wash); border-radius: 6px; font-size: 0.74rem; }
+.popover p { flex: 1 0 100%; margin: 2px 0; font-size: 0.8rem; color: var(--ink-2); }
+
+button.ghost {
+  border: 1px solid var(--axis); background: transparent; color: var(--ink-2);
+  border-radius: 7px; padding: 3px 10px; font: inherit; font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.breadcrumb { flex: 1 0 100%; margin: 2px 0 0; font-size: 0.8rem; color: var(--ink-2); }
+
+/* ── 卡片 ─────────────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--plane);
+  padding: 16px 18px 18px; margin: 0 0 22px;
+}
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+             margin-bottom: 12px; }
+.card-head .grow { flex: 1 1 auto; }
+.crumb { font-size: 0.78rem; color: var(--ink-2); width: 100%; }
+.typemark { font-size: 0.78rem; color: var(--neg); display: inline-flex;
+            align-items: center; gap: 8px; }
+
+.plot { position: relative; margin: 6px 0 2px; }
+.plot svg { width: 100%; height: auto; display: block; overflow: visible; }
+.axis-title { position: absolute; top: -2px; font-size: 0.74rem; color: var(--ink-2); }
+.axis-title.left { left: 0; }
+.axis-title.right { right: 0; }
+
+.axis { stroke: var(--axis); stroke-width: 1; }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.tick { fill: var(--ink-2); font-size: 10px; }
+.tick-right { text-anchor: start; }
+
+.mark-area { fill: var(--response-fill); stroke: var(--response-line);
+             stroke-width: 1.5; }
+.mark-line { stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.mark-bar { opacity: 0.92; }
+.partial { fill: var(--wash); pointer-events: none; }
+.hit { fill: transparent; }
+.hit:hover { fill: var(--wash); }
+
+/* 刷选条紧贴时间轴（图之下、图例之上）：刷的是时间，它该挨着时间轴。 */
+.brushbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+            margin: 2px 0 0; font-size: 0.78rem; color: var(--ink-2); }
+.brushbar input[type="range"] { flex: 1 1 140px; min-width: 0; max-width: 100%;
+                                height: 4px; }
+.brushbar .window { flex: 1 0 100%; text-align: center; }
+
+/* 图例居中，在刷选条下面 —— 它是图注，该在最后读到。 */
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px;
+          margin: 8px 0 2px; }
+.legend-item {
+  display: inline-flex; align-items: center; gap: 6px; border: 0;
+  background: transparent; color: var(--ink); font: inherit; font-size: 0.84rem;
+  cursor: pointer; padding: 2px 4px; border-radius: 6px;
+}
+.legend-item[aria-pressed="true"] { opacity: 0.42; text-decoration: line-through; }
+.legend-wrap { position: relative; display: inline-flex; align-items: center; }
+.mark-toggle { border: 0; background: transparent; color: var(--muted);
+               font: inherit; font-size: 0.7rem; cursor: pointer; padding: 2px 3px; }
+/* 换过画法的那一条画虚线下划线 —— 读的人得知道自己看到的不是默认画法。 */
+.legend-item[data-mark-changed="1"] .legend-name {
+  text-decoration: underline dotted; text-underline-offset: 3px;
+}
+.legend-wrap .popover { top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+                        min-width: 150px; }
+.analysis[data-stale="1"]::after {
+  content: "这段解读对应的是默认视图 —— 画法或筛选动过之后，图上的数以图为准。";
+  display: block; margin-top: 8px; color: var(--neg); font-size: 0.78rem;
+}
+.swatch { width: 16px; height: 3px; background: var(--c); border-radius: 2px; }
+.swatch.rect { height: 10px; }
+.swatch.area { height: 10px; background: var(--response-fill);
+               border: 1px solid var(--response-line); }
+
+.tip {
+  position: absolute; right: 0; top: 18px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px;
+  font-size: 0.82rem; display: flex; flex-direction: column; gap: 3px;
+  pointer-events: none; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+}
+.tip strong { color: var(--ink); font-size: 0.8rem; margin-bottom: 2px; }
+.tip em { font-style: normal; color: var(--ink-2); font-size: 0.74rem; }
+
+.notes ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.84rem;
+            color: var(--ink-2); }
+
+/* ── AI analysis ──────────────────────────────────────────────────── */
+
+.analysis { position: relative; margin: 14px 0 0; padding: 12px 14px;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--wash); }
+.analysis-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+                 margin-bottom: 8px; }
+.analysis-head .grow { flex: 1 1 auto; }
+.analysis .spark { color: var(--accent); }
+.analysis-title { font-size: 0.84rem; color: var(--ink-2); }
+.analysis .computed { font-size: 0.74rem; color: var(--ink-2);
+                      border: 1px dashed var(--axis); border-radius: 999px;
+                      padding: 1px 8px; }
+.linky { border: 1px solid var(--axis); background: var(--surface); color: var(--ink-2);
+         border-radius: 7px; padding: 3px 9px; font: inherit; font-size: 0.78rem;
+         cursor: pointer; }
+.analysis > .popover { right: 14px; left: auto; top: 42px; min-width: 320px; }
+.analysis .headline { margin: 0 0 6px; font-size: 0.95rem; }
+.analysis .stale { margin: 0 0 8px; color: var(--neg); font-size: 0.8rem; }
+/* 小节标题是英文小型大写 —— 产品骨架的一部分，不是正文。 */
+.section-label { margin: 10px 0 3px; font-size: 0.7rem; letter-spacing: 0.09em;
+                 color: var(--ink-2); font-weight: 600; }
+.analysis ul { margin: 0; padding-left: 18px; font-size: 0.88rem; }
+.analysis li { margin: 2px 0; }
+.analysis .empty { margin: 0; color: var(--muted); font-size: 0.88rem; }
+
+/* ── 年度表 ───────────────────────────────────────────────────────── */
+
+.yearly-wrap { margin: 14px 0 0; }
+.yearly { margin: 0; }
+.compare { font-size: 0.82rem; color: var(--ink-2); }
+.yearly .scroll { overflow-x: auto; margin-top: 6px; }
+.yearly table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+.yearly caption { text-align: left; font-size: 0.78rem; color: var(--ink-2);
+                  padding-bottom: 6px; }
+.yearly th, .yearly td { border-bottom: 1px solid var(--grid); padding: 5px 10px;
+                         text-align: right; white-space: nowrap; }
+.yearly th[scope="row"], .yearly thead th:first-child { text-align: left; }
+.yearly .agg-cell { color: var(--ink-2); font-size: 0.8rem; text-align: left; }
+.yoy { display: block; font-size: 0.72rem; }
+.yoy.up { color: var(--pos); }
+.yoy.down { color: var(--neg); }
+
+/* ── 异常胶囊 ─────────────────────────────────────────────────────── */
+
+.capsules { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.capsule {
+  border: 1px solid var(--neg); border-radius: 999px; padding: 4px 12px;
+  font-size: 0.84rem; color: var(--ink);
+}
+.capsule .why { color: var(--ink-2); font-size: 0.78rem; margin-left: 6px; }
+
+/* ── 自检没过：一张图都不画 ───────────────────────────────────────── */
+
+.refuse {
+  border: 2px solid var(--neg); border-radius: 12px; padding: 20px 22px;
+  background: var(--wash);
+}
+.refuse h2 { color: var(--neg); margin-bottom: 8px; }
+.refuse dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px;
+             font-size: 0.86rem; margin: 12px 0; }
+.refuse dt { color: var(--ink-2); }
+.refuse code { word-break: break-all; }
+
+@media (max-width: 720px) {
+  .wrap { padding: 18px 12px 60px; }
+  .card { padding: 12px 12px 14px; }
+  .tip { position: static; margin-top: 8px; }
+  .popover, .analysis > .popover { position: static; max-width: 100%;
+                                   box-shadow: none; }
+  .popover[hidden] { display: none; }
+  .page-head { grid-template-columns: 1fr; }
+  .response-y { grid-column: 1; grid-row: auto; }
+}

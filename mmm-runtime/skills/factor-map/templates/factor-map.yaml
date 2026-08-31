@@ -1,0 +1,91 @@
+# 因子映射 —— 照这份填，不要自创结构。
+# 落 artifacts/s2/factor-map.yaml。填法见 ../references/map.md。
+#
+# 这份文件里的每一个数字都来自一次工具运行的结果：**逐字誊抄，不四舍五入、不重算**。
+# 每一处抄来的数字用 source 指回它的出处。
+meta:
+  step: factor-map/map
+  skill: factor-map
+  generated: ""                       # 生成时间，带时区
+  grounding:
+    - { path: "data/published/coverage.yaml", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+    - { path: "data/published/manifest.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+  source: ""                          # 这份文件誊抄自哪一次运行的结果
+  confirmedAt: ""                     # 裁决那一步写上时间，不覆盖 generated
+
+summary:                              # 全部抄自运行结果，一个都不要自己数
+  total: 0                            # 活跃因子行总数
+  mapped: 0
+  ignored: 0
+  pending: 0
+  complete: false                     # total > 0 且 pending == 0
+  orphans: 0                          # 已发布但无因子行认领的指标数
+  suggested: 0                        # 至少有一个候选的待定行数
+
+# 一行 = 一个活跃因子行。
+rows:
+  - id: ""                            # 因子行编号，与因子树逐字一致
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""                     # 这一行要的指标
+    status: pending                   # mapped 有数据供给 | ignored 明确不做 | pending 还没定
+    metricType: X                     # Y | X | excluded。由目标表结构决定，这里只报不改
+    aggregation: sum                  # 抄因子树那一行的 aggregation，这里不改。
+                                      # sum | average | weighted_average | min | max | count | distinct_count
+
+    # 供给它的每一条数据。一行可以有多条（同一个因子拆在两个文件里是常事）；
+    # 一个指标只能出现在一行里——出现两次是发布环节的问题，退回上游修。
+    # 判成不做的行也要填上供给信息：正在考虑要不要恢复它的人，需要看见现在有什么数据。
+    suppliedBy:
+      - coverageId: ""
+        assetId: ""
+        assetName: ""
+        metric: ""                    # 数据侧的叫法，可以与 indicator 不同——那正是映射的意义
+        coverageStart: ""
+        coverageEnd: ""
+        rows: 0
+        boundBy: ""                   # human 人钉的 | auto 自动匹配的 | 空
+
+    ignoreNote: ""                    # 判成不做时**必填**。它是三个月后唯一能解释这个缺口的东西
+    decidedBy: ""                     # 人裁决后写 "human" 或人名；写了就钉住这一行
+    decidedAt: ""                     # 裁决时间，带时区
+    source: ""                        # 本行数字誊抄自结果里的哪一条
+
+    # 只有待定行才有。分数 ≥ 0.30，最多 5 个，按分数降序。
+    # 分数是算出来的：0.45×名称 + 0.35×路径 + 0.12×单位 + 0.08×覆盖。
+    # **不许重算，不许按感觉调整顺序。** 只有 reason 那一句可以改写得更好读。
+    candidates:
+      - coverageId: ""
+        metric: ""
+        assetName: ""
+        unit: ""
+        coverageStart: ""
+        coverageEnd: ""
+        score: 0.0
+        parts: { name: 0.0, path: 0.0, unit: 0.0, covered: 0.0 }
+        reason: ""                    # 措辞按分数分档：≥0.6 很可能匹配 / ≥0.45 可能匹配 / 其余 弱匹配
+
+# 已发布但没有任何活跃因子行认领的指标。**这里只列，不裁决**——
+# 采纳或驳回属于因子树。响应指标永远不出现在这里。
+orphans:
+  - coverageId: ""
+    metric: ""
+    assetName: ""
+    l1: ""
+    l4: ""
+    rows: 0
+    note: "由因子树的采纳/驳回处理，不在本交付物裁决"
+
+# 名称歧义：一个指标名在很多行里都出现过，但 L4 对不上。
+# 它不是无人认领——按无人认领去采纳会造出一个和已有因子重复的行。
+ambiguous:
+  - metric: ""
+    matchesRows: 0                    # 有多少行声明了同名指标
+    note: "名称歧义，需要指定 L4"
+
+# 快速索引，内容与 rows[].ignoreNote 一致。
+ignores: {}                           # {因子行编号: 不做的理由}

@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""mmm — the one command a skill types.
+
+    mmm tool <id> [args]          run a computation
+    mmm app <name> [args]         run a production line (charts | workbook | report)
+    mmm script <name> [args]      run a runtime script (state | gate_check | daily_report | …)
+    mmm doctor [workspace]        what this machine can run
+    mmm where                     which runtime this resolved to, and why
+
+Why this exists. A skill runs on a machine it knows nothing about, and three
+properties of the *installation* used to leak into every command line:
+
+* the agent's cwd is the engagement directory, never the plugin, so
+  `python3 -m apps.workbook` raises ModuleNotFoundError — always, not sometimes
+* `<plugin>` was a placeholder nothing substitutes: `CLAUDE_PLUGIN_ROOT` is not
+  in the agent's environment, and Enact never passes the path either
+* the engine lives in a venv that is not on PATH
+
+Those are resolved here, once, instead of in ninety-odd command lines spread
+across the skills. A skill names *what* it wants computed; where the runtime
+happens to be installed is not its business.
+
+Stdlib only, and deliberately compatible with an old system python: this script
+resolves the runtime and hands off, so it must run on the interpreter that
+happens to be on PATH — the real work then happens under the venv.
+"""
+from __future__ import annotations
+
+import os
+import sys
+
+CONFIG = os.path.join(os.path.expanduser("~"), ".enact", "mmm.yaml")
+MARKER = os.path.join(".claude-plugin", "plugin.json")
+
+APPS = ("charts", "workbook", "report")
+
+
+def die(message, code=3):
+    """Refuse loudly. Never guess a root — a wrong guess produces a confident
+    result over the wrong tree, which is the failure this whole entry point
+    exists to remove."""
+    sys.stderr.write("mmm: %s\n" % message)
+    raise SystemExit(code)
+
+
+# ── locating the runtime ─────────────────────────────────────────────
+
+def is_checkout(root):
+    return os.path.isfile(os.path.join(root, MARKER))
+
+
+def runtime_dir_from_config():
+    """`runtime_dir` out of ~/.enact/mmm.yaml, without a YAML library.
+
+    `shared/lib/yamlio.py` cannot be used here: it lives inside the runtime we
+    are still looking for. Three flat keys do not need a parser.
+    """
+    try:
+        with open(CONFIG, encoding="utf-8") as handle:
+            for line in handle:
+                key, sep, value = line.partition(":")
+                if sep and key.strip() == "runtime_dir":
+                    return value.strip().strip("'\"") or None
+    except OSError:
+        return None
+    return None
+
+
+def candidates():
+    """Where to look, best evidence first.
+
+    `$MMM_HOME` leads because it is the only source that is still correct when
+    the shim was installed under a different user's home — which is what happens
+    when a server runs its daemon as a service account.
+
+    Then this file's own location, because it is not a pointer at a runtime: it
+    *is* one. Invoking `<somewhere>/scripts/mmm` and being served a different
+    checkout would be indefensible, and `~/.enact/mmm.yaml` can be stale — it
+    is a machine-level note written by whichever `enact mmm setup` ran last.
+    """
+    return (
+        ("$MMM_HOME", os.environ.get("MMM_HOME")),
+        ("scripts/mmm 自身位置", os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+        ("shim", os.environ.get("MMM_SHIM_ROOT")),
+        (CONFIG, runtime_dir_from_config()),
+    )
+
+
+def resolve():
+    """(root, source) for the first candidate that is a real checkout.
+
+    realpath, not abspath: a symlinked subdirectory would otherwise put the root
+    on the symlink's side and send every later lookup — shared/lib, the manifest,
+    knowledge/, .venv — into the wrong tree.
+    """
+    tried = []
+    for source, value in candidates():
+        if not value:
+            continue
+        root = os.path.realpath(os.path.expanduser(value))
+        if is_checkout(root):
+            return root, source
+        tried.append("%s → %s" % (source, root))
+    die("找不到 runtime。%s\n"
+        "     装一次：enact mmm setup --runtime-dir <仓>/mmm-runtime\n"
+        "     或临时指定：MMM_HOME=<runtime 目录> mmm where"
+        % ("试过：" + "；".join(tried) if tried else "没有任何线索可试。"))
+
+
+# ── interpreters ─────────────────────────────────────────────────────
+
+def venv_python(root):
+    for parts in (("bin", "python"), ("Scripts", "python.exe")):
+        candidate = os.path.join(root, ".venv", *parts)
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def engine_python(root):
+    """The interpreter that owns the engine.
+
+    `MMM_ENGINE_INTERPRETER` names a path and is honoured as one — Enact's
+    setup has always documented it that way (`server/internal/mmm/setup.go`).
+    """
+    explicit = os.environ.get("MMM_ENGINE_INTERPRETER")
+    if explicit:
+        return explicit
+    return venv_python(root)
+
+
+def hand_off(argv, env=None):
+    """Replace this process. Exit codes, stdout and signals belong to the real
+    tool, not to a wrapper that paraphrases them."""
+    environ = dict(os.environ) if env is None else env
+    try:
+        os.execve(argv[0], argv, environ)
+    except OSError as error:
+        die("跑不起来 %s：%s" % (argv[0], error))
+
+
+# ── verbs ────────────────────────────────────────────────────────────
+
+def verb_tool(root, args):
+    if not args:
+        die("mmm tool <id> [参数]   —— 全部工具：mmm tool list")
+    binary = os.path.join(root, ".venv", "bin", "mmm-tool")
+    if os.path.isfile(binary):
+        hand_off([binary] + args)
+    # `pip install -e tools/engine` is what puts mmm-tool in the venv, so its
+    # absence means the engine was never installed here. Handing off to
+    # `-m mmm_engine.cli` anyway would answer with a raw ModuleNotFoundError,
+    # which reads like a broken engagement instead of an unfinished install.
+    explicit = os.environ.get("MMM_ENGINE_INTERPRETER")
+    if explicit:
+        hand_off([explicit, "-m", "mmm_engine.cli"] + args)
+    die("引擎还没装到 %s。\n"
+        "     装一次：enact mmm setup   （或 %s -m pip install -e %s）\n"
+        "     这台机器缺什么：mmm doctor"
+        % (os.path.join(root, ".venv"),
+           venv_python(root) or "python3",
+           os.path.join(root, "tools", "engine")))
+
+
+def verb_app(root, args):
+    """Run a production line from any cwd.
+
+    PYTHONPATH rather than `cd <plugin>`: the caller's relative paths (`--out
+    ./书.xlsx`) still mean what the caller meant. Changing cwd would silently
+    reinterpret them against the plugin directory.
+    """
+    if not args:
+        die("mmm app <%s> [参数]" % " | ".join(APPS))
+    name, rest = args[0], args[1:]
+    if not os.path.isdir(os.path.join(root, "apps", name.partition(".")[0])):
+        die("没有这条生产线：%s（有的是 %s）" % (name, "、".join(APPS)))
+    python = venv_python(root) or sys.executable
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join([root] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    hand_off([python, "-m", "apps." + name] + rest, env)
+
+
+def script_path(root, name):
+    """`scripts/<name>.py`, falling back to a skill's own scripts directory —
+    `read_client_tree` lives under skills/factor-tree/scripts/."""
+    stem = name[:-3] if name.endswith(".py") else name
+    direct = os.path.join(root, "scripts", stem + ".py")
+    if os.path.isfile(direct):
+        return direct
+    skills = os.path.join(root, "skills")
+    for skill in sorted(os.listdir(skills)) if os.path.isdir(skills) else []:
+        candidate = os.path.join(skills, skill, "scripts", stem + ".py")
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def verb_script(root, args):
+    if not args:
+        die("mmm script <名字> [参数]   例：mmm script state list")
+    path = script_path(root, args[0])
+    if not path:
+        die("没有这个脚本：%s" % args[0])
+    hand_off([venv_python(root) or sys.executable, path] + args[1:])
+
+
+def verb_where(root, source):
+    """Everything a person needs to see when a command went to the wrong place."""
+    shim = os.path.join(os.path.expanduser("~"), ".local", "bin", "mmm")
+    python = engine_python(root)
+    tool = os.path.join(root, ".venv", "bin", "mmm-tool")
+    print("runtime")
+    print("  %-22s %s" % ("root", root))
+    print("  %-22s %s" % ("解析自", source))
+    print("  %-22s %s" % ("版本", os.path.join(root, MARKER)))
+    print("\n解释器")
+    print("  %-22s %s" % ("引擎", python or "还没装 —— 跑 mmm doctor"))
+    print("  %-22s %s" % ("mmm-tool", tool if os.path.isfile(tool) else "MISSING"))
+    print("\n入口")
+    print("  %-22s %s" % ("shim", shim if os.path.isfile(shim) else "MISSING —— mmm script install_shim"))
+    print("  %-22s %s" % ("当前用户家目录", os.path.expanduser("~")))
+    print("\n环境变量")
+    for name in ("MMM_HOME", "MMM_SHIM_ROOT", "MMM_ENGINE_INTERPRETER", "MMM_KNOWLEDGE_DIR"):
+        print("  %-22s %s" % (name, os.environ.get(name) or "(未设)"))
+    print("\n配置")
+    print("  %-22s %s" % (CONFIG, runtime_dir_from_config() or "(没有这个文件或没记 runtime_dir)"))
+    others = ["%s → %s" % (src, os.path.realpath(os.path.expanduser(val)))
+              for src, val in candidates()
+              if val and os.path.realpath(os.path.expanduser(val)) != root]
+    if others:
+        print("\n注意：另有线索指向别的目录，本次没用它们")
+        for line in others:
+            print("  %s" % line)
+    return 0
+
+
+VERBS = ("tool", "app", "script", "doctor", "where")
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0 if argv else 2
+    verb, args = argv[0], argv[1:]
+    if verb not in VERBS:
+        die("不认识的动词 %r（有的是 %s）" % (verb, "、".join(VERBS)), 2)
+
+    root, source = resolve()
+    if verb == "where":
+        return verb_where(root, source)
+    if verb == "doctor":
+        return verb_script(root, ["doctor"] + args)
+    if verb == "tool":
+        return verb_tool(root, args)
+    if verb == "app":
+        return verb_app(root, args)
+    return verb_script(root, args)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

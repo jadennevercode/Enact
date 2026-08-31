@@ -1,0 +1,45 @@
+# tools/catalog/data.cluster-enum.yaml
+id: data.cluster-enum
+kind: data
+purpose: 找出同一列里长得几乎一样、其实是同一个东西的写法，提出合并建议——只是建议，绝不动数据。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」——发现某一列的取值五花八门时用它，
+  或者 data.conform 报出封闭取值清单被违反、需要弄清那些值到底是不是错别字时用它。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --asset
+    required: true
+    what: 这批交付的编号
+  - flag: --column
+    required: true
+    what: 要聚类的原始列名
+  - flag: --table
+    required: false
+    what: 只看这批交付里的某一张表；不给就把这批交付的所有表合起来统计
+output:
+  path: data/clean/{asset}/enum-proposals.json
+  shape: |
+    asset          这批交付的编号
+    column         被聚类的原始列名
+    distinct       这一列去重后的取值个数
+    groups[]       每一组建议一项，按覆盖行数从多到少排
+      canonical    建议采用的标准写法（取组内覆盖行数最多的那个）
+      method       是靠什么归到一组的（去空格、大小写、编辑距离等）
+      rows         这一组合计覆盖多少行
+      members[]    组内成员，每项 {raw 原始写法, rows 该写法的行数}；第一项就是 canonical
+      status       固定是 "proposed"
+stdout: |
+  delivery-a.渠道 · 37 distinct value(s)
+  6 group(s) proposed, heaviest first:
+    现代渠道               ← 现代渠道 , 现代 渠道, 現代渠道                 (whitespace, 8210 rows)
+    电商                   ← 电商(EC), EC                                (alias, 5104 rows)
+
+  A proposal, not an edit. Nothing enters the enum map until a human
+example: ~/.local/bin/mmm tool data.cluster-enum --workspace <工作区> --asset delivery-a --column 渠道
+notes: |
+  它只提建议。要真正生效，得有人把这一组写进 data/clean/<asset>/enum-map.yaml
+  并把 status 改成 accepted——只有 accepted 的条目才会被编译进清洗脚本。
+  留在 proposed 的条目是完全无效的，这是故意设计：没人看过的猜测不许进数据。
+  跨交付通用的同义词（比如「现代渠道 = Modern Trade = KA」这类聚类算法永远发现不了的）
+  该写在 metadata/schema/enums/ 的 aliases 里，一次声明所有交付共用。
+  这个列在任何一张表里都不存在时判失败并点名。

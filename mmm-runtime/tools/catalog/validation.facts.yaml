@@ -1,0 +1,50 @@
+# tools/catalog/validation.facts.yaml
+id: validation.facts
+kind: validation
+purpose: 把每张卡在默认视角下压成叙述时必须引用的那些数——起止、峰谷、最大单期变动、最长连跑、缺口、与响应的相关性、年度表。
+when: |
+  业务校验与签核 · 「一个因子路径一张卡」，紧跟 validation.panel 之后。
+  写给客户看的解读必须从这份结果里引数，不许看着图说，也不许自己重算。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/validation-facts.json
+  shape: |
+    facts[]                  每张卡一项：
+      card · l1 · l2 · l3    这张卡是谁；card 就是 L1›L2›L3 完整路径
+      periods[]              期间列表
+      responseMetric         响应叫什么
+      response               响应自己的数字块
+      drivers[]              这张卡默认那几条指标各自的数字块，每项：
+        metric · agg         指标名，以及它是求和还是取平均
+        unit · numberFormat · aggSymbol
+        observedPeriods · missingPeriods
+        first / last         {period, value}，首末观测
+        peak / trough        {period, value}
+        changeFirstToLastPct 首到末的变化百分比，保留一位；首值为 0 时缺席
+        largestMove          最大单期变动 {from, to, delta, deltaPct}
+        longestRun           最长同向连续，≥3 期时出现 {direction, from, to, periods}
+        gaps[]               缺值的期间
+        correlationWithResponse  与响应的相关系数，保留三位；共同覆盖不足 3 期时为 null
+      yearly                 年度表与逐年同比
+    narrationStandard        叙述必须满足的标准原文
+stdout: |
+  4 card(s) reduced to facts
+
+  Narrate from these. Every number in the deliverable must be one of
+  them, quoted — not recomputed, not rounded differently, not estimated.
+example: ~/.local/bin/mmm tool validation.facts --workspace <工作区>
+notes: |
+  必须先跑 validation.panel，否则判失败并提示。
+
+  算的是每张卡的**默认视角**（不筛选、最细粒度、默认那几条指标）—— 也就是读的人第一眼
+  看到的那一幅。写进交付物的解读因此和页面初始状态说的是同一件事；读的人动过筛选之后，
+  页面会提示解读对应的是默认态。
+
+  任何一张卡压出了空的数字块都会判失败并点名 —— 一份没有数的数字块什么都引不出来，
+  此时不许在它上面写解读。
+
+  correlationWithResponse 是唯一允许被引用的相关性；响应曲线自己没有这一项。
+
+  这个工具存在的理由就是隔开「看图说话」和「读数说话」：模型看图会说出它以为图上该有的
+  东西，读算好的数才会说出数据实际发生的事。

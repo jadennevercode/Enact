@@ -1,0 +1,121 @@
+# Test Plan —— TestIntent / TestCase / TestRunPlan / TestResult
+# 编辑权限：qa 环节拥有本文件。
+#
+# 铁律：test_intents 只依据已批准的 contract.yaml 生成，且在读实现之前冻结。
+# 之后才允许读实现来绑定 endpoint / fixture / locator / 环境。
+# 从实现反推的测试永远通过，也永远发现不了需求被误解的情况。
+
+work_item: WI-000
+based_on_contract_version: 1
+
+# ---------------------------------------------------------------------------
+# risk_based_selection：按风险选，不要求每次平均覆盖（主规格 §15 原话）。
+# 记下本轮做了哪几类、有意不做哪几类及理由——不写的话，省略就是静默省略，
+# Release 也看不见这个判断。
+# ---------------------------------------------------------------------------
+risk_based_selection:
+  risk_profile: []      # 本次触及的风险面：数据破坏 / 资金 / 权限 / 不可逆 / 影响面广
+  covered: []           # 本轮做的类别：正常 异常 边界 兼容 性能 安全 恢复 运维准备
+  skipped: []           # 有意不做的 + 理由，例如 "性能：本次不改热路径，无新增查询"
+
+intents_frozen_at: null       # 冻结时间。它晚于任何实现文件的读取时间就是流程出错了
+
+# ---------------------------------------------------------------------------
+# Test Intent：预期行为。只写"应该发生什么"，不写"怎么测"。
+# 每条必须绑定一个 criterion 编号——找不到来源编号的预期是凭空想象出来的。
+# ---------------------------------------------------------------------------
+test_intents:
+  - id: TI-001
+    criterion: "1.1"
+    expected_behavior: ""     # 用业务语言描述可观察结果
+    # unit | schema | static | api-contract | integration | browser | e2e |
+    # performance | security | manual
+    strategy: unit
+    execution_class: fast     # fast | integration | browser | release | heavy | human
+    rationale: ""             # 为什么选这个策略
+
+# ---------------------------------------------------------------------------
+# Test Case：绑定实现之后的可执行形式。这一步才允许读代码。
+# ---------------------------------------------------------------------------
+test_cases:
+  - id: TC-001
+    intent: TI-001
+    preconditions: ""
+    environment: ""
+    steps: []
+    expected: ""              # 必须与 TI-001 的 expected_behavior 一致，不允许在这里"调整"
+    # --- 调度输入（Scheduler 的确定性依据，缺了就无法复现或审计排期决策）---
+    criticality: medium       # low | medium | high —— 命中关键路径或 Gate 必测的填 high
+    data_sensitivity: synthetic  # synthetic | masked | real —— real 会限制可运行的环境与时段
+    env_exclusive: false      # 是否需要独占环境（端口独占、全量数据、共享状态）
+    parallel_safe: true       # 能否与其他用例并行。与 env_exclusive 一起决定并行编排
+    human_dependency: ""      # 依赖的人工前置动作；无则留空
+    binding: ""               # endpoint / fixture / locator。browser 测试用语义 locator：
+                              # ✅ role=button, name=确认导出
+                              # ❌ .btn-primary > span:nth-child(2)   （CSS 路径不是业务契约）
+
+# ---------------------------------------------------------------------------
+# Run Plan：调度。执行类别决定什么时候跑、能不能延后。
+#
+#   fast        lint/schema/unit/关键 API contract —— 每次变更立即跑，失败即停
+#   integration 容器化服务、数据库组合、兼容性 —— 按受影响组件选择
+#   browser     多浏览器、可访问性、视觉行为 —— 关键路径立即，广泛矩阵可分片
+#   release     端到端旅程、回退、发布验证 —— Gate 前强制，不允许因成本静默跳过
+#   heavy       load / security / 大数据量回归 —— 排队，关键风险可提级
+#   human       UX、风险接受、业务合理性 —— 指派责任人和期限，不伪装成自动测试
+# ---------------------------------------------------------------------------
+run_plan:
+  - execution_class: fast
+    cases: []
+    runner: ""                # 具体执行命令 + 结果产物路径。执行与解释分开：
+                              # 按 runner 声明执行 → 只收集产物 → 另起一步解释结果
+    resource_profile: light   # light | standard | heavy —— 决定排队与并发
+    run_window:
+      when: 每次变更
+      not_before: null        # 最早可跑时间（off-peak 排期用）
+      deadline: null          # 最晚必须出结果的时间
+    max_workers: 4            # 并发度。超过 config.yaml 的 test_policy.budget 需批准
+    shards: 1
+    retry_policy: 不重试       # 重试通过 ≠ 稳定。重试要显式声明并记录
+    skippable: false
+  - execution_class: release
+    cases: []
+    runner: ""
+    resource_profile: heavy
+    run_window:
+      when: Release Gate 前
+      not_before: null
+      deadline: null
+    max_workers: 1
+    shards: 1
+    retry_policy: 不重试
+    skippable: false          # release 类不可静默跳过
+
+# ---------------------------------------------------------------------------
+# regression_set：本轮必须重跑的既有用例。
+# 没有这一节，"本次改动有没有弄坏别的东西"这个问题在整条链上无人负责——
+# 一次通过全部预检的发布，可以完全没有验证过既有功能。
+#
+# 选择依据要写出来，否则无法判断选得够不够：
+#   触及共享路径 → 该路径的既有用例全跑
+#   改了公共接口 → 所有消费方的契约用例
+#   只动了本功能私有代码 → 可以只跑同模块用例
+# ---------------------------------------------------------------------------
+regression_set:
+  selection_basis: ""
+  cases: []
+  results: []                 # 与 results 同结构；为空且本次触及共享路径 = 预检 FAIL
+
+# ---------------------------------------------------------------------------
+# Result：失败必须归因到五个来源之一。
+# "重试后通过" 不等于 "稳定"——标 flaky 并记录，不要当作通过。
+# ---------------------------------------------------------------------------
+results:
+  - case: TC-001
+    run_at: null
+    duration_sec: null        # 记下来才能积累历史；"AI 基于历史建议排期"需要这个原料
+    status: pass              # pass | fail | flaky | skipped | blocked
+    # requirement | design | implementation | environment | test
+    attribution: null
+    evidence_ref: ""          # 日志、trace、DOM snapshot 的位置
+    follow_up: ""             # defect ID / AMD ID / 无

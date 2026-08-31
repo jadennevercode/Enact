@@ -1,0 +1,72 @@
+# tools/catalog/validation.panel.yaml
+id: validation.panel
+kind: validation
+purpose: 把已发布长表窄化成图册要的那几张卡，并给每个指标盖上它自己的汇总口径、单位与画法。
+when: |
+  业务校验与签核 · 「一个因子路径一张卡，把驱动画在销量上」的第一步。
+  validation.facts、validation.read、validation.anomalies 和图册都读它的结果。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --max-cells
+    required: false
+    what: |
+      超过这么多条曲线就判失败，默认 4000。失败时会点名是哪个维度炸的。
+      一份二十兆的「成功」比一次停下来糟得多。
+output:
+  path: data/derived/validation-panel.json
+  shape: |
+    periods[]       全部月份，整数、升序，是所有曲线共用的时间轴
+    grains[]        四档时间粒度各自撑不撑得起：{id, label, supported, why}
+    dict            字典编码表：brand / channelType / region / source / l4–l8 / metric
+    cards[]         每个 L1›L2›L3 因子路径一张卡：
+      path          完整路径，是这张卡的唯一键。**同名 L3 挂不同父节点不合并**
+      metrics[]     这张卡下的全部指标
+      defaultMetrics[]  没人选时画哪六条（按绝对值总量取前六）
+      levels        这张卡在 l4–l8 各层上真实出现过的取值
+    series[]        每个 (卡, 品牌, 渠道, 渠道明细, 区域, 来源, l4–l8, 指标) 一条：
+      c/b/ct/r/s/l4..l8/m  字典编码，-1 表示这一列是空的
+      v[]           与 periods 一一对齐的值，缺的月份是 null（不是 0）
+    responseSeries[]  响应自己的曲线，结构同上
+    response        {metric, present, meta} —— 响应是谁、它的汇总口径是什么
+    metricMeta      每个指标：{agg, aggSymbol, unit, currency, numberFormat,
+                    semanticType, role, axis, source, aggNote?}
+                    **source 说的是这个汇总口径从哪来**：
+                      tree        因子树里人定的（唯一过了确认门的那一份）
+                      coverage    指标登记表里的 —— 那一列本身是按名字猜出来存下来的
+                      classifier  现场按名字推断的
+                      conflict    两个因子定得不一致，本轮按取平均
+                    aggNote 仅当因子树定的口径归约做不了、被替换过时出现
+    selfCheck[]     内嵌进页面的验算题，页面打开时先重放一遍再作图
+    checksum        内容校验和，认得出这一页被人手改过
+    notShown[]      有哪些维度没做成筛选，以及为什么
+    dropped         更早的层否掉了多少个指标
+  also: data/derived/validation-foldcheck.json —— 给 CI 用的全量黄金状态，不内联
+stdout: |
+  4 card(s) · 61 cell(s) over 35 period(s)
+  response 本品销量 (Σ), 24 cell(s) behind it
+  grains available: 月、季、半年、年
+  284 golden state(s) written to data/derived/validation-foldcheck.json; 32 ride in the page
+example: ~/.local/bin/mmm tool validation.panel --workspace <工作区>
+notes: |
+  **响应只认 metric_type == Y。** 认不出就判失败并让人去数据处理那一步标 KPI 角色，
+  绝不退化成把整张表的指标加起来 —— 人民币、摄氏度、比率加到一起再报异常，是平台踩过
+  的坑，任何非参考项目走的都是那条错路。标了多条 Y 也判失败：响应只能有一条，在这里挑
+  等于让每个界面各挑各的。
+
+  **汇总口径的权威顺序是：因子树 > 指标登记表 > 名字分类器。**
+
+  因子树 `artifacts/s1/factor-tree.yaml` 的 rows[].aggregation 是整条链路上唯一由人定、
+  且过了确认门（p_aggregation_declared）的那一份。指标登记表 coverage.yaml 看起来更靠近
+  数据，但它那一列是 dataeng/coverage.py 调 classify_indicator 按名字猜出来再存下来的 ——
+  存过一遍的猜测还是猜测。每个指标都带着 source 说明自己是哪一档，页面上印出来。
+  一条被加起来的摄氏度和一条被加起来的花费，在图上长得一模一样。
+
+  归约的算子集是封闭的四个：sum / average / min / max。因子树允许人定
+  weighted_average、count、distinct_count，做不了的**在这个工具里**替换掉并写进
+  aggNote —— 不在页面里替换，因为页面一旦开始重新解释口径，它就在替人做决定了。
+
+  没有 --by。页面会在浏览器里按读的人选的条件当场重算，所以「切哪些片」这个决定已经
+  不存在了；这个工具负责把决定都做完，页面只做归约。归约的口径写在
+  shared/fold-contract.md，两端逐位比对过才允许出页面。
+
+  上游（因子映射、数据质量）已经否掉的因子不进面板。

@@ -1,0 +1,35 @@
+# tools/catalog/report.project-profile.yaml
+id: report.project-profile
+kind: report
+purpose: 把项目档案渲染成一份给客户看的 Word —— 项目总结、模型口径、范围矩阵、规模提醒、澄清记录。
+when: |
+  项目档案 · 「框定并锁定项目档案」，在 project-profile.yaml 写好之后、交验收之前。
+  档案改一次就要重新跑一次：Word 里记着它出自哪一版，对不上检查就不过。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - path: artifacts/s1/project-profile.yaml
+    why: 全部内容都来自它。这个工具不算数、不判断、不补内容
+output:
+  path: artifacts/s1/project-profile.docx
+  shape: |
+    八章：
+      一 项目总结          profile.summary 原文
+      二 要回答的生意问题   objective + projectIntro
+      三 模型口径          响应指标 · 时间颗粒度 · 回溯区间
+      四 模型范围          三轴取值表 + 被选中的范围行表 + 叉乘全集与实际的差
+      五 范围规模提醒       产品线 / 渠道 / 地区组数对照建议值，超了写清工期代价
+      六 交付物与范围外事项
+      七 澄清记录          已定的假设（标出哪些是我方预设的）+ 未决问题
+      八 这份档案的来源     uploaded 还是 elicited · 读了哪些材料多少字 · 有没有截断
+    文档属性里带 sourceHash，指向生成时那一版 project-profile.yaml。
+run: |
+  ~/.local/bin/mmm app report project-profile --workspace <工作区>
+requires: |
+  Node 与 docx 这个包。缺了会直接报错说清楚怎么装，不会降级成别的格式——
+  一份"因为没装 Node 所以变成了 Markdown"的交付物，收件人不会知道它本该是什么样子。
+  `~/.local/bin/mmm doctor` 会报这台机器缺什么。
+notes: |
+  内容在 Python 那边组装（apps/report/project_profile.py），Word 的格式在
+  JavaScript 那边（apps/report/render_docx.js）。分工是故意的：中英对照表、
+  工作区、源文件指纹本来就在 Python 这边，尤其是指纹——在 JS 里重写一遍 YAML
+  写出器只会得到第二个说法。

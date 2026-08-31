@@ -1,0 +1,42 @@
+# tools/catalog/data.claim.yaml
+id: data.claim
+kind: data
+purpose: 把发布长表里的每个指标挂到它供给的那一行因子上，并把两边挂不上的都点出来。
+when: |
+  发布数据集 · 「发布为项目的建模长表」，紧跟 data.publish 之后。
+  它产出的覆盖清单是因子映射那一步的输入。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/published/coverage.yaml
+  shape: |
+    records[]  每一条是「一批交付 × 一个指标」供给一行因子：
+      id               稳定编号，由指标与因子路径算出，重新发布也不会变
+      treeRowId        它供给的那行因子的编号；空字符串表示孤儿——数据有、因子树从没要过
+      assetId          来自哪批交付
+      assetName        那批交付的名字
+      metric           数据侧的指标名
+      metricType       指标角色（Y / spending / …）
+      l1 · l2 · l3 · l4 数据侧的因子路径
+      semanticType     语义类型（money / volume / other 等）
+      unit             单位
+      currency         币种，可为空
+      aggregation      跨期汇总方式，默认 sum
+      numberFormat     数字展示格式
+      ruleVersion      判定规则的版本
+      coverageStart    有数据的最早期间
+      coverageEnd      最晚期间
+      rows             行数
+      boundBy          绑定来源："auto" 每次重算，"human" 是人定的、重新发布也保留
+stdout: |
+  34 metric(s) claimed a factor row
+
+  3 orphan(s) — real data the tree never asked for:
+      电商流量 :: UV
+example: ~/.local/bin/mmm tool data.claim --workspace <工作区>
+notes: |
+  两头都会报：孤儿（数据有、因子树没要）和无供给（因子树要了、数据没来）。
+  孤儿要么被采纳进因子树，要么被明确排除，绝不会被当成项目指标悄悄展示。
+  必须先有发布长表，也必须先有因子树——没有因子树时每个指标都是孤儿，它会直接判失败。
+  ⚠️ 流程定义把 data/published/coverage.yaml 列在「发布为项目的建模长表」的产出里，
+  但那一步的 computed_by 只写了 data.publish → long.parquet，没写这份覆盖清单由谁产出。

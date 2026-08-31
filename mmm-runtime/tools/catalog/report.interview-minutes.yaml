@@ -1,0 +1,33 @@
+# tools/catalog/report.interview-minutes.yaml
+id: report.interview-minutes
+kind: report
+purpose: 把整理好的访谈纪要渲染成 Word，一场访谈一份 —— 发回给受访人确认的那一份。
+when: |
+  访谈 · 「整理访谈纪要」，在 minutes-<来源>.md 写好之后、交验收之前。
+  纪要改一次就要重新跑一次。流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - path: artifacts/s1/interview/minutes-*.md
+    why: 全部内容都来自它们。这个工具不算数、不判断、不补内容
+output:
+  path: artifacts/s1/interview/minutes-<来源>.docx
+  shape: |
+    抬头表        访谈对象 · 访谈日期 · 参与人
+    每一段         段标题（带它对应的题号，或标「提纲之外，受访人主动提出」）
+                  归纳两三句 + 逐字原话 + 对因子树的影响
+    本场没有覆盖到的问题
+    这份纪要的来源
+    文档属性里带 sourceHash，指向生成时那一版 minutes-<来源>.md。
+run: |
+  ~/.local/bin/mmm app report interview-minutes --workspace <工作区>
+  # 一次生成全部纪要，所以不接受 --out
+requires: |
+  Node 与 docx 这个包。缺了会直接报错说清楚怎么装，不会降级成 Markdown。
+  `~/.local/bin/mmm doctor` 会报这台机器缺什么。
+notes: |
+  **一场访谈一份文件，按文件名配对**（`minutes-数据团队.md` → `minutes-数据团队.docx`）。
+  不要把几场并成一份：多份并在一起会串味，管理层那场的说法会被读成执行层说的，
+  而两者的可信度不一样。
+
+  **原话逐字保留，不改写成归纳。** 纪要要发回给受访人确认，而受访人认得出自己有没有
+  说过那句话；后面每一条因子改动建议也都要靠这些原话撑着。
+  原话本身已经带引号的不会再套一层。

@@ -1,0 +1,648 @@
+# 饮料行业的 L3/L4 与候选指标 —— 因子树推导的行业起底。
+#
+# 这个文件里没有一个 ROI / 贡献数字。数字在同目录的 factor-ranges.json，因为它们
+# 属于一次具体交付（Danone Mizone），而结构属于这个行业。一份规则只有一个权威形态：
+# 结构问这里，数字问那里，两边不重复。
+#
+# 目录即隔离：只有 industry 锚点是 food-bev/beverage 的工作区读得到本文件。
+# 护肤项目读不到——这是构造，不是策略。
+#
+# 每行带 `aggregation`：这个指标往上滚（周→月、省→大区）的时候怎么合并。它是指标
+# 本身的属性，不是某个项目的选择，所以它属于这里而不是每个项目各填一遍。判断标准
+# 只有一句：把两行加起来还有没有业务含义——有就 sum，没有就 average。
+# 对铺货率、份额、指数求和会造出一个没有意义的数，而模型拟合的就是那个数。
+#
+# 几行带 `aggNote`：口径决定归属，名字不决定。"已投放冰柜个数"记的是期末存量就
+# average，记的是当期新增就 sum——这类行把两种口径都写在备注里，项目按客户实际报
+# 数的口径覆盖它。
+id: food-bev/beverage/factor-tree
+kind: factor_tree
+scope: industry
+anchor: { l1: food-bev, l2: beverage }
+version: 2
+source: "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-bev-factor-tree（94 行） ← Assets/Default Factor Tree.xlsx"
+provenance:
+  project: "Danone Mizone"
+  kind: case
+  packs: 1
+  note: "结构可复用；数字见 factor-ranges.json，那是一个案例的数字"
+skeleton: methodology/factor-tree-skeleton.yaml
+numbers: industry/food-bev/beverage/factor-ranges.json
+counts:
+  rows: 94
+  l4: 45
+  l3: 17
+  l2: 8
+  l1: 4
+cleanup:
+  - "aggregation 是 2026-08-10 按规则补的（比例/份额/指数/价格取平均，流量与花费求和）：单人一次判定，未经第二个项目独立确认，遇到反例就改并把反例记进来"
+  - "L3 «复购粘性 （快销没有）» → «复购粘性»；括注移入 note 字段"
+  - "区间 «‘-5%~0%» 带 Excel 文本转义前导单引号 → 已去除"
+  - "L4 «POSM和陈列物料（POSM&Rack)» 括号不配平（全角开半角闭）→ 补成全角闭括号"
+rows:
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "市场规模"
+    indicator: "品类全渠道销量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "市场规模"
+    indicator: "品类社媒声量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "市场规模"
+    indicator: "品类社媒互动量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "特定属性趋势"
+    indicator: "现调饮料外卖销量"
+    aggregation: sum
+    drilldown: "by platform"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "季节性趋势"
+    indicator: "温度"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "季节性趋势"
+    indicator: "降水量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "场景化趋势"
+    indicator: "户外相关社媒声量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "品类趋势"
+    l4: "场景化趋势"
+    indicator: "高铁客运量 +民航客运量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "宏观环境"
+    l4: "经济周期"
+    indicator: "消费者信心指数"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "宏观环境"
+    l4: "经济周期"
+    indicator: GDP
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "宏观环境"
+    l4: "渠道变迁"
+    indicator: "便利店数量"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "宏观环境"
+    l4: "结构性突变因素"
+    indicator: "外卖大战时间点"
+    aggregation: max
+    aggNote: "事件标记，滚上去只看发生过没有"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品价格变化"
+    indicator: "本品相对竞品标价"
+    aggregation: average
+    drilldown: "by competitor"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品价格变化"
+    indicator: "竞品平均标价"
+    aggregation: average
+    drilldown: "by competitor"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品产品变化"
+    indicator: "竞品新上市的SKU个数"
+    aggregation: sum
+    drilldown: "by competitor"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品产品变化"
+    indicator: "竞品下市的SKU个数"
+    aggregation: sum
+    drilldown: "by competitor"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道扩张"
+    indicator: "本品相对竞品ND"
+    aggregation: average
+    drilldown: "by competitor, by channel"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道扩张"
+    indicator: "竞品ND"
+    aggregation: average
+    drilldown: "by competitor, by channel"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道扩张"
+    indicator: "本品相对竞品WD"
+    aggregation: average
+    drilldown: "by competitor, by channel"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道扩张"
+    indicator: "竞品WD"
+    aggregation: average
+    drilldown: "by competitor, by channel"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道成交驱动变化"
+    indicator: "排面数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品渠道成交驱动变化"
+    indicator: "竞品最佳视平线位置占比"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品消费者需求驱动变化"
+    indicator: "竞品冰柜渗透率"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品消费者需求驱动变化"
+    indicator: "竞品品牌媒体花费"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "外部因素"
+    l3: "竞争格局"
+    l4: "竞品消费者需求驱动变化"
+    indicator: "竞品社交媒体声量"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: "品牌力指数"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: Meaningful
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: Difference
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: Salience
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: "BHT - TOM"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: "BHT - UBA"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "品牌资产"
+    indicator: "BHT - TBA"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "价格变动"
+    indicator: "本品标价"
+    aggregation: average
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "产品吸引力"
+    indicator: "本品新品上市SKU个数"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "动销"
+    l4: "产品吸引力"
+    indicator: "本品老品下市SKU个数"
+    aggregation: sum
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "复购粘性"
+    l4: "复购粘性"
+    indicator: "复购率"
+    aggregation: average
+    note: "快销品类通常无此项"
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "复购粘性"
+    l4: "复购粘性"
+    indicator: "购买频次"
+    aggregation: average
+    note: "快销品类通常无此项"
+  - l1: "生意基本盘"
+    l2: "内部因素"
+    l3: "复购粘性"
+    l4: "复购粘性"
+    indicator: "流失率"
+    aggregation: average
+    note: "快销品类通常无此项"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: "Digital Display"
+    indicator: "曝光量"
+    aggregation: sum
+    drilldown: "by format/type, by platform, by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: "Digital Display"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by format/type, by platform, by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: "热剧"
+    indicator: "曝光量"
+    aggregation: sum
+    drilldown: "by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: "热剧"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: TV
+    indicator: GRP
+    aggregation: sum
+    drilldown: "by campaign, by platform"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: TV
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by campaign, by platform"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: OTV/OTT
+    indicator: "曝光量"
+    aggregation: sum
+    drilldown: "by campaign, by platform"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: OTV/OTT
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by campaign, by platform"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: OOH
+    indicator: "曝光量"
+    aggregation: sum
+    drilldown: "by format/type, by location"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "品牌传播"
+    l4: OOH
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by format/type, by location"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "综艺及赛事的赞助"
+    indicator: "曝光量"
+    aggregation: sum
+    drilldown: "by campaign, by event"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "综艺及赛事的赞助"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by campaign, by event"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "线下路演"
+    indicator: "参与人数"
+    aggregation: sum
+    drilldown: "by region, by event"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "线下路演"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by region, by event"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "社媒"
+    indicator: "KOL发帖数"
+    aggregation: sum
+    drilldown: "by platform, by campaign, by influencer tier"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "社媒"
+    indicator: "社媒活动声量"
+    aggregation: sum
+    drilldown: "by platform, by campaign, by influencer tier"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "社媒"
+    indicator: "社媒活动互动量"
+    aggregation: sum
+    drilldown: "by platform, by campaign, by influencer tier"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "社交媒体及线下路演"
+    l4: "社媒"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by platform, by campaign, by influencer tier"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "会员积分"
+    indicator: "会员数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+    drilldown: "by format/type, by platform, by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "会员积分"
+    indicator: "花费"
+    aggregation: sum
+    drilldown: "by format/type, by platform, by campaign"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "社群互动"
+    indicator: "社群数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "社群互动"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "开盖有奖"
+    indicator: "扫码瓶数"
+    aggregation: sum
+  - l1: "消费者需求驱动"
+    l2: "品牌广告/内容种草"
+    l3: "自有媒体"
+    l4: "开盖有奖"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "铺货"
+    l3: "铺货"
+    l4: "铺货"
+    indicator: "本品ND"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "铺货"
+    l3: "铺货"
+    l4: "铺货"
+    indicator: "本品WD"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "铺货"
+    l3: "铺货"
+    l4: "铺货"
+    indicator: "货架份额（SOS）"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品上架的执行 - 产品全"
+    indicator: "销售业代平均门店整体SKU数"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品上架的执行 - 产品全"
+    indicator: "销售业代平均门店必分销SKU数"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品陈列的执行 - 数量多"
+    indicator: "销售业代平均门店整体排面数"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品陈列的执行 - 数量多"
+    indicator: "销售业代平均门店必分销SKU排面数"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品陈列的执行 - 数量多"
+    indicator: "销售业代冰柜纯度达成率"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道执行"
+    l4: "销售业代对于产品陈列的执行 - 位置好"
+    indicator: "销售业代视平线达成率"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道运营"
+    l4: "是否缺货"
+    indicator: "库深"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道运营"
+    l4: "是否缺货"
+    indicator: "Fill rate"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道执行及运营"
+    l3: "渠道运营"
+    l4: "货期健康度"
+    indicator: "库存周转"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "品牌显现及陈列展示"
+    l4: "POSM和陈列物料（POSM&Rack）"
+    indicator: "执行门店数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "品牌显现及陈列展示"
+    l4: "POSM和陈列物料（POSM&Rack）"
+    indicator: "销售业代稽查平均门店POSM个数"
+    aggregation: average
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "品牌显现及陈列展示"
+    l4: "POSM和陈列物料（POSM&Rack）"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "品牌显现及陈列展示"
+    l4: "品牌显现（Store Decoration）"
+    indicator: "执行门店数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "品牌显现及陈列展示"
+    l4: "品牌显现（Store Decoration）"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "旺点促销"
+    indicator: "执行门店数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "旺点促销"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "试饮"
+    indicator: "执行门店数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "试饮"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "礼赠"
+    indicator: "发放个数"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "店内促销"
+    l4: "礼赠"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "冰柜"
+    l4: "自有冰柜"
+    indicator: "已投放冰柜个数"
+    aggregation: average
+    aggNote: "存量口径（期末有多少）按平均滚；客户若按当期新增报数，改成 sum"
+  - l1: "渠道成交驱动"
+    l2: "渠道/终端营销"
+    l3: "冰柜"
+    l4: "自有冰柜"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "电商平台媒体及促销"
+    l3: "电商平台媒体及促销"
+    l4: "电商站内投流"
+    indicator: "曝光量"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "电商平台媒体及促销"
+    l3: "电商平台媒体及促销"
+    l4: "电商站内投流"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "渠道成交驱动"
+    l2: "电商平台媒体及促销"
+    l3: "电商平台媒体及促销"
+    l4: "电商买赠"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "促销优惠"
+    l2: "促销优惠"
+    l3: "组合优惠"
+    l4: "买N赠N"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "促销优惠"
+    l2: "促销优惠"
+    l3: "组合优惠"
+    l4: "赠品小样"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "促销优惠"
+    l2: "促销优惠"
+    l3: "单品折扣"
+    l4: "花费"
+    indicator: "花费"
+    aggregation: sum
+  - l1: "促销优惠"
+    l2: "促销优惠"
+    l3: "单品折扣"
+    l4: PPI
+    indicator: PPI
+    aggregation: average

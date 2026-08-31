@@ -1,0 +1,87 @@
+# 数据质量评分表 —— 照这份填，不要自创结构。
+# 落 artifacts/s2/quality-scorecard.yaml。填法见 ../references/score.md。
+#
+# **这份文件是誊抄，不是计算。** 每一个分数逐字来自一次运行的结果：
+# 不四舍五入、不重算、不"顺手"改一位小数。每一行用 source 指回它的出处。
+# 检查项 scorecard_matches_payload 会逐行比对——对不上就是抄错了。
+meta:
+  step: data-quality/score
+  skill: data-quality
+  generated: ""                       # 生成时间，带时区
+  grounding:
+    - { path: "data/derived/quality-evidence.json", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+    - { path: "artifacts/s2/factor-map.yaml", chars: 0, truncated: false }
+    - { path: "knowledge/methodology/validation-scoring.json", chars: 0, truncated: false }
+  knowledgeRecall: none
+  derivedFrom: data/derived/quality-evidence.json
+  payloadHash: ""                     # 上面那份结果的哈希
+  reviewedAt: ""                      # 复核那一步写上时间，不覆盖 generated
+
+  # 采纳的口径：总分 >=0.5 验收 / 0 与 0.5 之间交人 / =0 弃用并预警。
+  bandsNote: "总分 >=0.5 accept · 0<总分<0.5 borderline · ==0 unusable"
+  assumed: false                      # true 表示有澄清点没问到人，按推荐项走了
+
+inheritedDrops: 0                     # 因子映射层判成不做的指标数。抄，不要自己数
+orphanCount: 0                        # 数据里有、因子树没要过的指标数。抄，并在呈现时说一句
+
+# 一行 = 因子树里一条已采纳的（L1 × L2 × L3 × L4 × 指标），不分模型对象。
+rows:
+  - id: ""                            # 结果里的行内编号，形如 q-0007
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""
+    treeRowId: ""                     # 对应的因子树行号
+    source: ""                        # 本行誊抄自结果里的哪一条。**必填**
+
+    # scored 已打分 / no-data 树上要了但一条数据都没到 / inherited-drop 上游已判不做。
+    # **no-data 不是 0 分**：0 分是查过了不能用，找数据 Owner；
+    # no-data 是根本没到，回数据需求与验收追交付。
+    dataStatus: scored
+
+    # 四个维度分，逐字抄。dataStatus 不是 scored 时**写 null，不要写 0**。
+    consistency: null
+    accuracy: null
+    completeness: null
+    granularity: null
+    # 每个维度分背后那句话：该维度最弱的那个阻断型子项自己的说明。工具已经算好，逐字抄。
+    consistencyNote: ""
+    accuracyNote: ""
+    completenessNote: ""
+    granularityNote: ""
+
+    # 10 个子项逐条抄。blocking 为 false 的拉不低维度分；
+    # computed 为 false 的是"没查"，视图与 Excel 上要渲染成「未校验」而不是 1。
+    subScores:
+      - key: ""                       # 例：completeness.data
+        dimension: ""                 # consistency | accuracy | completeness | granularity
+        label: ""
+        score: 0.0
+        note: ""
+        computed: true
+        blocking: true
+
+    total: null                       # 四维相乘。抄，不要自己乘一遍；没打分的行写 null
+    autoVerdict: ""                   # accept | borderline | unusable | no-data | inherited-drop
+    disposition: ""                   # keep | drop —— 人的裁决，复核那一步才填。这一步留空
+    decidedBy: ""                     # 人裁决后写 "human" 或人名；写了就钉住这一行
+    decidedAt: ""
+    note: ""                          # 人的话。带保留意见的 keep，理由写在这里
+
+# 因子级预警，两类，整段从结果里抄过来。
+# 这不是"多列几行弃用"：这个因子在模型里彻底不存在了，
+# 而因子树当初把它放进来是有业务理由的。
+#   全部指标 0 分   → routeTo 业务侧 + 客户（寻找替代数据）
+#   全部指标没数据  → routeTo 数据需求与验收（追这次交付）
+# 两类的处置对象不一样，不要合并成一节。
+escalations:
+  - l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicators: []                    # 这个因子下涉及的全部指标名
+    reason: ""
+    severity: high
+    routeTo: ""

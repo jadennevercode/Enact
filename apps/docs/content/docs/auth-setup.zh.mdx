@@ -1,15 +1,17 @@
 ---
 title: 登录与注册
-description: 配置邮箱直登、Google 登录和新用户注册范围。
+description: 配置邮箱密码登录、Google 登录和新用户注册范围。
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-Enact 默认使用邮箱直接登录，也可以增加 Google OAuth。已经存在的用户始终可以再次登录；注册限制只决定是否允许创建新账号。
+Enact 默认支持邮箱密码账号，也可以增加 Google OAuth。已经存在的用户始终可以再次登录；注册限制只决定是否允许创建新账号。
 
-## 邮箱直登
+## 邮箱密码登录
 
-用户输入邮箱并继续后，Enact 会创建或复用对应账号，并立即签发登录 cookie，不再有验证码步骤。
+新用户需要填写用户名、`@deloittecn.com.cn` 企业邮箱和至少 8 个字符的密码。用户名会在产品内向工作区成员展示。已有用户使用邮箱和密码登录；服务端只保存安全的密码哈希。
+
+在密码认证上线前已经创建的账号，可以通过注册表单一次性设置初始用户名和密码。完成首次设置后，该邮箱会按已有账号处理，不能再次注册。
 
 ## 邀请邮件发送
 
@@ -86,7 +88,7 @@ Google Console 与 `GOOGLE_REDIRECT_URI` 中的地址必须完全一致，包括
 
 ## 注册范围控制
 
-三个变量共同决定新账号能否创建：
+注册首先强制校验 `@deloittecn.com.cn` 邮箱域。下面三个部署变量可以进一步收紧注册范围，但不能放行其他邮箱域：
 
 | 变量 | 作用 |
 |---|---|
@@ -96,21 +98,22 @@ Google Console 与 `GOOGLE_REDIRECT_URI` 中的地址必须完全一致，包括
 
 判断顺序如下：
 
-1. 邮箱命中 `ALLOWED_EMAILS`，允许；
-2. 或域名命中 `ALLOWED_EMAIL_DOMAINS`，允许；
-3. 未命中时，如果 `ALLOW_SIGNUP=false`，拒绝；
-4. `ALLOW_SIGNUP=true` 但设置了任意白名单且未命中，仍然拒绝；
-5. 没有设置白名单且 `ALLOW_SIGNUP=true`，允许。
+1. 非 `@deloittecn.com.cn` 邮箱直接拒绝；
+2. 邮箱命中 `ALLOWED_EMAILS`，允许；
+3. 或域名命中 `ALLOWED_EMAIL_DOMAINS`，允许；
+4. 未命中时，如果 `ALLOW_SIGNUP=false`，拒绝；
+5. `ALLOW_SIGNUP=true` 但设置了任意白名单且未命中，仍然拒绝；
+6. 没有设置白名单且 `ALLOW_SIGNUP=true`，允许。
 
 常见配置：
 
 ```dotenv
 # 只允许公司域名
 ALLOW_SIGNUP=false
-ALLOWED_EMAIL_DOMAINS=company.com
+ALLOWED_EMAIL_DOMAINS=deloittecn.com.cn
 
-# 再放行一位外部协作者
-ALLOWED_EMAILS=partner@example.net
+# 或只放行指定的德勤中国账号
+ALLOWED_EMAILS=person@deloittecn.com.cn
 ```
 
 <Callout type="info">
@@ -124,7 +127,7 @@ ALLOWED_EMAILS=partner@example.net
 - 对方已经有 Enact 账号时，可以登录并接受邀请；
 - 对方还没有账号时，邮箱必须符合上面的注册规则。
 
-在关闭开放注册的实例中邀请新成员时，先把对方邮箱加入 `ALLOWED_EMAILS`。账号创建并接受邀请后，可以再从名单中移除。
+在关闭开放注册的实例中邀请新成员时，先把对方的 `@deloittecn.com.cn` 邮箱加入 `ALLOWED_EMAILS`。账号创建并接受邀请后，可以再从名单中移除。
 
 ## 登录有效期
 

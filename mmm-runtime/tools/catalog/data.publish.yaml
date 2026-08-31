@@ -1,0 +1,35 @@
+# tools/catalog/data.publish.yaml
+id: data.publish
+kind: data
+purpose: 把所有通过检查的交付合并成项目唯一的建模长表，并记下每批交付各贡献了什么。
+when: |
+  发布数据集 · 「发布为项目的建模长表」。所有交付都清洗、检查、对账完之后跑一次。
+  这之后每一层都在这张表上打分。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: |
+    data/published/long.parquet     —— 建模长表本体
+    data/published/manifest.yaml    —— 各批交付的贡献清单（同一次运行的第二份产物）
+  shape: |
+    long.parquet 的列，固定顺序、缺的补空字符串：
+      task_name · brand · province_group · channel_type · channel · year · month ·
+      source · l1 … l8 · metric_type · metric · value
+      source 列若清洗结果里没有或全空，自动填成这批交付的编号——逐行来源记录靠它。
+
+    manifest.yaml 的结构：
+      published.assets[]     每批交付一项：{source, rows, value, metrics, monthMin, monthMax}
+      published.rows         合并后的总行数
+      published.metrics      去重后的指标个数
+      published.months       {from, to, count} —— 覆盖的月份跨度与月份数
+stdout: |
+  published 24310 rows from 3 asset(s)
+  12 metric(s)
+  response: 销量
+  310 national row(s) (no channel) — shared into every model object
+example: ~/.local/bin/mmm tool data.publish --workspace <工作区>
+notes: |
+  只有 conformance.json 存在且 ok 为 true 的交付才会进表；被挡下的会逐条报出原因
+  （「从没检查过」或「不合结构」）。半映射的交付不许进长表。
+  没有任何一行的 metric_type 是 Y 时会报一条发现：这张表只有驱动没有被解释的对象，下游什么都拟合不了。
+  channel_type 留空的行是全国口径，会被每个模型对象共用。

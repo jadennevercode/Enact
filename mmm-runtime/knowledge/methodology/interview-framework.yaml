@@ -1,0 +1,84 @@
+id: interview-framework
+kind: framework
+scope: all
+version: 1
+source: "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-general-knowledge/gk-interview + tpl-bev-interview 的角色分布"
+layers:
+  - layer: leadership
+    zh: "高层"
+    durationMin: 60
+    asks: "痛点与业务战略、投资策略近三年的转变、对分析的期望、分析范围"
+  - layer: management
+    zh: "管理层"
+    durationMin: 60
+    asks: "业务细节、关键问题的下钻、数据可行性的粗判"
+  - layer: operations
+    zh: "执行层"
+    durationMin: 90
+    asks: "数据明细：覆盖范围、颗粒度、指标定义、连续性、获取方式"
+  - layer: data
+    zh: "数据团队"
+    durationMin: 90
+    asks: "从因子树逐叶派生的数据可得性四问；这一层不是客户的组织，是按因子合成出来的"
+questionTags:
+  - { zh: "业务现状理解", en: "Business Download" }
+  - { zh: "关键业务问题与期望", en: "KBQs & Expectations" }
+  - { zh: "分析颗粒度与范围", en: "Granularity & Scope" }
+dataSubQuestions:
+  - "该指标当前是否可获得？主要来源系统 / 供应商是什么？"
+  - "可提供的最小时间颗粒度与可回溯的历史区间是什么（周度 / 月度，起止时间）？"
+  - "可按哪些业务维度拆分（品牌 / 区域 / 渠道 / 平台），各维度的颗粒度如何？"
+  - "数据口径是否已与业务现实对齐？是否存在已知缺口、口径调整或可比性问题？"
+referenceRoles:
+  - layer: leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    questions: 8
+  - layer: management
+    role: "Management Team-Sales"
+    team: Sales
+    questions: 8
+  - layer: management
+    role: "Management Team-Finance"
+    team: Finance
+    questions: 8
+  - layer: management
+    role: "Management Team-Mkt"
+    team: Marketing
+    questions: 8
+  - layer: operations
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    questions: 9
+  - layer: operations
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    questions: 8
+  - layer: operations
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    questions: 9
+  - layer: operations
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    questions: 8
+  - layer: operations
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    questions: 9
+  - layer: operations
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    questions: 8
+  - layer: operations
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    questions: 6
+  - layer: operations
+    role: "Operation Team-SIA"
+    team: SIA
+    questions: 5
+notes:
+  - "一句话分工：给高层问痛点与业务，给中层问业务细节，给底层问数据"
+  - "referenceRoles 是饮料那次交付的组织切法，是参照不是模板；客户没有 SIA、把 Trade Marketing 并进 Sales 都很常见，按客户组织重排"
+  - "数据类问题是这个交付物真正的体量：实盘业务题 42 道、数据题 168 道"

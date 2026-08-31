@@ -1,0 +1,77 @@
+# Gate Decision —— 一个 Gate 一个文件，放在 work-items/WI-###-slug/gates/
+# 文件名：contract-approval.yml | scope-expansion-001.yml | build-review.yml |
+#         release.yml | lesson-approval.yml
+#
+# 词表是固定值，不接受变体。固定是为了让统计和审计能机械进行。
+#   gate:     PASS | CONCERNS | FAIL | WAIVED
+#   severity: low | medium | high
+#   role:     业务负责人 | 架构 | 开发 | QA | 运维
+
+gate: PASS
+
+# 对这个结论负总责的人——宣布 PASS/FAIL 的那一个。
+# AI / Claude / system / 空 —— 全部无效。只能在一次真实的人工确认交互之后填写。
+# 这是三条铁律的第一条。
+approved_by: ""
+decided_at: 2026-01-01T00:00:00Z
+
+# 各角色的签署。这个 Gate 要哪些角色，由 config.yaml 的 gates.<name>.require 决定，
+# 默认值见 ../references/gates.md 的角色表。
+#
+# 只需要一个角色时可以整段省略——approved_by 就够了。
+# 需要多个角色时必须写全：合起来盖不住 require 的那几个角色，validate_gate.py 判失败。
+#
+# **一个人可以担多个角色**，那就一条记录里写多个 roles，不要拆成两条假装是两个人看的。
+# 小团队里这是常态；如实记下来，审计时看得出这几件事是同一个人拍的板。
+approvals:
+  - by: ""
+    roles: []                 # 例如 [业务负责人, 架构]
+    at: 2026-01-01T00:00:00Z
+
+# 这个 Gate 管什么
+scope: contract-approval
+
+# 这次批准产生了哪个版本（contract v2 / git commit / 无）。PASS 与 CONCERNS 时必填——
+# 没有它就答不出"当时批准的到底是什么"。
+merged_revision: ""
+
+# 这次批准的生效范围：task | project | domain | organization
+publish_scope: task
+
+# 仅在 gate=FAIL 且属于 Reject 性质时必填：什么条件下允许重新提出。
+# 留空的 FAIL 表示 Hold（补齐证据就能再来）；填了值表示 Reject。
+# 详见 ../references/gates.md「Hold 与 Reject 都落成 FAIL，靠一个字段区分」
+reentry_conditions: null
+
+# 一到两句话说明为什么是这个结论。写给三个月后来查这件事的人看。
+status_reason: ""
+
+# 确定性预检的结果。人工环节之前必须先跑，不通过就不该占用别人的判断力。
+deterministic_checks:
+  passed: 0
+  failed: 0
+  details: ""                 # 例：coverage_stats.py → 6/6 criteria 有验证方式
+
+# CONCERNS 或 FAIL 时必填。
+# CONCERNS 的准确含义是"这些问题我看见了、我接受、并且知道由谁负责"——
+# 写不出 owner 的问题不算 CONCERNS，那是 FAIL。
+top_issues: []
+  # - id: TEST-001
+  #   severity: medium
+  #   text: 退款并发场景无自动化覆盖，依赖人工确认
+  #   suggested_owner: qa     # explore | contract | build | qa | release | operate
+
+# 仅 gate=WAIVED 时填。豁免可以用，但每次都会留在这里被看见——这正是它该有的成本。
+waiver: null
+  # redline: 不得在批准范围外写入
+  # why_unavoidable: 生产事故止血，批准人不可达且损失在扩大
+  # what_was_done_instead: 直接修改了 protected 中的限流配置
+  # compensating_record: 已补 AMD-002 与事后签批
+  # deadline: 2026-08-22
+
+# 追加不覆盖。同一个 Gate 反复决定时，旧结论保留在这里。
+history: []
+  # - decided_at: 2026-08-20T09:00:00Z
+  #   gate: FAIL
+  #   approved_by: 张三
+  #   status_reason: criteria 1.2 无验证方式

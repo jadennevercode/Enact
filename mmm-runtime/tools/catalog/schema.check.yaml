@@ -1,0 +1,29 @@
+# tools/catalog/schema.check.yaml
+id: schema.check
+kind: schema
+purpose: 判定这份目标表结构自己讲不讲得通——必填列齐不齐、每个取值清单文件在不在、身份列是不是真列、时间颗粒度跟项目档案对不对得上。
+when: |
+  发布数据集 · 「声明目标表结构与取值范围」——人改完结构初稿之后、开始清洗之前跑。
+  它是这一步唯一能在看到数据之前就发现问题的检查；看过数据才写的结构，对这批数据什么都证明不了。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: 无。这个工具不落盘，判定结果全在屏幕上（退出码 0 通过，1 有问题）。
+  shape: |
+    没有产物文件。它读 metadata/schema/target-schema.yaml、metadata/schema/enums/*.yaml
+    和 artifacts/s1/project-profile.yaml，把问题当成检查项逐条打出来。
+    会报出来的问题有五类：
+      source 列缺失          —— 逐行来源记录被整个关掉
+      封闭取值清单是空的      —— 每一行都会违规
+      某列指名的清单文件不存在
+      身份列不是已声明的列
+      结构里的时间颗粒度 ≠ 项目档案里锁定的颗粒度（以档案为准）
+stdout: |
+  19 column(s) declared
+  required: brand, metric, metric_type, month, value
+  closed enums: channel_type (5 values) · metric_type (4 values)
+  grain: month by [brand, channel_type, month, metric]
+example: ~/.local/bin/mmm tool schema.check --workspace <工作区>
+notes: |
+  「未受约束的维度」只是提示不是错——因子层级本来就是因子树里的自由文本。
+  真正兜住这一类的是 data.claim：它负责发现一行挂在了因子树从没声明过的层级下面。

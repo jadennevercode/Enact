@@ -1,0 +1,45 @@
+# tools/catalog/ols.propose.yaml
+id: ols.propose
+kind: model
+purpose: 提出这次预验证怎么建——用哪个响应、哪些变量进模型、用什么参数，全部算出来而不是猜出来。
+when: |
+  OLS 预验证 · 「按渠道 × 产品各拟合一个模型」，拟合之前先出一版设置供人过目。
+  设置定下来之后由 ols.fit 执行。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: artifacts/s2/ols-config.yaml
+  shape: |
+    meta               说明这份产物是谁在哪一步生成的：
+      task · skill · mode · generated
+      grounding[]      读过的文件清单
+      knowledgeRecall  用了哪个行业知识包；没有就是 "none"
+    config
+      dataSource       数据来源："project" 用本项目数据 / "reference" 用参考数据
+      yCandidates[]    可选的响应，每项：
+        object         模型对象
+        metric         指标名
+        metricType     指标角色
+        months         月份覆盖数（这是选它的依据）
+        isMoney        是不是金额口径（决定投资回报怎么算）
+        recommended    是否推荐
+        rationale      推荐或不推荐的理由
+      y[]              每个模型对象确认下来的响应
+      xCandidates[]    候选的模型变量，每项带 selected（是否勾选进本次拟合）、l4、metric
+      params           变换与控制项参数：饱和（hill / none）、趋势（linear / none）、
+                       季节性（fourier / dummies / none）
+      proposedAt       提出时间
+stdout: |
+    电商                   response 销量
+    23 model variable(s) offered
+
+    4 held out by the degrees-of-freedom limit:
+        电商投放                    直播曝光
+example: ~/.local/bin/mmm tool ols.propose --workspace <工作区>
+notes: |
+  这里没有变量搜索。基准是拿来比对的，不是拿来调的：活下来的变量一次全部进模型。
+  唯一会把变量按住不放的只有可识别性——参数比观测还多的回归根本没有唯一解，
+  以及共线性上限。两者都是计算上的限制，会被明确说成限制，绝不是对这个指标的判定。
+  被按住的变量按与响应的相关性绝对值排序后取消勾选，并在屏幕上逐条列出来。
+  ⚠️ 流程定义里「按渠道 × 产品各拟合一个模型」把 artifacts/s2/ols-config.yaml 列在产出里，
+  但 computed_by 只写了 ols.fit 和 ledger.derive，没写这份配置由 ols.propose 产出。

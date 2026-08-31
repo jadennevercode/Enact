@@ -362,10 +362,18 @@ class ApiClient {
   }
 
   // --- Auth ---
-  async emailLogin(email: string) {
+  async emailLogin(email: string, password: string) {
     const raw = await this.fetch<unknown>("/auth/email-login", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, password }),
+    });
+    return LoginResponseSchema.parse(raw);
+  }
+
+  async register(email: string, password: string, name: string) {
+    const raw = await this.fetch<unknown>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name }),
     });
     return LoginResponseSchema.parse(raw);
   }

@@ -1,0 +1,57 @@
+# 异常卡 —— 照这份填，不要自创结构。填法见 ../references/anomalies.md。
+#
+# 渠道、年份、变动幅度全部逐字抄自 data/derived/anomalies.json，不重算、不改精度。
+#
+# **字段名和取值范围是接口，不是排版。** 这几张卡会被引擎按这个形状读进模型：读不进去
+# 的卡等于客户白裁定了一次，而这件事以前是静默发生的。验收会把文件里的卡片数和引擎读
+# 进去的行数对一下，对不上就点名。
+meta:
+  step: business-validation/anomalies
+  skill: business-validation
+  generated: ""                      # 生成时间，带时区
+  grounding:                         # 读过的每份材料，一份一条；字数写真实值
+    - { path: "data/derived/anomalies.json", chars: 0, truncated: false }
+    - { path: "inputs/interview-minutes/<文件名>", chars: 0, truncated: false }
+  knowledgeRecall: none              # 行业先例来源；召回为空写 none
+
+# 本次采用的判据。响应变量按渠道的年度同比，超过这个幅度的都要有一个说法。
+rule:
+  basis: "response year on year, by channel"
+  pct: 40                            # 抄工具的输出；改了阈值这里也要跟着改
+
+cards:
+  - id: an-o2o-2025                  # 抄工具给的编号，不改
+    channel: "O2O"                   # 哪个渠道
+    year: "2025"                     # **必须带引号**：不加引号会被读成整数，卡片进不来
+    growthPct: -50.95                # 同比变动百分比，抄计算结果
+
+    # ── 假设（AI 写）。三件事缺一不可 ──
+    hypothesis: ""                   # ≤25 词，只基于渠道 / 年份 / 幅度。
+                                     # 猜不出就写"未从数据中确立"，不得凭空造事件
+    rationale: ""                    # 为什么提议这个处置
+    tradeoff: ""                     # 这个处置的代价是什么
+
+    # ── 裁定（人定）。**只有 accepted 才会生效** ──
+    proposed: event                  # AI 的提议：event | cap | raw
+    status: pending                  # pending → accepted | rejected（客户裁定后）
+    handling: event                  # event | cap | raw
+                                     # **没有 rejected 这个取值** —— 不认可就把
+                                     # status 写成 rejected，处置本身留着不管
+    start: 202501                    # 作用窗口起，yyyymm 整数。**不是字符串，不是嵌套的**
+    end: 202512                      # 作用窗口止，yyyymm 整数
+    note: ""                         # cap 必填：已明确告知客户响应被缩尾
+
+# 零个异常是一个答案，不是缺口：cards 为空时在这里写明。
+emptyReason: ""                      # 例："没有哪个渠道的年度同比越过 ±40%（35 期）"
+
+# ── 四种取值各自真的做什么 ──────────────────────────────────────────
+#
+# | status    | handling | 对拟合的效果 |
+# |-----------|----------|--------------|
+# | accepted  | event    | 窗口内加一列 0/1 控制项 —— 这次冲击被当成生意本身吸收，不算到媒体头上 |
+# | accepted  | cap      | 窗口内把响应缩尾 —— **签核时必须明说数据被改了** |
+# | accepted  | raw      | 数据不动，作为一句说明带进报告 |
+# | rejected  | 任意     | 什么都不做 —— 判定它根本不是异常 |
+# | pending   | 任意     | **什么都不做。** 一个没人复核过的猜想不许悄悄改变模型 |
+#
+# 优先 event 而不是 cap：控制项说出了发生过什么，缩尾是改数据并把它藏起来。

@@ -1,0 +1,471 @@
+# 检查登记表 —— 每个检查项面向人的文字，只在这里写一遍。
+#
+# 为什么有这份文件：同一个检查项的信息以前散在四个地方——谓词函数、
+# `deliverables.yaml` 的 `verify:` 列表、各 Skill references 里的散文描述、
+# 以及打印出来的英文谓词名。四处描述同一件事，于是漂移：
+# `skills/scoping/references/fields.md` 曾声称项目档案有 6 项机械检查，
+# 而 `p_profile_locked` 只实现了 2 项，谁也没发现，因为没有一个地方能对得上。
+#
+# 现在的分工：
+#   scripts/gate_check.py     只写实现函数。detail 里放这一次的具体数字与路径。
+#   shared/manifests/checks.yaml  只写稳定的文字：这条在断言什么、不过了怎么办。
+#   scripts/check_suite.py    静态盯着两边对齐：清单里出现的谓词必须在这里有条目，
+#                             这里的每个 id 必须有实现。
+#
+# 字段
+#   id        与谓词名一致，就是 `deliverables.yaml` 的 `verify:` 里写的那个名字
+#   severity  block  不过就不能交付，编排层不许记完成
+#             advise 提示，不阻断。用于"该让人知道、但该由人决定"的事
+#   title     一句话说这条在断言什么。报告里当标题用
+#   says      展开一句：为什么这条值得查
+#   fix       不过了怎么办。写给要动手的人，不是写给读者
+#
+# severity 为什么要有 advise 这一档：范围规模、时间窗对账这类事，
+# 既不能伪装成通过（那就没人知道了），也不该阻断交付（客户完全可能愿意
+# 为了覆盖面接受更长的工期，那是客户的决定）。两档制下它们无处安放。
+
+version: 1
+
+checks:
+
+  # ══ 通用 ═══════════════════════════════════════════════════════════
+
+  - id: files_exist
+    severity: block
+    title: 该收的材料已经到位
+    says: 这一步要读的输入目录里有东西。
+    fix: 把材料放进报出来的那个目录。这个项目确实没有的话，在里面放一份 NONE.md，写明是谁确认的、为什么没有——缺口要看得见，不能靠目录空着来表示。
+
+  - id: artifact_exists
+    severity: block
+    title: 产出物写出来了
+    says: 这一步声称要产出的文件在磁盘上。
+    fix: 重新跑这一步。产出物不存在通常意味着上一次跑到一半停了。
+
+  - id: frontmatter_valid
+    severity: block
+    title: 产出物的元信息完整且不为空
+    says: 每份产出物都记了是哪一步产出的、什么时候、读了哪些材料、有没有截断，而且这些字段有真实的值，不是留着占位的空串。
+    fix: 打开报出来的产出物，补齐 meta 块。字段含义见 shared/artifact-frontmatter.md。
+
+  - id: grounding_within_allowlist
+    severity: block
+    title: 只读了这一步允许读的材料
+    says: 产出物申报读过的每份材料，都在流程定义给这一步划的取材范围里。
+    fix: 越界的材料要么不该读，要么这一步的取材范围该改——改范围要走流程定义，不要偷偷把路径写进产出物。
+
+  - id: signed_off
+    severity: block
+    title: 这一步的人工确认已经做过
+    says: 决策日志里有一条对这一步生效的裁决。
+    fix: 用 state.py decide 记下裁决。AI 不能自己给自己判通过，这条就是那道拦网。
+
+  # ══ 项目档案 ═══════════════════════════════════════════════════════
+
+  - id: engagement_identified
+    severity: block
+    title: 项目身份是齐的
+    says: 项目名称、品牌、行业 L1/L2/L3 都有值，而且 mmm.yaml 与项目档案说的是同一件事。行业决定因子树从哪个知识包起底、目标表种哪一套取值范围，空着后面每一层都落空。
+    fix: 行业锚点归编排层写进 mmm.yaml。缺了就把它问出来，交编排层补写，再跑这一步。
+
+  - id: profile_complete
+    severity: block
+    title: 项目档案的字段是齐的
+    says: 时间颗粒度是三选一、三轴齐全且轴名固定、地区里没有混进线上平台、范围行的每个取值都在对应轴上、响应指标与时间窗与项目总结都不为空。
+    fix: 打开 artifacts/s1/project-profile.yaml 补上报出来的字段。字段含义见 skills/scoping/references/fields.md。
+
+  - id: profile_locked
+    severity: block
+    title: 项目档案已经锁定
+    says: 档案的状态是 locked —— 也就是人已经拍过板了。
+    fix: 档案自己不锁自己。把它拿给人确认，编排层记下裁决之后状态才写得上去。
+
+  - id: scope_advisories
+    severity: advise
+    title: 范围规模提醒
+    says: 产品线数、渠道数、地区分组数对照建议上限。这三条的理由是工期（客户原话「为了聚焦项目的时效」），不是模型质量。
+    fix: 超了不阻断。在拿给人确认的时候把超了多少、多出来的收数与建模工作量说清楚，客户认了就往下走——这是客户的决定，不是这一步的。
+
+  - id: granularity_matches_profile
+    severity: block
+    title: 颗粒度契约与档案一致
+    says: metadata/granularity.yaml 存在，且它写的时间颗粒度与范围三轴与锁定的档案对得上。数据阶段的清洗读的是它，两份文件对时间轴有分歧就会清出一批没人能用的数据。
+    fix: 重新跑一次项目档案这一步，让它照当前的档案重写 granularity.yaml。
+
+  # ══ 因子树 ═════════════════════════════════════════════════════════
+
+  - id: baseline_choice_recorded
+    severity: block
+    title: 因子树的行业与起底方式已定
+    says: 材料索引里记了本项目的行业锚点、匹配到的行业知识包、以及这棵树从哪起底。选行业模板起底就必须真有那个包，选客户自有树起底就必须真有那份文件。
+    fix: 在 artifacts/s1/materials-index.md 的元信息里写 industryAnchor（项目档案里确实没有行业就写 none）、industryPack、baselineChoice。行业和包都没有、客户也没上传树，就不要往下走——回去把行业问出来，或者请客户给一棵树。
+
+  - id: workbook_current
+    severity: block
+    title: 给人看的工作簿与交付物同步
+    says: 那份 Excel 记了它是照哪一版交付物生成的，并且生成之后交付物没再改过。
+    fix: 重新生成一次：~/.local/bin/mmm app workbook factor_tree -w <工作区>。不要在 Excel 里改内容——人是在这份表上签字的，表和交付物对不上，签的就不是他看见的那份。
+
+  - id: aggregation_declared
+    severity: block
+    title: 每个采纳的指标都说了怎么往上滚
+    says: 周数据要滚成月、省份要滚成大区，每一行都写了合并方式（求和 / 平均 / 加权平均…）。怎么合并是这个指标本身的属性，在因子树里定一次，下游各处都读这一份。
+    fix: 打开因子树，给报出来的行补 aggregation。判断只有一句话：把两行加起来还有没有业务含义——有就求和，没有就取平均。对铺货率、份额、指数求和会造出一个没有意义的数，而模型拟合的就是那个数。
+
+  - id: tree_has_rows
+    severity: block
+    title: 因子树里有行，且每行都有编号
+    says: 树不是空的，每一行都有稳定编号——后面所有环节都拿编号引用行。
+    fix: 回到推导那一步。一棵空树能通过评审，因为里面没有东西可反对，这正是它危险的地方。
+
+  - id: no_undecided_rows
+    severity: block
+    title: 每一行都已经采纳或剔除
+    says: 没有行停在 baseline / proposed / pending 这类中间状态。
+    fix: 逐行给出裁决。悬着的行会在数据需求那一步变成"要不要问客户要这个数"的悬案。
+
+  - id: primary_indicator_per_l4
+    severity: block
+    title: 每个 L4 有且只有一个主指标
+    says: 一个 L4 底下多个候选指标，必须挑一个作为主指标——它决定数据需求问客户要哪个数。
+    fix: "在报出来的 L4 底下选一行标 primary: true，其余留作备选。"
+
+  # ══ 访谈 ═══════════════════════════════════════════════════════════
+
+  - id: every_question_tagged
+    severity: block
+    title: 每个问题都挂到了因子行上
+    says: 提纲里的每个问题都标了它要问的是哪一行因子。
+    fix: 给没挂上的问题补标注。挂不上的问题说明它问的不是这棵树里的事，要么补一行因子，要么这个问题不该问。
+
+  - id: every_question_pre_answered
+    severity: block
+    title: 每个问题都有预答
+    says: 提纲里的每个问题都先自己答了一遍——预答是拿去和受访人对质的底稿，不是走过场。
+    fix: 补齐没有预答的问题。答不上来的，把"答不上来"和原因写进去，那也是一个真答案。
+
+  - id: data_questions_complete
+    severity: block
+    title: 数据题按因子树全覆盖
+    says: 每一行采纳的因子（含响应行）恰好有四道数据题，题数与树对得上，元信息里报的数也是真的。
+    fix: 数据题是算出来的不是想出来的——按 L1 › L2 › L3 › L4 › 指标 去重，每条路径逐字照抄四问重新生成一遍。对不上就是漏了行，回去重数，不要改数字。
+
+  - id: minutes_declare_gaps
+    severity: block
+    title: 每份纪要都写了没覆盖到的部分
+    says: 每份整理好的纪要都有「## 没覆盖到」段。
+    fix: 补上这一段。一场什么都覆盖到了的访谈很罕见；声称覆盖到了的纪要通常是纪要的问题，而一份看起来全覆盖的纪要会让因子树显得被访谈验证过。
+
+  - id: minutes_cover_outline
+    severity: block
+    title: 提纲上的每一题在纪要里都有下落
+    says: 提纲里的每个题号，要么在某一段里被答到，要么被列进「## 没覆盖到」。
+    fix: 把消失的那几题找回来：答了就在段标签里挂上题号，没答就列进没覆盖到并写清原因和下一步。一题在提纲和纪要之间悄悄消失，是访谈的真实结论被弄丢的最常见方式。
+
+  - id: web_grounding_scoped
+    severity: block
+    title: 联网取材只出现在该联网的地方
+    says: 预答里的联网引用都带访问日期，只挂在业务题上，而且置信度没有超过 low。
+    fix: 数据题不许联网——"这个指标在哪个系统""能不能给到周度"网上没有答案，搜到的一定是编的，把它改回「没有依据」。业务题的联网引用补上 URL 与访问日期，置信度压到 low 或以下。
+
+  - id: insights_actionable
+    severity: block
+    title: 每条洞察都能落回流程
+    says: 每条洞察是 gap 或 conflict，带至少两个证据锚点和一条可执行建议；被忽略的那些写了忽略理由。
+    fix: 补锚点和建议，或者删掉这条。一条没有建议的观察不是洞察，是噪音——而噪音会把真正要动的那几条淹掉。
+
+  - id: assumptions_answerable
+    severity: block
+    title: 每条关键假设都是一问一答且指向一个建模决策
+    says: 每条假设都有问题、答案、出处，以及它影响的那个建模决策。
+    fix: 补齐缺的字段。答不上来的假设留着并写明"访谈没问到"——一条没人回答的关键假设，是建模时会被默认值悄悄替代的地方。
+
+  - id: amended_workbook_archived
+    severity: block
+    title: 访谈校正版的因子树工作簿已归档
+    says: exports/ 下有一份带日期的访谈校正版工作簿，内容与当前因子树一致。
+    fix: 重新生成一次并归档。人是在确认版上签的字，访谈改过之后要有一份可以拿出去对照的新版本，否则"改了什么"只能靠翻 YAML。
+
+  - id: doc_current
+    severity: block
+    title: Word 视图与它的源文件同步
+    says: 那份 Word 记了它是照哪一版源文件生成的，并且生成之后源文件没再改过。
+    fix: 重新生成一次 Word。不要在 Word 里改内容——Markdown/YAML 才是真相，Word 是渲染出来的视图，下次重新生成就把手改覆盖掉了。
+
+  - id: proposals_have_evidence
+    severity: block
+    title: 每条改动建议都有原话支撑
+    says: 访谈消化提出的每条改动，都能指回纪要里的一句原话。
+    fix: 给没有出处的建议补上原话，或者撤掉它。没有出处的建议是在替客户说话。
+
+  - id: proposals_resolved
+    severity: block
+    title: 每条改动建议都已裁决
+    says: 没有建议停在未处理状态。
+    fix: 逐条采纳或驳回，回写进因子树。
+
+  # ══ 数据需求 ═══════════════════════════════════════════════════════
+
+  - id: workbooks_exist
+    severity: block
+    title: 数据需求工作簿已生成
+    says: artifacts/s1/data-request/ 下有工作簿文件。
+    fix: 跑一次 workbook.data-request。
+
+  - id: coverage_complete
+    severity: block
+    title: 每个采纳的因子都被请求了一次
+    says: 采纳的驱动因子一个不落地出现在工作簿里，响应指标被单独请求了，没有哪张表是一个指标都没有的空表。
+    fix: 缺口通常在因子树那边——补的是因子行的指标名，不是手改工作簿。手改的工作簿下次重新生成就没了。
+
+  # ══ 发布数据集 ═════════════════════════════════════════════════════
+
+  - id: schema_declared
+    severity: block
+    title: 目标表结构已经声明
+    says: 在任何数据到达之前，长表该长什么样已经写下来了。
+    fix: 跑 schema.init 起底，再逐列确认。看过数据之后才写的结构，对这批数据什么也证明不了。
+
+  - id: grain_matches_profile
+    severity: block
+    title: 目标表的时间颗粒度与档案一致
+    says: 目标表结构写的时间颗粒度，等于项目档案锁定的那个。
+    fix: 改目标表结构去对齐档案。档案是签过字的那一份。
+
+  - id: window_matches_profile
+    severity: advise
+    title: 实际数据的时间跨度对照档案的时间窗
+    says: 发布长表里真实存在的期间范围，与项目档案里当初定的回溯区间的差。当初假设三年、实际只收到十八个月，是要在建模之前知道的事。
+    fix: 不阻断。要么和客户补数据，要么在档案里把时间窗改成实际拿到的区间并说明原因——两条路都可以，沉默不行。
+
+  - id: conformance_ok
+    severity: block
+    title: 每份清洗后的数据都符合目标表结构
+    says: 每一批交付都跑过符合性检查并且通过了。
+    fix: 半映射的数据不许进长表。回去把没对上的列映射完，再跑一次 data.conform。
+
+  - id: reconciles_with_raw
+    severity: block
+    title: 清洗后的数据与原始数据对得上
+    says: 清洗只改了形状，没有改数——行数与合计都对得上原始文件。
+    fix: 看 reconcile.json 里差在哪。对不上说明清洗规则动了数据本身，那是 bug 不是配置。
+
+  - id: enum_proposals_resolved
+    severity: block
+    title: 取值映射没有悬着的提案
+    says: 所有"这个值应该归到哪个标准取值"的提案都已经裁决。
+    fix: 逐条确认或改写映射。悬着的映射会让同一个渠道在长表里出现两个名字。
+
+  - id: long_table_present
+    severity: block
+    title: 建模长表已经发布
+    says: data/published/long.parquet 存在。
+    fix: 跑 data.publish。
+
+  - id: response_present
+    severity: block
+    title: 长表里有响应变量
+    says: 长表带着 Y。
+    fix: 没有 Y 的长表建不了模。回去看响应指标那一批数据有没有清洗、发布进来。
+
+  - id: coverage_claimed
+    severity: block
+    title: 发布时挂上了覆盖清单
+    says: 每个非孤儿指标都挂到了一行真实存在的因子上。
+    fix: 跑 data.claim。挂不上的指标是孤儿——它在因子映射那一步会被采纳或驳回。
+
+  - id: computed_by_tool
+    severity: block
+    title: 这份产出物出自一次真实的工具运行
+    says: 产物的指纹对得上运行记录里的某一次工具调用。
+    fix: 用工具重新算一遍。这一段的产出是数字，模型写的数字不算数（理由见 shared/numbers-provenance.md）。
+
+  - id: view_derived_from
+    severity: block
+    title: 这份文档声明了它读的是哪份计算结果
+    says: 带数字的文档说得出它的数字来自哪一份产物，并且那份产物没在之后变过。
+    fix: 在文档的元信息里声明来源产物，或者重新生成。
+
+  # ══ 因子映射 ═══════════════════════════════════════════════════════
+
+  - id: factor_map_resolved
+    severity: block
+    title: 每行在用的因子都有数据供给或被显式忽略
+    says: 没有因子停在"不知道有没有数"的状态。
+    fix: 逐行确认：有数据就挂上，没有就显式标为忽略并写明原因。
+
+  # ══ 数据质量 · 业务校验 · 统计筛选 ═════════════════════════════════
+
+  - id: no_undecided_scorecard
+    severity: block
+    title: 评分卡里没有停在中间状态的行
+    says: 每一行都拿到了明确的裁决。
+    fix: 逐行给结论。中间状态的行会被下一层当成"还能救"，然后一直没人救。
+
+  - id: scorecard_matches_payload
+    severity: block
+    title: 评分卡上的每个数都和计算结果对得上
+    says: 评分卡是从计算结果逐行誊抄的，行、分值、总分、判读都一一对上，没有多的也没有少的。
+    fix: 回去改抄的那一份，不要改计算结果。抄错一个小数点，和算错一个小数点在表上长得一样，
+      但只有一个能靠重跑工具发现——这条检查就是那个发现。
+
+  - id: layer_inherits_drops
+    severity: block
+    title: 后一层不会给前一层剔掉的行重新打分
+    says: 上一层剔掉的因子，这一层不再出现。
+    fix: 让这一层的输入继承上一层的剔除结果。复活的行会让漏斗的数字对不上。
+
+  - id: every_anomaly_ruled
+    severity: block
+    title: 每个异常都裁定过，接受的那些真的会生效
+    says: 认出来的异常都定了接受还是不接受；接受的那些定了怎么处理，也定了作用在哪一段。
+    fix: 逐条给裁定。停在"待定"的卡片对模型零影响，等于这次讨论没有发生过。
+
+  - id: signoff_denials_explicit
+    severity: block
+    title: 客户否掉的指标记得住、对得上
+    says: 这次会评有人、有时间；客户明确否掉的每一条都对得上一个真展示过的指标。
+    fix: 把否掉的写清楚，值要加引号。没提到的按认可算——这是记录在案的规则，不是疏漏。
+
+  - id: anomaly_cards_bind
+    severity: block
+    title: 记下来的异常处置，模型真的收得到
+    says: 每张异常卡都被完整读进去了，已接受的处置确实改变了拟合。
+    fix: 对一下卡片的字段名与取值范围。读不进去的卡片，等于客户白裁定了一次。
+
+  - id: chart_analyses_bind
+    severity: block
+    title: 写下来的解读，页面真的收得到
+    says: 每一段解读都对得上一张真实的卡、一批没变过的数，条数与结构都在标准之内。
+    fix: 对一下卡片路径与数据指纹。对不上的解读不会报错——它只是安静地不出现。
+
+  - id: fold_selfcheck
+    severity: block
+    title: 图表页自己算出来的数，和工具算出来的一样
+    says: 这一页会按你选的条件当场重算，而它算的结果已经和计算结果逐位比对过。
+    fix: 重新生成这一页。比对不过就说明页面和计算结果对同一个问题给出了两个答案。
+
+  - id: range_verdicts_binary
+    severity: block
+    title: 区间判定只有通过与不通过
+    says: OLS 评分卡里没有第三种状态。
+    fix: 逐行给二选一的结论。
+
+  # ══ OLS 建模方案与参数 ═══════════════════════════════════════════════
+
+  - id: plan_scheme_chosen
+    severity: block
+    title: 用哪种切法建模是选出来的，而且写了理由
+    says: 选定的切法在测量过的候选里，并且记了为什么是这个粒度。
+    fix: 从候选里挑一个，把理由写上。两个产品是不是一回事、某个渠道值不值得单独看，
+      算术定不了——理由是这个粒度唯一留得下来的依据，也是日后有人想推翻它时唯一能对着看的东西。
+
+  - id: plan_feasibility_disclosed
+    severity: block
+    title: 选定切法下每个模型对象都报了它能识别几个驱动
+    says: 每个格子的月数和能识别的驱动数都在方案里。
+    fix: 重新跑一次测量。只写粒度、不写这两个数，看起来像做了决定，其实是猜的。
+
+  - id: excluded_periods_justified
+    severity: block
+    title: 被排除的时段有理由，而且不和异常窗口打架
+    says: 每段排除都写了原因，也没有哪一段既被删掉又被加了控制列。
+    fix: 补理由；同一段上二选一。异常窗口是加一列把这段建进模型，排除时段是把这段数据删掉，
+      两个一起用，等于在已经不存在的月份上估一个控制项。
+
+  - id: params_confirmed
+    severity: block
+    title: 改过默认值的参数都记了是谁定的、为什么
+    says: 与引擎默认值不同的每一项，都标了人定并写了理由。
+    fix: 补上是谁定的和理由。默认值可以不说话——那正是默认值的用处；
+      被人挪过的数不行，一个没人解释得了的系数，日后没有任何办法追回它当初为什么是那样。
+
+  - id: locked_params_untouched
+    severity: block
+    title: 固定判据还是引擎实际执行的那几个数
+    says: 显著性阈值、最少残差自由度、共线剔除线与引擎一致。
+    fix: 改回去。判据不是参数：被判的一方能调的判据就不再是判据，
+      「过了检验」这句话在判据可以商量之后就不表示任何东西了。
+      红灯线是唯一可以按项目挪的一条，代价是写清楚为什么。
+
+  - id: price_declared_when_volume
+    severity: advise
+    title: 响应是销量却没有单价
+    says: 没有单价时投资回报的单位是 销量/花费，与行业带（货币比率）不可比。
+    fix: 不阻断。要么问出单价，要么在交付里明说本轮不做投资回报的区间检查——
+      问题不在于不做，在于结果读起来像「投资回报通过了」，而那项检查根本没跑。
+
+  # ══ OLS 检验 ═══════════════════════════════════════════════════════
+  - id: factor_recommendations_complete
+    severity: block
+    title: 每个因子都有建议、有裁决，「有条件入模」写清了适用范围
+    says: 因子表里建议落在五态之内，裁决二选一，标了有条件的都写明在哪些对象上成立。
+    fix: 补齐。五态存在的意义就是能说出「它在这两个渠道成立、第三个不成立」；
+      说了却不写是哪两个渠道，读的人没法照着做，等于没说。
+
+  - id: runs_are_declared
+    severity: block
+    title: 每次拟合都写了它是为什么跑的
+    says: 运行历史里每一次都有目的，而且是在看到结果之前写下的。
+    fix: 跑 ols.fit 时给 --purpose。反复重跑然后留下最好看的那一次，
+      就是这一步当初删掉的那套指标搜索——只不过从挑变量升级成了挑运行。
+      事后补的目的是对结果的描述，不是理由。
+
+  - id: adoption_reason_is_legal
+    severity: block
+    title: 采纳某次运行的理由不是"它跑得更好看"
+    says: 被采纳的运行，理由属于允许的三类：修正了拟合失配、客户改了决定、修掉了口径或数据错误。
+    fix: 换一条说得出口的理由，或者别采纳它。"拟合优度更高""更贴合区间"不是理由——
+      它们是搜索的结论。三类合法理由的共同点是：都在说某处本来是错的、现在对了，
+      那是关于对错的主张；而"分数更高"是关于名次的。
+
+
+  - id: selection_is_derived
+    severity: block
+    title: 拟合用的配置就是账本里那一份
+    says: 模型选择不是手抄进配置的，是从变更账本推导出来的。
+    fix: 重新推导一次配置。手抄的配置和账本会分叉，而分叉之后谁也说不清跑的是哪一版。
+
+  - id: fit_matches_selection
+    severity: block
+    title: 磁盘上的拟合结果跑的是当前的选择
+    says: 选择改过之后重新拟合过了。
+    fix: 重新跑一次拟合。
+
+  - id: fit_is_fixed_point
+    severity: block
+    title: 报告展示的模型能被它自己的判定接受
+    says: 报告里那个模型，拿报告自己的判定标准去过一遍是能过的。
+    fix: 要么换模型，要么改判定标准——但不能一边展示它一边说它不合格。
+
+  - id: human_verdicts_preserved
+    severity: block
+    title: 人定的裁决在重新拟合后仍然保留
+    says: "标了 decidedBy: human 的行，重新拟合不会把它的裁决覆盖掉。"
+    fix: 这是 bug 不是配置问题。人的裁决被机器覆盖，等于这次人工确认白做了。
+
+  - id: drivers_within_df_limit
+    severity: block
+    title: 驱动因子数没有超过样本能支撑的上限
+    says: 一个模型的驱动因子数量，与它有多少个期间的数据相称。
+    fix: 减驱动因子，或者换更细的时间颗粒度。因子比样本多的模型，系数是编出来的。
+
+  - id: no_collinear_driver_fitted
+    severity: block
+    title: 识别不出来的驱动因子被剔除了，不是悄悄拟合了
+    says: 引擎判定共线、识别不出系数的驱动因子，确实被排除在拟合之外。
+    fix: 把它剔掉并记录原因。悄悄留在模型里的共线因子会污染它周围所有因子的系数。
+
+  # ══ 主数据 ═════════════════════════════════════════════════════════
+
+  - id: master_matches_adopted
+    severity: block
+    title: 主表就是采纳的指标集合，一个不多一个不少
+    says: 主数据表的列，等于最终采纳的指标加上响应指标。
+    fix: 重新装配一次主表。
+
+  - id: national_rows_scoped
+    severity: block
+    title: 没有渠道的行跟着留下它的那个模型走
+    says: 全国口径的行归属明确，不是取所有模型的并集。
+    fix: 重新跑一次漏斗装配。

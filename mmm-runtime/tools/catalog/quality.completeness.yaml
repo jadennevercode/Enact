@@ -1,0 +1,51 @@
+# tools/catalog/quality.completeness.yaml
+id: quality.completeness
+kind: quality
+purpose: 完整性维度的两个子项——字段完整性、数据完整性，各打 0 / 0.5 / 1 分。
+when: |
+  数据质量评分 · 「按四个维度给指标打分」的一步。
+  四个维度各跑一次，四份结果再由 quality.scorecard 卷成总分。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/quality-completeness.json
+  shape: |
+    dimension        恒为 completeness
+    signature        本次打分的行集指纹；卷积时四份必须一致
+    rows[]           每个已打分的指标一项：
+      id · l1 · l2 · l3 · l4 · indicator · treeRowId · dataStatus
+      score          完整性维度分 = 该维度全部阻断型子项里最低的那个
+      subScores[]    两个子项：
+        key          completeness.field / completeness.data
+        label · score · note · computed · blocking
+                     note 里写明缺失率的分母是怎么来的：
+                     「按档案时间窗 36 个月 × 8 个格子，应有 288 条，实到 184 条」
+    skipped          {no-data: n, inherited-drop: n}
+    orphanCount      数据里有、因子树没要过的指标数
+stdout: |
+  完整性：18 条序列打分 · 6 个 0 分 · 4 个 0.5 分 · 8 个 1 分
+
+  扣分的行，最差在前：
+    0    TV                       花费    缺失 33%（≥10%）：按档案时间窗 36 个月 × 24 个格子，应有 864 条，实到 576 条。
+
+  全部 18 行都栽在同一个子项上：数据完整性。
+    这通常是一条关于输入的陈述，不是关于数据的 —— 先去核对上游那个事实。
+example: ~/.local/bin/mmm tool quality.completeness --workspace <工作区>
+notes: |
+  **字段完整性**是唯一读跨序列上下文的子项：看这个 L4 名下有没有花费、有没有配套的表现指标。
+  只有花费没有表现 → 0.5。响应序列自成一套 → 1。
+
+  **数据完整性按缺失率算，不按历史跨度算。**
+  分母 = 该序列报出的格子数 × 档案时间窗的月数。
+  三件事都是有意的：
+    · 不用序列自己的行数当分母——那样任何序列的缺失率都是 0。
+    · 不用合同的完整网格当分母——「这个指标从来没报过某个渠道」是模型颗粒度的问题，
+      在这里再算一次等于让一个全国性投放被罚两次。
+    · 时间窗取自项目档案 profile.timeWindow。档案没写才退回按序列自身跨度算，
+      并在 note 里说明用的是哪一个。
+  分档：缺失 ≥10% → 0，>0 且 <10% → 0.5，无缺失 → 1。
+
+  这条规则比旧的「历史跨度 ≥24 个月」严：一份声明建模 2023-01 到 2025-12、
+  实际只交到 2024-01 起的数据，旧判据给满分，新判据给 0 并说出缺了 33%。
+  代价一并记在 docs/specs/deliberate-omissions.md：
+  「历史不足两年建不了模」这条在质量层不再单独拦，只剩统计检验层的 12 个月下限。

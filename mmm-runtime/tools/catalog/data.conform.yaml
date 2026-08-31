@@ -1,0 +1,54 @@
+# tools/catalog/data.conform.yaml
+id: data.conform
+kind: data
+purpose: 判定一批清洗完的数据合不合声明过的目标表结构——必填列、取值清单、列类型、身份列是否重复。
+when: |
+  发布数据集 · 「把每一批交付清洗到目标结构」，紧跟 data.clean 之后，每批交付一次。
+  data.publish 会读这份结果：ok 不为 true 的交付一律进不了发布表。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --asset
+    required: true
+    what: 这批交付的编号；它读 data/clean/<asset>/result.parquet
+output:
+  path: data/clean/{asset}/conformance.json
+  shape: |
+    ok                     四类硬问题全部为空才是 true；false 就不许发布
+    checked                是否真的检查过；没有清洗结果时为 false
+    rows                   被检查的行数
+    missingRequired[]      缺失的必填列名
+    extra[]                结构里没声明的多余列名（period_date 这个派生轴不算）
+    enumViolations[]       封闭取值清单被违反，每项 {column 列名, values[] 未声明的取值，最多 20 个}
+                           —— 这是硬问题，会让 ok 变 false
+    unmappedValues[]       开放取值清单里出现的新值，每项 {column, values[]}
+                           —— 这是待复核，不影响 ok
+    typeErrors[]           每项 {column 列名, declared 声明的类型, rows 转不动的行数}
+                           —— 硬问题
+    duplicateGrainKeys     身份列组合重复的行数；大于 0 说明映射把行放大了 —— 硬问题
+    grainKeys[]            实际用来判重的身份列
+    unenforcedDimensions[] 没有任何取值清单约束的维度列 —— 只是提示
+    invariants[]           四条时间与波动的不变量，每项：
+      key                  time_span_min_years 建模跨度至少两年
+                           time_granularity_allowed 相邻期数中位间隔不超过 45 天
+                           has_variation 序列必须有变化，常数列直接失败
+                           yoy_comparable 某一年的期数不得少于最多那年的一半
+      label                这条不变量在问什么
+      ok                   是否通过
+      failing[]            没通过的序列，最多列 8 条，形如 "L1 :: L2 :: L3 :: L4 :: 指标"
+      detail               一句话说明为什么没过
+                           —— 四条都是硬问题，任何一条不过 ok 就是 false
+stdout: |
+  delivery-a · 18420 rows conform · 1 column(s) carry unmapped values to review
+
+  channel — new values in an OPEN enum (review, not a failure):
+      便利店, 会员店
+example: ~/.local/bin/mmm tool data.conform --workspace <工作区> --asset delivery-a
+notes: |
+  duplicateGrainKeys 是最阴的一类：每一列都完全合法，只是行被放大了一倍，数值也跟着翻倍。
+  封闭清单和开放清单的区别是刻意的——开放清单出现新值只是待复核，封闭清单出现新值直接拦下发布。
+  一份清单是空的会被算成「未受约束」而不是「全部违规」，
+  但 schema.check 会把「封闭却没有取值」单独报出来。
+  没有清洗结果时判失败并提示先跑 data.clean。
+  四条不变量按序列判（一条 L1-L4 路径 × 一个指标），不是按整批交付判。
+  它们挡的是「形状完全合法但没法建模」的数据：一条常数序列此前要一路走到统计检验
+  才被波动系数挡下，中间还会被画成图拿给客户看。

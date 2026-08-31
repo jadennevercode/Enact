@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@enact/core/auth";
 import { useWorkspaceList } from "@enact/core/workspace";
-import { resolvePostAuthDestination, useHasOnboarded } from "@enact/core/paths";
+import { useHasOnboarded } from "@enact/core/paths";
 import { isOfficialMarketingHost } from "@/lib/public-host";
+import { resolveWebPostAuthDestination } from "@/features/auth/post-auth-destination";
 
 /**
  * Client-side fallback redirect for authenticated visitors on the landing page.
@@ -15,7 +16,8 @@ import { isOfficialMarketingHost } from "@/lib/public-host";
  * `last_workspace_slug` cookie. That cookie is set by the workspace layout on
  * every visit. But on *first login* — before the user has ever visited a
  * workspace — the cookie is absent, so the proxy falls through to the landing
- * page. This component covers that gap on app/self-host origins.
+ * page. This component covers that gap and sends workspace-less users through
+ * automatic workspace setup on app/self-host origins.
  *
  * On the official marketing origins, `/` must remain public even for logged-in
  * users. Explicit workspace routes still open the app.
@@ -34,7 +36,7 @@ export function RedirectIfAuthenticated() {
   useEffect(() => {
     if (isLoading || !user || !ready) return;
     if (isOfficialMarketingHost(window.location.hostname)) return;
-    router.replace(resolvePostAuthDestination(workspaces, hasOnboarded));
+    router.replace(resolveWebPostAuthDestination(workspaces, hasOnboarded));
   }, [isLoading, user, ready, workspaces, hasOnboarded, router]);
 
   return null;

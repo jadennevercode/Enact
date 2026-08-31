@@ -1,0 +1,692 @@
+# 饮料行业的分层访谈题库 —— 94 题，起提纲用。
+#
+# 跨行业的那一半（三层 × 时长 × 三类标签 × 数据四问）在
+# methodology/interview-framework.yaml；这里是饮料那次交付实际问出口的题。
+#
+# 品牌名已换成 {brand} 占位符（8 题）。换掉不是为了好看：一条写死 Mizone 的题
+# 出现在别的客户的提纲上，读的人分不清这是模板没改还是抄错了客户。
+id: food-bev/beverage/interview
+kind: interview
+scope: industry
+anchor: { l1: food-bev, l2: beverage }
+version: 1
+source: "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-bev-interview（94 题） ← Assets/Interview Plan & Question.xlsx"
+provenance:
+  project: "Danone Mizone"
+  kind: case
+  packs: 1
+  note: "题目来自一次交付；层级与角色切法见 methodology/interview-framework.yaml"
+framework: methodology/interview-framework.yaml
+counts:
+  questions: 94
+  roles: 12
+  leadership: 8
+  management: 24
+  operations: 62
+cleanup:
+  - "品牌名 Mizone → {brand} 占位符，共 8 题"
+  - "Q16 源表无分类标签、正文是中文内部笔记（«O2O与Community的区别»），原样保留并标 flag: untagged-note，出提纲时应过滤"
+  - "Q24 源表无分类标签、正文是中文内部笔记（«未来是否需要加入话题，用利润还是销售作为y轴»），原样保留并标 flag: untagged-note，出提纲时应过滤"
+  - "Q84 分类标签 «Business Understand» → «Business Download»（源表仅此一处这样写）"
+linkage: "业务题挂的是层级与角色，不挂因子——平台的题库本来就没有因子链。挂因子的是数据类问题，它由因子树逐叶确定性派生，见 framework 的 dataSubQuestions。"
+questions:
+  - n: 1
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "Business Download"
+    question: "Please share the overarching brand strategy for {brand} over the next 2-3 years to help us understand the focus areas for the MMM analysis."
+  - n: 2
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "Business Download"
+    question: "How are {brand}'s current investments allocated ？"
+  - n: 3
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "Business Download"
+    question: "What major {brand}'s investment shifts have been made over the past 2–3 years? And, what strategic considerations or external factors（incl. competitors, industry trend,etc.） have driven these changes?"
+  - n: 4
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "Business Download"
+    question: "What strategic shifts do you plan for future investment priorities?"
+  - n: 5
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "KBQs & Expectations"
+    question: "We’ve learned that competitor moves and market shifts had a significant impact on {brand}'s performance on interaction session, and would like to further ask for your views on what factors having the greatest impact？"
+  - n: 6
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "KBQs & Expectations"
+    question: "What are the key challenges in balancing marketing and sales investments?"
+  - n: 7
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "KBQs & Expectations"
+    question: "What other key business questions do you expect the MMM model to help answer?"
+  - n: 8
+    layer: leadership
+    category: Leadership
+    role: "Brand Leadership"
+    team: "Brand Leadership"
+    tag: "Granularity & Scope"
+    question: "What scope/areas you expect the MMM analysis to focus?（Channel/Product Line/Region, etc.）"
+  - n: 9
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Business Download"
+    question: "Please walk us through the current sales channel structure and their relative contribution to total sales?"
+  - n: 10
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Business Download"
+    question: "How are investments currently allocated across different sales channels?"
+  - n: 11
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Business Download"
+    question: "What major sales-related investment shifts have been made over the past 2–3 years? And what were the key considerations behind these changes ?"
+  - n: 12
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Business Download"
+    question: "Which sales channels will be your key focus areas in the future?"
+  - n: 13
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Business Download"
+    question: "How do we currently measure the impact of sales-related investment (consumer facing)？"
+  - n: 14
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "KBQs & Expectations"
+    question: "What key business questions do you expect the MMM model to help answer from sales perspective?"
+  - n: 15
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: "Granularity & Scope"
+    question: "At a high level, what is the current landscape of sales data, and which parts do you think MMM must leverage for analysis?"
+  - n: 16
+    layer: management
+    category: Management
+    role: "Management Team-Sales"
+    team: Sales
+    tag: ""
+    question: "O2O与Community的区别"
+    flag: untagged-note
+  - n: 17
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "Business Download"
+    question: "How are sales and marketing investments currently categorized from a finance perspective?"
+  - n: 18
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "Business Download"
+    question: "How are {brand}'s current investments allocated ？"
+  - n: 19
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "Business Download"
+    question: "What major Mazone‘s investment shifts have been made over the past 2–3 years? And, what strategic considerations or external factors（incl. competitors, industry trend,etc.） have driven these changes?"
+  - n: 20
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "Business Download"
+    question: "How do {brand} currently measure the ROI of different investment ?"
+  - n: 21
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "KBQs & Expectations"
+    question: "What are the main challenges in balancing budget allocation between marketing and sales investments?"
+  - n: 22
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "KBQs & Expectations"
+    question: "What are the main challenges in evaluating the efficiency of sales and marketing investments?（eg.determine the optimal investment level, evaluate overall cross-channel performance）"
+  - n: 23
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: "KBQs & Expectations"
+    question: "What key business questions do you expect the MMM model to help answer from a Finance perspective?"
+  - n: 24
+    layer: management
+    category: Management
+    role: "Management Team-Finance"
+    team: Finance
+    tag: ""
+    question: "未来是否需要加入话题，用利润还是销售作为y轴"
+    flag: untagged-note
+  - n: 25
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "Business Download"
+    question: "Could you please share {brand}'s product strategy to help us understand the focus areas for the MMM analysis."
+  - n: 26
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "Business Download"
+    question: "How are marketing-related investments currently allocated？"
+  - n: 27
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "Business Download"
+    question: "What major marketing-related investment shifts have been made over the past 2–3 years? And what were the key considerations behind these changes ?"
+  - n: 28
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "Business Download"
+    question: "Looking ahead, what will be the key strategic priorities for Marketing, and how might these priorities reshape the investment in 2026？"
+  - n: 29
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "KBQs & Expectations"
+    question: "You've mentioned the importance of measuring the impact of marketing activities on sales during interaction session. We would like to further understand how this is done today and how you would expect this to be measured？"
+  - n: 30
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "KBQs & Expectations"
+    question: "You‘ve mentioned the importance of converting brand equity into mid- and long-term business growth on interaction session. Could you share more on how you view this linkage and the key hypotheses you want to validate via MMM analysis?"
+  - n: 31
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "KBQs & Expectations"
+    question: "What other key business questions do you expect the MMM model to help answer from a marketing perspective?"
+  - n: 32
+    layer: management
+    category: Management
+    role: "Management Team-Mkt"
+    team: Marketing
+    tag: "Granularity & Scope"
+    question: "At a high level, what is the current landscape of marketing data, and which parts do you think MMM must leverage for analysis?"
+  - n: 33
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Business Download"
+    question: "How is the current media investment distributed(by media types, occasions), and what major shifts have been made over the past 2–3 years?"
+  - n: 34
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 35
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "KBQs & Expectations"
+    question: "How do you currently measure media’s performance on sales and brand building, and what are the key challenges?"
+  - n: 36
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "KBQs & Expectations"
+    question: "How is the ROI of different occasions (eg.sport, campus) currently evaluated, and what are the key challenges in comparing them?"
+  - n: 37
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 38
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Granularity & Scope"
+    question: "What media data is currently available across different media types/channels ？"
+  - n: 39
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is media data captured today, and what key metrics are included?"
+  - n: 40
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical media data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 41
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Media"
+    team: Marketing-Media
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 42
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Business Download"
+    question: "How is the current event & social investment distributed(by occasions, online vs. offline), and what major shifts have been made over the past 2–3 years?"
+  - n: 43
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 44
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "KBQs & Expectations"
+    question: "How do you currently measure event & social performance , and what are the key challenges?"
+  - n: 45
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 46
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Granularity & Scope"
+    question: "What social & event data is currently available？"
+  - n: 47
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is event & social data captured today, and what key metrics are included?"
+  - n: 48
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical event & social data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 49
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Activation"
+    team: Marketing-Activation
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 50
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Business Download"
+    question: "What is the current scale of the EC business, and what share does it contribute to total sales?"
+  - n: 51
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Business Download"
+    question: "How is the current EC investment distributed, and what major shifts have been made over the past 2–3 years?"
+  - n: 52
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 53
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "KBQs & Expectations"
+    question: "How do you currently measure EC performance(besides GMV), are there other metrics we use) and what are the key challenges?"
+  - n: 54
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 55
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Granularity & Scope"
+    question: "What EC data is currently available？"
+  - n: 56
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is EC data captured today, and what key metrics are included?"
+  - n: 57
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical EC data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 58
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-EC"
+    team: Marketing-EC
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 59
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Business Download"
+    question: "How is the current branding investment distributed, and which parts of the spending have a more direct impact on consumers?"
+  - n: 60
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Business Download"
+    question: "What major investment shifts have been made over the past 2–3 years?"
+  - n: 61
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 62
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 63
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Granularity & Scope"
+    question: "What branding-realted data is currently available？"
+  - n: 64
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is the data captured today, and what key metrics are included?"
+  - n: 65
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 66
+    layer: operations
+    category: Operation
+    role: "Operation Team-Mkt-Brand"
+    team: Marketing-Brand
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 67
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Business Download"
+    question: "How is the KA channel currently categorize, and what sales contribution does each deliver?"
+  - n: 68
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Business Download"
+    question: "How is the current investment across KA channels distributed , and what major shifts have been made over the past 2–3 years?"
+  - n: 69
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 70
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "KBQs & Expectations"
+    question: "How do emerging channels such as O2O influence KA investments, and what challenges do they bring for budget planning?"
+  - n: 71
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 72
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Granularity & Scope"
+    question: "What data is currently available for KA channels?"
+  - n: 73
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is data captured today, and what key metrics are included?"
+  - n: 74
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 75
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-KA"
+    team: Sales-KA
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 76
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Business Download"
+    question: "How is the current trade-marketing investment distributed, and what major shifts have been made over the past 2–3 years?"
+  - n: 77
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Business Download"
+    question: "What were the key considerations or strategic drivers behind these changes?"
+  - n: 78
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Business Download"
+    question: "Compared with competitors, in which areas do you think {brand}'s trade marketing investment need to be strengthened?"
+  - n: 79
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 80
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Granularity & Scope"
+    question: "What trade marketing data (consumer facing) is currently available ？"
+  - n: 81
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is data captured today, and what key metrics are included?"
+  - n: 82
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 83
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Trade Mkt"
+    team: "Sales-Trade Marketing"
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 84
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "Business Download"
+    question: "Could you briefly introduce the sales execution workflows and which steps may generate data?"
+  - n: 85
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 86
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "Granularity & Scope"
+    question: "What sales execution data is currently available ？"
+  - n: 87
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is data captured today, and what key metrics are included?"
+  - n: 88
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 89
+    layer: operations
+    category: Operation
+    role: "Operation Team-Sales-Execution"
+    team: Sales-Execution
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"
+  - n: 90
+    layer: operations
+    category: Operation
+    role: "Operation Team-SIA"
+    team: SIA
+    tag: "KBQs & Expectations"
+    question: "Based on the high-level key business questions raised by the leadership team, what further questions or considerations does this bring up from your side?（High-level KBQs will be provided after the leadership and management interviews are completed.)"
+  - n: 91
+    layer: operations
+    category: Operation
+    role: "Operation Team-SIA"
+    team: SIA
+    tag: "Granularity & Scope"
+    question: "What competitor and market dynamics data is currently available ？"
+  - n: 92
+    layer: operations
+    category: Operation
+    role: "Operation Team-SIA"
+    team: SIA
+    tag: "Granularity & Scope"
+    question: "At what level of granularity is data captured today, and what key metrics are included?"
+  - n: 93
+    layer: operations
+    category: Operation
+    role: "Operation Team-SIA"
+    team: SIA
+    tag: "Granularity & Scope"
+    question: "How continuous is the historical data over time, and are there any gaps or constraints we should be aware of ?"
+  - n: 94
+    layer: operations
+    category: Operation
+    role: "Operation Team-SIA"
+    team: SIA
+    tag: "Granularity & Scope"
+    question: "Where and how do we get the data?"

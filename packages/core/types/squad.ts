@@ -10,6 +10,7 @@ export interface SquadMemberPreview {
 
 export interface Squad {
   id: string;
+  system_key?: string;
   workspace_id: string;
   name: string;
   description: string;

@@ -1,0 +1,51 @@
+# tools/catalog/validation.anomalies.yaml
+id: validation.anomalies
+kind: validation
+purpose: 找出响应变量按渠道的年度同比里，大到需要客户给个说法的那几段。
+when: |
+  业务校验与签核 · 「逐条解释异常，并定下它在模型里怎么处理」。
+  每一条都要有一个假设和一次裁定，才轮得到进模型。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --pct
+    required: false
+    what: 年度同比变动超过百分之多少算异常，默认 40。
+output:
+  path: data/derived/anomalies.json
+  shape: |
+    cards[]        每个 (渠道 × 年) 一张卡，按幅度从大到小，最多 8 张：
+      id           卡片编号，形如 an-<渠道>-<年>
+      channel      哪个渠道
+      year         哪一年，**字符串**
+      growthPct    相对上一年的变动百分比，保留两位
+      hypothesis   猜测的原因 —— 由 AI 填，初始为空
+      proposed     AI 提议的处置，初始 event
+      status       pending → accepted | rejected，由人裁定
+      handling     event | cap | raw —— **只有 accepted 时才生效**
+      start / end  作用窗口，yyyymm 整数
+      evidence     算出这个数用了什么：{metric, agg, thisYear, lastYear,
+                   comparedMonths, comparedSlices, comparedCells, windowNote}
+    rule           本次采用的判据与阈值
+stdout: |
+  1 anomaly capsule(s), largest first:
+    O2O 2025 -51.0%  (两年覆盖的月份不一样，已按共同的 11 个月对比)
+example: ~/.local/bin/mmm tool validation.anomalies --workspace <工作区>
+notes: |
+  必须先跑 validation.panel。
+
+  **只扫响应变量。** 认不出响应就一条都不报，并明说去数据处理那一步标 KPI 角色 ——
+  绝不退化成把整张表加起来。这是平台踩过的坑：识别不到销量时它会把花费、温度、比率
+  求和当成 Y，然后在那上面很有信心地报异常。
+
+  **比得过才算数。** 两年的月份或构成对不上时，先取交集再比，并把设为一旁的东西写进
+  windowNote。取的是 (月份 × 切片) 的**格子**交集，不是月份集合和切片集合各取一次：
+  一个去年只报了一个月、今年报了满年的区域，在两个集合里都在，两次独立取交集都留得
+  下来，然后给其中一年贡献十一个月、另一年贡献零个 —— 于是每个渠道都凭空多出几十个
+  百分点，而客户被派去找一个根本不存在的原因。
+
+  handling 是会真正生效的，但**只在 status 是 accepted 的时候**：
+  event 在窗口上加一个 0/1 控制项，cap 在那里对响应做缩尾，raw 只记一句保留意见。
+  停在 pending 的卡片什么都不会发生 —— 所以这一步的确认会拒绝放行还没裁定的卡片，
+  也会拒绝一个「已接受但没有窗口」的处置：它同样什么都不做。
+
+  零个异常是一个答案，不是缺口。

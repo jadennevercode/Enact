@@ -1,0 +1,45 @@
+# tools/catalog/quality.granularity.yaml
+id: quality.granularity
+kind: quality
+purpose: 颗粒度维度的三个子项——时间颗粒度、模型颗粒度、下钻颗粒度，各打 0 / 0.5 / 1 分。
+when: |
+  数据质量评分 · 「按四个维度给指标打分」的一步。
+  四个维度各跑一次，四份结果再由 quality.scorecard 卷成总分。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/quality-granularity.json
+  shape: |
+    dimension        恒为 granularity
+    signature        本次打分的行集指纹；卷积时四份必须一致
+    rows[]           每个已打分的指标一项：
+      id · l1 · l2 · l3 · l4 · indicator · treeRowId · dataStatus
+      score          颗粒度维度分 = 该维度全部阻断型子项里最低的那个
+      subScores[]    三个子项：
+        key          granularity.time / granularity.model / granularity.drilldown
+        label · score · note · computed · blocking
+    skipped          {no-data: n, inherited-drop: n}
+    orphanCount      数据里有、因子树没要过的指标数
+stdout: |
+  颗粒度：18 条序列打分 · 3 个 0.5 分 · 15 个 1 分
+
+  扣分的行，最差在前：
+    0.5  市场规模                     品类全渠道销量    基本适配，但缺 channel_type、province_group 轴，需要额外聚合或拆解。
+example: ~/.local/bin/mmm tool quality.granularity --workspace <工作区>
+notes: |
+  **时间颗粒度**没有 0.5 档：月度及以下 1 分，粗于月度 0 分。建模最低月度是硬约束。
+
+  **模型颗粒度**对照的是合同，不是「有几个省份组」。三件东西比对：
+    · 合同要什么：项目档案 modelScope 里有取值的那些轴（Brand / Channel / Geo，
+      客户可能叫「产品 / 渠道 / 平台与区域」，按名字里的关键词映射到长表的列）
+    · 这个指标该报什么：因子树那一行 dimension 字段声明的轴
+    · 实际交了什么：长表里这条序列真正有取值的轴
+  要求 = 合同的轴 ∩ 因子树声明的轴。全都有 → 1；有一部分 → 0.5（需额外聚合或拆解）；
+  一个都没有 → 0。
+  **用因子树声明去收窄是关键的一步**：一个全国投放的媒体，树上就写着它按月×区域报，
+  没有渠道拆分不是缺失，是它本来的样子。反过来，树上承诺了、数据没交的轴是真缺口，
+  这一项报的就是它。
+
+  **下钻颗粒度是建议型，不阻断。** >2 个 L5–L8 维度 → 1，1–2 个 → 0.5，一个都没有 → 0。
+  它说的是 deep dive 能走多深，不是这条序列能不能建模——把它当阻断型，
+  会让「没有下钻维度」等于「数据不可用」，而多数项目本来就没有下钻维度。

@@ -22,6 +22,7 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // SignupError represents signup restriction errors
@@ -99,7 +100,40 @@ type LoginResponse struct {
 }
 
 type EmailLoginRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+}
+
+const (
+	registrationEmailDomain = "deloittecn.com.cn"
+	minPasswordLength       = 8
+	maxPasswordLength       = 72
+	maxDisplayNameLength    = 50
+)
+
+var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte("invalid-password"), bcrypt.DefaultCost)
+
+func normalizeAuthEmail(raw string) (string, error) {
+	email := strings.ToLower(strings.TrimSpace(raw))
+	if email == "" {
+		return "", errors.New("email is required")
+	}
+	parsed, err := mail.ParseAddress(email)
+	if err != nil || !strings.EqualFold(parsed.Address, email) {
+		return "", errors.New("invalid email address")
+	}
+	return email, nil
+}
+
+func isAllowedRegistrationEmail(email string) bool {
+	at := strings.LastIndex(email, "@")
+	return at > 0 && strings.EqualFold(email[at+1:], registrationEmailDomain)
 }
 
 func (h *Handler) issueJWT(user db.User) (string, error) {
@@ -116,9 +150,8 @@ func (h *Handler) issueJWT(user db.User) (string, error) {
 	return token.SignedString(auth.JWTSecret())
 }
 
-// findOrCreateUser returns the existing user for an email, or creates one if
-// none exists. isNew reports whether this call created the user — the signup
-// event fires on that edge for both direct email and Google OAuth entry points.
+// findOrCreateUser backs OAuth entry points. Password registration uses
+// Register so a user cannot be created without an explicit password.
 func (h *Handler) findOrCreateUser(ctx context.Context, email string) (user db.User, isNew bool, err error) {
 	if auth.IsTemporarilyDisabledUserEmail(email) {
 		return db.User{}, false, auth.ErrTemporarilyDisabledUser
@@ -188,6 +221,9 @@ func (h *Handler) checkSignupAllowed(email string, isNewUser bool) error {
 	if !isNewUser {
 		return nil // existing users always allowed to log in
 	}
+	if !isAllowedRegistrationEmail(email) {
+		return ErrEmailNotAllowed
+	}
 
 	email = strings.ToLower(email)
 	domain := ""
@@ -234,35 +270,33 @@ func (h *Handler) EmailLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(req.Email))
-	if email == "" {
-		writeError(w, http.StatusBadRequest, "email is required")
+	email, err := normalizeAuthEmail(req.Email)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	parsed, err := mail.ParseAddress(email)
-	if err != nil || !strings.EqualFold(parsed.Address, email) {
-		writeError(w, http.StatusBadRequest, "invalid email address")
+	if req.Password == "" {
+		writeError(w, http.StatusBadRequest, "password is required")
+		return
+	}
+	if len([]byte(req.Password)) > maxPasswordLength {
+		writeError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
 
-	user, isNew, err := h.findOrCreateUser(r.Context(), email)
+	user, err := h.Queries.GetUserByEmail(r.Context(), email)
 	if err != nil {
-		if errors.Is(err, auth.ErrTemporarilyDisabledUser) {
-			writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
+		if isNotFound(err) {
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(req.Password))
+			writeError(w, http.StatusUnauthorized, "invalid email or password")
 			return
 		}
-		var signupErr SignupError
-		if errors.As(err, &signupErr) {
-			writeError(w, http.StatusForbidden, signupErr.Error())
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "failed to create user")
+		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
-	if isNew {
-		evt := analytics.Signup(uuidToString(user.ID), user.Email, signupSourceFromRequest(r))
-		evt.Properties["auth_method"] = "email"
-		obsmetrics.RecordEvent(h.Analytics, h.Metrics, evt)
+	if !user.PasswordHash.Valid || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(req.Password)) != nil {
+		writeError(w, http.StatusUnauthorized, "invalid email or password")
+		return
 	}
 
 	tokenString, err := h.issueJWT(user)
@@ -290,6 +324,126 @@ func (h *Handler) EmailLogin(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("user logged in", append(logger.RequestAttrs(r), "user_id", uuidToString(user.ID), "email", user.Email)...)
 	writeJSON(w, http.StatusOK, LoginResponse{
+		Token: tokenString,
+		User:  h.userToResponse(user),
+	})
+}
+
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	var req RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	email, err := normalizeAuthEmail(req.Email)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if !isAllowedRegistrationEmail(email) {
+		writeError(w, http.StatusForbidden, "registration requires a @"+registrationEmailDomain+" email address")
+		return
+	}
+	if auth.IsTemporarilyDisabledUserEmail(email) {
+		writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
+		return
+	}
+	if err := h.checkSignupAllowed(email, true); err != nil {
+		writeError(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if utf8.RuneCountInString(name) > maxDisplayNameLength {
+		writeError(w, http.StatusBadRequest, "name must be 50 characters or fewer")
+		return
+	}
+	if utf8.RuneCountInString(req.Password) < minPasswordLength {
+		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
+		return
+	}
+	if len([]byte(req.Password)) > maxPasswordLength {
+		writeError(w, http.StatusBadRequest, "password must be 72 bytes or fewer")
+		return
+	}
+
+	existingUser, lookupErr := h.Queries.GetUserByEmail(r.Context(), email)
+	if lookupErr == nil && auth.IsTemporarilyDisabledUser(uuidToString(existingUser.ID), existingUser.Email) {
+		writeError(w, http.StatusForbidden, auth.TemporarilyDisabledUserError)
+		return
+	}
+	if lookupErr == nil && existingUser.PasswordHash.Valid {
+		writeError(w, http.StatusConflict, "an account with this email already exists")
+		return
+	}
+	if lookupErr != nil && !isNotFound(lookupErr) {
+		writeError(w, http.StatusInternalServerError, "failed to check account")
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to secure password")
+		return
+	}
+	hashedPassword := pgtype.Text{String: string(passwordHash), Valid: true}
+	var user db.User
+	if lookupErr == nil {
+		// Accounts created by the former passwordless flow have no hash. Let
+		// them initialize one exactly once; after this update the WHERE guard
+		// prevents concurrent or repeated claims.
+		user, err = h.Queries.SetInitialUserPassword(r.Context(), db.SetInitialUserPasswordParams{
+			ID:           existingUser.ID,
+			Name:         name,
+			PasswordHash: hashedPassword,
+		})
+	} else {
+		user, err = h.Queries.CreatePasswordUser(r.Context(), db.CreatePasswordUserParams{
+			Name:         name,
+			Email:        email,
+			PasswordHash: hashedPassword,
+		})
+	}
+	if err != nil {
+		if isNotFound(err) {
+			writeError(w, http.StatusConflict, "an account with this email already exists")
+			return
+		}
+		if isUniqueViolation(err) {
+			writeError(w, http.StatusConflict, "an account with this email already exists")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to create user")
+		return
+	}
+
+	if lookupErr != nil {
+		evt := analytics.Signup(uuidToString(user.ID), user.Email, signupSourceFromRequest(r))
+		evt.Properties["auth_method"] = "email_password"
+		obsmetrics.RecordEvent(h.Analytics, h.Metrics, evt)
+	}
+
+	tokenString, err := h.issueJWT(user)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to generate token")
+		return
+	}
+	if err := auth.SetAuthCookies(w, tokenString); err != nil {
+		slog.Warn("failed to set auth cookies", "error", err)
+	}
+	if h.CFSigner != nil {
+		for _, cookie := range h.CFSigner.SignedCookies(time.Now().Add(auth.AuthTokenTTL())) {
+			http.SetCookie(w, cookie)
+		}
+	}
+
+	slog.Info("user registered", append(logger.RequestAttrs(r), "user_id", uuidToString(user.ID), "email", user.Email)...)
+	writeJSON(w, http.StatusCreated, LoginResponse{
 		Token: tokenString,
 		User:  h.userToResponse(user),
 	})

@@ -1,0 +1,52 @@
+# tools/catalog/validation.analyses.yaml
+id: validation.analyses
+kind: validation
+purpose: 给每张卡留一个解读槽位，预填计算读数，并盖上「写的时候是哪批数」的指纹。
+when: |
+  业务校验与签核 · 「一个因子路径一张卡」，跑完 validation.panel 与 validation.facts 之后。
+  写解读的人对着它的槽位填 artifacts/s2/chart-analyses.yaml。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/chart-analyses.json
+  shape: |
+    ruleVersion     analyses/1
+    language        项目语言，取自 mmm.yaml 的 outputLanguage
+    standard        叙述标准原文（按项目语言）—— 写解读要满足的那些条件
+    slots[]         每张卡一个槽位：
+      card          这张卡的 L1›L2›L3 完整路径，**这是匹配用的键**
+      key           这张卡在这个筛选态下的稳定编号
+      filterLabel   解读区块的表头，形如 `L3: 品牌传播 · by month`
+      seriesDigest  这一刻画出来的那批数的指纹
+      periods[]     这张卡真实有的期间 —— 解读里引的每个期间都必须在这里面
+      headline      一句话结论（预填的是计算读数）
+      trends[]      2–4 条
+      anomalies[]   ≤6 条，每条 {period, metric, note}
+      inflections[] ≤6 条，同上
+      caveats[]     ≤6 条
+      fallback      预填的槽位恒为 true —— 它是计算读数，不是谁写的
+stdout: |
+  4 analysis slot(s), one per card
+
+  Each is a computed readout. Write over it in artifacts/s2/chart-analyses.yaml,
+  matching on `card` and copying `key` / `filterLabel` / `seriesDigest` verbatim.
+  A card nobody writes keeps the readout — no card is ever blank.
+
+  （随后原样打印叙述标准）
+example: ~/.local/bin/mmm tool validation.analyses --workspace <工作区>
+notes: |
+  必须先跑 validation.panel。
+
+  **这个工具存在的理由是把解读从散文变成结构。** 以前解读是自由 markdown，图册按标题
+  字符串切块去找它 —— 标题差一个字，那一段不会报错，它只是安静地不出现，而读的人看到
+  「待写入」，以为没人写过。现在解读是一张受校验的表：条数有上下限，引的每个期间都要
+  真实存在，写的时候是哪批数也记着。对不上的时候 chart_analyses_bind 会点名。
+
+  **每张卡都预填一份计算读数**，所以没有一张卡是空的。没人写的那张显示计算读数，
+  并且页面上写明它是计算读数 —— 一份刻意平实的读数，不会被误当成 AI 的判断。
+
+  `card` 是匹配用的键，不是 `key`：两个父节点下的同名 L3 是两张卡，而 key 的字段表
+  里曾经只有 l3，两张卡会撞到同一个哈希，一张的解读盖掉另一张。
+
+  语言：控件标签是产品骨架，固定英文；解读正文跟 mmm.yaml 的 outputLanguage 走。
+  标准本身会按项目语言重写那一句「用什么语言写」。

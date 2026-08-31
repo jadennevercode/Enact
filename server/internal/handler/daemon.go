@@ -15,10 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/daemonws"
@@ -36,6 +32,10 @@ import (
 	"github.com/enact-ai/enact/server/pkg/redact"
 	"github.com/enact-ai/enact/server/pkg/skillbundle"
 	"github.com/enact-ai/enact/server/pkg/taskfailure"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // ---------------------------------------------------------------------------
@@ -438,6 +438,8 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := make([]AgentRuntimeResponse, 0, len(req.Runtimes))
+	var sdlcRuntime pgtype.UUID
+	sdlcRuntimeIsCodex := false
 	for _, runtime := range req.Runtimes {
 		provider := normalizeProvider(runtime.Type)
 		if provider == "" {
@@ -635,6 +637,14 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 			h.mergeLegacyRuntimes(r, registered, provider, req.LegacyDaemonIDs)
 		}
 
+		// Defaults are intentionally created without a machine-specific runtime
+		// ID. Bind them when a real daemon appears, preferring Codex while still
+		// allowing the portable suite to work with any online provider.
+		if registered.Status == "online" && (!sdlcRuntime.Valid || (!sdlcRuntimeIsCodex && registered.Provider == "codex")) {
+			sdlcRuntime = registered.ID
+			sdlcRuntimeIsCodex = registered.Provider == "codex"
+		}
+
 		resp = append(resp, runtimeToResponse(registered))
 	}
 	for _, failed := range req.FailedProfiles {
@@ -707,6 +717,13 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 			DaemonID:    prow.DaemonID,
 			CustomName:  prow.CustomName,
 		}, prow.Inserted)
+	}
+
+	if err := service.BindUnboundSDLCDefaultAgents(r.Context(), h.TxStarter, h.Queries, wsUUID, sdlcRuntime); err != nil {
+		// Registration itself remains usable; the next registration or server
+		// startup will retry the idempotent binding.
+		slog.Warn("failed to bind SDLC default agents to runtime",
+			"workspace_id", req.WorkspaceID, "runtime_id", uuidToString(sdlcRuntime), "error", err)
 	}
 
 	slog.Info("daemon registered", "workspace_id", req.WorkspaceID, "daemon_id", req.DaemonID, "runtimes_count", len(resp))
@@ -2066,8 +2083,8 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	//
 	// Composing here covers every task kind, because this is the single
 	// place a claimed task's agent payload is assembled.
-	if agent.SystemKey.String == service.MikaSystemKey {
-		resp.Agent.Instructions = service.ComposeMikaInstructions(agent.Name, agent.Instructions)
+	if instructions, ok := service.ComposeSystemAgentInstructions(agent.SystemKey.String, agent.Name, agent.Instructions); ok {
+		resp.Agent.Instructions = instructions
 	}
 	if useSkillRefs {
 		_, skillRefs := h.TaskService.LoadAgentSkillBundles(r.Context(), task.AgentID)

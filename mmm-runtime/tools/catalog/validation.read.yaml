@@ -1,0 +1,67 @@
+# tools/catalog/validation.read.yaml
+id: validation.read
+kind: validation
+purpose: 按一组筛选条件把某张卡读回来——顾问口头说的和客户页面上看到的，是同一个内核算的同一份数。
+when: |
+  顾问对着图册提问的时候。业务校验与签核 · 出完页面之后，随时可用。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --card
+    required: false
+    what: 卡片的 L1›L2›L3 路径；给一段能唯一命中的文字也行。命中多条会列出来让你说清楚。
+  - flag: --grain
+    required: false
+    what: month | quarter | half | year，默认 month。撑不起就自动降到最细可用的一档并说明。
+  - flag: --brand
+    required: false
+    what: 逗号分隔；空表示不筛。**作用于全图**，销量底图跟着动。
+  - flag: --channel
+    required: false
+    what: 逗号分隔的渠道类型。作用于全图。
+  - flag: --region
+    required: false
+    what: 逗号分隔的区域。作用于全图。
+  - flag: --source
+    required: false
+    what: 逗号分隔的数据来源。**只作用于叠加层**，销量底图不动。
+  - flag: --level
+    required: false
+    what: 下钻路径，形如 l5=抖音,l6=头部达人。只作用于叠加层。
+  - flag: --indicator
+    required: false
+    what: 逗号分隔；空表示这张卡的默认六条（**不是全部**）。
+  - flag: --compare-month
+    required: false
+    what: 1–12 表示按同月对比年度表，0 表示整年。
+  - flag: --list
+    required: false
+    what: 只把所有卡片路径打出来然后停下
+output:
+  path: data/derived/validation-read.json
+  shape: |
+    card · state · stateKey · grain · fellBackFrom
+    responseMetric · response      响应自己的数字块
+    drivers[]                      每条选中指标的数字块（结构同 validation.facts）
+    partial                        哪些时间桶没铺满，各铺了多少
+    droppedBlankRows               有多少条全国口径的曲线被这次筛选排除了
+    yearly                         年度表与逐年同比
+stdout: |
+  消费者需求驱动›品牌广告/内容种草›品牌传播 · quarter · 12 期
+  抖音花费（Σ） 首末 999.78 → 684.58（-31.50%）
+    最高 1617.06 在 2023Q3 · 最低 588.05 在 2025Q1
+    与同一片响应的相关系数 -0.055
+example: >-
+  ~/.local/bin/mmm tool validation.read --workspace <工作区>
+  --card "品牌传播" --level "l5=抖音,l6=头部达人" --grain quarter
+notes: |
+  必须先跑 validation.panel。
+
+  这个工具和页面走的是**同一个归约内核**（mmm_engine/charts/fold.py，见
+  shared/fold-contract.md）。所以顾问在会上念出来的数，和客户此刻在页面上按同样条件
+  看到的数，不可能不一样 —— 这不是两边都很小心，是两边根本就是同一份算法。
+
+  名字对不上就判失败，不会挑一条最像的给你 —— 答错一张图的代价比答不上来高得多。
+  不确定叫什么就先 --list。
+
+  它也是让两端保持诚实的第三个消费者：内核只有一份，改动它会同时反映在页面、这个工具
+  和跨端比对上。

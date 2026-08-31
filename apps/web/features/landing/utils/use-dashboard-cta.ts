@@ -4,10 +4,10 @@ import { useAuthStore } from "@enact/core/auth";
 import { useWorkspaceList } from "@enact/core/workspace";
 import {
   paths,
-  resolvePostAuthDestination,
   useHasOnboarded,
 } from "@enact/core/paths";
 import type { Workspace } from "@enact/core/types";
+import { resolveWebPostAuthDestination } from "@/features/auth/post-auth-destination";
 
 /**
  * While the workspace list is in flight the CTA points at `/issues`, which the
@@ -31,7 +31,7 @@ export function resolveDashboardCtaHref({
 }): string {
   if (!isAuthenticated) return paths.login();
   if (!workspaceListReady) return LOADING_FALLBACK_HREF;
-  return resolvePostAuthDestination(workspaces, hasOnboarded);
+  return resolveWebPostAuthDestination(workspaces, hasOnboarded);
 }
 
 /**

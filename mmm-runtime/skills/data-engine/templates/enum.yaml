@@ -1,0 +1,22 @@
+# 一份取值清单 —— 落 metadata/schema/enums/<名字>.yaml。
+#
+# closed: true   出现没声明过的值 = 违规，阻断发布
+# closed: false  出现新值 = 待复核，不阻断
+#
+# 空的清单会被算成「未受约束」而不是「全部违规」——所以清单封闭却没有取值时，
+# 结构自检会单独把它报出来。
+closed: true
+
+values:
+  - canonical: MT                 # 标准值，长表里落的就是它
+    aliases:                      # 源文件里可能出现的各种写法
+      - 现代渠道
+      - Modern Trade
+      - 商超
+  - canonical: TT
+    aliases:
+      - 传统流通
+      - Traditional Trade
+
+# 别名只解决"同一个东西的不同写法"。跨语言同义词也写在这里；
+# 源里的错别字不写在这里，走清洗目录下的映射条目，并且要人采纳过才生效。

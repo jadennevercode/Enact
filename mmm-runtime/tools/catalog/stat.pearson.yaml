@@ -1,0 +1,47 @@
+# tools/catalog/stat.pearson.yaml
+id: stat.pearson
+kind: statistical
+purpose: 相关性检验——因子与响应的有符号 Pearson 相关系数，按 0 / 0.5 / 1 分档。
+when: |
+  统计检验 · 「按波动性、相关性、共线性筛查」的第二项。
+  必须在 stat.vif 之前跑：共线性的设计矩阵就是「与响应最相关的那一批」。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/stat-correlation.json
+  shape: |
+    test             恒为 pearson
+    signature        行集指纹；卷积时三份必须一致
+    panel            面板规模
+    months           面板覆盖的月份数
+    detrend          去趋势方式，例 "34 year-over-year periods × 4 object(s)"；
+                     项目太短没差分时写明 "(too short to detrend)"
+    rows[]           每个已检验的指标一项：
+      id · l1 · l2 · l3 · l4 · indicator · treeRowId · dataStatus
+      pearson        与响应的相关系数，**带符号**，4 位
+      months         这个指标实际被观测到的月份数
+    skipped          {no-data: n, inherited-drop: n}
+    orphanCount      数据里有、因子树没要过的指标数
+stdout: |
+  相关性：17 条序列 · 10 个 0 分 · 4 个 0.5 分 · 3 个 1 分
+  去趋势：12 year-over-year periods × 4 object(s)
+
+  几乎与响应不相关（|r| < 0.1）：
+    -0.0086  自有冰柜                     已投放冰柜个数
+example: ~/.local/bin/mmm tool stat.pearson --workspace <工作区>
+notes: |
+  单变量、有符号，判定用绝对值。有效观测少于 3 对、或任一侧标准差为 0 时返回 0。
+  分档：|r| < 0.1 → 0 分；0.1 ≤ |r| < 0.3 → 0.5 分；|r| ≥ 0.3 → 1 分。
+
+  **跑在对象内同比差分上。** 月度原始水平上每个指标都和响应相关、也和彼此相关，
+  因为它们共骑同一条季节趋势——量到的是趋势不是指标。
+  差分**必须在对象内部做**：顺着堆叠的面板往下差，会把一个渠道的头几个月
+  减去另一个渠道的末几个月。
+
+  差分之后还要**对象内标准化**再合并。全国性驱动（TV、搜索）在每个对象里是同一条序列，
+  而响应在对象之间差几倍；直接合并会把真实关系埋在截面尺度下。
+  在合成数据上，不做这一步会把每个 |r| 都压到 0.25 以下——包括那些按已知 6–8% 贡献生成的驱动。
+
+  **项目太短时整个跳过差分**，并在 detrend 字段里写明。守的是结果不是输入：
+  13–14 个月的项目差分后只剩 1–2 行，相关性的守卫会对每个指标静默返回 0，
+  把所有东西无理由地全丢掉。

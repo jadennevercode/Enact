@@ -1,0 +1,66 @@
+# 项目档案 —— 照这份填，不要自创结构。
+# 字段的来历与用途见 ../references/fields.md；哪些字段会被检查、不合规怎么办，
+# 见 shared/manifests/checks.yaml 里 profile_complete 那一条。
+#
+# 键名和固定取值一律英文（conventions.md §9）。给客户看的是从这份文件渲染出来的
+# Word，中文在那边。
+meta:
+  step: project-profile/build
+  skill: scoping
+  generated: ""                       # 生成时间，带时区。不能留空
+  grounding:                          # 读过的每份材料，一份一条。真的没读就写 []
+    - { path: "inputs/project-background/<文件名>", chars: 0, truncated: false }
+  knowledgeRecall: none               # 档案不依赖行业先例
+  status: draft                       # draft → locked。只有人拍板后编排层才写 locked
+
+profile:
+  # ── 项目身份。与 mmm.yaml 一致，这里冗余一份是为了让下游只读一个文件 ──
+  brand: ""
+  industry: { l1: "", l2: "", l3: "" }
+  sourceOrigin: uploaded              # uploaded 从材料抽取 | elicited 由问答推导
+
+  # ── 给人读的三段 ──
+  projectIntro: ""                    # 两三句话，尽量用客户自己的说法
+  objective: ""                       # 模型必须回答的那个生意问题，一句话
+  summary: ""                         # 150–300 字：要回答什么、Y 是什么口径、
+                                      # 覆盖多少格、回溯多久、哪些不做、哪些还没定。
+                                      # Word 的第一章就是它，不能留空
+
+  # ── 全链路契约。改这三样等于重走这一步 ──
+  responseMetric: ""                  # Y 是什么，带单位和频率，例："售出量（箱），月度"
+  timeGranularity: Month              # Year | Month | Week
+  timeWindow: { from: "", to: "" }    # 建模数据的回溯区间，例：2023-01 → 2025-12
+
+  # 模型范围固定三轴，轴名不可改（BIZ-001，2026-07-16 客户裁决）。
+  # 地区就是地区——天猫、京东、抖音这些是渠道内部的细分，放进来会让
+  # "华东" 和 "天猫" 变成同一层的东西，之后每一次数地区都是错的。
+  modelScope:
+    - { name: Brand,   values: [] }
+    - { name: Channel, values: [] }
+    - { name: Geo,     values: [] }
+
+  # 只列 SOW 明确说在范围内的组合，不是三轴叉乘的全集。
+  # 每行的取值顺序与 modelScope 对齐，且必须出现在对应轴的 values 里。
+  scopeRows:
+    - ["", "", ""]
+
+  # 规模提醒，不是硬约束。理由是工期（客户原话「为了聚焦项目的时效」），
+  # 不是模型质量，所以超了如实写下来交给客户定，不要自己把范围收窄。
+  scopeAdvisories:
+    productLines: { actual: 0, suggested: 1, note: "" }
+    channels:     { actual: 0, suggested: 4, note: "" }   # 1 个线上 + MT / TT / AFH
+    geoGroups:    { actual: 0, suggested: 6, note: "" }   # 线下按省市分组，线上按平台分
+
+  productExclusions: []               # 产品线里排除掉的 SKU，写清楚，别等收数时才发现
+  deliverables: []                    # 客户最终要拿到什么，例：分渠道 ROI、预算再分配情景
+  outOfScope: []                      # 明确不做的事
+
+  # 澄清登记：问过的、答过的、以及没人可问时按推荐项走的假设
+  assumptions:
+    - question: ""
+      answer: ""
+      decidedBy: ""
+      at: ""
+      assumed: false                  # true 表示没问到人，按推荐项走的
+
+  openQuestions: []                   # 还没解决、留给访谈或数据需求去解决的问题

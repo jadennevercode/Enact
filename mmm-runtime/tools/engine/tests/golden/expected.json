@@ -1,0 +1,873 @@
+{
+ "fit": {
+  "EC::AURELIA": {
+   "adj_r2": 0.772518,
+   "contribution": {
+    "Avg_Temperature": 66.599253,
+    "Price_Index": -24.849566
+   },
+   "drivers": [
+    "Avg_Temperature",
+    "Price_Index"
+   ],
+   "mape": 6.282939,
+   "r2": 0.792299,
+   "roi": {}
+  },
+  "MT::AURELIA": {
+   "adj_r2": 0.702963,
+   "contribution": {
+    "Avg_Temperature": 49.926369,
+    "Price_Index": -12.025032
+   },
+   "drivers": [
+    "Avg_Temperature",
+    "Price_Index"
+   ],
+   "mape": 6.23973,
+   "r2": 0.728792,
+   "roi": {}
+  },
+  "TT::AURELIA": {
+   "adj_r2": 0.679666,
+   "contribution": {
+    "Avg_Temperature": 44.693294,
+    "Price_Index": -7.840228
+   },
+   "drivers": [
+    "Avg_Temperature",
+    "Price_Index"
+   ],
+   "mape": 6.226014,
+   "r2": 0.707521,
+   "roi": {}
+  }
+ },
+ "ledger": [
+  {
+   "key": "Average Price::Price Index",
+   "object": "EC::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Digital Display::Display Spend",
+   "object": "EC::AURELIA",
+   "rejectedAt": "quality",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "rejected",
+    "range": "inherited",
+    "selection": "inherited",
+    "signoff": "inherited",
+    "statistical": "inherited"
+   }
+  },
+  {
+   "key": "Magazine::Magazine Spend",
+   "object": "EC::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Sponsorship::Sponsorship Spend",
+   "object": "EC::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "TV::TV Spend",
+   "object": "EC::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Temperature::Avg Temperature",
+   "object": "EC::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Average Price::Price Index",
+   "object": "MT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Digital Display::Display Spend",
+   "object": "MT::AURELIA",
+   "rejectedAt": "quality",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "rejected",
+    "range": "inherited",
+    "selection": "inherited",
+    "signoff": "inherited",
+    "statistical": "inherited"
+   }
+  },
+  {
+   "key": "Magazine::Magazine Spend",
+   "object": "MT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Sponsorship::Sponsorship Spend",
+   "object": "MT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "TV::TV Spend",
+   "object": "MT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Temperature::Avg Temperature",
+   "object": "MT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Average Price::Price Index",
+   "object": "TT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Digital Display::Display Spend",
+   "object": "TT::AURELIA",
+   "rejectedAt": "quality",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "rejected",
+    "range": "inherited",
+    "selection": "inherited",
+    "signoff": "inherited",
+    "statistical": "inherited"
+   }
+  },
+  {
+   "key": "Magazine::Magazine Spend",
+   "object": "TT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Sponsorship::Sponsorship Spend",
+   "object": "TT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "TV::TV Spend",
+   "object": "TT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  },
+  {
+   "key": "Temperature::Avg Temperature",
+   "object": "TT::AURELIA",
+   "rejectedAt": "",
+   "verdicts": {
+    "mapping": "adopted",
+    "quality": "adopted",
+    "range": "adopted",
+    "selection": "pending",
+    "signoff": "adopted",
+    "statistical": "adopted"
+   }
+  }
+ ],
+ "objects": [
+  "MT::AURELIA",
+  "TT::AURELIA",
+  "EC::AURELIA"
+ ],
+ "quality": {
+  "accuracy": {
+   "Average Price::Price Index": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "Digital Display::Display Spend": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "Magazine::Magazine Spend": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "Sell-out Volume::Sales Volume": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "Sponsorship::Sponsorship Spend": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "TV::TV Spend": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ],
+   "Temperature::Avg Temperature": [
+    [
+     "accuracy.numeric",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "accuracy.business",
+     1.0,
+     false,
+     false
+    ]
+   ]
+  },
+  "completeness": {
+   "Average Price::Price Index": [
+    [
+     "completeness.field",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Digital Display::Display Spend": [
+    [
+     "completeness.field",
+     0.5,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Magazine::Magazine Spend": [
+    [
+     "completeness.field",
+     0.5,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Sell-out Volume::Sales Volume": [
+    [
+     "completeness.field",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Sponsorship::Sponsorship Spend": [
+    [
+     "completeness.field",
+     0.5,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "TV::TV Spend": [
+    [
+     "completeness.field",
+     0.5,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Temperature::Avg Temperature": [
+    [
+     "completeness.field",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "completeness.data",
+     1.0,
+     true,
+     true
+    ]
+   ]
+  },
+  "consistency": {
+   "Average Price::Price Index": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Digital Display::Display Spend": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Magazine::Magazine Spend": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Sell-out Volume::Sales Volume": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Sponsorship::Sponsorship Spend": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "TV::TV Spend": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ],
+   "Temperature::Avg Temperature": [
+    [
+     "consistency.dimension",
+     1.0,
+     false,
+     false
+    ],
+    [
+     "consistency.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "consistency.caliber",
+     1.0,
+     true,
+     true
+    ]
+   ]
+  },
+  "granularity": {
+   "Average Price::Price Index": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "Digital Display::Display Spend": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "Magazine::Magazine Spend": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "Sell-out Volume::Sales Volume": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "Sponsorship::Sponsorship Spend": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "TV::TV Spend": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ],
+   "Temperature::Avg Temperature": [
+    [
+     "granularity.time",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.model",
+     1.0,
+     true,
+     true
+    ],
+    [
+     "granularity.drilldown",
+     0.0,
+     false,
+     true
+    ]
+   ]
+  },
+  "rollup": {
+   "Average Price::Price Index": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "Digital Display::Display Spend": [
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    0.5
+   ],
+   "Magazine::Magazine Spend": [
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    0.5
+   ],
+   "Sell-out Volume::Sales Volume": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "Sponsorship::Sponsorship Spend": [
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    0.5
+   ],
+   "TV::TV Spend": [
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    0.5
+   ],
+   "Temperature::Avg Temperature": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  }
+ },
+ "selection": {
+  "exclude": {
+   "EC::AURELIA": [
+    "digital display::display spend"
+   ],
+   "MT::AURELIA": [
+    "digital display::display spend"
+   ],
+   "TT::AURELIA": [
+    "digital display::display spend"
+   ]
+  },
+  "y": {}
+ },
+ "stat": {
+  "columns": [
+   "Avg_Temperature",
+   "Display_Spend",
+   "Magazine_Spend",
+   "Price_Index",
+   "Sponsorship_Spend",
+   "TV_Spend"
+  ],
+  "cv": [
+   0.153873,
+   0.153667,
+   0.153311,
+   0.16531,
+   0.153276,
+   0.154376
+  ],
+  "pearson": [
+   0.977836,
+   0.995158,
+   0.986638,
+   0.866745,
+   0.988845,
+   0.997921
+  ],
+  "vif": [
+   1000.0,
+   1000.0,
+   1000.0,
+   1000.0,
+   1000.0,
+   1000.0
+  ],
+  "y_col": "Y"
+ }
+}

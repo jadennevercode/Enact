@@ -1,0 +1,48 @@
+# tools/catalog/ledger.derive.yaml
+id: ledger.derive
+kind: ledger
+purpose: 算出每个指标在六层筛选里的最终归宿，以及最后进模型的那一份名单。
+when: |
+  因子映射 · 「确认映射」写出 data/derived/selection.json，
+  以及 OLS 预验证 · 「按渠道 × 产品各拟合一个模型」拟合前重算同一份名单。
+  几乎每一个数据阶段的步骤都要问「什么已经被否掉了」，答案就在这里。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --layer
+    required: false
+    what: 只报这一层从上游继承了多少条排除。取值：mapping / quality / signoff / statistical / selection / range
+output:
+  path: data/derived/selection.json
+  shape: |
+    objects[]      所有模型对象（渠道 × 产品）的名字
+    y              响应指标；可能是一个字符串，也可能是 {模型对象: 指标}
+    exclude        {模型对象: ["l4::指标", …]}，这个对象排除掉的指标
+    include        {模型对象: ["l4::指标", …] 或 null}
+                   null 表示这个对象还没有明确选过——「还没选」和「选了个空集」是两种状态，
+                   压成一种就是拟合悄悄退回自动选变量的原因
+    rows[]         每个指标在每个模型对象下一项：
+      object       模型对象
+      l4           因子层级
+      metric       指标名
+      treeRowId    对应的因子行编号
+      rejectedAt   在哪一层被否掉；空字符串表示一路活到底
+      reason       被否掉的原因
+      verdicts[]   逐层的判定，每项：
+        layer      层名：mapping / quality / signoff / statistical / selection / range
+        task       该层对应的平台任务号（仅作出处引用）
+        status     adopted 通过 / rejected 死在这层 / flagged 通过但带保留 /
+                   pending 还没判 / inherited 上游已否、这层没判
+        note       备注
+stdout: |
+  212 ledger row(s) across 3 model object(s)
+  74 survive every layer
+
+  rejected at:
+    mapping        Data Processing                     24
+    quality        Data Quality                        31
+example: ~/.local/bin/mmm tool ledger.derive --workspace <工作区> --layer statistical
+notes: |
+  它不存任何东西——每个归宿都从各层自己的记录里现算（评分表、签核、OLS 配置），
+  所以它不可能跟那些记录打架。存一份副本，副本迟早会跟被复制的东西不一致。
+  六层是有序的，任何一层的否决被后面每一层继承：不重新打分、不重新提交、永远进不了模型。
+  一条指标都没到这里时判失败并给出原因（要么什么都没发布，要么所有指标都被标成了响应）。

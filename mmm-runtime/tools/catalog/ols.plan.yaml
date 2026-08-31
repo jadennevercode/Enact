@@ -1,0 +1,63 @@
+# tools/catalog/ols.plan.yaml
+id: ols.plan
+kind: model
+purpose: 把「数据怎么切成模型」的每一种切法都量出来——建几个模型、每个模型有多少月、能识别几个驱动、要按住几个。只测量，不替人选。
+when: |
+  OLS 预验证 · 「建模方案」这一步，拟合之前先把切法摆出来给客户选。
+  选定之后 ols.propose 按这个方案铺参数，ols.fit 按它拟合。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: artifacts/s2/ols-plan.yaml
+  shape: |
+    meta               说明这份产物是谁在哪一步生成的
+    candidates[]       每一种切法一条，全部保留——客户看的是对比，不许只留推荐的那条：
+      scheme           切法：total 全体 / by-brand 按品牌 / by-channel 按渠道 /
+                       channel-x-brand 渠道 × 品牌
+      recommended      是否推荐（推荐的是「可行的最细那一档」，见 notes）
+      feasibility      ok 都放得下 / tight 有变量放不下 / infeasible 有格子根本拟不了
+      objectCount      这种切法会建几个模型
+      objects[]        每个模型对象一条：
+        object         模型对象 id
+        label          给人看的名字
+        months         这个格子有多少个月的数据
+        survivingDrivers   这个格子看得见几个存活的驱动
+        affordableDrivers  月数能识别几个 = max(1, 月数 − 控制项数 − 1 − 10)
+        heldOutCount   放不下、要按住的个数 = max(0, 存活 − 能识别)
+        responseCoverage   这个格子的响应占全量的比例
+        blocked        月数不够根本拟不了时写在这里，其余留空
+      totalHeldOut     这种切法一共按住几个
+      minMonths        最少的那个格子有多少个月
+      skippedObjects[] 有响应但没有驱动、会被跳过的格子
+    chosen             人选定的那一条：scheme · decidedBy · at · rationale · customObjects
+                       重新测量不会覆盖它
+    window             建模时间窗
+    excludedPeriods[]  明确排除的时段，每段要写理由
+    allTight           是不是每一种切法都有变量放不下
+    noneFeasible       是不是一种都不可行
+stdout: |
+    split             feasibility models   min months held out
+    total             tight       1        24        4
+    by-channel        tight       4        24        10
+    channel-x-brand   tight       4        24        10        ← recommended
+example: ~/.local/bin/mmm tool ols.plan --workspace <工作区>
+notes: |
+  **它只测量，不替人选。** 切得细一点，能回答的问题多一点，每个模型能识别的驱动少一点；
+  切得粗一点反过来。两个产品是不是一回事、某个渠道值不值得单独看，这是生意上的判断，
+  算术定不了，所以每一种切法都带着依据摆出来，选哪个记成人的裁决。
+
+  **推荐的是「可行的最细那一档」，不是「按住最少的那一档」。** 后面那条规则是错的：
+  totalHeldOut 在不同切法之间不可比——4 个模型各按住 2 个（共 10）并不比 1 个模型按住 4 个更差，
+  因为前者回答了 4 个问题、后者只回答 1 个。真实项目上照那条规则会推荐 total，
+  而 total 恰恰是唯一一种对任何单个渠道都说不出话的切法，
+  出现在一个整个目的就是分渠道读数的步骤里。所以默认让分辨率赢，代价如实摆出来：
+  每个格子的 heldOutCount 和 allTight 都在产出里，看着这些决定要不要往粗里走，
+  正是这一步要留下的那个人工裁决。
+
+  **被按住不是对指标的判定。** 参数比观测还多的回归根本没有唯一解，
+  所以超出的部分不勾选、但留在表上并写明「这是自由度限制」。
+
+  模型对象 id 用同一套写法：`*` 表示「这一维不切」，
+  所以 `*::*` 是全体、`*::某品牌` 是不分渠道、`MT::某品牌` 是渠道 × 品牌。
+  选这种写法而不是加个方案前缀，是因为同一个格子必须只有一个 id——
+  变更账本、配置、以及人已经签过的确认都在逐字引用它。

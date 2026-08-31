@@ -27,6 +27,7 @@ vi.mock("@enact/core/workspace", () => ({
 }));
 
 vi.mock("@enact/core/paths", () => ({
+  paths: { onboarding: () => "/onboarding" },
   useHasOnboarded: () => true,
   resolvePostAuthDestination: (workspaces: { slug: string }[]) =>
     workspaces[0] ? `/${workspaces[0].slug}/issues` : "/workspaces/new",
@@ -61,6 +62,16 @@ describe("RedirectIfAuthenticated", () => {
 
     await waitFor(() => {
       expect(state.replace).toHaveBeenCalledWith("/acme/issues");
+    });
+  });
+
+  it("sends a workspace-less user to automatic setup", async () => {
+    state.ready = true;
+
+    render(<RedirectIfAuthenticated />);
+
+    await waitFor(() => {
+      expect(state.replace).toHaveBeenCalledWith("/onboarding");
     });
   });
 });

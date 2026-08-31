@@ -1,0 +1,39 @@
+# 饮料行业的三条实证 —— 全文不到 150 字，每一条挡掉一类系统性错误。
+#
+# 平台 tpl-bev-rules 的另外三条没有移进来，理由逐条记在 omitted 里：两条是
+# methodology/*.json 的散文孪生（且档位与公式已经漂开），一条属建模阶段，不在范围内。
+id: food-bev/beverage/notes
+kind: notes
+scope: industry
+anchor: { l1: food-bev, l2: beverage }
+version: 1
+source: "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-bev-knowledge（2 条）+ tpl-bev-rules/rule-wholesale（1 条）"
+notes:
+  - id: kn-throat
+    title: "Share of Throat（跨品类挤压）"
+    body: "现调饮料 / 外卖即饮可作为饮料品类的外部竞争因子；外卖大战等结构性突变需作为单独外部变量纳入，否则会被误吸收进媒体效应。"
+    tags:
+      - "外部因素"
+      - "竞争"
+    appliesTo: "factor-tree · business-validation"
+  - id: kn-cooler
+    title: "冰柜 × 陈列资产共线"
+    body: "终端冷柜与陈列资产高度共线时应合并为单一渠道执行变量，避免 VIF 膨胀。"
+    tags:
+      - "渠道执行"
+      - "共线"
+    appliesTo: stat-screening
+  - id: rule-wholesale
+    title: "批发并入 TT 渠道规则"
+    body: "批发数据不可拆时并入 TT 渠道，避免稀释 AFH 投资有效性。"
+    tags:
+      - "渠道"
+      - "口径"
+    appliesTo: "factor-map · data-engine"
+    severity: info
+omitted:
+  - id: rule-quality
+    why: "methodology/validation-scoring.json 的散文孪生，且四维合成方式与之不符（那份取最小值，runtime 取乘积）"
+  - id: rule-stat
+    why: "methodology/statistical-scoring.json 的散文孪生，且是过时的一版（≥3 记 Good 对应 0/0.5/1/2 四档求和，runtime 是 0/0.5/1 三档求积、>0.5 记 Good）"
+  - { id: rule-tech, why: "R²/MAPE/DW 属建模阶段；本 runtime 止于模型输入锁定" }

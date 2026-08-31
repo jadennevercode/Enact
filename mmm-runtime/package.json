@@ -1,0 +1,11 @@
+{
+  "name": "mmm-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node-side dependencies for the runtime's document generators. The Python engine has its own dependency set in tools/engine/pyproject.toml.",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}

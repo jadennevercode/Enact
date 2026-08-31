@@ -1,0 +1,35 @@
+# tools/catalog/schema.init.yaml
+id: schema.init
+kind: schema
+purpose: 在工作区里铺出一份目标表结构的初稿——库里的默认列、默认颗粒度、默认取值清单，供人改成这家客户的样子。
+when: |
+  发布数据集 · 「声明目标表结构与取值范围」的第一动作。
+  先铺初稿，人改完之后再用 schema.check 验一遍，然后才开始收数据。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --force
+    required: false
+    what: 已经有结构文件时也强行覆盖成库默认版。不带这个开关就原地不动，只提示一句。
+output:
+  path: metadata/schema/target-schema.yaml
+  shape: |
+    version            结构文件的版本号，当前是 2
+    grain.time         时间颗粒度，默认 month
+    grain.keys[]       构成一行唯一身份的列名清单（重复即视为数据被放大）
+    columns[]          列的声明，每一项：
+      name             列名，例如 brand / channel_type / month / metric / value
+      kind             列的角色：dimension（维度）/ factor（因子层级）/ measure（数值）等
+      required         是否必填；缺了就不许发布
+      type             声明的类型：text / integer / number
+      enum             这一列受哪份取值清单约束（对应 metadata/schema/enums/<名>.yaml）
+      system           是否系统列（source 是，去掉它整个项目的逐行来源记录就关了）
+      nullMeans        留空时的含义，例如 channel_type 留空表示全国
+stdout: |
+  Seeded the target schema from the library default.
+  19 columns · grain month
+
+  Now edit it for THIS client: the channels, the brands, the factor
+example: ~/.local/bin/mmm tool schema.init --workspace <工作区>
+notes: |
+  已有文件时它不覆盖，只打印一句「left alone」并直接返回——所以它是安全的，可以重复跑。
+  库默认版描述的是形状，不是这家客户的生意；渠道、品牌、因子层级都得照客户实际报表改。

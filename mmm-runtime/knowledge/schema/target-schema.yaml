@@ -1,0 +1,142 @@
+version: 2
+grain:
+  time: month
+  keys:
+    - brand
+    - channel_type
+    - province_group
+    - l1
+    - l2
+    - l3
+    - l4
+    - metric
+    - month
+columns:
+  - name: task_name
+    label: Task
+    kind: dimension
+    type: text
+    required: false
+    definition: "Name of the source/task the row came from"
+  - name: brand
+    label: Brand
+    kind: dimension
+    type: text
+    required: true
+    enum: brand
+    definition: "Brand (model granularity)"
+  - name: province_group
+    label: "Province group"
+    kind: dimension
+    type: text
+    required: false
+    enum: province_group
+    definition: "Province group / region (model granularity)"
+  - name: channel_type
+    label: "Channel type"
+    kind: dimension
+    type: text
+    required: false
+    enum: channel_type
+    nullMeans: national
+    definition: "Channel type, e.g. MT / TT / EC. BLANK MEANS NATIONAL — media bought once for the country, shared into every model object"
+  - name: channel
+    label: Channel
+    kind: dimension
+    type: text
+    required: false
+    definition: "Channel (detailed)"
+  - name: year
+    label: Year
+    kind: time
+    type: integer
+    required: true
+    definition: "Year as an integer, e.g. 2023"
+  - name: month
+    label: Month
+    kind: time
+    type: integer
+    required: true
+    definition: "Month as a yyyymm integer, e.g. 202301"
+  - name: source
+    label: Source
+    kind: dimension
+    type: text
+    required: false
+    definition: "Data-source tag — which file/sheet the row came from"
+  - name: l1
+    label: "Factor L1"
+    kind: factor
+    type: text
+    required: true
+    definition: "Factor tree Level 1"
+  - name: l2
+    label: "Factor L2"
+    kind: factor
+    type: text
+    required: true
+    definition: "Factor tree Level 2"
+  - name: l3
+    label: "Factor L3"
+    kind: factor
+    type: text
+    required: true
+    definition: "Factor tree Level 3"
+  - name: l4
+    label: "Factor L4"
+    kind: factor
+    type: text
+    required: true
+    definition: "Factor tree Level 4"
+  - name: l5
+    label: "Factor L5"
+    kind: factor
+    type: text
+    required: false
+    definition: "Drill-down Level 5 (empty if none)"
+  - name: l6
+    label: "Factor L6"
+    kind: factor
+    type: text
+    required: false
+    definition: "Drill-down Level 6 (empty if none)"
+  - name: l7
+    label: "Factor L7"
+    kind: factor
+    type: text
+    required: false
+    definition: "Drill-down Level 7 (empty if none)"
+  - name: l8
+    label: "Factor L8"
+    kind: factor
+    type: text
+    required: false
+    definition: "Drill-down Level 8 (empty if none)"
+  - name: metric_type
+    label: "Metric role"
+    kind: metric
+    type: text
+    required: true
+    enum: metric_type
+    definition: "Modeling role: Y (KPI/sell-out) | spending | X"
+  - name: metric
+    label: Metric
+    kind: metric
+    type: text
+    required: true
+    definition: "Indicator / metric name"
+  - name: unit
+    label: Unit
+    kind: metric
+    type: text
+    required: false
+    definition: >-
+      Unit of measure, e.g. 元 / 次 / % / 标准箱 — optional. Supplying it is
+      what turns the dimension-consistency check from UNVERIFIED into a real check:
+      two units under one (l4, metric) is a caliber conflict, mechanically.
+  - name: value
+    label: Value
+    kind: value
+    type: number
+    required: true
+    definition: "Numeric value (float)"

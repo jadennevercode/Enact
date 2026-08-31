@@ -1,0 +1,37 @@
+# tools/catalog/export.xlsx.yaml
+id: export.xlsx
+kind: export
+purpose: 把模型输入导成一个工作簿，一个模型对象一个工作表。
+when: |
+  模型输入 · 「装配主数据表」，与 master.assemble 同一步、同一批数据。
+  这是整个项目交付出去的那个文件。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: artifacts/s2/model-input.xlsx
+  shape: |
+    一个工作簿，三类工作表：
+      模型颗粒度参考表  每个因子行一行，带角色、渠道范围、区域颗粒度；
+                        空白的渠道 / 区域表示没有被选进模型
+      D.Data Station    已采纳指标的长表，末三列是这一步新增的建模编号：
+                        Variable 英文机器名 · Variable no. 变量编号 · Metric no. 指标编号
+                        —— 没有它们，建模阶段的贡献分解只能靠指标名字符串回溯
+      每个模型对象一表  表名是模型对象名，超过 31 字符会截断
+    每个模型对象的工作表与 data/derived/master/<模型对象>.csv 完全一致：
+      第一行   表头：Period 加上每个采用指标的名字
+      第一列   Period   期间标签，例如 2024-01
+      其后各列 该期间该指标的值，保留四位；缺值留空
+      响应列在每一个工作表里都在
+stdout: |
+  电商                 36 row(s) × 11 column(s)
+  现代渠道             36 row(s) ×  9 column(s)
+
+  2 sheet(s). The response is in every one — it is the model input,
+  not a list of factors.
+example: ~/.local/bin/mmm tool export.xlsx --workspace <工作区>
+notes: |
+  它和 master.assemble 读的是同一份「哪些指标被采用了」的答案，所以两者不可能给出不同的表。
+  需要 openpyxl；没装会判失败并提示 pip install 'mmm-engine[xlsx]'。
+  一个工作表都建不出来时判失败。
+  按架构文档 §2.3 的归类，它其实是组装线错位成了工具，后续会迁去 App 层；
+  在那之前它仍按工具的统一契约调用。

@@ -1,0 +1,51 @@
+# 关键假设 —— 照这份填，不要自创结构。
+# 产出到 artifacts/s1/interview/assumptions.yaml。写法见 ../references/insights.md。
+#
+# 一条假设 = 一个问题 + 客户的回答 + 出处 + 它影响哪个建模决策。
+# 最后那个字段是这份文件和一份问答记录的区别：不写它，建模时没人会来查这条，
+# 默认值会悄悄替代客户说过的话——而默认值不会在报告里承认自己是默认值。
+#
+# 这份文件的真正读者在 S2：stat-screening/score 与 ols-test/fit 的取材范围里都有它。
+meta:
+  step: interview/insights               # 固定值，不要改（与 insights.yaml 同一步产出）
+  skill: interview
+  generated: ""
+  grounding:
+    - { path: "artifacts/s1/interview/minutes-<来源>.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/project-profile.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+  counts: { assumptions: 0, answered: 0, unanswered: 0 }
+  note: ""                               # assumptions 为空时必填
+
+assumptions:
+  - id: a-001
+    topic: adstock                       # adstock 衰减 | saturation 饱和 | lag 滞后
+                                         # | baseline 基线归属 | overlap 渠道重叠
+                                         # | seasonality 季节 | pricing 价格 | other
+    question: ""                         # 问客户的原话，一问
+    answer: ""                           # 客户的回答，一答。没问到就写「访谈没问到」
+    status: answered                     # answered | unanswered
+    source: ""                           # status 是 answered 时必填：minutes-<来源> §n
+    decision: ""                         # 它影响哪个建模决策，写到能被查的程度
+                                         # 例："f-0041 的 adstock 衰减率先验区间"
+                                         # 例："基线里要不要放分销点数"
+    ifWrong: ""                          # 这条假设错了，模型会怎么错
+
+# 一条访谈没问到的假设长这样 —— 留着它，比删掉它有用：
+#
+#   - id: a-007
+#     topic: lag
+#     question: "电视投放到销量之间，你们内部认为有多久的滞后？"
+#     answer: "访谈没问到"
+#     status: unanswered
+#     source: ""
+#     decision: "f-0018 电视的滞后阶数"
+#     ifWrong: "滞后设错会把电视的效果算到错误的周上，系数偏小甚至变号"
+#
+# 常见的六个主题，按它们在 S2 被用到的地方排：
+#   lag         滞后几周 —— stat-screening 判相关性时要按它错位
+#   adstock     衰减多久 —— ols-test 的先验区间
+#   saturation  什么时候开始边际递减 —— 优化阶段的预算上限
+#   baseline    哪些东西算基线不算驱动 —— 基线归属直接决定 ROI 的分母
+#   overlap     哪两个渠道是同一批曝光 —— 共线性判掉哪一个
+#   pricing     促销价怎么记 —— 价格因子的口径

@@ -1,0 +1,138 @@
+# 区间裁决表 —— 照这份填，不要自创结构。填法见 ../references/review.md。
+# 每个数逐字抄自 data/derived/ols-fit.json：不四舍五入、不换单位、不心算、不重算。
+meta:
+  step: ols-test/review
+  skill: ols-test
+  generated: ""                      # 生成时间，带时区
+  grounding:                         # 读过的每份材料，一份一条；字数写真实值
+    - { path: "data/derived/ols-fit.json", chars: 0, truncated: false }
+    - { path: "knowledge/industry/<行业包>", chars: 0, truncated: false }
+  knowledgeRecall: none              # 行业先例来源；召回为空写 none
+  dataSource: project                # project | reference —— 跑的是参考数据集时必须说
+  redDeviation: 30.0                 # 反常识判据的红灯线：偏离 ≥ 30% 为红，< 30% 为黄
+
+# ── 逐行 ──
+# 一行 = 一个（模型对象, L4, 指标）。映射层未覆盖 / 已淘汰 / 未进模型的行不出现在这里。
+rows:
+  - id: ""                           # "<对象>|<归一化 L4>|<归一化指标>"
+    object: ""                       # 模型对象
+    treeRowId: ""                    # 连回因子树
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""
+    metric: ""                       # 数据里的指标名；与 indicator 不同时两个都要有
+    # ── 拟合结果 ──
+    coef: 0.0
+    tValue: 0.0
+    pValue: 0.0
+    significant: false               # |t| ≥ 2.0
+    roi: 0.0
+    roiUnit: money                   # money | volume/spend —— 非货币时不做投资回报区间检查
+    roiBasis: ""                     # 借用分母时必须说，例 "÷ Digital Display 花费"；自身即花费留空
+    contribution: 0.0                # 百分点
+    contributionBasis: ""            # vs zero | vs its lowest month (<值>)
+    # ── 区间 ──
+    roiRange: ""                     # 例 "0.8~1.3"；无带留空
+    contributionRange: ""            # 例 "0%~1.5%"
+    rangeSource: ""                  # knowledge | reference | ""（无带）
+    roiStatus: none                  # in | out | none。roiUnit 不是 money 时恒为 none
+    contributionStatus: none
+    roiDeviationPct: null            # 越界时：|值 − 带沿| / |带沿| × 100；带内为 0；无带为 null
+    contributionDeviationPct: null
+    rangeSeverity: none              # none 无带 | green 带内 | yellow 偏离 < 30% | red 偏离 ≥ 30%
+    # ── 判定 ──
+    status: ""                       # notMapped | dropped | notInModel | noBenchmark | review | inRange
+    flagReason: ""                   # 越界说明；红灯行要带"回流业务校验重审假设"
+    aiVerdict: ""                    # consistent | questionable | implausible | noBenchmark
+    aiRationale: ""                  # ≤30 词。只许引用已算好的数，不重算、不改精度、不新增
+    autoVerdict: accept              # accept | reject —— 自动提名，每次重跑都会刷新
+    autoReason: ""
+    disposition: accept              # 人的裁决。离开时只能是 accept 或 reject
+    decidedBy: ai                    # ai | human。human 钉住这一行，重拟合不覆盖它
+    note: ""                         # 人改判时必填
+
+# ── 因子建议：一因子一行，跨全部被采纳的运行 ──
+# 客户审的就是这张表。逐（对象 × 因子）的明细留在上面 rows 里给要往下钻的人。
+# **建议是五态，裁决是二态。** 五态是为了能说出"它在这两个渠道成立、第三个不成立"；
+# 裁决必须二选一，因为这是进模型输入表前的最后一关，中间态等于没人说过 yes。
+factors:
+  - treeRowId: ""                    # 连回因子树
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""
+    metric: ""
+    # ── 无量纲证据：这几项跨运行汇总 ──
+    cells: 0                         # 出现在多少个（运行 × 对象）格子里
+    inModelRate: 0.0
+    dominantSign: ""                 # + | - | 空
+    signConsistency: 0.0             # 1.0 = 每个对象都同向；< 0.8 表示不同渠道表现相反
+    significanceRate: 0.0
+    # ── 有量纲证据：逐处列出，**不取平均** ──
+    # 全国模型的 8% 和 EC 的 15%、TT 的 2% 回答的是不同问题，平均出来不表示任何东西。
+    contributionObserved:
+      - { runId: "", object: "", value: 0.0 }
+    roiObserved:
+      - { runId: "", object: "", value: 0.0 }
+    roiUnit: money                   # money | volume/spend。不是货币时不做区间检查
+    roiBasis: ""                     # 借了谁的分母；自身即花费留空
+    contributionBasis: ""            # vs zero | vs its lowest month (<值>)
+    rangeSeverity: none              # 取这个因子在所有格子里最差的那一档
+    rangeSource: ""                  # knowledge | reference | ""（无带）
+    # ── 建议（五态），然后是裁决（二态）──
+    recommendation: include          # include | conditional | watch | exclude | insufficient
+    recommendationReason: ""
+    conditionalScope: []             # recommendation=conditional 时必填：在哪些对象上成立
+    aiVerdict: ""                    # consistent | questionable | implausible | noBenchmark
+    aiRationale: ""                  # ≤30 词，只引用已算好的数
+    disposition: accept              # 人的裁决，离开时只能 accept 或 reject
+    decidedBy: ai                    # ai | human。human 钉住这一行，重拟合不覆盖
+    note: ""
+
+# ── 逐模型对象的拟合概况 ──
+# 红旗必须点名。基线占比 > 100% 或付费驱动反号 = 拟合失配：先减控制项重跑，不走剔除指标那条路。
+models:
+  - runId: ""                        # 这一行出自哪一次拟合
+    object: ""
+    label: ""
+    yMetric: ""
+    roiUnit: money
+    nObs: 0
+    drivers: 0
+    dfRemaining: 0
+    r2: 0.0
+    adjR2: 0.0
+    mape: 0.0
+    durbinWatson: 0.0
+    baselinePct: 0.0                 # 基线 + 各驱动贡献 = 100%（恒等式，不成立就是分解错了）
+    controls: []                     # 趋势 / 傅里叶项 / 月度哑变量 / 已接受的异常窗口控制列
+    redFlags: []                     # 抄计算结果，不自己判
+    misfit: false                    # baselinePct > 100 或付费驱动反号时为 true
+    misfitAction: ""                 # misfit 为 true 时必填，例："傅里叶阶数 2 → 1 后重跑"
+    error: ""                        # 拟不出来时写原因，其余字段留空
+    heldOut:                         # 不勾选但保留在表上的驱动。**不是对指标的判决**
+      - { metric: "", reason: "", detail: "" }   # reason: df-limit | collinear
+
+# ── 收口计数 ──
+summary:
+  factors: 0
+  include: 0
+  conditional: 0
+  watch: 0
+  exclude: 0
+  insufficient: 0
+  rows: 0
+  amber: 0                           # 黄灯：越界但偏离 < 30%
+  red: 0                             # 红灯：偏离 ≥ 30%，推荐回流业务校验
+  noBenchmark: 0                     # 没有可比区间。**这是"没跑这项检查"，不是"通过"**
+
+# ── 澄清登记 ──
+assumptions:
+  - question: ""
+    answer: ""
+    decidedBy: ""
+    at: ""
+    assumed: false                   # true 表示没问到人，按推荐项走的

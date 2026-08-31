@@ -1,0 +1,988 @@
+{
+  "id": "food-bev/beverage/factor-ranges",
+  "kind": "case-numbers",
+  "anchor": {
+    "l1": "food-bev",
+    "l2": "beverage"
+  },
+  "version": 2,
+  "title": "因子 ROI / 年度贡献预期区间 + 下钻颗粒度",
+  "purpose": "OLS 指标筛选与业务校验的先验区间。区间为 Danone Mizone 一次交付的数字，新项目须替换。",
+  "provenance": {
+    "kind": "case",
+    "project": "Danone Mizone",
+    "confirmedBy": 1,
+    "promoteRule": "数字类条目须被 ≥2 个项目独立确认，才能从案例升为行业先验"
+  },
+  "lookup": "精确 (l4, indicator)；不做子串匹配。子串匹配曾把 Connected TV 匹到 TV、OOH Billboards 匹到 OOH、价格变动率 匹到 价格变动，凭一个名字含另一个名字造出库里从来没有的基准。",
+  "source": "AgenticMMM0612 V2/backend/data/templates/_index.json :: tpl-bev-factor-tree（94 行）；下钻颗粒度并入自本仓旧版 23 行 factor-ranges.json（其唯一独有内容）",
+  "columns": [
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "indicator",
+    "roiRange",
+    "contributionYearly",
+    "drilldown"
+  ],
+  "counts": {
+    "rows": 94,
+    "withRoi": 44,
+    "withDrilldown": 29
+  },
+  "dataIssues": [
+    "L3 «复购粘性 （快销没有）» → «复购粘性»；括注移入 note 字段",
+    "区间 «‘-5%~0%» 带 Excel 文本转义前导单引号 → 已去除",
+    "L4 «POSM和陈列物料（POSM&Rack)» 括号不配平（全角开半角闭）→ 补成全角闭括号",
+    "促销优惠 4 行的 roiRange 写作 5%~8%（百分比），与同行 contributionYearly 逐字相同，而其余 40 行 ROI 都是倍数（0.4~1.4 这类）。疑为源表串列，未擅自改数，逐行标 roiRangeSuspect。",
+    "指标 «高铁客运量 +民航客运量» 在源表里就是一个复合值（两个指标写在一格），原样保留：拆开会造出两条库里没有的基准。",
+    "«单品折扣» 下有一个 L4 叫 «花费»，其指标也叫 «花费» —— L4 位上放的是一个度量名而不是一个杠杆名。原样保留，因子树推导时值得向客户确认。"
+  ],
+  "factors": [
+    {
+      "l4": "市场规模",
+      "indicator": "品类全渠道销量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "市场规模",
+      "indicator": "品类社媒声量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "市场规模",
+      "indicator": "品类社媒互动量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "特定属性趋势",
+      "indicator": "现调饮料外卖销量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by platform"
+    },
+    {
+      "l4": "季节性趋势",
+      "indicator": "温度",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "季节性趋势",
+      "indicator": "降水量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "场景化趋势",
+      "indicator": "户外相关社媒声量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "场景化趋势",
+      "indicator": "高铁客运量 +民航客运量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "品类趋势",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "经济周期",
+      "indicator": "消费者信心指数",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "宏观环境",
+      "roiRange": null,
+      "contributionYearly": "-2%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "经济周期",
+      "indicator": "GDP",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "宏观环境",
+      "roiRange": null,
+      "contributionYearly": "-2%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "渠道变迁",
+      "indicator": "便利店数量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "宏观环境",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "结构性突变因素",
+      "indicator": "外卖大战时间点",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "宏观环境",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "竞品价格变化",
+      "indicator": "本品相对竞品标价",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor"
+    },
+    {
+      "l4": "竞品价格变化",
+      "indicator": "竞品平均标价",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor"
+    },
+    {
+      "l4": "竞品产品变化",
+      "indicator": "竞品新上市的SKU个数",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor"
+    },
+    {
+      "l4": "竞品产品变化",
+      "indicator": "竞品下市的SKU个数",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor"
+    },
+    {
+      "l4": "竞品渠道扩张",
+      "indicator": "本品相对竞品ND",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor, by channel"
+    },
+    {
+      "l4": "竞品渠道扩张",
+      "indicator": "竞品ND",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor, by channel"
+    },
+    {
+      "l4": "竞品渠道扩张",
+      "indicator": "本品相对竞品WD",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor, by channel"
+    },
+    {
+      "l4": "竞品渠道扩张",
+      "indicator": "竞品WD",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-10%~10%",
+      "drilldown": "by competitor, by channel"
+    },
+    {
+      "l4": "竞品渠道成交驱动变化",
+      "indicator": "排面数",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "竞品渠道成交驱动变化",
+      "indicator": "竞品最佳视平线位置占比",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "竞品消费者需求驱动变化",
+      "indicator": "竞品冰柜渗透率",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "竞品消费者需求驱动变化",
+      "indicator": "竞品品牌媒体花费",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "竞品消费者需求驱动变化",
+      "indicator": "竞品社交媒体声量",
+      "l1": "生意基本盘",
+      "l2": "外部因素",
+      "l3": "竞争格局",
+      "roiRange": null,
+      "contributionYearly": "-5%~5%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "品牌力指数",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "Meaningful",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "Difference",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "Salience",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "BHT - TOM",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "BHT - UBA",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌资产",
+      "indicator": "BHT - TBA",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "3%~8%",
+      "drilldown": null
+    },
+    {
+      "l4": "价格变动",
+      "indicator": "本品标价",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "0%~3%",
+      "drilldown": null
+    },
+    {
+      "l4": "产品吸引力",
+      "indicator": "本品新品上市SKU个数",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "0%~3%",
+      "drilldown": null
+    },
+    {
+      "l4": "产品吸引力",
+      "indicator": "本品老品下市SKU个数",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "动销",
+      "roiRange": null,
+      "contributionYearly": "0%~3%",
+      "drilldown": null
+    },
+    {
+      "l4": "复购粘性",
+      "indicator": "复购率",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "复购粘性",
+      "roiRange": null,
+      "contributionYearly": "0%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "复购粘性",
+      "indicator": "购买频次",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "复购粘性",
+      "roiRange": null,
+      "contributionYearly": "0%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "复购粘性",
+      "indicator": "流失率",
+      "l1": "生意基本盘",
+      "l2": "内部因素",
+      "l3": "复购粘性",
+      "roiRange": null,
+      "contributionYearly": "0%~10%",
+      "drilldown": null
+    },
+    {
+      "l4": "Digital Display",
+      "indicator": "曝光量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.8~1.3",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by format/type, by platform, by campaign"
+    },
+    {
+      "l4": "Digital Display",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.8~1.3",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by format/type, by platform, by campaign"
+    },
+    {
+      "l4": "热剧",
+      "indicator": "曝光量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "1.1~3.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign"
+    },
+    {
+      "l4": "热剧",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "1.1~3.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign"
+    },
+    {
+      "l4": "TV",
+      "indicator": "GRP",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.4~1.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign, by platform"
+    },
+    {
+      "l4": "TV",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.4~1.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign, by platform"
+    },
+    {
+      "l4": "OTV/OTT",
+      "indicator": "曝光量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.6~1.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign, by platform"
+    },
+    {
+      "l4": "OTV/OTT",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.6~1.4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": "by campaign, by platform"
+    },
+    {
+      "l4": "OOH",
+      "indicator": "曝光量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.8~3",
+      "contributionYearly": "0%~3%",
+      "drilldown": "by format/type, by location"
+    },
+    {
+      "l4": "OOH",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "品牌传播",
+      "roiRange": "0.8~3",
+      "contributionYearly": "0%~3%",
+      "drilldown": "by format/type, by location"
+    },
+    {
+      "l4": "综艺及赛事的赞助",
+      "indicator": "曝光量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "0.5~1.5",
+      "contributionYearly": "0%~2%",
+      "drilldown": "by campaign, by event"
+    },
+    {
+      "l4": "综艺及赛事的赞助",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "0.5~1.5",
+      "contributionYearly": "0%~2%",
+      "drilldown": "by campaign, by event"
+    },
+    {
+      "l4": "线下路演",
+      "indicator": "参与人数",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "0.5~1.5",
+      "contributionYearly": "0%~1%",
+      "drilldown": "by region, by event"
+    },
+    {
+      "l4": "线下路演",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "0.5~1.5",
+      "contributionYearly": "0%~1%",
+      "drilldown": "by region, by event"
+    },
+    {
+      "l4": "社媒",
+      "indicator": "KOL发帖数",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "1.5~6",
+      "contributionYearly": "0%~5%",
+      "drilldown": "by platform, by campaign, by influencer tier"
+    },
+    {
+      "l4": "社媒",
+      "indicator": "社媒活动声量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "1.5~6",
+      "contributionYearly": "0%~5%",
+      "drilldown": "by platform, by campaign, by influencer tier"
+    },
+    {
+      "l4": "社媒",
+      "indicator": "社媒活动互动量",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "1.5~6",
+      "contributionYearly": "0%~5%",
+      "drilldown": "by platform, by campaign, by influencer tier"
+    },
+    {
+      "l4": "社媒",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "社交媒体及线下路演",
+      "roiRange": "1.5~6",
+      "contributionYearly": "0%~5%",
+      "drilldown": "by platform, by campaign, by influencer tier"
+    },
+    {
+      "l4": "会员积分",
+      "indicator": "会员数",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": "by format/type, by platform, by campaign"
+    },
+    {
+      "l4": "会员积分",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": "by format/type, by platform, by campaign"
+    },
+    {
+      "l4": "社群互动",
+      "indicator": "社群数",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": null
+    },
+    {
+      "l4": "社群互动",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": null
+    },
+    {
+      "l4": "开盖有奖",
+      "indicator": "扫码瓶数",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": null
+    },
+    {
+      "l4": "开盖有奖",
+      "indicator": "花费",
+      "l1": "消费者需求驱动",
+      "l2": "品牌广告/内容种草",
+      "l3": "自有媒体",
+      "roiRange": "0.3~2",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": null
+    },
+    {
+      "l4": "铺货",
+      "indicator": "本品ND",
+      "l1": "渠道成交驱动",
+      "l2": "铺货",
+      "l3": "铺货",
+      "roiRange": null,
+      "contributionYearly": "5%~15%",
+      "drilldown": null
+    },
+    {
+      "l4": "铺货",
+      "indicator": "本品WD",
+      "l1": "渠道成交驱动",
+      "l2": "铺货",
+      "l3": "铺货",
+      "roiRange": null,
+      "contributionYearly": "5%~15%",
+      "drilldown": null
+    },
+    {
+      "l4": "铺货",
+      "indicator": "货架份额（SOS）",
+      "l1": "渠道成交驱动",
+      "l2": "铺货",
+      "l3": "铺货",
+      "roiRange": null,
+      "contributionYearly": "5%~15%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品上架的执行 - 产品全",
+      "indicator": "销售业代平均门店整体SKU数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品上架的执行 - 产品全",
+      "indicator": "销售业代平均门店必分销SKU数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品陈列的执行 - 数量多",
+      "indicator": "销售业代平均门店整体排面数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品陈列的执行 - 数量多",
+      "indicator": "销售业代平均门店必分销SKU排面数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品陈列的执行 - 数量多",
+      "indicator": "销售业代冰柜纯度达成率",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "销售业代对于产品陈列的执行 - 位置好",
+      "indicator": "销售业代视平线达成率",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道执行",
+      "roiRange": null,
+      "contributionYearly": "0%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "是否缺货",
+      "indicator": "库深",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道运营",
+      "roiRange": null,
+      "contributionYearly": "-5%~0%",
+      "drilldown": null
+    },
+    {
+      "l4": "是否缺货",
+      "indicator": "Fill rate",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道运营",
+      "roiRange": null,
+      "contributionYearly": "-5%~0%",
+      "drilldown": null
+    },
+    {
+      "l4": "货期健康度",
+      "indicator": "库存周转",
+      "l1": "渠道成交驱动",
+      "l2": "渠道执行及运营",
+      "l3": "渠道运营",
+      "roiRange": null,
+      "contributionYearly": "-2%~2%",
+      "drilldown": null
+    },
+    {
+      "l4": "POSM和陈列物料（POSM&Rack）",
+      "indicator": "执行门店数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "品牌显现及陈列展示",
+      "roiRange": "2~4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "POSM和陈列物料（POSM&Rack）",
+      "indicator": "销售业代稽查平均门店POSM个数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "品牌显现及陈列展示",
+      "roiRange": "2~4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "POSM和陈列物料（POSM&Rack）",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "品牌显现及陈列展示",
+      "roiRange": "2~4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌显现（Store Decoration）",
+      "indicator": "执行门店数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "品牌显现及陈列展示",
+      "roiRange": "1~2.3",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "品牌显现（Store Decoration）",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "品牌显现及陈列展示",
+      "roiRange": "1~2.3",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "旺点促销",
+      "indicator": "执行门店数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "旺点促销",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "试饮",
+      "indicator": "执行门店数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.2%",
+      "drilldown": null
+    },
+    {
+      "l4": "试饮",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.2%",
+      "drilldown": null
+    },
+    {
+      "l4": "礼赠",
+      "indicator": "发放个数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.2%",
+      "drilldown": null
+    },
+    {
+      "l4": "礼赠",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "店内促销",
+      "roiRange": "0.8~2",
+      "contributionYearly": "0%~1.2%",
+      "drilldown": null
+    },
+    {
+      "l4": "自有冰柜",
+      "indicator": "已投放冰柜个数",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "冰柜",
+      "roiRange": "3~8",
+      "contributionYearly": "8%~15%",
+      "drilldown": null
+    },
+    {
+      "l4": "自有冰柜",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "渠道/终端营销",
+      "l3": "冰柜",
+      "roiRange": "3~8",
+      "contributionYearly": "8%~15%",
+      "drilldown": null
+    },
+    {
+      "l4": "电商站内投流",
+      "indicator": "曝光量",
+      "l1": "渠道成交驱动",
+      "l2": "电商平台媒体及促销",
+      "l3": "电商平台媒体及促销",
+      "roiRange": "2~4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "电商站内投流",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "电商平台媒体及促销",
+      "l3": "电商平台媒体及促销",
+      "roiRange": "2~4",
+      "contributionYearly": "0%~1.5%",
+      "drilldown": null
+    },
+    {
+      "l4": "电商买赠",
+      "indicator": "花费",
+      "l1": "渠道成交驱动",
+      "l2": "电商平台媒体及促销",
+      "l3": "电商平台媒体及促销",
+      "roiRange": "1.7~3",
+      "contributionYearly": "0%~0.7%",
+      "drilldown": null
+    },
+    {
+      "l4": "买N赠N",
+      "indicator": "花费",
+      "l1": "促销优惠",
+      "l2": "促销优惠",
+      "l3": "组合优惠",
+      "roiRange": "5%~8%",
+      "contributionYearly": "5%~8%",
+      "drilldown": null,
+      "roiRangeSuspect": "ROI 写成百分比且与 contributionYearly 逐字相同，其余 40 行 ROI 都是倍数；疑为源表串列，未擅自修改"
+    },
+    {
+      "l4": "赠品小样",
+      "indicator": "花费",
+      "l1": "促销优惠",
+      "l2": "促销优惠",
+      "l3": "组合优惠",
+      "roiRange": "5%~8%",
+      "contributionYearly": "5%~8%",
+      "drilldown": null,
+      "roiRangeSuspect": "ROI 写成百分比且与 contributionYearly 逐字相同，其余 40 行 ROI 都是倍数；疑为源表串列，未擅自修改"
+    },
+    {
+      "l4": "花费",
+      "indicator": "花费",
+      "l1": "促销优惠",
+      "l2": "促销优惠",
+      "l3": "单品折扣",
+      "roiRange": "5%~8%",
+      "contributionYearly": "5%~8%",
+      "drilldown": null,
+      "roiRangeSuspect": "ROI 写成百分比且与 contributionYearly 逐字相同，其余 40 行 ROI 都是倍数；疑为源表串列，未擅自修改"
+    },
+    {
+      "l4": "PPI",
+      "indicator": "PPI",
+      "l1": "促销优惠",
+      "l2": "促销优惠",
+      "l3": "单品折扣",
+      "roiRange": "5%~8%",
+      "contributionYearly": "5%~8%",
+      "drilldown": null,
+      "roiRangeSuspect": "ROI 写成百分比且与 contributionYearly 逐字相同，其余 40 行 ROI 都是倍数；疑为源表串列，未擅自修改"
+    }
+  ]
+}

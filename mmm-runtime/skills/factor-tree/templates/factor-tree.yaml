@@ -1,0 +1,114 @@
+# 因子树 —— 照这份填，不要自创结构。
+# 每行字段的填法见 ../references/derive.md；确认时补什么见 ../references/review.md。
+meta:
+  step: factor-tree/derive            # 产出这份文件的步骤。后面两步不改它，各写自己的日期键
+  skill: factor-tree
+  generated: ""                       # 生成时间，带时区
+  grounding:                          # 读过的每份材料，一份一条；字数写真实值
+    - { path: "artifacts/s1/knowledge-package.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/materials-index.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/project-profile.yaml", chars: 0, truncated: false }
+    # 网络检索来的依据用 url 记，accessed 必填——查不到日期的网页引用，
+    # 半年后没有人能确认它当时说的是什么。只有 derive 这一步可以有这种条目。
+    - { url: "", accessed: "", chars: 0, truncated: false }
+  knowledgeRecall: none               # 行业先例的来源标识，例 "kb:food-bev/beverage@v2"；召回为空写 none
+  baselineChoice: template            # template | client-tree。抄自材料索引，不在这里改
+  assumed: false                      # true 表示有澄清点没问到人，按推荐项走了
+  reviewedAt: ""                      # 确认那一步写上时间，不覆盖 generated
+  amendedAt: ""                       # 采纳访谈改动那一步写上时间
+
+  counts:                             # 各状态的行数，让人不打开正文也能看见规模
+    baseline: 0
+    proposed: 0
+    accepted: 0
+    rejected: 0
+
+  # 增删幅度：只记数、只呈现，不硬拦。超出 threshold 通常说明基线和这个客户对不上。
+  delta:
+    baselineL4: 0                     # 基线带进来的 L4 个数
+    added: 0                          # 相对基线新增的 L4 个数
+    removed: 0                        # 被剔除的 L4 个数
+    ratio: 0.0                        # (added + removed) / baselineL4；基线为 0 时写 0.0 并在正文说明
+    threshold: 0.2                    # 参考幅度 10%–20%，取上限
+    exceeds: false                    # ratio 超过 threshold 时为 true，确认时必须报出来
+
+# 每一行 = 一个指标。行的身份是 l1+l2+l3+l4+indicator 五元组，重复即冲突。
+rows:
+  - id: f-0001                        # f-0001 起顺序编号，一经写下永不改——下游按它引用
+    l1: ""                            # 起底时锁定，推导不新增；人要改要先知道代价
+    l2: ""                            # 同上
+    l3: ""                            # 一族一起动、一起规划的东西 → 数据需求的一个工作簿
+    l4: ""                            # 这一族里的一个具体杠杆或条件 → 工作簿里的一张表
+    indicator: ""                     # 这个 L4 怎么被量化 → 表里的一列。必须是可测量的序列
+    dimension: ""                     # 这个指标能按哪些轴报出来，逗号分隔；默认取自档案的模型范围
+    role: driver                      # driver | response。response 只有一行，不挂在任何分组下
+
+    # 这个指标往上滚的时候怎么合并（跨时间、跨地区、跨渠道）。
+    # 判断只有一句话：把两行加起来，得到的数还有没有业务含义？
+    #   有  → sum       花费、销量、曝光量、GRP、发帖数、订单量
+    #   没有 → average   比例、覆盖率（ND/WD）、份额、指数、价格、温度、库存点数
+    #   要按体量加权才对 → weighted_average，并在 rationale 里说清权重是什么
+    # 对比例类求和会造出一个没有意义的数，而模型拟合的就是那个数。
+    aggregation: sum                  # sum | average | weighted_average | min | max | count | distinct_count
+
+    # 这一行站在什么上面。分类写在 source，具体出处写在 evidence，两个都不能空：
+    #   template   知识库召回     → evidence 写包 id + 文件 + 命中的那一段
+    #   upload     客户上传的树   → evidence 写 文件名 :: 表名 第 N 行
+    #   report     客户报告材料   → evidence 写 文件名 + 页码/章节
+    #   websearch  网络检索       → evidence 写 URL + 访问日期 + 一句原文摘录
+    #   ai         模型自有知识   → evidence 写「模型先验（无外部出处）」，确认时单独点出来
+    #   interview  访谈           → evidence 写原话
+    #   manual     人在确认时加的 → evidence 写人的原话
+    source: template                  # template | upload | report | websearch | ai | interview | manual | data_upload
+    status: baseline                  # baseline | proposed | accepted | rejected
+    primary: false                    # 每个 L1–L4 路径下恰好一条被采纳的行为 true；响应指标不填
+    decidedBy: ""                     # 人裁决后写 "human" 或人名；写了就钉住这一行
+    decidedAt: ""                     # 人裁决的时间，带时区。知识回流要按时间读这条线
+    rationale: ""                     # 为什么这个指标能度量这个因子。内部用，不进客户文件
+    evidence: ""                      # 出处，见上面那张表。每一行都要有
+    definition: ""                    # 要客户给什么，用客户听得懂的话 → 进数据需求
+    unit: ""                          # 例："次""元""%" → 进数据需求
+    owner: ""                         # 哪个团队或系统握着它 → 进数据需求
+
+  # 响应指标那一行：单独一行，不挂在任何 L1–L4 下，不参与主指标唯一性。
+  - id: f-0002
+    l1: ""
+    l2: ""
+    l3: ""
+    l4: ""
+    indicator: ""                     # 抄自档案的 responseMetric，口径一字不改
+    dimension: ""
+    role: response
+    aggregation: sum                  # Y 也要滚。销量类求和；份额类的 Y 是 average
+    source: manual
+    status: accepted
+    primary: false
+    decidedBy: ""
+    decidedAt: ""
+    rationale: "模型要解释的那个数，随档案而定"
+    evidence: "artifacts/s1/project-profile.yaml"
+    definition: ""
+    unit: ""
+    owner: ""
+
+# L4 组级属性：一个 L1/L2/L3/L4 路径一条，填在组上而不是每行重复。
+# 它们是访谈数据类问题的出题依据，也是后面数据质量打分的标准来源。
+#
+# ROI 与贡献度的参考区间不在这里。它们是知识库的东西，按 (L4, 指标) 精确查：
+#   ~/.local/bin/mmm tool knowledge.range --workspace <工作区> --l4 <L4> --indicator <指标>
+# 在树里再存一份，就是同一件事有了两个权威，而它们迟早会不一致。
+groups:
+  - path: ""                          # "L1 / L2 / L3 / L4"，与 rows 里的路径逐字一致
+    timeGrain: ""                     # 客户能给到的时间颗粒度，例 "By year, by month"
+    modelGrain: ""                    # 建模颗粒度，以档案的分析颗粒度为最低标准
+    drilldown: ""                     # 下钻颗粒度，例 "By Platform"；无则填 "/"。它是后面定位异常的入口
+    team: ""                          # 相关业务团队，例 "BI&CMI"
+    dataSource: ""                    # 数据来源，例 "NielsenIQ / 抖音 Ads 后台"
+
+    # 五项数据准入标准。逐条写这一组的具体要求，不要留空、不要写"同上"。
+    admission:
+      completeness: ""                # 数据完整性，例：数据时间跨度多于两年，理想状态需要 3 年最优
+      accuracy: ""                    # 数据准确性，例：可被业务团队确认
+      granularity: ""                 # 数据颗粒度，例：daily/weekly/monthly，不接受 yearly 数据
+      variability: ""                 # 数据波动性，例：因子需要有变化才能估计回归系数
+      consistency: ""                 # 数据一致性，例：数据统计逻辑一致且年与年数据可比

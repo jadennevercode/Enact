@@ -1,92 +1,92 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@enact/core/auth";
-import {
-  paths,
-  resolvePostAuthDestination,
-  useHasOnboarded,
-} from "@enact/core/paths";
-import { useWorkspaceList } from "@enact/core/workspace";
-import { CliInstallInstructions, OnboardingFlow } from "@enact/views/onboarding";
+import { completeOnboarding } from "@enact/core/onboarding";
+import { paths } from "@enact/core/paths";
+import { useCreateWorkspace, useWorkspaceList } from "@enact/core/workspace";
+import { Button } from "@enact/ui/components/ui/button";
+import { EnactIcon } from "@enact/ui/components/common/enact-icon";
+
+function defaultWorkspaceIdentity(user: { id: string; name: string }) {
+  const ownerName = user.name.trim();
+  const slugSuffix = user.id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return {
+    name: ownerName ? `${ownerName} Workspace` : "My Workspace",
+    slug: `workspace-${slugSuffix}`,
+  };
+}
 
 /**
- * Web shell for the onboarding flow. The route is the platform chrome on
- * web (matching `WindowOverlay` on desktop); content is the shared
- * `<OnboardingFlow />`. Kept minimal — guard on auth, render, exit.
- *
- * Runtime-connected onboarding opens the Mika session that the final step
- * created and started. Other exits land on the workspace issues list, or root
- * when no workspace exists.
- *
- * `CliInstallInstructions` is passed in as the `runtimeInstructions`
- * slot so the flow can render it inside the CLI dialog. The commands it
- * shows are hardcoded — nothing environmental to thread through.
+ * First-run web entry point. Internal deployments do not need the public
+ * product tour: ensure the user has a workspace, mark onboarding complete,
+ * and send them straight to its issue list.
  */
 export default function OnboardingPage() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const hasOnboarded = useHasOnboarded();
-  const { workspaces, ready: workspacesReady } = useWorkspaceList({
-    enabled: !!user,
-  });
-  // The bootstrap path calls refreshMe() before returning, which flips
-  // hasOnboarded to true while the page is still mounted. Without this
-  // flag the guard below races onComplete: the guard's router.replace
-  // (issues list) can overtake onComplete's router.push (guide issue),
-  // dropping the user on the wrong destination. Marking the page as
-  // "completing" right before onComplete navigates keeps the guard
-  // silent for the in-flight transition.
-  const completingRef = useRef(false);
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const { workspaces, ready } = useWorkspaceList({ enabled: !!user });
+  const createWorkspace = useCreateWorkspace();
+  const startedRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (isLoading || !user) {
-      if (!isLoading && !user) router.replace(paths.login());
+    if (isLoading) return;
+    if (!user) {
+      router.replace(paths.login());
       return;
     }
-    if (!workspacesReady) return;
-    if (completingRef.current) return;
-    // Bounce out only when onboarding genuinely doesn't apply: the user is
-    // already onboarded. We deliberately don't bounce on `workspaces.length`
-    // here — the flow creates a workspace mid-onboarding, and a
-    // hasWorkspaces bounce here would kick the user out before runtime and
-    // Mika setup can run. The new entry-point
-    // judgment in callback / login handles "where should this user go on
-    // login" so OnboardingPage no longer needs to second-guess it.
-    if (hasOnboarded) {
-      router.replace(resolvePostAuthDestination(workspaces, hasOnboarded));
-    }
-  }, [isLoading, user, hasOnboarded, workspacesReady, workspaces, router]);
+    if (!ready || startedRef.current) return;
 
-  if (isLoading || !user || hasOnboarded) return null;
+    startedRef.current = true;
+    setError(null);
 
-  // Layout: page owns its own scroll (root layout sets `body {
-  // overflow: hidden }` for the app-shell convention). OnboardingFlow
-  // owns the per-step width constraint internally — Welcome renders a
-  // wide two-column hero, all other steps wrap themselves at max-w-xl.
+    void (async () => {
+      const workspace =
+        workspaces[0] ??
+        (await createWorkspace.mutateAsync(defaultWorkspaceIdentity(user)));
+
+      if (user.onboarded_at == null) {
+        await completeOnboarding(undefined, workspace.id);
+      }
+
+      router.replace(paths.workspace(workspace.slug).issues());
+    })().catch((reason: unknown) => {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to create your workspace",
+      );
+    });
+  }, [attempt, createWorkspace, isLoading, ready, router, user, workspaces]);
+
+  if (error) {
+    return (
+      <div className="flex h-svh flex-col items-center justify-center gap-4">
+        <p className="text-body text-destructive">{error}</p>
+        <Button
+          variant="outline"
+          onClick={() => {
+            startedRef.current = false;
+            setAttempt((value) => value + 1);
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full overflow-y-auto bg-background">
-      <OnboardingFlow
-        onComplete={(ws, destination) => {
-          completingRef.current = true;
-          if (ws && destination?.kind === "chat") {
-            router.push(
-              paths.workspace(ws.slug).chatSession(destination.sessionId),
-            );
-          } else if (ws && destination?.kind === "issue") {
-            router.push(
-              paths.workspace(ws.slug).issueDetail(destination.issueId),
-            );
-          } else if (ws) {
-            router.push(paths.workspace(ws.slug).issues());
-          } else {
-            router.push(paths.root());
-          }
-        }}
-        runtimeInstructions={<CliInstallInstructions />}
-      />
+    <div className="flex h-svh items-center justify-center">
+      <EnactIcon className="size-6 animate-pulse" />
     </div>
   );
 }

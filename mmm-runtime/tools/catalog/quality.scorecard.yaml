@@ -1,0 +1,65 @@
+# tools/catalog/quality.scorecard.yaml
+id: quality.scorecard
+kind: quality
+purpose: 把四个维度的结果卷成总分——四维相乘，出自动判读与因子级预警。
+when: |
+  数据质量评分 · 「按四个维度给指标打分」的最后一步。
+  跑之前先把 quality.consistency / accuracy / completeness / granularity 各跑一遍。
+  边缘分值和弃用项的处置在下一步由人定。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/quality-evidence.json
+  shape: |
+    rows[]            一行 = 因子树里一条已采纳的 (L1×L2×L3×L4×指标)：
+      id              行号，形如 q-0007
+      l1 · l2 · l3 · l4 · indicator   因子层级与指标名
+      treeRowId       对应的因子树行号
+      dataStatus      scored 已打分 / no-data 树上要了但一条数据都没到 /
+                      inherited-drop 因子映射层已判不做
+      consistency · accuracy · completeness · granularity
+                      四个维度分。**dataStatus 不是 scored 时为 null，不是 0**
+      consistencyNote · accuracyNote · completenessNote · granularityNote
+                      每个维度分背后那句话：该维度最弱的那个阻断型子项自己的说明
+      subScores[]     10 个子项逐条：key · dimension · label · score · note ·
+                      computed（false = 没查，视图上渲染成「未校验」）·
+                      blocking（false = 建议型，拉不低维度分）
+      total           四维相乘。未打分的行为 null
+      autoVerdict     accept（总分 ≥0.5）/ borderline（0 与 0.5 之间）/
+                      unusable（=0）/ no-data / inherited-drop
+    signature         行集指纹，与四份维度结果比对；对不上就拒绝卷积
+    counts            {scored: n, no-data: n, inherited-drop: n}
+    inheritedDrops    因子映射层已排除、本层未评分的指标数
+    orphanCount       数据里有、因子树没要过的指标数
+    orphans[]         那些指标，形如 "l4 :: 指标"
+    escalations[]     因子级预警，两类：
+      l1 · l2 · l3 · l4 · indicators[] · reason · severity · routeTo
+                      ① 该因子全部指标总分为 0 → 业务侧 + 客户（寻找替代数据）
+                      ② 该因子全部指标一条数据都没到 → 数据需求与验收（追这次交付）
+stdout: |
+  因子树 101 行 · 18 行已打分 · 0 行没有数据 · 83 行上游已否
+  判读：83 inherited-drop · 12 accept · 6 borderline
+
+  需要你决定的行，最差在前：
+    0.25   竞品促销                    竞品折扣率            弱在：completeness、granularity
+example: ~/.local/bin/mmm tool quality.scorecard --workspace <工作区>
+notes: |
+  **总分是四个维度相乘，不是相加。** 一个维度是 0，整条序列就没法用——
+  一个在错误口径上完美完整的指标不是「75% 可用」。相乘可达的总分只有六个值：
+  1 · 0.5 · 0.25 · 0.125 · 0.0625 · 0。
+  判读只有一份实现（scoring.quality.verdict_for）：≥0.5 accept / (0,0.5) borderline / =0 unusable。
+
+  **行来自因子树，不来自数据。** 一行 = 因子树里一条 status=accepted 的记录。
+  树上要了、数据没到的行照样出现，标 dataStatus=no-data、四维分为 null。
+  no-data 不是 0 分：0 分是「查过了，不能用」，找数据 Owner；
+  no-data 是「根本没到」，回数据需求与验收追交付。
+  按数据分组出行的老做法说不出第二句话——那一行压根不存在，
+  读起来和「这个因子没人要过」一模一样。
+
+  **孤儿单独计数，不进表。** 数据里有、因子树没要过的指标记在 orphanCount / orphans，
+  呈现时要说一句。一个没人认领的指标静默消失，和它不存在长得一样。
+
+  它只算依据和基础分；处置由人定——一份 AI 写完没人裁决的评分表，上面的判定没人担责。
+  四份维度结果的 signature 对不上时判失败：混着卷积出来的评分表内部自洽、
+  但每个数都错，读的时候看不出来。
+  一条都没剩时判失败并说明是「上游全否了」「树是空的」还是「树上的指标一条数据都没到」。

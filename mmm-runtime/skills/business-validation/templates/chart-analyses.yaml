@@ -1,0 +1,57 @@
+# 逐卡解读 —— 照这份填，不要自创结构。写法见 ../references/charts.md。
+#
+# **这是一张表，不是一篇文章。** 以前解读是自由 markdown，图册按标题字符串去找它：
+# 标题差一个字，那一段不会报错，它只是安静地不出现，而读的人看到「待写入」，以为
+# 没人写过。现在结构是定死的，对不上会被点名。
+#
+# 每一条都对着 `data/derived/chart-analyses.json` 里的一个槽位写：
+#   card / key / filterLabel / seriesDigest 四个字段**从槽位里逐字抄**，不要自己构造。
+#   它们是页面找到这段解读的方式，也是判断它有没有过期的方式。
+#
+# 没写的卡不是错：那张卡会显示槽位里预填的计算读数，页面上会写明它是计算读数。
+# 与其编一段，不如让它显示读数。
+
+meta:
+  step: business-validation/page
+  skill: business-validation
+  generated: ""                    # 生成时间，带时区
+  derivedFrom: data/derived/chart-analyses.json
+  payloadHash: ""                  # 上面那份计算结果当前的哈希
+  language: zh                     # 必须等于 mmm.yaml 的 outputLanguage
+  grounding:
+    - { path: "data/derived/chart-analyses.json", chars: 0, truncated: false }
+    - { path: "data/derived/validation-facts.json", chars: 0, truncated: false }
+  knowledgeRecall: none
+
+analyses:
+  - card: "消费者需求驱动›品牌广告/内容种草›品牌传播"   # 抄槽位，分隔符是 › 不是 >
+    key: ""                        # 抄槽位
+    filterLabel: ""                # 抄槽位，形如 "L3: 品牌传播 · by month"
+    seriesDigest: ""               # 抄槽位 —— 数动过之后这一段会被判为过期
+
+    # 一句话。客户一眼能认出是在说他自己的生意，并且点名一个真实期间和一个真实数值。
+    headline: ""
+
+    # 2–4 条。方向与快慢，每条点名真实的期间区间。
+    # 驱动与响应的关系只许引 correlationWithResponse 这一个相关系数。
+    trends:
+      - ""
+      - ""
+
+    # ≤6 条。某条序列打破自己规律的地方，用 largestMove / peak / trough。
+    # **只说发生了什么，不断言原因** —— 想说原因的时候写「成因未从本数据确立」。
+    anomalies:
+      - { period: "", metric: "", note: "" }
+
+    # ≤6 条。方向反转的地方，点名两侧的期间。
+    inflections: []
+
+    # ≤6 条。缺口、覆盖太短、被截断。有缺口就说缺几期，不许把缺口描述成一个数值。
+    caveats: []
+
+# ── 两条会被验收拦下的事 ──────────────────────────────────────────
+#
+# 1. **引的每个 period 必须出现在该卡槽位的 periods 里。** 一个不存在的期间是一个
+#    编出来的期间，而这是散文交付物里唯一一类机器抓得住的编造。
+# 2. **不许写 fallback: true。** 计算读数是工具的事；一条手写的记录声称自己是算出来的，
+#    就没有人能审它了。

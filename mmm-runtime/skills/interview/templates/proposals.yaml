@@ -1,0 +1,47 @@
+# 因子改动建议 —— 照这份填，不要自创结构。
+# 一份纪要一个文件：artifacts/s1/interview/proposals-<来源>.yaml。
+# 写法见 ../references/proposals.md。
+#
+# 这份文件只是建议。采纳与驳回由因子树的 amend 步骤逐条裁定，本文件不碰那棵树。
+meta:
+  step: interview/digest                # 固定值，不要改
+  skill: interview
+  generated: ""                         # 生成时间，带时区
+  grounding:
+    - { path: "artifacts/s1/interview/minutes-<来源>.md", chars: 0, truncated: false }
+    - { path: "artifacts/s1/factor-tree.yaml", chars: 0, truncated: false }
+  knowledgeRecall: none
+  counts: { proposals: 0, add: 0, amend: 0, reject: 0 }
+  note: ""                              # proposals 为空时必填：这场访谈覆盖了什么、
+                                        # 为什么一条改动都没有。空是一个发现，不是空文件。
+
+proposals:
+  - id: p-001
+    kind: add                           # add 新增一行 | amend 改某一行 | reject 剔除某一行
+    targetRow: ""                       # amend / reject 必填，写因子行 id，例：f-0041
+    l1: ""
+    l2: ""                              # 新增 L2 只有因子树的 amend 步骤能批，要单独说明
+    l3: ""
+    l4: ""
+    indicator: ""                       # 一行只能有一个指标，合着写的要拆成多条建议
+    dimension: ""                       # 例："月度, 品牌, 渠道, 地区"
+    granularity: ""                     # 客户能给到的颗粒度约束，例："只能到月，给不了周"
+    rationale: ""                       # 为什么要这么改，用访谈说的，不是你推出来的
+    evidence: ""                        # 逐字原话 + 出处，例：
+                                        # "\"去年数字预算差不多 40% 投在直播上\" — minutes-执行层-媒介 §5"
+                                        # 没有原话就没有建议——检查会拦下没有原话的条目
+    applied: pending                    # pending → accepted | rejected，由因子树的 amend 步骤改
+                                        # 不要预先替人裁决
+
+# 一条改动都没有时，写成这样，并把 meta.note 写满：
+#
+# meta:
+#   counts: { proposals: 0, add: 0, amend: 0, reject: 0 }
+#   note: "这场访谈覆盖了 Q14–Q22，全部确认了树上已有的口径，没有一行需要改。"
+# proposals: []
+#
+# 访谈说了什么 → 出哪种建议：
+#   有个没人列过的因子很重要        → add
+#   某个指标的度量方式和假设的不一样  → 对那一行 amend
+#   某个列出的因子在这里不存在/测不了 → 对那一行 reject
+#   某个指标某个日期前拿不到        → amend，把约束写进 rationale 和 granularity

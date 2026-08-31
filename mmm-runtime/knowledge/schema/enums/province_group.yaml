@@ -1,0 +1,9 @@
+# OPEN: region groupings vary per client and per data source, and the cluster tool
+# proposes merges for near-duplicate spellings rather than guessing.
+#
+# Region rolls up INSIDE a model object using each indicator's own 2.1 aggregation.
+# Indicators disagree about how deep they report, so this is not a modeling
+# dimension — it is a reporting one.
+column: province_group
+closed: false
+values: []

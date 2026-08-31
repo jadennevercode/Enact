@@ -1,0 +1,66 @@
+# tools/catalog/ols.fit.yaml
+id: ols.fit
+kind: model
+purpose: 按每个渠道 × 产品各拟合一个最简单的回归，给出拟合优度、误差和每个驱动的系数、贡献度、投资回报。
+when: |
+  OLS 预验证 · 「按渠道 × 产品各拟合一个模型」的主计算。
+  拟合结果供下一步逐因子对照行业区间判读。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - flag: --settle
+    required: false
+    what: 反复重拟合，直到判定和拟合结果互相一致（开关，不带值）
+output:
+  path: data/derived/ols-fit.json
+  shape: |
+    models[]           每个模型对象一项：
+      object           模型对象编号
+      label            展示用名字
+      months           参与拟合的月份数（观测数）
+      r2               拟合优度
+      adjR2            调整后的拟合优度
+      mape             平均绝对百分比误差
+      durbinWatson     残差自相关统计量
+      baselinePct      基线（截距）占响应的比例
+      redFlags[]       这个模型自己带的警示
+      error            拟合失败时的原因；成功时是空字符串
+      yMetric          这个模型用的响应指标名
+      drivers[]        进了这个模型的每个驱动一项：
+        l4             因子层级
+        metric         指标名
+        treeRowId      对应的因子行编号
+        coef           回归系数
+        vif            方差膨胀因子
+        contribution   贡献度
+        roi            投资回报
+        pvalue         显著性
+    excluded           {模型对象: ["l4::指标", …]}，这个对象排除掉的指标
+    flagged[]          带警示的条目
+    reason             仅当一个模型都没拟合出来时出现，说明原因
+stdout: |
+  3 model(s) fitted, 1 failed
+
+    object                 R²      MAPE    months drivers
+    电商                    0.812   0.094   36     9
+    现代渠道                0.436   0.187   36     7
+
+  1 model(s) below R² 0.5: 现代渠道
+    A weak cell is a finding, not something to tune away.
+example: ~/.local/bin/mmm tool ols.fit --workspace <工作区>
+notes: |
+  它读的是 ledger.derive 算出来的那一份唯一名单，不在这里重新推导一遍——
+  重新推导正是「模型在没过滤的数据上训练」的成因：拟合跑完、报出一个拟合优度，
+  却悄悄把三层之前就否掉的指标一起放了进去。
+  拟合优度偏低是一条发现，不是拿来调掉的东西。
+  一个模型都没拟合出来时判失败，并提示去检查每个(渠道, 品牌)格子里响应和驱动是否都在。
+
+# ── 多次运行（2026-08-18） ─────────────────────────────────────────
+# --purpose 必填：一次运行要在看到自己的数之前说明它是为什么跑的。
+# 每次运行拿一个 runId，完整结果写到 data/derived/ols-runs/<runId>.json，
+# data/derived/ols-fit.json 同时是运行索引（schemaVersion 4）与本次结果：
+#   schemaVersion · runId · adopted[] · runs[] · models[] · excluded · flagged
+# models 留在顶层是刻意的——检查项、渲染器、评分卡都在读它，而这一次就是当前那一次。
+#
+# 采纳某次运行的理由只有三类：修正了拟合失配 / 客户改了决定 / 修掉了口径或数据错误。
+# "拟合优度更高""更贴合区间"会被直接拒——那是把删掉的指标搜索从挑变量升级成了挑运行。
+# 所有运行都保留，采纳与否都在历史里；只报被采纳的那次，等于把可核对性一起删掉。

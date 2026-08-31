@@ -40,9 +40,9 @@ describe("authStore", () => {
     const onLogin = vi.fn();
     const store = createAuthStore({ api, storage, onLogin });
 
-    await expect(store.getState().loginWithEmail("alice@example.com")).resolves.toEqual(fakeUser);
+    await expect(store.getState().loginWithEmail("alice@example.com", "secret123")).resolves.toEqual(fakeUser);
 
-    expect(api.emailLogin).toHaveBeenCalledWith("alice@example.com");
+    expect(api.emailLogin).toHaveBeenCalledWith("alice@example.com", "secret123");
     expect(storage.snapshot().enact_token).toBe("token-1");
     expect(api.setToken).toHaveBeenCalledWith("token-1");
     expect(onLogin).toHaveBeenCalledOnce();
@@ -51,6 +51,24 @@ describe("authStore", () => {
       isLoading: false,
       status: "authenticated",
     });
+  });
+
+  it("registers with a display name and persists the returned token", async () => {
+    const storage = makeStorage();
+    const api = makeApi();
+    api.register = vi.fn().mockResolvedValue({ token: "token-2", user: fakeUser });
+    const store = createAuthStore({ api, storage });
+
+    await expect(
+      store.getState().registerWithEmail("alice@deloittecn.com.cn", "secret123", "Alice"),
+    ).resolves.toEqual(fakeUser);
+
+    expect(api.register).toHaveBeenCalledWith(
+      "alice@deloittecn.com.cn",
+      "secret123",
+      "Alice",
+    );
+    expect(storage.snapshot().enact_token).toBe("token-2");
   });
 
   it("publishes a retry request instead of silently ignoring it", () => {

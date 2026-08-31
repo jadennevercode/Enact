@@ -1,0 +1,31 @@
+# tools/catalog/report.interview-pre-answers.yaml
+id: report.interview-pre-answers
+kind: report
+purpose: 把访谈预答渲染成一份带进会议室的内部简报 —— 访谈重点在最前面，其余逐题列开。
+when: |
+  访谈 · 「先按现有材料答一版」，在 pre-answers.md 写好之后、交验收之前。
+  这一步是可选能力：项目不需要预答就不跑。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs:
+  - path: artifacts/s1/interview/pre-answers.md
+    why: 全部内容都来自它。这个工具不算数、不判断、不补内容
+output:
+  path: artifacts/s1/interview/pre-answers.docx
+  shape: |
+    首页一句免责     「本文档供访谈者使用，请勿发给客户；每一条都是待验证的假设」
+    一 访谈重点      置信度 low 与 none 的题：题号 · 问题 · 置信度 · 现场留意
+    二 逐题预答      初步回答 · 置信度 · 依据 · 若成立 · 现场留意
+    这份预答的来源    含联网引用（url + 访问日期）
+    文档属性里带 sourceHash，指向生成时那一版 pre-answers.md。
+run: |
+  ~/.local/bin/mmm app report interview-pre-answers --workspace <工作区>
+requires: |
+  Node 与 docx 这个包。缺了会直接报错说清楚怎么装，不会降级成 Markdown。
+  `~/.local/bin/mmm doctor` 会报这台机器缺什么。
+notes: |
+  **这份文档不发给客户。** 它写的是「我们现在以为答案是什么」，发出去等于让客户看到
+  一份对他自己生意的猜测。免责印在第一页而不是附在末尾——一份没有免责的简报，
+  迟早会被顺手转发出去。
+
+  访谈重点提到最前面是这份文档存在的理由：那一小时该花在 low 与 none 上，
+  其余的题随提纲交给对方书面回填。

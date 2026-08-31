@@ -2111,23 +2111,29 @@ func TestCreateWorkspaceInvalidSlugReturnsBadRequest(t *testing.T) {
 	testutil.Call(t, testHandler.CreateWorkspace, req).Want(http.StatusBadRequest)
 }
 
-func TestEmailLoginCreatesUserAndReturnsToken(t *testing.T) {
-	const email = "email-login-new@enact.ai"
+func TestRegisterCreatesUserAndEmailLoginReturnsToken(t *testing.T) {
+	const email = "email-login-new@deloittecn.com.cn"
+	const password = "secret123"
 	ctx := context.Background()
 
 	t.Cleanup(func() {
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE email = $1`, email)
 	})
 
-	req := newRequest("POST", "/auth/email-login", map[string]string{"email": email})
+	req := newRequest("POST", "/auth/register", map[string]string{
+		"email": email, "password": password, "name": "Display Name",
+	})
 	var resp LoginResponse
-	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusOK).JSON(&resp)
+	testutil.Call(t, testHandler.Register, req).Want(http.StatusCreated).JSON(&resp)
 
 	if resp.Token == "" {
-		t.Fatal("EmailLogin: expected non-empty token")
+		t.Fatal("Register: expected non-empty token")
 	}
 	if resp.User.Email != email {
-		t.Fatalf("EmailLogin: email = %q, want %q", resp.User.Email, email)
+		t.Fatalf("Register: email = %q, want %q", resp.User.Email, email)
+	}
+	if resp.User.Name != "Display Name" {
+		t.Fatalf("Register: name = %q, want Display Name", resp.User.Name)
 	}
 
 	user, err := testHandler.Queries.GetUserByEmail(ctx, email)
@@ -2141,10 +2147,25 @@ func TestEmailLoginCreatesUserAndReturnsToken(t *testing.T) {
 	if len(workspaces) != 0 {
 		t.Fatalf("ListWorkspaces: got %d workspaces, want 0", len(workspaces))
 	}
+
+	loginReq := newRequest("POST", "/auth/email-login", map[string]string{
+		"email": email, "password": password,
+	})
+	testutil.Call(t, testHandler.EmailLogin, loginReq).Want(http.StatusOK)
+
+	wrongPasswordReq := newRequest("POST", "/auth/email-login", map[string]string{
+		"email": email, "password": "wrong-password",
+	})
+	testutil.Call(t, testHandler.EmailLogin, wrongPasswordReq).Want(http.StatusUnauthorized)
+
+	duplicateReq := newRequest("POST", "/auth/register", map[string]string{
+		"email": email, "password": password, "name": "Another Name",
+	})
+	testutil.Call(t, testHandler.Register, duplicateReq).Want(http.StatusConflict)
 }
 
-func TestEmailLoginReusesExistingUser(t *testing.T) {
-	const email = "email-login-existing@enact.ai"
+func TestExistingPasswordlessUserCanSetInitialPassword(t *testing.T) {
+	const email = "email-login-existing@deloittecn.com.cn"
 	ctx := context.Background()
 
 	created, err := testHandler.Queries.CreateUser(ctx, db.CreateUserParams{
@@ -2158,18 +2179,34 @@ func TestEmailLoginReusesExistingUser(t *testing.T) {
 		testPool.Exec(ctx, `DELETE FROM "user" WHERE id = $1`, created.ID)
 	})
 
-	req := newRequest("POST", "/auth/email-login", map[string]string{"email": email})
-	var resp LoginResponse
-	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusOK).JSON(&resp)
+	req := newRequest("POST", "/auth/email-login", map[string]string{
+		"email": email, "password": "secret123",
+	})
+	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusUnauthorized)
 
-	if resp.User.ID != uuidToString(created.ID) {
-		t.Fatalf("EmailLogin: user id = %q, want %q", resp.User.ID, uuidToString(created.ID))
-	}
+	registerReq := newRequest("POST", "/auth/register", map[string]string{
+		"email": email, "password": "secret123", "name": "Updated Name",
+	})
+	testutil.Call(t, testHandler.Register, registerReq).Want(http.StatusCreated)
+
+	loginReq := newRequest("POST", "/auth/email-login", map[string]string{
+		"email": email, "password": "secret123",
+	})
+	testutil.Call(t, testHandler.EmailLogin, loginReq).Want(http.StatusOK)
 }
 
 func TestEmailLoginRejectsInvalidEmail(t *testing.T) {
-	req := newRequest("POST", "/auth/email-login", map[string]string{"email": "not-an-email"})
+	req := newRequest("POST", "/auth/email-login", map[string]string{
+		"email": "not-an-email", "password": "secret123",
+	})
 	testutil.Call(t, testHandler.EmailLogin, req).Want(http.StatusBadRequest)
+}
+
+func TestRegisterRejectsNonDeloitteEmail(t *testing.T) {
+	req := newRequest("POST", "/auth/register", map[string]string{
+		"email": "user@example.com", "password": "secret123", "name": "User",
+	})
+	testutil.Call(t, testHandler.Register, req).Want(http.StatusForbidden)
 }
 
 func TestResolveActor(t *testing.T) {

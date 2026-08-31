@@ -1,0 +1,46 @@
+# tools/catalog/stat.cv.yaml
+id: stat.cv
+kind: statistical
+purpose: 波动性检验——序列缩放到 [0,1] 之后的 方差/均值，按 0 / 0.5 / 1 分档。
+when: |
+  统计检验 · 「按波动性、相关性、共线性筛查」的第一项。
+  三项各跑一次，三份结果再由 stat.scorecard 卷成总分。
+  流程定义见 shared/manifests/deliverables.yaml。
+inputs: []
+output:
+  path: data/derived/stat-volatility.json
+  shape: |
+    test             恒为 cv
+    signature        本次检验的行集指纹；卷积时三份必须一致，否则拒绝混着算
+    panel            面板规模，例 "17 indicators × 4 model object(s)"
+    months           面板覆盖的月份数
+    rows[]           每个已检验的指标一项：
+      id             行号，形如 s-0007，与另外两项、与打分表同号
+      l1 · l2 · l3 · l4 · indicator   因子层级与指标名，来自因子树
+      treeRowId      对应的因子树行号
+      dataStatus     恒为 scored（没数据、上游已否的行不进这份结果）
+      cv             波动系数，4 位
+      months         这个指标实际被观测到的月份数
+    skipped          {no-data: n, inherited-drop: n} 这次没检验的行数，按原因分
+    orphanCount      数据里有、因子树没要过的指标数
+stdout: |
+  波动性：17 条序列 · 3 个 0 分 · 3 个 0.5 分 · 11 个 1 分
+
+  几乎不动的序列（CV ≤ 0.05，建议剔除或找替代数据）：
+    0.0312   自有冰柜                     已投放冰柜个数
+    把零说成生意的话：「这条序列 24 个月几乎没动过」比「波动性 0 分」更能让人行动。
+example: ~/.local/bin/mmm tool stat.cv --workspace <工作区>
+notes: |
+  **这是工作簿的口径，不是教科书 CV。** 原文写「波动系数CV = 方差/均值，数据先缩放到 0-1」，
+  所以先 min-max 缩放再算方差除以均值。空序列、常数序列、均值 ≤ 0 一律返回 0。
+
+  分档：CV ≤ 0.05 → 0 分（变异极小，强烈建议剔除或找替代）；
+  0.05 < CV < 0.1 → 0.5 分（变异弱，除非业务不可替代否则不建议入模）；
+  CV ≥ 0.1 → 1 分（波动较为明显）。
+
+  **波动性不差分。** 另外两项跑在对象内同比差分上，它不跑——它问的是「这条序列动不动」，
+  那是原始水平的属性。
+
+  **常数序列现在会被检验，不会被悄悄丢掉。** 面板此前把「整个面板上恒定」的列直接删掉，
+  理由是「没有波动、没有共线性」——可一条从不移动的序列正是这项检验存在的理由，
+  删掉它意味着复核的人最该看见的那一行从来没到过打分表。

@@ -1,6 +1,6 @@
 -- name: CreateSquad :one
-INSERT INTO squad (workspace_id, name, description, leader_id, creator_id, avatar_url)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO squad (workspace_id, name, description, leader_id, creator_id, avatar_url, system_key)
+VALUES ($1, $2, $3, $4, $5, $6, sqlc.narg('system_key'))
 RETURNING *;
 
 -- name: GetSquad :one
@@ -62,6 +62,20 @@ ORDER BY
 -- name: ListAllSquads :many
 SELECT * FROM squad WHERE workspace_id = $1 ORDER BY created_at ASC;
 
+-- name: FindSDLCDefaultSquadForUpdate :one
+SELECT * FROM squad
+WHERE workspace_id = @workspace_id
+  AND (
+      system_key = @system_key
+      OR (system_key IS NULL AND name = @default_name AND leader_id = @leader_id)
+  )
+ORDER BY (system_key = @system_key) DESC,
+         (archived_at IS NULL) DESC,
+         created_at ASC,
+         id ASC
+LIMIT 1
+FOR UPDATE;
+
 -- name: UpdateSquad :one
 UPDATE squad SET
     name = COALESCE(sqlc.narg('name'), name),
@@ -69,6 +83,15 @@ UPDATE squad SET
     leader_id = COALESCE(sqlc.narg('leader_id'), leader_id),
     avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
     instructions = COALESCE(sqlc.narg('instructions'), instructions),
+    system_key = COALESCE(sqlc.narg('system_key'), system_key),
+    updated_at = now()
+WHERE id = $1
+RETURNING *;
+
+-- name: RestoreSquad :one
+UPDATE squad
+SET archived_at = NULL,
+    archived_by = NULL,
     updated_at = now()
 WHERE id = $1
 RETURNING *;

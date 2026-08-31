@@ -464,6 +464,11 @@ func main() {
 	defer analyticsClient.Close()
 
 	queries := db.New(pool)
+	if err := service.EnsureSDLCDefaultsForAllWorkspaces(ctx, pool, queries); err != nil {
+		// A conflicting user-owned skill in one workspace must not prevent the
+		// server from starting or other workspaces from being upgraded.
+		slog.Warn("SDLC defaults reconciliation completed with errors", "error", err)
+	}
 	hub.SetAuthorizer(newScopeAuthorizer(queries))
 	// Order matters: subscriber listeners must register BEFORE notification listeners.
 	// The notification listener queries the subscriber table to determine recipients,
