@@ -251,6 +251,18 @@ var concurrentIndexCleanups = map[string]string{
 	"396_plugin_package_file_path_index":                        "idx_plugin_package_file_path",
 	"397_plugin_installation_package_version_index":             "idx_plugin_installation_package_version",
 	"403_squad_system_identity":                                 "squad_system_identity_unique",
+	// Cross-workspace runtimes (migrations 412-419). The machine unique index
+	// is the arbiter the registration upsert conflicts on and the publication
+	// unique index is the arbiter the publish upsert conflicts on, so an
+	// INVALID leftover from an interrupted build would not merely slow a query
+	// down — it would break ON CONFLICT for daemon registration and profile
+	// publishing outright.
+	"413_machine_daemon_id_index":                               "idx_machine_daemon_id",
+	"414_machine_owner_index":                                   "idx_machine_owner",
+	"415_agent_runtime_machine_index":                           "idx_agent_runtime_machine",
+	"417_runtime_profile_workspace_unique_index":                "idx_runtime_profile_workspace_unique",
+	"418_runtime_profile_workspace_workspace_index":             "idx_runtime_profile_workspace_workspace",
+	"419_runtime_profile_owner_index":                           "idx_runtime_profile_owner",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

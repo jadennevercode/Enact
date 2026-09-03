@@ -313,6 +313,46 @@ func (h *Handler) inheritMachineCustomName(ctx context.Context, rt db.AgentRunti
 	return updated
 }
 
+// resolveMachineForRegistration upserts the machine this daemon runs on and
+// links any of its runtime rows that predate the link. Returns a zero UUID
+// when the machine could not be resolved, which the runtime upserts treat as
+// "leave machine_id as it is" rather than as "clear it".
+//
+// The device name stored here is the raw name the daemon proposed, not the
+// `device_info` string the runtime rows carry: device_info appends the CLI
+// version, which is a per-provider fact and does not belong on the host.
+func (h *Handler) resolveMachineForRegistration(ctx context.Context, req DaemonRegisterRequest, ownerID pgtype.UUID) pgtype.UUID {
+	var none pgtype.UUID
+	if strings.TrimSpace(req.DaemonID) == "" {
+		return none
+	}
+	metadata, _ := json.Marshal(map[string]any{
+		"cli_version": req.CLIVersion,
+		"launched_by": req.LaunchedBy,
+	})
+	machine, err := h.Queries.UpsertMachine(ctx, db.UpsertMachineParams{
+		DaemonID:   req.DaemonID,
+		OwnerID:    ownerID,
+		DeviceName: strings.TrimSpace(req.DeviceName),
+		Metadata:   metadata,
+		Status:     "online",
+	})
+	if err != nil {
+		slog.Warn("machine upsert failed during registration", "error", err, "daemon_id", req.DaemonID)
+		return none
+	}
+	// Adopt projections written before this server knew about machines, in
+	// every workspace at once — including workspaces this register call is not
+	// for. That is the point: the host is one thing.
+	if _, err := h.Queries.BackfillAgentRuntimeMachine(ctx, db.BackfillAgentRuntimeMachineParams{
+		MachineID: machine.ID,
+		DaemonID:  strToText(req.DaemonID),
+	}); err != nil {
+		slog.Warn("machine backfill failed during registration", "error", err, "daemon_id", req.DaemonID)
+	}
+	return machine.ID
+}
+
 var errRuntimeProfileDisabled = errors.New("runtime profile is disabled")
 
 // upsertRuntimeWithProfile serializes custom-runtime registration with profile
@@ -335,14 +375,34 @@ func (h *Handler) upsertRuntimeWithProfile(
 	defer tx.Rollback(ctx)
 	qtx := h.Queries.WithTx(tx)
 
-	profile, err = qtx.LockRuntimeProfileForRegistration(ctx, db.LockRuntimeProfileForRegistrationParams{
+	// The lock query joins runtime_profile_workspace, so a profile that is not
+	// published into this workspace returns no rows — the daemon is told the
+	// profile is unknown rather than being allowed to register it.
+	locked, err := qtx.LockRuntimeProfileForRegistration(ctx, db.LockRuntimeProfileForRegistrationParams{
 		ID:          profileID,
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		return row, profile, fmt.Errorf("lock runtime profile: %w", err)
 	}
-	if !profile.Enabled {
+	profile = db.RuntimeProfile{
+		ID:             locked.ID,
+		WorkspaceID:    locked.WorkspaceID,
+		DisplayName:    locked.DisplayName,
+		ProtocolFamily: locked.ProtocolFamily,
+		CommandName:    locked.CommandName,
+		Description:    locked.Description,
+		FixedArgs:      locked.FixedArgs,
+		Visibility:     locked.Visibility,
+		CreatedBy:      locked.CreatedBy,
+		Enabled:        locked.Enabled,
+		CreatedAt:      locked.CreatedAt,
+		UpdatedAt:      locked.UpdatedAt,
+		OwnerID:        locked.OwnerID,
+	}
+	// Two switches, both must be on: the owner has not retired the definition
+	// globally, and this workspace has not opted out of it.
+	if !locked.Enabled || !locked.WorkspaceEnabled {
 		return row, profile, errRuntimeProfileDisabled
 	}
 
@@ -437,6 +497,18 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve the machine before any of its per-workspace projections. The
+	// daemon_id is this host's persistent identity (internal/daemon/identity.go),
+	// so one row here is shared by every workspace this daemon registers with —
+	// which is what stops the device name, CLI metadata and the user's rename
+	// from being duplicated N times and drifting apart.
+	//
+	// Best-effort: a machine that cannot be written must not fail registration,
+	// because the per-workspace runtime rows are what actually run work. The
+	// projection simply keeps its existing machine_id (the upserts COALESCE it)
+	// and the next register call tries again.
+	machineID := h.resolveMachineForRegistration(r.Context(), req, ownerID)
+
 	resp := make([]AgentRuntimeResponse, 0, len(req.Runtimes))
 	var sdlcRuntime pgtype.UUID
 	sdlcRuntimeIsCodex := false
@@ -500,6 +572,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 						DeviceInfo:  deviceInfo,
 						Metadata:    metadata,
 						OwnerID:     ownerID,
+						MachineID:   machineID,
 						ProfileID:   profileUUID,
 					}
 				},
@@ -545,6 +618,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				LegacyDaemonID: prow.LegacyDaemonID,
 				Visibility:     prow.Visibility,
 				ProfileID:      prow.ProfileID,
+				MachineID:      prow.MachineID,
 			}
 		} else {
 			row, err := h.Queries.UpsertAgentRuntime(r.Context(), db.UpsertAgentRuntimeParams{
@@ -557,6 +631,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				DeviceInfo:  deviceInfo,
 				Metadata:    metadata,
 				OwnerID:     ownerID,
+				MachineID:   machineID,
 			})
 			if err != nil {
 				obsmetrics.RecordEvent(h.Analytics, h.Metrics, analytics.RuntimeFailed(
@@ -590,6 +665,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				LegacyDaemonID: row.LegacyDaemonID,
 				Visibility:     row.Visibility,
 				ProfileID:      row.ProfileID,
+				MachineID:      row.MachineID,
 			}
 		}
 

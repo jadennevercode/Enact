@@ -36,6 +36,7 @@ import type {
   WorkspaceWorkingAgentMineRelation,
   WorkspaceWorkingAgentType,
   AgentRuntime,
+  Machine,
   RuntimeProfile,
   CreateRuntimeProfileRequest,
   UpdateRuntimeProfileRequest,
@@ -1915,9 +1916,80 @@ export class ApiClient {
   }
 
   // ---------------------------------------------------------------------
-  // Custom runtime profiles (ENA-3284). All workspace-scoped: the caller
-  // passes the workspace id the same way the runtimes list resolves it.
+  // Machines. A machine is the computer a daemon runs on, owned by a user and
+  // shared across every workspace it is registered in. These endpoints are
+  // deliberately NOT workspace-scoped: routing them through a workspace is
+  // what forced the same host to be named and tracked once per workspace.
   // ---------------------------------------------------------------------
+
+  async listMachines(): Promise<Machine[]> {
+    const res = await this.fetch<{ machines?: Machine[] }>("/api/machines");
+    return res?.machines ?? [];
+  }
+
+  async getMachine(machineId: string): Promise<Machine> {
+    return this.fetch(`/api/machines/${machineId}`);
+  }
+
+  async updateMachine(
+    machineId: string,
+    patch: {
+      /**
+       * Machine display name. Pass an empty string to clear it and revert to
+       * the daemon-proposed device name — the same convention the per-runtime
+       * rename uses. One write reaches every workspace the host serves.
+       */
+      custom_name: string;
+    },
+  ): Promise<Machine> {
+    return this.fetch(`/api/machines/${machineId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Custom runtime profiles (ENA-3284). Workspace-scoped reads and writes act
+  // on what a workspace may use; the owner's own list and the publish call
+  // below act on the definition, which can reach several workspaces.
+  // ---------------------------------------------------------------------
+
+  /** Every profile the caller owns, across all workspaces. */
+  async listMyRuntimeProfiles(): Promise<RuntimeProfile[]> {
+    const res = await this.fetch<{ runtime_profiles?: RuntimeProfile[] }>(
+      "/api/runtime-profiles",
+    );
+    return res?.runtime_profiles ?? [];
+  }
+
+  /**
+   * Make a profile the caller owns available in `workspaceId`. Requires both
+   * ownership of the profile and admin of the target workspace.
+   */
+  async publishRuntimeProfile(
+    workspaceId: string,
+    profileId: string,
+  ): Promise<RuntimeProfile> {
+    return this.fetch(`/api/workspaces/${workspaceId}/runtime-profiles/publish`, {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId }),
+    });
+  }
+
+  /**
+   * This workspace's own on/off switch for a published profile. Distinct from
+   * the owner's global `enabled`, and from withdrawing it entirely (DELETE).
+   */
+  async setRuntimeProfileWorkspaceEnabled(
+    workspaceId: string,
+    profileId: string,
+    enabled: boolean,
+  ): Promise<{ profile_id: string; workspace_enabled: boolean }> {
+    return this.fetch(
+      `/api/workspaces/${workspaceId}/runtime-profiles/${profileId}/enabled`,
+      { method: "PATCH", body: JSON.stringify({ enabled }) },
+    );
+  }
 
   async listRuntimeProfiles(workspaceId: string): Promise<RuntimeProfile[]> {
     const res = await this.fetch<{ runtime_profiles?: RuntimeProfile[] }>(

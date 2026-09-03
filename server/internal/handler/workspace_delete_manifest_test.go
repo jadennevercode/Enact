@@ -19,11 +19,16 @@ const (
 // teardown. Adding a table requires an explicit ownership decision here; the
 // handler deletion graph must then implement that decision before CI passes.
 var workspaceDeletionManifest = map[string]workspaceDeleteAction{
-	"activity_log":                    workspaceDelete,
-	"agent":                           workspaceDelete,
-	"agent_builder_draft":             workspaceDelete,
-	"agent_invocation_target":         workspaceDelete,
-	"agent_runtime":                   workspaceDelete,
+	"activity_log":            workspaceDelete,
+	"agent":                   workspaceDelete,
+	"agent_builder_draft":     workspaceDelete,
+	"agent_invocation_target": workspaceDelete,
+	"agent_runtime":           workspaceDelete,
+	// A machine is a person's computer, not a workspace's asset — it has no
+	// workspace_id and outlives any one workspace it was registered in.
+	// Teardown sweeps only machines left with no projections at all, which is
+	// garbage collection rather than workspace-scoped deletion.
+	"machine":                         workspaceDeleteKeep,
 	"agent_skill":                     workspaceDelete,
 	"agent_task_queue":                workspaceDelete,
 	"agent_to_label":                  workspaceDelete,
@@ -100,29 +105,34 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"project":                         workspaceDelete,
 	"project_resource":                workspaceDelete,
 	"quick_action":                    workspaceDelete,
-	"runtime_profile":                 workspaceDelete,
-	"schema_migrations":               workspaceDeleteKeep,
-	"skill":                           workspaceDelete,
-	"skill_file":                      workspaceDelete,
-	"skill_to_label":                  workspaceDelete,
-	"squad":                           workspaceDelete,
-	"squad_member":                    workspaceDelete,
-	"sys_cron_executions":             workspaceDeleteKeep,
-	"task_message":                    workspaceDelete,
-	"task_token":                      workspaceDelete,
-	"task_usage":                      workspaceDelete,
-	"task_usage_hourly":               workspaceDelete,
-	"task_usage_hourly_dirty":         workspaceDelete,
-	"task_usage_hourly_rollup_state":  workspaceDeleteKeep,
-	"user":                            workspaceDeleteKeep,
-	"user_composio_connection":        workspaceDeleteKeep,
-	"vcs_commit_status":               workspaceDelete,
-	"vcs_connection":                  workspaceDelete,
-	"vcs_pull_request":                workspaceDelete,
-	"webhook_delivery":                workspaceDelete,
-	"workspace":                       workspaceDelete,
-	"workspace_invitation":            workspaceDelete,
-	"workspace_share_link":            workspaceDelete,
+	// The definition may outlive this workspace (migration 416): teardown
+	// deletes it only when no other workspace still publishes it, and the
+	// orphan sweep collects the rest.
+	"runtime_profile": workspaceDelete,
+	// This workspace's use of a profile always goes.
+	"runtime_profile_workspace":      workspaceDelete,
+	"schema_migrations":              workspaceDeleteKeep,
+	"skill":                          workspaceDelete,
+	"skill_file":                     workspaceDelete,
+	"skill_to_label":                 workspaceDelete,
+	"squad":                          workspaceDelete,
+	"squad_member":                   workspaceDelete,
+	"sys_cron_executions":            workspaceDeleteKeep,
+	"task_message":                   workspaceDelete,
+	"task_token":                     workspaceDelete,
+	"task_usage":                     workspaceDelete,
+	"task_usage_hourly":              workspaceDelete,
+	"task_usage_hourly_dirty":        workspaceDelete,
+	"task_usage_hourly_rollup_state": workspaceDeleteKeep,
+	"user":                           workspaceDeleteKeep,
+	"user_composio_connection":       workspaceDeleteKeep,
+	"vcs_commit_status":              workspaceDelete,
+	"vcs_connection":                 workspaceDelete,
+	"vcs_pull_request":               workspaceDelete,
+	"webhook_delivery":               workspaceDelete,
+	"workspace":                      workspaceDelete,
+	"workspace_invitation":           workspaceDelete,
+	"workspace_share_link":           workspaceDelete,
 }
 
 func TestWorkspaceDeletionManifestCoversPublicSchema(t *testing.T) {

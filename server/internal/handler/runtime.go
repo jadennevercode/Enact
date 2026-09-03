@@ -42,7 +42,14 @@ type AgentRuntimeResponse struct {
 	Visibility string `json:"visibility"`
 	// ProfileID is set when this runtime is an instance of a custom
 	// runtime_profile (ENA-3284); null for built-in runtimes.
-	ProfileID  *string `json:"profile_id"`
+	ProfileID *string `json:"profile_id"`
+	// MachineID identifies the host this runtime runs on (migration 412). The
+	// same machine registered in several workspaces reports the SAME id in each
+	// of them, which is what lets a client show one computer once instead of
+	// re-deriving machine identity from daemon_id and device names. Null for
+	// cloud runtimes, which have no host, and for local rows a machine-aware
+	// server has not registered yet.
+	MachineID  *string `json:"machine_id"`
 	LastSeenAt *string `json:"last_seen_at"`
 	CreatedAt  string  `json:"created_at"`
 	UpdatedAt  string  `json:"updated_at"`
@@ -72,6 +79,7 @@ func runtimeToResponse(rt db.AgentRuntime) AgentRuntimeResponse {
 		OwnerID:      uuidToPtr(rt.OwnerID),
 		Visibility:   rt.Visibility,
 		ProfileID:    uuidToPtr(rt.ProfileID),
+		MachineID:    uuidToPtr(rt.MachineID),
 		LastSeenAt:   timestampToPtr(rt.LastSeenAt),
 		CreatedAt:    timestampToString(rt.CreatedAt),
 		UpdatedAt:    timestampToString(rt.UpdatedAt),

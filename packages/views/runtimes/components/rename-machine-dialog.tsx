@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useUpdateRuntime } from "@enact/core/runtimes/mutations";
+import {
+  useUpdateMachine,
+  useUpdateRuntime,
+} from "@enact/core/runtimes/mutations";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,14 +19,26 @@ import { useT } from "../../i18n";
 // (apply_to_machine) rather than to a single runtime — that was the confusing
 // part of the first cut. Clearing reverts to the device's default name.
 //
-// `runtimeId` is any runtime on the machine the current user is allowed to
-// edit; the server fans the name out across the daemon (or, for a cloud worker
-// with no daemon_id, just renames that one worker, which is its own machine).
+// There are two ways to write the name, and which one runs matters:
+//
+//   * `machineId` — the server-owned machine row. One write, and the new name
+//     is what EVERY workspace this host serves sees, because they all read the
+//     same row. This is the correct path and is preferred whenever available.
+//   * `runtimeId` + apply_to_machine — the older per-workspace fan-out, which
+//     can only ever reach the workspace the request went through. Two teams
+//     sharing a machine could end up seeing two different names for it.
+//
+// The fallback is not dead code: cloud workers have no machine row, and a
+// local runtime registered by an older server has no machine_id until its
+// daemon re-registers.
 export interface RenameMachineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   wsId: string;
+  /** Any runtime on the machine the current user may edit. Fallback path. */
   runtimeId: string;
+  /** The server-owned machine id, when the backend supplied one. */
+  machineId?: string | null;
   /** The machine's current custom name, or "" when it still uses the default. */
   currentName: string;
 }
@@ -33,13 +48,15 @@ export function RenameMachineDialog({
   onOpenChange,
   wsId,
   runtimeId,
+  machineId,
   currentName,
 }: RenameMachineDialogProps) {
   const { t } = useT("runtimes");
   const updateRuntime = useUpdateRuntime(wsId);
+  const updateMachine = useUpdateMachine(wsId);
 
   const [value, setValue] = useState(currentName);
-  const submitting = updateRuntime.isPending;
+  const submitting = updateRuntime.isPending || updateMachine.isPending;
 
   // Reset the form each time the dialog opens so a cancelled edit doesn't leak
   // into the next one.
@@ -53,30 +70,43 @@ export function RenameMachineDialog({
   };
 
   const handleSave = () => {
+    // Empty string clears the name and reverts to the device default, on both
+    // paths.
     const trimmed = value.trim();
+    const callbacks = {
+      onSuccess: () => {
+        toast.success(
+          trimmed
+            ? t(($) => $.machine.rename_dialog.toast_saved)
+            : t(($) => $.machine.rename_dialog.toast_cleared),
+        );
+        onOpenChange(false);
+      },
+      onError: (err: unknown) =>
+        toast.error(
+          err instanceof Error && err.message
+            ? err.message
+            : t(($) => $.machine.rename_dialog.toast_failed),
+        ),
+    };
+
+    if (machineId) {
+      updateMachine.mutate(
+        { machineId, patch: { custom_name: trimmed } },
+        callbacks,
+      );
+      return;
+    }
+
+    // No machine row to address: a cloud worker, or a runtime an older server
+    // registered. Fall back to the per-workspace fan-out, which still names
+    // every runtime on the daemon within this workspace.
     updateRuntime.mutate(
       {
         runtimeId,
-        // Empty string clears the name (reverts to the default); the machine
-        // fan-out is always on — this dialog only ever names the machine.
         patch: { custom_name: trimmed, apply_to_machine: true },
       },
-      {
-        onSuccess: () => {
-          toast.success(
-            trimmed
-              ? t(($) => $.machine.rename_dialog.toast_saved)
-              : t(($) => $.machine.rename_dialog.toast_cleared),
-          );
-          onOpenChange(false);
-        },
-        onError: (err) =>
-          toast.error(
-            err instanceof Error && err.message
-              ? err.message
-              : t(($) => $.machine.rename_dialog.toast_failed),
-          ),
-      },
+      callbacks,
     );
   };
 

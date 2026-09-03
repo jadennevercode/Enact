@@ -96,6 +96,8 @@ type AgentRuntime struct {
 	Visibility     string             `json:"visibility"`
 	ProfileID      pgtype.UUID        `json:"profile_id"`
 	CustomName     pgtype.Text        `json:"custom_name"`
+	// The machine this runtime row projects into its workspace. NULL for cloud runtimes.
+	MachineID pgtype.UUID `json:"machine_id"`
 }
 
 type AgentSkill struct {
@@ -925,6 +927,20 @@ type LarkUserBinding struct {
 	BoundAt        pgtype.Timestamptz `json:"bound_at"`
 }
 
+// A computer running an Enact daemon. Owned by a user, independent of any workspace; agent_runtime projects it into each workspace.
+type Machine struct {
+	ID         pgtype.UUID        `json:"id"`
+	DaemonID   string             `json:"daemon_id"`
+	OwnerID    pgtype.UUID        `json:"owner_id"`
+	DeviceName string             `json:"device_name"`
+	CustomName pgtype.Text        `json:"custom_name"`
+	Metadata   []byte             `json:"metadata"`
+	Status     string             `json:"status"`
+	LastSeenAt pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Member struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
@@ -1094,18 +1110,33 @@ type QuickAction struct {
 }
 
 type RuntimeProfile struct {
-	ID             pgtype.UUID        `json:"id"`
-	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
-	DisplayName    string             `json:"display_name"`
-	ProtocolFamily string             `json:"protocol_family"`
-	CommandName    string             `json:"command_name"`
-	Description    pgtype.Text        `json:"description"`
-	FixedArgs      []byte             `json:"fixed_args"`
-	Visibility     string             `json:"visibility"`
-	CreatedBy      pgtype.UUID        `json:"created_by"`
-	Enabled        bool               `json:"enabled"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID pgtype.UUID `json:"id"`
+	// Origin workspace: where this profile was created. NOT the access check — see runtime_profile_workspace.
+	WorkspaceID    pgtype.UUID `json:"workspace_id"`
+	DisplayName    string      `json:"display_name"`
+	ProtocolFamily string      `json:"protocol_family"`
+	CommandName    string      `json:"command_name"`
+	Description    pgtype.Text `json:"description"`
+	FixedArgs      []byte      `json:"fixed_args"`
+	Visibility     string      `json:"visibility"`
+	CreatedBy      pgtype.UUID `json:"created_by"`
+	// Owner-level global switch. A workspace also has its own switch on runtime_profile_workspace.enabled; both must be true to register.
+	Enabled   bool               `json:"enabled"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	// The user who owns this definition and may edit it. Backfilled from created_by.
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+// Publication of a runtime profile into a workspace. Authoritative for whether a workspace may use the profile.
+type RuntimeProfileWorkspace struct {
+	ID          pgtype.UUID        `json:"id"`
+	ProfileID   pgtype.UUID        `json:"profile_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	PublishedBy pgtype.UUID        `json:"published_by"`
+	Enabled     bool               `json:"enabled"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Skill struct {

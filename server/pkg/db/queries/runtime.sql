@@ -51,8 +51,9 @@ INSERT INTO agent_runtime (
     device_info,
     metadata,
     owner_id,
+    machine_id,
     last_seen_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
 -- Built-in runtimes carry no profile_id. The arbiter is the partial unique
 -- index from migration 121 (WHERE profile_id IS NULL); the predicate must be
 -- spelled out so Postgres selects that partial index, not the custom-runtime
@@ -65,6 +66,9 @@ DO UPDATE SET
     device_info = EXCLUDED.device_info,
     metadata = EXCLUDED.metadata,
     owner_id = COALESCE(EXCLUDED.owner_id, agent_runtime.owner_id),
+    -- Never unset an established link: a registration from a server mid-deploy
+    -- that has not resolved the machine yet must not orphan the projection.
+    machine_id = COALESCE(EXCLUDED.machine_id, agent_runtime.machine_id),
     last_seen_at = now(),
     updated_at = now()
 RETURNING *, (xmax = 0) AS inserted;
@@ -88,8 +92,9 @@ INSERT INTO agent_runtime (
     metadata,
     owner_id,
     profile_id,
+    machine_id,
     last_seen_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
 ON CONFLICT (workspace_id, daemon_id, profile_id) WHERE profile_id IS NOT NULL
 DO UPDATE SET
     name = EXCLUDED.name,
@@ -99,6 +104,9 @@ DO UPDATE SET
     device_info = EXCLUDED.device_info,
     metadata = EXCLUDED.metadata,
     owner_id = COALESCE(EXCLUDED.owner_id, agent_runtime.owner_id),
+    -- See UpsertAgentRuntime: COALESCE so an unresolved machine never orphans
+    -- an established projection.
+    machine_id = COALESCE(EXCLUDED.machine_id, agent_runtime.machine_id),
     last_seen_at = now(),
     updated_at = now()
 RETURNING *, (xmax = 0) AS inserted;

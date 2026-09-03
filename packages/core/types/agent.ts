@@ -85,6 +85,18 @@ export interface RuntimeDevice {
    * a missing value as `null` (built-in).
    */
   profile_id?: string | null;
+  /**
+   * The host this runtime runs on. The same physical machine registered in
+   * several workspaces reports the SAME `machine_id` in each of them, which is
+   * what lets a client group runtimes into machines from server-owned identity
+   * instead of inferring it from `daemon_id` and device-name parsing.
+   *
+   * `null` for cloud runtimes, which have no host. Absent on responses from a
+   * backend that predates the machine table, and absent for a local runtime
+   * whose daemon has not re-registered since that server shipped — consumers
+   * must keep their inference fallback for both cases.
+   */
+  machine_id?: string | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
@@ -149,7 +161,30 @@ export interface RuntimeProfile {
   fixed_args: string[];
   visibility: RuntimeProfileVisibility;
   created_by: string | null;
+  /**
+   * Who owns the definition. Only the owner may change it once it reaches more
+   * than one workspace; a workspace admin keeps full control while their
+   * workspace is its only consumer. Absent on older backends and on legacy
+   * rows whose creator was never recorded.
+   */
+  owner_id?: string | null;
+  /**
+   * The owner's global switch: `false` retires the definition in every
+   * workspace at once.
+   */
   enabled: boolean;
+  /**
+   * The reading workspace's own switch, independent of `enabled`. A profile is
+   * live for a daemon only when BOTH are true, so a team can opt out without
+   * affecting anyone else. Absent when the profile is returned outside a
+   * workspace context; treat a missing value as `true`.
+   */
+  workspace_enabled?: boolean;
+  /**
+   * How many workspaces this definition currently reaches. Only present on the
+   * owner's cross-workspace list, where it is the point of the view.
+   */
+  workspace_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -1250,4 +1285,58 @@ export interface RuntimeLocalSkillImportResult {
   status: "created" | "updated" | "conflict";
   skill?: Skill;
   conflict?: RuntimeLocalSkillImportConflict;
+}
+
+// ---------------------------------------------------------------------------
+// Machines (server migration 412)
+//
+// A machine is the computer a daemon runs on. It belongs to a user, not to a
+// workspace: the same host registered in five workspaces is ONE machine with
+// five runtime projections. Everything true of the host rather than of a team
+// — its name, the CLI version it reports, whether it is online — lives here
+// and is written once.
+//
+// Before this existed the client inferred machines from `daemon_id` and by
+// parsing hostnames out of display strings, and a rename had to be fanned out
+// across every workspace's copy. That inference still runs as a fallback for
+// older backends, but `machine_id` on a runtime is the authoritative key.
+// ---------------------------------------------------------------------------
+
+export interface MachineWorkspace {
+  runtime_id: string;
+  workspace_id: string;
+  workspace_name: string;
+  workspace_slug: string;
+  provider: string;
+  profile_id: string | null;
+  /**
+   * Per-workspace authorization, which deliberately did NOT move to the
+   * machine: a host shared with one team stays private to the others until
+   * its owner says otherwise.
+   */
+  visibility: RuntimeVisibility;
+  status: "online" | "offline";
+  last_seen_at: string | null;
+}
+
+export interface Machine {
+  id: string;
+  daemon_id: string;
+  owner_id: string | null;
+  /** What the daemon proposed. Display `custom_name ?? device_name`. */
+  device_name: string;
+  custom_name: string | null;
+  metadata: Record<string, unknown>;
+  status: "online" | "offline";
+  last_seen_at: string | null;
+  /**
+   * Every workspace this machine is registered in, including ones the reader
+   * cannot see. `workspaces` lists only those the reader is a member of, so
+   * the two can legitimately disagree — that gap is intentional, not a bug:
+   * a machine must not become a way to enumerate a colleague's workspaces.
+   */
+  workspace_count: number;
+  workspaces: MachineWorkspace[];
+  created_at: string;
+  updated_at: string;
 }

@@ -553,14 +553,65 @@ func (q *Queries) DeleteWorkspacePullRequests(ctx context.Context, workspaceID p
 const deleteWorkspaceRuntimesAndProjects = `-- name: DeleteWorkspaceRuntimesAndProjects :exec
 WITH
 deleted_runtimes AS (
-    DELETE FROM agent_runtime WHERE agent_runtime.workspace_id = $1
+    DELETE FROM agent_runtime
+    WHERE agent_runtime.workspace_id = $1
+    RETURNING machine_id
+),
+withdrawn_profiles AS (
+    DELETE FROM runtime_profile_workspace
+    WHERE runtime_profile_workspace.workspace_id = $1
+    RETURNING profile_id
 ),
 deleted_profiles AS (
-    DELETE FROM runtime_profile WHERE runtime_profile.workspace_id = $1
+    -- A definition tied to this workspace that no OTHER workspace still
+    -- publishes. Two ways to be tied to it:
+    --   * this workspace published it — the normal case, origin irrelevant;
+    --   * this workspace originated it and it has no publication at all — a
+    --     row that can only exist if something wrote a profile without its
+    --     publication, and which teardown must still collect rather than leak
+    --     a row pointing at a workspace that no longer exists.
+    -- A profile published elsewhere survives under both branches.
+    DELETE FROM runtime_profile
+    WHERE (
+          runtime_profile.id IN (SELECT profile_id FROM withdrawn_profiles)
+          OR runtime_profile.workspace_id = $1
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM runtime_profile_workspace rpw
+          WHERE rpw.profile_id = runtime_profile.id
+            AND rpw.workspace_id <> $1
+      )
+),
+deleted_machines AS (
+    -- A host that served only this workspace. One that is still registered
+    -- elsewhere keeps its row, its name and its identity — that is the whole
+    -- point of the machine being cross-workspace.
+    DELETE FROM machine
+    WHERE machine.id IN (SELECT machine_id FROM deleted_runtimes WHERE machine_id IS NOT NULL)
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime ar
+          WHERE ar.machine_id = machine.id
+            AND ar.workspace_id <> $1
+      )
 )
 DELETE FROM project WHERE project.workspace_id = $1
 `
 
+// Runtime profiles and machines outlive the workspace that used them
+// (migration 412/416), so this withdraws rather than deletes, and only
+// collects what nothing else holds.
+//
+// Everything is one statement on purpose. All CTEs see the same snapshot, so
+// the "is anything else still using this" checks below cannot observe the rows
+// this very statement is removing — hence the explicit `<> $1` exclusions
+// rather than relying on ordering between CTEs.
+//
+// The reach is deliberately narrow: only profiles this workspace was
+// publishing and only machines this workspace was hosting are candidates. A
+// profile or machine that has nothing to do with this workspace is never
+// touched, even if it happens to be unreferenced — collecting that is not this
+// operation's business, and doing it here would make deleting one workspace
+// able to delete another workspace's freshly created rows.
 func (q *Queries) DeleteWorkspaceRuntimesAndProjects(ctx context.Context, workspaceID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteWorkspaceRuntimesAndProjects, workspaceID)
 	return err

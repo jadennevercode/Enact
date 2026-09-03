@@ -288,6 +288,12 @@ func TestDeleteAgentRuntime_OrphanedProfileAllowsDirectDelete(t *testing.T) {
 	ctx := context.Background()
 
 	runtimeID, profileID := createProfileBackedRuntime(t, ctx, "Orphaned Custom Instance Delete")
+	// Drop the definition and its publication, leaving the runtime row behind:
+	// this is the orphan case, where the profile that defined the instance is
+	// gone and only a direct delete can clean the instance up.
+	if _, err := testPool.Exec(ctx, `DELETE FROM runtime_profile_workspace WHERE profile_id = $1`, profileID); err != nil {
+		t.Fatalf("delete profile publication: %v", err)
+	}
 	if _, err := testPool.Exec(ctx, `DELETE FROM runtime_profile WHERE id = $1`, profileID); err != nil {
 		t.Fatalf("delete profile row: %v", err)
 	}
@@ -426,6 +432,12 @@ func TestUnbindAgentsAndDeleteRuntime_OrphanedProfileAllowsCascade(t *testing.T)
 	ctx := context.Background()
 
 	runtimeID, profileID := createProfileBackedRuntime(t, ctx, "Orphaned Custom Instance Cascade")
+	// Drop the definition and its publication, leaving the runtime row behind:
+	// this is the orphan case, where the profile that defined the instance is
+	// gone and only a direct delete can clean the instance up.
+	if _, err := testPool.Exec(ctx, `DELETE FROM runtime_profile_workspace WHERE profile_id = $1`, profileID); err != nil {
+		t.Fatalf("delete profile publication: %v", err)
+	}
 	if _, err := testPool.Exec(ctx, `DELETE FROM runtime_profile WHERE id = $1`, profileID); err != nil {
 		t.Fatalf("delete profile row: %v", err)
 	}
@@ -537,6 +549,15 @@ func createProfileBackedRuntime(t *testing.T, ctx context.Context, name string) 
 	`, testWorkspaceID, name+" Profile", testUserID).Scan(&profileID); err != nil {
 		t.Fatalf("insert runtime profile: %v", err)
 	}
+	// Publish it into the workspace. Since migration 416 a profile is only
+	// live in a workspace that holds a publication row, and "live profile" is
+	// exactly what makes a runtime instance refuse a direct delete.
+	if _, err := testPool.Exec(ctx, `
+		INSERT INTO runtime_profile_workspace (profile_id, workspace_id, published_by)
+		VALUES ($1, $2, $3)
+	`, profileID, testWorkspaceID, testUserID); err != nil {
+		t.Fatalf("publish runtime profile: %v", err)
+	}
 
 	var runtimeID string
 	if err := testPool.QueryRow(ctx, `
@@ -553,6 +574,7 @@ func createProfileBackedRuntime(t *testing.T, ctx context.Context, name string) 
 	t.Cleanup(func() {
 		testPool.Exec(context.Background(), `DELETE FROM agent WHERE runtime_id = $1`, runtimeID)
 		testPool.Exec(context.Background(), `DELETE FROM agent_runtime WHERE id = $1`, runtimeID)
+		testPool.Exec(context.Background(), `DELETE FROM runtime_profile_workspace WHERE profile_id = $1`, profileID)
 		testPool.Exec(context.Background(), `DELETE FROM runtime_profile WHERE id = $1`, profileID)
 	})
 	return runtimeID, profileID

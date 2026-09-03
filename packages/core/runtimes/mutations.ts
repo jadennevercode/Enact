@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import { runtimeKeys } from "./queries";
+import { machineKeys } from "./machines";
 import { workspaceKeys } from "../workspace/queries";
 import { agentTaskSnapshotKeys } from "../agents/queries";
 
@@ -62,6 +63,34 @@ export function useUpdateRuntime(wsId: string) {
     }) => api.updateRuntime(runtimeId, patch),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: runtimeKeys.all(wsId) });
+    },
+  });
+}
+
+/**
+ * Rename a machine. One write reaches every workspace the host is registered
+ * in, because the name lives on the machine row rather than on each
+ * workspace's projection of it.
+ *
+ * `wsId` is not part of the request — the endpoint is not workspace-scoped —
+ * but it is still needed to invalidate the runtime list the caller is looking
+ * at. The other workspaces this rename also changed will refetch on their own
+ * next read; invalidating caches for workspaces the user is not currently
+ * viewing is not worth the bookkeeping.
+ */
+export function useUpdateMachine(wsId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      machineId,
+      patch,
+    }: {
+      machineId: string;
+      patch: { custom_name: string };
+    }) => api.updateMachine(machineId, patch),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: runtimeKeys.all(wsId) });
+      qc.invalidateQueries({ queryKey: machineKeys.all() });
     },
   });
 }

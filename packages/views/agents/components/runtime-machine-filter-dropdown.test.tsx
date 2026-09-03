@@ -16,6 +16,7 @@ function makeMachine(
 ): RuntimeMachine {
   return {
     id: "machine-1",
+    serverMachineId: null,
     daemonId: "daemon-1",
     title: "dev.local",
     subtitle: "x86_64 macOS",

@@ -1502,6 +1502,14 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Patch("/runtime-profiles/{profileId}", h.UpdateRuntimeProfile)
 					r.Put("/runtime-profiles/{profileId}", h.UpdateRuntimeProfile)
 					r.Delete("/runtime-profiles/{profileId}", h.DeleteRuntimeProfile)
+					// Cross-workspace publication (migration 416). Publishing
+					// additionally requires the caller to OWN the profile —
+					// admin here only grants the right to add a runtime to this
+					// workspace, not to take someone else's definition.
+					r.Post("/runtime-profiles/publish", h.PublishRuntimeProfile)
+					// This workspace's own on/off switch for a published
+					// profile, separate from the owner's global one.
+					r.Patch("/runtime-profiles/{profileId}/enabled", h.SetRuntimeProfileWorkspaceEnabled)
 					// Publishing. The author uploads an artifact bundle and we
 					// store it; a version is immutable once published, so
 					// there is no update route here by design.
@@ -2040,6 +2048,23 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Get("/failures/daily", h.GetDashboardFailuresDaily)
 				r.Get("/failures/by-agent", h.GetDashboardFailuresByAgent)
 			})
+
+			// Machines — the computer a daemon runs on, owned by a user and
+			// shared across every workspace it is registered in (migration
+			// 412). Deliberately outside /api/workspaces: routing a host
+			// through a workspace is what forced the per-workspace duplication
+			// this replaces.
+			r.Route("/api/machines", func(r chi.Router) {
+				r.Get("/", h.ListMyMachines)
+				r.Get("/{machineId}", h.GetMachine)
+				r.Patch("/{machineId}", h.UpdateMachine)
+			})
+
+			// Runtime profiles the caller owns, across every workspace. The
+			// workspace-scoped list under /api/workspaces/{id} answers "what
+			// can this team use"; this one answers "what have I defined, and
+			// how far has it spread".
+			r.Get("/api/runtime-profiles", h.ListMyRuntimeProfiles)
 
 			// Runtimes
 			r.Route("/api/runtimes", func(r chi.Router) {

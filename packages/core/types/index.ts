@@ -27,6 +27,8 @@ export type {
   TaskFailureReason,
   AgentRuntime,
   RuntimeDevice,
+  Machine,
+  MachineWorkspace,
   RuntimeProfile,
   RuntimeProtocolFamily,
   RuntimeProfileVisibility,
