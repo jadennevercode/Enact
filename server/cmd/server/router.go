@@ -1997,6 +1997,34 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				})
 			})
 
+			// Marketplace. A directory of publishable capability assets that
+			// every workspace in this deployment can browse and install into
+			// its own library. Reads are member-visible: the payload carries
+			// no credential material — the publish path redacts every
+			// secret-bearing field before it is stored (marketplace_sanitize.go)
+			// — and a member has to be able to see what they may install.
+			//
+			// Writes are gated inside the handlers rather than here, because
+			// the rule is not a workspace role alone: publishing needs an
+			// owner or admin of the PUBLISHING workspace, which is a property
+			// of the listing, not of the route.
+			r.Route("/api/marketplace", func(r chi.Router) {
+				r.Get("/listings", h.ListMarketplaceListings)
+				r.Post("/listings", h.PublishMarketplaceListing)
+				r.Get("/installs", h.ListMarketplaceInstalls)
+				r.Route("/listings/{id}", func(r chi.Router) {
+					r.Get("/", h.GetMarketplaceListing)
+					r.Patch("/", h.UpdateMarketplaceListing)
+					r.Delete("/", h.DeleteMarketplaceListing)
+					r.Get("/versions", h.ListMarketplaceListingVersions)
+					// Publishing a new version reuses the create route: it is
+					// idempotent per (workspace, kind, slug) and adds a version
+					// to the listing already there.
+					r.Get("/file", h.GetMarketplaceListingFile)
+					r.Post("/install", h.InstallMarketplaceListing)
+				})
+			})
+
 			// CapHub ontology catalog. The upstream URL and optional API key
 			// remain server-side; members only receive catalog data and links.
 			r.Get("/api/ontologies", h.ListOntologies)

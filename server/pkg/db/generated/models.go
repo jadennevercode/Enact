@@ -993,6 +993,58 @@ type Machine struct {
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
+type MarketplaceInstall struct {
+	ID          pgtype.UUID        `json:"id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	VersionID   pgtype.UUID        `json:"version_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	EntityKind  string             `json:"entity_kind"`
+	EntityID    pgtype.UUID        `json:"entity_id"`
+	InstalledBy pgtype.UUID        `json:"installed_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type MarketplaceListing struct {
+	ID              pgtype.UUID        `json:"id"`
+	Kind            string             `json:"kind"`
+	Slug            string             `json:"slug"`
+	Name            string             `json:"name"`
+	Description     string             `json:"description"`
+	Category        string             `json:"category"`
+	Tags            []string           `json:"tags"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	PublishedBy     pgtype.UUID        `json:"published_by"`
+	Visibility      string             `json:"visibility"`
+	Status          string             `json:"status"`
+	Featured        bool               `json:"featured"`
+	InstallCount    int64              `json:"install_count"`
+	LatestVersionID pgtype.UUID        `json:"latest_version_id"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type MarketplaceListingFile struct {
+	ID        pgtype.UUID        `json:"id"`
+	VersionID pgtype.UUID        `json:"version_id"`
+	Path      string             `json:"path"`
+	Content   string             `json:"content"`
+	SizeBytes int64              `json:"size_bytes"`
+	Sha256    string             `json:"sha256"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type MarketplaceListingVersion struct {
+	ID          pgtype.UUID        `json:"id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	Version     string             `json:"version"`
+	Manifest    []byte             `json:"manifest"`
+	Changelog   string             `json:"changelog"`
+	Digest      string             `json:"digest"`
+	SizeBytes   int64              `json:"size_bytes"`
+	PublishedBy pgtype.UUID        `json:"published_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type Member struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
