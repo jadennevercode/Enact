@@ -257,12 +257,20 @@ var concurrentIndexCleanups = map[string]string{
 	// INVALID leftover from an interrupted build would not merely slow a query
 	// down — it would break ON CONFLICT for daemon registration and profile
 	// publishing outright.
-	"413_machine_daemon_id_index":                               "idx_machine_daemon_id",
-	"414_machine_owner_index":                                   "idx_machine_owner",
-	"415_agent_runtime_machine_index":                           "idx_agent_runtime_machine",
-	"417_runtime_profile_workspace_unique_index":                "idx_runtime_profile_workspace_unique",
-	"418_runtime_profile_workspace_workspace_index":             "idx_runtime_profile_workspace_workspace",
-	"419_runtime_profile_owner_index":                           "idx_runtime_profile_owner",
+	"413_machine_daemon_id_index":                   "idx_machine_daemon_id",
+	"414_machine_owner_index":                       "idx_machine_owner",
+	"415_agent_runtime_machine_index":               "idx_agent_runtime_machine",
+	"417_runtime_profile_workspace_unique_index":    "idx_runtime_profile_workspace_unique",
+	"418_runtime_profile_workspace_workspace_index": "idx_runtime_profile_workspace_workspace",
+	"419_runtime_profile_owner_index":               "idx_runtime_profile_owner",
+	"421_skill_version_unique_index":                "idx_skill_version_skill_version",
+	"423_lesson_workspace_number_index":             "idx_lesson_workspace_number",
+	"424_lesson_workspace_status_index":             "idx_lesson_workspace_status",
+	"425_lesson_target_skill_index":                 "idx_lesson_target_skill",
+	"426_lesson_event_lesson_index":                 "idx_lesson_event_lesson",
+	"428_retrospective_workspace_status_index":      "idx_retrospective_workspace_status",
+	"429_retrospective_issue_unique_index":          "idx_retrospective_issue_scope",
+	"430_retrospective_task_index":                  "idx_retrospective_task",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction
