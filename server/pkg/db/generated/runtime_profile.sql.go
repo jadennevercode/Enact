@@ -293,6 +293,69 @@ func (q *Queries) GetRuntimeProfileForWorkspace(ctx context.Context, arg GetRunt
 	return i, err
 }
 
+const getRuntimeProfileVisibleInWorkspace = `-- name: GetRuntimeProfileVisibleInWorkspace :one
+SELECT rp.id, rp.workspace_id, rp.display_name, rp.protocol_family, rp.command_name, rp.description, rp.fixed_args, rp.visibility, rp.created_by, rp.enabled, rp.created_at, rp.updated_at, rp.owner_id, COALESCE(rpw.enabled, true) AS workspace_enabled,
+       (rpw.profile_id IS NOT NULL) AS published_here
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = $1
+WHERE rp.id = $2
+  AND (
+      rpw.profile_id IS NOT NULL
+      OR ($3::uuid IS NOT NULL AND rp.owner_id = $3)
+  )
+`
+
+type GetRuntimeProfileVisibleInWorkspaceParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	ID          pgtype.UUID `json:"id"`
+	OwnerID     pgtype.UUID `json:"owner_id"`
+}
+
+type GetRuntimeProfileVisibleInWorkspaceRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	DisplayName      string             `json:"display_name"`
+	ProtocolFamily   string             `json:"protocol_family"`
+	CommandName      string             `json:"command_name"`
+	Description      pgtype.Text        `json:"description"`
+	FixedArgs        []byte             `json:"fixed_args"`
+	Visibility       string             `json:"visibility"`
+	CreatedBy        pgtype.UUID        `json:"created_by"`
+	Enabled          bool               `json:"enabled"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	OwnerID          pgtype.UUID        `json:"owner_id"`
+	WorkspaceEnabled bool               `json:"workspace_enabled"`
+	PublishedHere    interface{}        `json:"published_here"`
+}
+
+// Access check for a single profile. Mirrors the list: published here, or the
+// reader's own. A profile that is neither is indistinguishable from one that
+// does not exist.
+func (q *Queries) GetRuntimeProfileVisibleInWorkspace(ctx context.Context, arg GetRuntimeProfileVisibleInWorkspaceParams) (GetRuntimeProfileVisibleInWorkspaceRow, error) {
+	row := q.db.QueryRow(ctx, getRuntimeProfileVisibleInWorkspace, arg.WorkspaceID, arg.ID, arg.OwnerID)
+	var i GetRuntimeProfileVisibleInWorkspaceRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.DisplayName,
+		&i.ProtocolFamily,
+		&i.CommandName,
+		&i.Description,
+		&i.FixedArgs,
+		&i.Visibility,
+		&i.CreatedBy,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.OwnerID,
+		&i.WorkspaceEnabled,
+		&i.PublishedHere,
+	)
+	return i, err
+}
+
 const listAgentRuntimeIDsByProfile = `-- name: ListAgentRuntimeIDsByProfile :many
 SELECT id FROM agent_runtime
 WHERE profile_id = $1 AND workspace_id = $2
@@ -323,6 +386,81 @@ func (q *Queries) ListAgentRuntimeIDsByProfile(ctx context.Context, arg ListAgen
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEnabledRuntimeProfilesForDaemon = `-- name: ListEnabledRuntimeProfilesForDaemon :many
+SELECT rp.id, rp.workspace_id, rp.display_name, rp.protocol_family, rp.command_name, rp.description, rp.fixed_args, rp.visibility, rp.created_by, rp.enabled, rp.created_at, rp.updated_at, rp.owner_id
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = $1
+WHERE rp.enabled = true
+  AND (rpw.profile_id IS NULL OR rpw.enabled = true)
+  AND (
+      rpw.profile_id IS NOT NULL
+      OR ($2::uuid IS NOT NULL AND rp.owner_id = $2)
+  )
+ORDER BY rp.created_at ASC
+`
+
+type ListEnabledRuntimeProfilesForDaemonParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	OwnerID     pgtype.UUID `json:"owner_id"`
+}
+
+// What a daemon should try to register in one workspace.
+//
+// A runtime profile describes how to launch a command that exists on ONE
+// person's machine, resolved on that person's PATH. It is therefore a fact
+// about them, not about a team, and it follows its owner into every workspace
+// they belong to — whatever role they hold there. Configuring a wrapper once
+// must not mean re-typing it on joining the next workspace.
+//
+// Two ways a profile is live here, and the second is the one that makes it
+// personal:
+//   - published into this workspace, so EVERY member's daemon registers it —
+//     the team-standard case an admin sets up;
+//   - owned by the operator of this daemon, wherever they are.
+//
+// A workspace that has explicitly turned a published profile off keeps it off
+// even for its owner: that switch is the workspace saying this command should
+// not run on its work, which is a legitimate thing for it to decide about its
+// own workspace. The owner's global `enabled` retires it everywhere.
+//
+// @owner_id is the daemon operator, resolved from the machine. NULL when it
+// cannot be resolved, which collapses this to the published-only behaviour
+// rather than leaking anyone's profiles.
+func (q *Queries) ListEnabledRuntimeProfilesForDaemon(ctx context.Context, arg ListEnabledRuntimeProfilesForDaemonParams) ([]RuntimeProfile, error) {
+	rows, err := q.db.Query(ctx, listEnabledRuntimeProfilesForDaemon, arg.WorkspaceID, arg.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RuntimeProfile{}
+	for rows.Next() {
+		var i RuntimeProfile
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.DisplayName,
+			&i.ProtocolFamily,
+			&i.CommandName,
+			&i.Description,
+			&i.FixedArgs,
+			&i.Visibility,
+			&i.CreatedBy,
+			&i.Enabled,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OwnerID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -575,6 +713,82 @@ func (q *Queries) ListRuntimeProfilesForWorkspace(ctx context.Context, workspace
 			&i.OwnerID,
 			&i.WorkspaceEnabled,
 			&i.PublishedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRuntimeProfilesVisibleInWorkspace = `-- name: ListRuntimeProfilesVisibleInWorkspace :many
+SELECT rp.id, rp.workspace_id, rp.display_name, rp.protocol_family, rp.command_name, rp.description, rp.fixed_args, rp.visibility, rp.created_by, rp.enabled, rp.created_at, rp.updated_at, rp.owner_id, COALESCE(rpw.enabled, true) AS workspace_enabled, rpw.published_by,
+       (rpw.profile_id IS NOT NULL) AS published_here
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = $1
+WHERE rpw.profile_id IS NOT NULL
+   OR ($2::uuid IS NOT NULL AND rp.owner_id = $2)
+ORDER BY rp.created_at ASC
+`
+
+type ListRuntimeProfilesVisibleInWorkspaceParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	OwnerID     pgtype.UUID `json:"owner_id"`
+}
+
+type ListRuntimeProfilesVisibleInWorkspaceRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	DisplayName      string             `json:"display_name"`
+	ProtocolFamily   string             `json:"protocol_family"`
+	CommandName      string             `json:"command_name"`
+	Description      pgtype.Text        `json:"description"`
+	FixedArgs        []byte             `json:"fixed_args"`
+	Visibility       string             `json:"visibility"`
+	CreatedBy        pgtype.UUID        `json:"created_by"`
+	Enabled          bool               `json:"enabled"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	OwnerID          pgtype.UUID        `json:"owner_id"`
+	WorkspaceEnabled bool               `json:"workspace_enabled"`
+	PublishedBy      pgtype.UUID        `json:"published_by"`
+	PublishedHere    interface{}        `json:"published_here"`
+}
+
+// The user-facing counterpart of ListEnabledRuntimeProfilesForDaemon: what
+// THIS reader can see and use in this workspace. Same union — published here,
+// or theirs — so the list matches what their daemon will actually register.
+// Disabled rows are included; the UI shows them as off rather than hiding them.
+func (q *Queries) ListRuntimeProfilesVisibleInWorkspace(ctx context.Context, arg ListRuntimeProfilesVisibleInWorkspaceParams) ([]ListRuntimeProfilesVisibleInWorkspaceRow, error) {
+	rows, err := q.db.Query(ctx, listRuntimeProfilesVisibleInWorkspace, arg.WorkspaceID, arg.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRuntimeProfilesVisibleInWorkspaceRow{}
+	for rows.Next() {
+		var i ListRuntimeProfilesVisibleInWorkspaceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.DisplayName,
+			&i.ProtocolFamily,
+			&i.CommandName,
+			&i.Description,
+			&i.FixedArgs,
+			&i.Visibility,
+			&i.CreatedBy,
+			&i.Enabled,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OwnerID,
+			&i.WorkspaceEnabled,
+			&i.PublishedBy,
+			&i.PublishedHere,
 		); err != nil {
 			return nil, err
 		}

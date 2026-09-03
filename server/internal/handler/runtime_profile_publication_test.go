@@ -67,17 +67,44 @@ func publishProfileInto(t *testing.T, ctx context.Context, profileID, workspaceI
 	})
 }
 
-// TestGetRuntimeProfile_UnpublishedWorkspaceGets404 is the isolation guard.
-// Before publication existed, workspace_id on the profile was the access check;
-// now the join is, and a profile that reaches workspace A must be as invisible
-// from workspace B as a profile that does not exist. Anything softer than 404
-// would let a member of B probe for the existence of A's definitions.
-func TestGetRuntimeProfile_UnpublishedWorkspaceGets404(t *testing.T) {
+// strangerProfileFixture creates a profile owned by somebody other than the
+// test user, published only into its origin workspace.
+func strangerProfileFixture(t *testing.T, ctx context.Context, displayName, commandName string) string {
+	t.Helper()
+	const strangerID = "55555555-5555-4555-8555-555555555555"
+	var profileID string
+	if err := testPool.QueryRow(ctx, `
+		INSERT INTO runtime_profile (workspace_id, display_name, protocol_family, command_name, created_by, owner_id)
+		VALUES ($1, $2, 'codex', $3, $4, $4)
+		RETURNING id
+	`, testWorkspaceID, displayName, commandName, strangerID).Scan(&profileID); err != nil {
+		t.Fatalf("insert stranger runtime_profile: %v", err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		INSERT INTO runtime_profile_workspace (profile_id, workspace_id, published_by)
+		VALUES ($1, $2, $3)
+	`, profileID, testWorkspaceID, strangerID); err != nil {
+		t.Fatalf("publish stranger runtime_profile: %v", err)
+	}
+	t.Cleanup(func() {
+		bg := context.Background()
+		testPool.Exec(bg, `DELETE FROM runtime_profile_workspace WHERE profile_id = $1`, profileID)
+		testPool.Exec(bg, `DELETE FROM runtime_profile WHERE id = $1`, profileID)
+	})
+	return profileID
+}
+
+// TestGetRuntimeProfile_OtherPersonsUnpublishedProfileGets404 is the isolation
+// guard. A profile follows its OWNER between workspaces, and nobody else. A
+// definition belonging to someone else, not published where I am looking, must
+// be as invisible as one that does not exist — anything softer would let me
+// probe for the existence of other people's definitions.
+func TestGetRuntimeProfile_OtherPersonsUnpublishedProfileGets404(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
 	}
 	ctx := context.Background()
-	profileID := insertRuntimeProfileFixture(t, ctx, "Isolation Profile", "codex", "isolation-codex")
+	profileID := strangerProfileFixture(t, ctx, "Isolation Profile", "isolation-codex")
 	otherWS := secondWorkspaceFixture(t, ctx, "profile-isolation-ws")
 
 	w := httptest.NewRecorder()
@@ -86,20 +113,47 @@ func TestGetRuntimeProfile_UnpublishedWorkspaceGets404(t *testing.T) {
 	testHandler.GetRuntimeProfile(w, req)
 
 	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 for a profile not published into this workspace, got %d: %s",
+		t.Fatalf("expected 404 for someone else's profile that is not published here, got %d: %s",
 			w.Code, w.Body.String())
 	}
 }
 
-// TestListRuntimeProfiles_ShowsOnlyPublished pins the list read to the same
-// rule as the point read. A workspace's list is what its members choose
-// runtimes from, so a leak here is a leak into the agent-creation UI.
-func TestListRuntimeProfiles_ShowsOnlyPublished(t *testing.T) {
+// TestGetRuntimeProfile_MyProfileFollowsMeIntoAnyWorkspace is the requirement
+// this feature exists for. A runtime profile describes a command on MY machine,
+// resolved on MY PATH. It is a fact about me, not about a team, so joining
+// another workspace — in any role — must not mean configuring it again.
+func TestGetRuntimeProfile_MyProfileFollowsMeIntoAnyWorkspace(t *testing.T) {
+	if testHandler == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	profileID := insertRuntimeProfileFixture(t, ctx, "Follows Me Profile", "codex", "follows-me-codex")
+	otherWS := secondWorkspaceFixture(t, ctx, "profile-follows-me-ws")
+
+	w := httptest.NewRecorder()
+	req := newRequest("GET", "/api/workspaces/"+otherWS+"/runtime-profiles/"+profileID, nil)
+	req = withURLParams(req, "id", otherWS, "profileId", profileID)
+	testHandler.GetRuntimeProfile(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("my own profile should be usable in every workspace I am in, got %d: %s",
+			w.Code, w.Body.String())
+	}
+}
+
+// TestListRuntimeProfiles_ShowsMineAndPublished pins the list to the same rule
+// as the point read, in both directions: my own profiles travel with me, and
+// other people's do not appear unless this workspace publishes them. The list
+// must match exactly what the reader's daemon would register — showing
+// something it will not register, or hiding something it will, is worse than
+// showing nothing.
+func TestListRuntimeProfiles_ShowsMineAndPublished(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
 	}
 	ctx := context.Background()
 	profileID := insertRuntimeProfileFixture(t, ctx, "List Scope Profile", "codex", "list-scope-codex")
+	strangerID := strangerProfileFixture(t, ctx, "Someone Elses Profile", "stranger-codex")
 	otherWS := secondWorkspaceFixture(t, ctx, "profile-list-scope-ws")
 
 	listIn := func(wsID string) []string {
@@ -127,12 +181,20 @@ func TestListRuntimeProfiles_ShowsOnlyPublished(t *testing.T) {
 	if !containsProfileID(listIn(testWorkspaceID), profileID) {
 		t.Fatal("profile missing from the workspace it was created in")
 	}
-	if containsProfileID(listIn(otherWS), profileID) {
-		t.Fatal("unpublished profile leaked into another workspace's list")
+	// Mine travels with me, without anyone publishing anything.
+	if !containsProfileID(listIn(otherWS), profileID) {
+		t.Fatal("my own profile did not follow me into another workspace")
+	}
+	// Someone else's does not, until this workspace publishes it.
+	if containsProfileID(listIn(otherWS), strangerID) {
+		t.Fatal("another person's profile leaked into a workspace that does not publish it")
+	}
+	if !containsProfileID(listIn(testWorkspaceID), strangerID) {
+		t.Fatal("a profile published into this workspace should be visible to its members")
 	}
 
-	publishProfileInto(t, ctx, profileID, otherWS)
-	if !containsProfileID(listIn(otherWS), profileID) {
+	publishProfileInto(t, ctx, strangerID, otherWS)
+	if !containsProfileID(listIn(otherWS), strangerID) {
 		t.Fatal("published profile did not appear in the second workspace's list")
 	}
 }
@@ -282,4 +344,82 @@ func containsProfileID(list []string, want string) bool {
 		}
 	}
 	return false
+}
+
+// TestDaemonListRuntimeProfiles_IncludesOperatorsOwnProfiles is the end of the
+// chain the user actually experiences: the workspace list can say whatever it
+// likes, but a runtime only exists if the DAEMON was told to register it.
+//
+// The operator's own profiles must be offered in every workspace they are in,
+// and another person's must not be — the daemon runs on one person's machine
+// and resolves these commands on their PATH.
+func TestDaemonListRuntimeProfiles_IncludesOperatorsOwnProfiles(t *testing.T) {
+	if testHandler == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	mine := insertRuntimeProfileFixture(t, ctx, "Daemon Follows Me", "codex", "daemon-follows-codex")
+	theirs := strangerProfileFixture(t, ctx, "Daemon Not Mine", "daemon-stranger-codex")
+	otherWS := secondWorkspaceFixture(t, ctx, "daemon-profile-ws")
+
+	w := httptest.NewRecorder()
+	req := newRequest("GET", "/api/daemon/workspaces/"+otherWS+"/runtime-profiles", nil)
+	req = withURLParams(req, "workspaceId", otherWS)
+	testHandler.DaemonListRuntimeProfiles(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("daemon profile list: %d: %s", w.Code, w.Body.String())
+	}
+
+	var body struct {
+		RuntimeProfiles []RuntimeProfileResponse `json:"runtime_profiles"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode daemon profile list: %v", err)
+	}
+	ids := make([]string, 0, len(body.RuntimeProfiles))
+	for _, p := range body.RuntimeProfiles {
+		ids = append(ids, p.ID)
+	}
+
+	if !containsProfileID(ids, mine) {
+		t.Fatal("the operator's own profile was not offered in a workspace they belong to")
+	}
+	if containsProfileID(ids, theirs) {
+		t.Fatal("another person's profile was offered to this operator's daemon")
+	}
+}
+
+// TestDeleteRuntimeProfile_AdminWithdrawsButCannotDestroyAnothersProfile is the
+// safety property that follows from profiles being personal. A workspace admin
+// must be able to stop a profile being used in their workspace — but deleting
+// the definition would reach into every OTHER workspace its owner belongs to
+// and destroy their tool configuration, which is not theirs to destroy.
+func TestDeleteRuntimeProfile_AdminWithdrawsButCannotDestroyAnothersProfile(t *testing.T) {
+	if testHandler == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	// Owned by someone else, published only into the workspace the test user
+	// administers — the case where the old rule let an admin delete it.
+	profileID := strangerProfileFixture(t, ctx, "Admin Withdraw Profile", "admin-withdraw-codex")
+
+	w := httptest.NewRecorder()
+	req := newRequest("DELETE", "/api/workspaces/"+testWorkspaceID+"/runtime-profiles/"+profileID, nil)
+	req = withURLParams(req, "id", testWorkspaceID, "profileId", profileID)
+	testHandler.DeleteRuntimeProfile(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 withdrawing another person's profile, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var definitionRows, publicationRows int
+	testPool.QueryRow(ctx, `SELECT count(*) FROM runtime_profile WHERE id = $1`, profileID).Scan(&definitionRows)
+	testPool.QueryRow(ctx, `SELECT count(*) FROM runtime_profile_workspace WHERE profile_id = $1`, profileID).Scan(&publicationRows)
+
+	if publicationRows != 0 {
+		t.Fatalf("the workspace's publication should be gone, %d left", publicationRows)
+	}
+	if definitionRows != 1 {
+		t.Fatalf("an admin destroyed another person's profile definition: %d rows left", definitionRows)
+	}
 }

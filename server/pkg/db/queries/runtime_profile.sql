@@ -85,6 +85,70 @@ FROM runtime_profile rp
 WHERE rp.owner_id = @owner_id
 ORDER BY rp.created_at ASC;
 
+-- name: ListEnabledRuntimeProfilesForDaemon :many
+-- What a daemon should try to register in one workspace.
+--
+-- A runtime profile describes how to launch a command that exists on ONE
+-- person's machine, resolved on that person's PATH. It is therefore a fact
+-- about them, not about a team, and it follows its owner into every workspace
+-- they belong to — whatever role they hold there. Configuring a wrapper once
+-- must not mean re-typing it on joining the next workspace.
+--
+-- Two ways a profile is live here, and the second is the one that makes it
+-- personal:
+--   * published into this workspace, so EVERY member's daemon registers it —
+--     the team-standard case an admin sets up;
+--   * owned by the operator of this daemon, wherever they are.
+--
+-- A workspace that has explicitly turned a published profile off keeps it off
+-- even for its owner: that switch is the workspace saying this command should
+-- not run on its work, which is a legitimate thing for it to decide about its
+-- own workspace. The owner's global `enabled` retires it everywhere.
+--
+-- @owner_id is the daemon operator, resolved from the machine. NULL when it
+-- cannot be resolved, which collapses this to the published-only behaviour
+-- rather than leaking anyone's profiles.
+SELECT rp.*
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = @workspace_id
+WHERE rp.enabled = true
+  AND (rpw.profile_id IS NULL OR rpw.enabled = true)
+  AND (
+      rpw.profile_id IS NOT NULL
+      OR (@owner_id::uuid IS NOT NULL AND rp.owner_id = @owner_id)
+  )
+ORDER BY rp.created_at ASC;
+
+-- name: ListRuntimeProfilesVisibleInWorkspace :many
+-- The user-facing counterpart of ListEnabledRuntimeProfilesForDaemon: what
+-- THIS reader can see and use in this workspace. Same union — published here,
+-- or theirs — so the list matches what their daemon will actually register.
+-- Disabled rows are included; the UI shows them as off rather than hiding them.
+SELECT rp.*, COALESCE(rpw.enabled, true) AS workspace_enabled, rpw.published_by,
+       (rpw.profile_id IS NOT NULL) AS published_here
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = @workspace_id
+WHERE rpw.profile_id IS NOT NULL
+   OR (@owner_id::uuid IS NOT NULL AND rp.owner_id = @owner_id)
+ORDER BY rp.created_at ASC;
+
+-- name: GetRuntimeProfileVisibleInWorkspace :one
+-- Access check for a single profile. Mirrors the list: published here, or the
+-- reader's own. A profile that is neither is indistinguishable from one that
+-- does not exist.
+SELECT rp.*, COALESCE(rpw.enabled, true) AS workspace_enabled,
+       (rpw.profile_id IS NOT NULL) AS published_here
+FROM runtime_profile rp
+LEFT JOIN runtime_profile_workspace rpw
+  ON rpw.profile_id = rp.id AND rpw.workspace_id = @workspace_id
+WHERE rp.id = @id
+  AND (
+      rpw.profile_id IS NOT NULL
+      OR (@owner_id::uuid IS NOT NULL AND rp.owner_id = @owner_id)
+  );
+
 -- name: ListEnabledRuntimeProfilesForWorkspace :many
 -- Daemon-facing list: only profiles that are live in this workspace are
 -- candidates for a daemon to resolve on PATH and register. Live means enabled

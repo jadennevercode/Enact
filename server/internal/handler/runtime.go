@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/util"
 	"github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AgentRuntimeResponse struct {
@@ -682,9 +682,15 @@ func (h *Handler) runtimeHasLiveProfile(ctx context.Context, rt db.AgentRuntime)
 	if !rt.ProfileID.Valid {
 		return false, nil
 	}
-	if _, err := h.Queries.GetRuntimeProfileForWorkspace(ctx, db.GetRuntimeProfileForWorkspaceParams{
+	// "Live" means the profile still reaches this workspace, by either route:
+	// published for the whole workspace, or owned by the person whose machine
+	// this runtime is. The second is why the runtime's owner is passed rather
+	// than the caller's identity — the question is whether the runtime still
+	// has a definition behind it, not who is asking.
+	if _, err := h.Queries.GetRuntimeProfileVisibleInWorkspace(ctx, db.GetRuntimeProfileVisibleInWorkspaceParams{
 		ID:          rt.ProfileID,
 		WorkspaceID: rt.WorkspaceID,
+		OwnerID:     rt.OwnerID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

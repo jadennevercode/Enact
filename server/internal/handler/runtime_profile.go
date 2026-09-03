@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/enact-ai/enact/server/internal/middleware"
 	"github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
@@ -322,16 +323,24 @@ func (h *Handler) CreateRuntimeProfile(w http.ResponseWriter, r *http.Request) {
 // Member-gated by the router.
 func (h *Handler) ListRuntimeProfiles(w http.ResponseWriter, r *http.Request) {
 	wsID := strings.TrimSpace(chi.URLParam(r, "id"))
-	if _, ok := h.requireWorkspaceMember(w, r, wsID, "workspace not found"); !ok {
-		return
-	}
-	wsUUID, ok := parseUUIDOrBadRequest(w, wsID, "workspace id")
+	member, ok := h.requireWorkspaceMember(w, r, wsID, "workspace not found")
 	if !ok {
 		return
 	}
+	wsUUID, ok2 := parseUUIDOrBadRequest(w, wsID, "workspace id")
+	if !ok2 {
+		return
+	}
 
-	// Everything published into this workspace, wherever it originated.
-	profiles, err := h.Queries.ListRuntimeProfilesForWorkspace(r.Context(), wsUUID)
+	// What THIS member can use here: profiles published into the workspace for
+	// everyone, plus their own, which follow them into every workspace they
+	// belong to. Matching the daemon's rule exactly is the point — a list that
+	// showed something their daemon would not register, or hid something it
+	// would, is worse than no list.
+	profiles, err := h.Queries.ListRuntimeProfilesVisibleInWorkspace(r.Context(), db.ListRuntimeProfilesVisibleInWorkspaceParams{
+		WorkspaceID: wsUUID,
+		OwnerID:     member.UserID,
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list runtime profiles")
 		return
@@ -405,7 +414,8 @@ func (h *Handler) ListMyRuntimeProfiles(w http.ResponseWriter, r *http.Request) 
 // GetRuntimeProfile returns one runtime profile. Member-gated by the router.
 func (h *Handler) GetRuntimeProfile(w http.ResponseWriter, r *http.Request) {
 	wsID := strings.TrimSpace(chi.URLParam(r, "id"))
-	if _, ok := h.requireWorkspaceMember(w, r, wsID, "workspace not found"); !ok {
+	member, ok := h.requireWorkspaceMember(w, r, wsID, "workspace not found")
+	if !ok {
 		return
 	}
 	wsUUID, ok := parseUUIDOrBadRequest(w, wsID, "workspace id")
@@ -417,14 +427,15 @@ func (h *Handler) GetRuntimeProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile, err := h.Queries.GetRuntimeProfileForWorkspace(r.Context(), db.GetRuntimeProfileForWorkspaceParams{
+	profile, err := h.Queries.GetRuntimeProfileVisibleInWorkspace(r.Context(), db.GetRuntimeProfileVisibleInWorkspaceParams{
 		ID:          profileUUID,
 		WorkspaceID: wsUUID,
+		OwnerID:     member.UserID,
 	})
 	if err != nil {
-		// The publication join is the access check: a profile that exists but
-		// was never published here is indistinguishable from one that does not
-		// exist, which is the same 404 a cross-workspace id got before.
+		// Neither published here nor the reader's own: indistinguishable from
+		// a profile that does not exist, which is the same 404 a
+		// cross-workspace id got before.
 		writeError(w, http.StatusNotFound, "runtime profile not found")
 		return
 	}
@@ -483,9 +494,10 @@ func (h *Handler) UpdateRuntimeProfile(w http.ResponseWriter, r *http.Request) {
 	// Load through the publication join first: it answers both "does this
 	// workspace get to see this profile at all" (404) and "who owns the
 	// definition" (the input to the edit-authority decision).
-	existing, err := h.Queries.GetRuntimeProfileForWorkspace(r.Context(), db.GetRuntimeProfileForWorkspaceParams{
+	existing, err := h.Queries.GetRuntimeProfileVisibleInWorkspace(r.Context(), db.GetRuntimeProfileVisibleInWorkspaceParams{
 		ID:          profileUUID,
 		WorkspaceID: wsUUID,
+		OwnerID:     member.UserID,
 	})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "runtime profile not found")
@@ -644,17 +656,33 @@ func (h *Handler) DeleteRuntimeProfile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load runtime profile")
 		return
 	}
-	// Withdrawing from one workspace is that workspace's own decision, so
-	// workspace admin is enough. Deleting the definition is not, and it only
-	// happens below when this was the last publication — which is precisely
-	// when profileEditAuthority grants an admin the same power the
-	// single-workspace world always gave them.
-	deletesDefinition := !profileMissing && publicationCount <= 1
-	if deletesDefinition && !profileEditAuthority(member.UserID, lockedProfile.OwnerID, member.Role, publicationCount) {
-		writeError(w, http.StatusForbidden,
-			"only the owner of this runtime profile can delete it")
-		return
-	}
+	// Two different acts share this route, and which one runs depends on who is
+	// asking:
+	//
+	//   * WITHDRAW — remove this workspace's publication and tear down the
+	//     runtimes it produced here. A workspace admin may always do this: the
+	//     blast radius is their own workspace.
+	//   * DELETE the definition — only its owner, and only once no workspace
+	//     publishes it any more.
+	//
+	// A non-owner admin can no longer delete the definition even when theirs is
+	// the only workspace publishing it. A profile follows its owner into every
+	// workspace they belong to, so destroying it would reach into workspaces
+	// this admin has nothing to do with and delete a colleague's own tool
+	// configuration. Withdrawing already achieves everything they legitimately
+	// want: the workspace stops seeing it and its daemons stop registering it.
+	isOwner := lockedProfile.OwnerID.Valid && member.UserID.Valid &&
+		lockedProfile.OwnerID.Bytes == member.UserID.Bytes
+	// An ownerless legacy row has nobody to protect, so it falls back to the
+	// admin rule rather than becoming undeletable.
+	ownerless := !lockedProfile.OwnerID.Valid
+	mayDeleteDefinition := isOwner ||
+		(ownerless && roleAllowed(member.Role, "owner", "admin"))
+	// publicationCount is read under the profile lock, so a concurrent publish
+	// into another workspace cannot slip between this read and the decision.
+	// <= 1 because this workspace's own publication, if it has one, is about to
+	// go.
+	deletesDefinition := !profileMissing && publicationCount <= 1 && mayDeleteDefinition
 
 	// Lock runtime rows in deterministic ID order. Their agent/task foreign-key
 	// inserts take KEY SHARE locks, preventing dependencies from appearing after
@@ -788,7 +816,13 @@ func (h *Handler) DaemonListRuntimeProfiles(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	profiles, err := h.Queries.ListEnabledRuntimeProfilesForWorkspace(r.Context(), wsUUID)
+	// A profile describes a command on ONE person's machine, so it follows its
+	// owner into every workspace they are in. Resolving who is operating this
+	// daemon is therefore part of answering "what should you register here".
+	profiles, err := h.Queries.ListEnabledRuntimeProfilesForDaemon(r.Context(), db.ListEnabledRuntimeProfilesForDaemonParams{
+		WorkspaceID: wsUUID,
+		OwnerID:     h.daemonOperator(r),
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list runtime profiles")
 		return
@@ -801,6 +835,31 @@ func (h *Handler) DaemonListRuntimeProfiles(w http.ResponseWriter, r *http.Reque
 		"workspace_id":     workspaceID,
 		"runtime_profiles": resp,
 	})
+}
+
+// daemonOperator resolves the person whose machine this daemon request comes
+// from. A PAT/JWT call carries the user directly. A daemon token (mdt_) does
+// not — it proves workspace access, not identity — so the owner is taken from
+// the machine the daemon_id identifies, which is exactly what the machine
+// table was introduced to make possible.
+//
+// Returns a zero UUID when the operator cannot be determined. Every caller
+// treats that as "no personal profiles", never as "all profiles": failing to
+// identify someone must narrow what is returned, not widen it.
+func (h *Handler) daemonOperator(r *http.Request) pgtype.UUID {
+	var none pgtype.UUID
+	if userID := requestUserID(r); userID != "" {
+		return parseUUID(userID)
+	}
+	daemonID := strings.TrimSpace(middleware.DaemonIDFromContext(r.Context()))
+	if daemonID == "" {
+		return none
+	}
+	machine, err := h.Queries.GetMachineByDaemonID(r.Context(), daemonID)
+	if err != nil {
+		return none
+	}
+	return machine.OwnerID
 }
 
 func (h *Handler) requestDaemonRuntimeProfileRefresh(workspaceID, profileID string) {
