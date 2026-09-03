@@ -1318,6 +1318,12 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			run:  func() error { return qtx.DeleteWorkspacePluginData(ctx, requester.WorkspaceID) },
 		},
 		{
+			// Runs after skills so a listing's own workspace is torn down in
+			// the same pass as the entities it published from.
+			name: "delete marketplace data",
+			run:  func() error { return qtx.DeleteWorkspaceMarketplaceData(ctx, requester.WorkspaceID) },
+		},
+		{
 			name: "delete agents",
 			run:  func() error { return qtx.DeleteWorkspaceAgents(ctx, requester.WorkspaceID) },
 		},

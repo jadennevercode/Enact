@@ -21,8 +21,10 @@ Every claim below is traced to source in
 ## The invariant
 
 A skill is installed for Enact only when it exists in the current workspace's
-skill database. The single supported path that puts it there is the workspace
-import endpoint. It accepts either a hosted URL or an uploaded local archive
+skill database. Two supported paths put it there.
+
+The first is the workspace import endpoint, for a skill that lives outside
+Enact. It accepts either a hosted URL or an uploaded local archive
 (`.skill` / `.zip`), driven by this CLI:
 
 ```bash
@@ -41,6 +43,11 @@ body: { "url": "<url>", "on_conflict": "fail" }
 A `--file` import hits the same route as `multipart/form-data` with a `file`
 part (the `.skill` / `.zip` bytes) and an `on_conflict` field. `--url` and
 `--file` are mutually exclusive; exactly one is required.
+
+The second is the Marketplace, for a skill another workspace in this deployment
+has already published. See "Installing from the Marketplace" below; it is a
+different endpoint with a different conflict envelope, and a Marketplace listing
+id is not a URL the import endpoint accepts.
 
 Do not finish with `npx skills add`. That installs into an external/local skill
 environment, not the Enact workspace DB, so Enact cannot manage or bind it.
@@ -160,6 +167,57 @@ supporting file you expected is missing, check whether it was named `SKILL.md`;
 rename it to a non-reserved path. (The hard `400` rejection — "SKILL.md is reserved
 for the primary skill content" — only fires on the dedicated single-file endpoint
 `PUT /api/skills/{id}/files`, not on import.)
+
+## Installing from the Marketplace
+
+The Marketplace holds capability published by workspaces in this deployment:
+skills, agent templates, and MCP server entries. Installing one copies it into
+the current workspace, where it becomes an ordinary skill that can be edited and
+bound like any other.
+
+```bash
+enact marketplace list --kind skill --output json
+enact marketplace get <listing-id> --output json
+enact marketplace install <listing-id> --output json
+```
+
+Four things to know before reporting a Marketplace install:
+
+- **A listing id is not a URL.** `enact skill import --url` rejects it; the
+  install route is `POST /api/marketplace/listings/{id}/install`.
+- **An install is a copy, not a subscription.** A later version of the listing
+  changes nothing until someone installs it. `enact marketplace list` reports
+  `installed_version` next to `latest_version`, which is how you tell whether an
+  update exists. Do not describe an installed skill as "synced".
+- **`--on-conflict` means the same four things it does for import** and is
+  resolved the same way, so the same reasoning applies to both paths.
+- **A skill installed this way is not refreshable.** Its `config.origin.type` is
+  `marketplace`, which `POST /api/skills/{id}/refresh` deliberately refuses: an
+  update is an install of a chosen version, not a re-fetch of whatever a URL
+  serves today. Install the newer version instead.
+
+`enact marketplace install` returns the same envelope shape as skill import,
+plus `entity_kind` and `entity_id` naming what was created:
+
+```json
+{
+  "status": "created|updated|conflict|skipped|failed",
+  "reason": "...",
+  "entity_kind": "skill|agent|mcp",
+  "entity_id": "...",
+  "skill": { "...": "SkillWithFilesResponse for an installed skill" },
+  "existing_skill": { "id": "...", "name": "...", "can_overwrite": true }
+}
+```
+
+Two flags exist for the non-skill kinds and are not needed for a skill:
+`--runtime-id` is required to install an agent template, because a template
+names no machine; `--secret path=value` supplies a value the publisher withheld,
+whose paths the listing's manifest lists under `required_secrets`. Read the
+manifest with `enact marketplace get` before installing one of those.
+
+There is no `enact marketplace publish`. Publishing is an admin decision about
+what leaves the workspace, and the server refuses it for agent actors.
 
 ## Same-name conflicts: `--on-conflict`
 

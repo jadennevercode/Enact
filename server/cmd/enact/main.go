@@ -56,6 +56,7 @@ func init() {
 	skillCmd.GroupID = groupCore
 	lessonCmd.GroupID = groupCore
 	retrospectiveCmd.GroupID = groupCore
+	marketplaceCmd.GroupID = groupCore
 	squadCmd.GroupID = groupCore
 	chatCmd.GroupID = groupCore
 
@@ -85,6 +86,7 @@ func init() {
 	rootCmd.AddCommand(skillCmd)
 	rootCmd.AddCommand(lessonCmd)
 	rootCmd.AddCommand(retrospectiveCmd)
+	rootCmd.AddCommand(marketplaceCmd)
 	rootCmd.AddCommand(squadCmd)
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(daemonCmd)

@@ -251,6 +251,13 @@ var concurrentIndexCleanups = map[string]string{
 	"396_plugin_package_file_path_index":                        "idx_plugin_package_file_path",
 	"397_plugin_installation_package_version_index":             "idx_plugin_installation_package_version",
 	"403_squad_system_identity":                                 "squad_system_identity_unique",
+	"405_marketplace_listing_slug_index":                        "idx_marketplace_listing_slug",
+	"406_marketplace_listing_browse_index":                      "idx_marketplace_listing_browse",
+	"407_marketplace_listing_workspace_index":                   "idx_marketplace_listing_workspace",
+	"408_marketplace_listing_version_unique_index":              "idx_marketplace_listing_version_unique",
+	"409_marketplace_listing_version_listing_index":             "idx_marketplace_listing_version_listing",
+	"410_marketplace_listing_file_path_index":                   "idx_marketplace_listing_file_path",
+	"411_marketplace_install_workspace_index":                   "idx_marketplace_install_workspace",
 	// Cross-workspace runtimes (migrations 412-419). The machine unique index
 	// is the arbiter the registration upsert conflicts on and the publication
 	// unique index is the arbiter the publish upsert conflicts on, so an

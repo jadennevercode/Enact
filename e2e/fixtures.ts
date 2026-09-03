@@ -51,6 +51,8 @@ export class TestApiClient {
   private workspaceId: string | null = null;
   private email: string | null = null;
   private createdIssueIds: string[] = [];
+  private createdSkillIds: string[] = [];
+  private publishedListingIds: string[] = [];
   private seededIssueIds: string[] = [];
 
   async login(email: string, name: string) {
@@ -303,6 +305,88 @@ export class TestApiClient {
       }
     }
     this.createdIssueIds = [];
+
+    for (const id of this.createdSkillIds) {
+      try {
+        await this.deleteSkill(id);
+      } catch {
+        /* ignore — the test may already have removed it */
+      }
+    }
+    this.createdSkillIds = [];
+
+    // A published listing owns version and file rows that carry no foreign key,
+    // so the sweep names all three tables in the order that leaves nothing
+    // pointing at a row that is gone.
+    if (this.publishedListingIds.length > 0) {
+      const client = new pg.Client(DATABASE_URL);
+      await client.connect();
+      try {
+        await client.query(
+          `DELETE FROM marketplace_listing_file WHERE version_id IN
+             (SELECT id FROM marketplace_listing_version WHERE listing_id = ANY($1::uuid[]))`,
+          [this.publishedListingIds],
+        );
+        await client.query(
+          `DELETE FROM marketplace_listing_version WHERE listing_id = ANY($1::uuid[])`,
+          [this.publishedListingIds],
+        );
+        await client.query(
+          `DELETE FROM marketplace_install WHERE listing_id = ANY($1::uuid[])`,
+          [this.publishedListingIds],
+        );
+        await client.query(
+          `DELETE FROM marketplace_listing WHERE id = ANY($1::uuid[])`,
+          [this.publishedListingIds],
+        );
+      } finally {
+        await client.end();
+      }
+      this.publishedListingIds = [];
+    }
+  }
+
+  // --- Marketplace ---------------------------------------------------------
+  //
+  // Setup and teardown for the marketplace spec. The publish call names a
+  // workspace entity and the server reads it, so these mirror what the UI
+  // sends rather than constructing any published content here.
+
+  async createSkill(name: string, content: string, description = "") {
+    const res = await this.authedFetch("/api/skills", {
+      method: "POST",
+      body: JSON.stringify({ name, description, content }),
+    });
+    if (!res.ok) throw new Error(`create skill failed: ${res.status}`);
+    const skill = await res.json();
+    this.createdSkillIds.push(skill.id);
+    return skill as { id: string; name: string };
+  }
+
+  async publishMarketplaceListing(body: Record<string, unknown>) {
+    const res = await this.authedFetch("/api/marketplace/listings", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`publish failed: ${res.status} ${await res.text()}`);
+    }
+    const published = await res.json();
+    this.publishedListingIds.push(published.listing.id);
+    return published as {
+      listing: { id: string; name: string };
+      version: { id: string; version: string };
+    };
+  }
+
+  async listSkills(): Promise<{ id: string; name: string }[]> {
+    const res = await this.authedFetch("/api/skills");
+    if (!res.ok) throw new Error(`list skills failed: ${res.status}`);
+    return res.json();
+  }
+
+  async deleteSkill(id: string) {
+    await this.authedFetch(`/api/skills/${id}`, { method: "DELETE" });
   }
 
   getToken() {

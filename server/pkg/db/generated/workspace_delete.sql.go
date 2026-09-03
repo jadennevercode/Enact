@@ -505,6 +505,51 @@ func (q *Queries) DeleteWorkspaceLeafData(ctx context.Context, workspaceID pgtyp
 	return err
 }
 
+const deleteWorkspaceMarketplaceData = `-- name: DeleteWorkspaceMarketplaceData :exec
+WITH
+listings AS MATERIALIZED (
+    SELECT marketplace_listing.id
+    FROM marketplace_listing
+    WHERE marketplace_listing.workspace_id = $1
+),
+versions AS MATERIALIZED (
+    SELECT marketplace_listing_version.id
+    FROM marketplace_listing_version
+    WHERE marketplace_listing_version.listing_id IN (SELECT id FROM listings)
+),
+deleted_files AS (
+    DELETE FROM marketplace_listing_file
+    WHERE version_id IN (SELECT id FROM versions)
+),
+deleted_versions AS (
+    DELETE FROM marketplace_listing_version
+    WHERE listing_id IN (SELECT id FROM listings)
+),
+deleted_installs AS (
+    DELETE FROM marketplace_install
+    WHERE workspace_id = $1
+)
+DELETE FROM marketplace_listing WHERE id IN (SELECT id FROM listings)
+`
+
+// Everything the workspace published, plus the record of what it installed.
+//
+// Versions and files carry no workspace_id — they hang off the listing, which
+// is what scopes them — so they are reached through the listing ids rather than
+// selected directly. Without this the published bundles would outlive the
+// workspace that published them, which is the same orphan the plugin package
+// teardown above exists to prevent.
+//
+// Install records held by OTHER workspaces are deliberately left alone. They
+// describe what that workspace did, not what this one published; deleting them
+// would erase another tenant's history because a publisher left. Those rows
+// then name a listing that is gone, which the read path already reports as
+// unavailable.
+func (q *Queries) DeleteWorkspaceMarketplaceData(ctx context.Context, workspaceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteWorkspaceMarketplaceData, workspaceID)
+	return err
+}
+
 const deleteWorkspacePluginData = `-- name: DeleteWorkspacePluginData :exec
 WITH installations AS MATERIALIZED (
     SELECT plugin_installation.id

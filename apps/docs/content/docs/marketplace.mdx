@@ -1,0 +1,128 @@
+---
+title: Marketplace
+description: Publish a skill, agent template, or MCP server so other workspaces can install a copy — and install what they have published.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+The Marketplace is a directory of capability that workspaces in your deployment
+have published: [skills](/skills), agent templates, and MCP server entries.
+Installing one puts a **copy** in your own workspace, which you then edit like
+anything you wrote yourself.
+
+## What you can publish
+
+| Kind | What travels | What does not |
+|---|---|---|
+| **Skill** | `SKILL.md` and every reference file | Nothing — a skill is prose, published as written |
+| **Agent template** | Name, description, instructions, model and effort settings, the skills it carries, the MCP servers it expects | Its environment variables, its runtime binding, its runtime configuration, and who was allowed to invoke it |
+| **MCP server** | The server entry with every credential removed | `env` and header values, and the URL unless you mark it public |
+
+<Callout type="warn">
+Publishing never uploads content from your browser. You name one of your own
+entities and the server reads it, strips every credential-bearing field, and
+stores the result. That is what makes the redaction trustworthy.
+</Callout>
+
+## Publishing
+
+Open the Marketplace from the sidebar and choose **Publish**, or use the publish
+action on a skill's page, an agent's menu, or a row in **Settings → MCP**.
+
+You choose two things beyond the metadata:
+
+- **Who can see it.** `This workspace only` is an internal team library. `Public`
+  reaches every workspace in the deployment. Start internal and make it public
+  when you are ready — both install the same way.
+- **A version.** A published version is never overwritten. Publishing again under
+  the same handle adds a version to the same listing, so the link keeps working
+  and the history stays in one place. Re-publishing an existing version string is
+  refused.
+
+### Values the publisher withholds
+
+For an MCP server, `env` values, header values and the URL are replaced with
+empty values and listed in the manifest as **required secrets**. Whoever installs
+the listing supplies their own. If a particular value is genuinely not a
+credential — a public endpoint, say — you can mark it to be published as written.
+
+A credential written inline in a server's `command` or `args`, or in an agent's
+custom arguments, **fails the publish** rather than being redacted. Rewriting a
+process invocation silently would be worse than a refusal; move the value into
+the server's environment and publish again.
+
+## Installing
+
+Open a listing to see what installing would create — an agent template lists the
+skills it brings and the MCP servers it expects — then choose **Install**.
+
+The form asks only for what the listing cannot know:
+
+- **A name in your workspace.** Leave it blank to keep the published one.
+- **A runtime**, for an agent template. A template names no machine, so you pick
+  one of yours. If the template was written for a different provider, settings
+  your runtime does not support are left unset rather than blocking the install.
+- **The withheld values**, if the listing has any.
+
+If the name is already taken, you are offered the same choices a skill import
+gives you: install under a different name, or replace the existing one. Replacing
+is limited to the original creator of the skill being replaced.
+
+## An install is a copy, not a subscription
+
+Nothing about an installed skill or agent follows the listing afterwards. Editing
+your copy is safe, and a new version of the listing changes nothing until someone
+installs it.
+
+The Marketplace remembers which version you took, so a listing you already have
+shows **Update to vX** when a newer one is published. Taking the update is an
+install of that version, made deliberately.
+
+<Callout>
+An installed skill is not refreshable from the skill page. "Update from source"
+re-downloads whatever a URL serves today; a marketplace update is an install of a
+version you chose. Use the listing.
+</Callout>
+
+## Taking a listing down
+
+A publishing workspace can **deprecate** a listing, which hides it from browsing
+while leaving it installable for anyone who already depends on it, or **take it
+down**, which stops new installs entirely.
+
+Neither touches a workspace that already installed it. Their copy is theirs.
+
+## Ontologies
+
+The Marketplace's fourth tab lists ontologies. These are not listings: they are
+served by Capability Hub and attached to an agent rather than copied into a
+workspace. The tab is there so capability is discoverable in one place; managing
+an attachment happens on the [Ontologies](/skills) page.
+
+## From the CLI
+
+```bash
+enact marketplace list --kind skill --output json
+enact marketplace get <listing-id> --output json
+enact marketplace install <listing-id> --output json
+
+# An agent template needs a runtime, and any withheld values.
+enact marketplace install <listing-id> \
+  --runtime-id <runtime-id> \
+  --secret env.GITHUB_TOKEN=... \
+  --output json
+```
+
+There is no publish command. Publishing is an administrator's decision about what
+leaves the workspace, and the API refuses it for agent callers.
+
+## Permissions
+
+| Action | Who |
+|---|---|
+| Browse and open listings | Any workspace member |
+| Install a skill or agent template | Any workspace member |
+| Install an MCP server | Workspace owner or admin |
+| Publish, edit, deprecate or take down a listing | Owner or admin of the publishing workspace |
+
+Agents can browse and install. They cannot publish.
