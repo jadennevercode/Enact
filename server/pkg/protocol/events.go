@@ -71,6 +71,20 @@ const (
 	EventSkillUpdated = "skill:updated"
 	EventSkillDeleted = "skill:deleted"
 
+	// Lesson events. `decided` covers approve, reject and withdraw with one
+	// contract because every client answers all three the same way: re-read the
+	// lesson. The payload carries the new status for a frame in devtools to be
+	// self-describing; nothing routes on it.
+	EventLessonCreated = "lesson:created"
+	EventLessonUpdated = "lesson:updated"
+	EventLessonDecided = "lesson:decided"
+
+	// Retrospective events. A retrospective changes state from three places —
+	// the suggestion write, the start endpoint, and the task lifecycle that
+	// finishes it — and all three land here.
+	EventRetrospectiveCreated = "retrospective:created"
+	EventRetrospectiveUpdated = "retrospective:updated"
+
 	// Chat events
 	EventChatMessage = "chat:message"
 	EventChatDone    = "chat:done"

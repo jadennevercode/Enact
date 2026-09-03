@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -309,6 +310,7 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 		if err := q.DeleteSkillFilesBySkill(ctx, row.ID); err != nil {
 			return fmt.Errorf("replace files for %s: %w", skill.Name, err)
 		}
+		versionFiles := make([]skillversion.File, 0, len(skill.Files))
 		for _, file := range skill.Files {
 			if _, err := q.UpsertSkillFile(ctx, db.UpsertSkillFileParams{
 				SkillID: row.ID,
@@ -317,6 +319,21 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 			}); err != nil {
 				return fmt.Errorf("write %s/%s: %w", skill.Name, file.Path, err)
 			}
+			versionFiles = append(versionFiles, skillversion.File{Path: file.Path, Content: file.Content})
+		}
+		// Snapshot the bundle the way every other skill write does. Record()
+		// skips unchanged content, so the reconciliation this function runs on
+		// every boot adds a version only when the shipped bundle actually moved
+		// — which is exactly the event a workspace owner wants to see in the
+		// history when a product-owned skill changes under them.
+		if _, _, err := skillversion.Record(ctx, q, skillversion.Input{
+			Skill:   row,
+			Files:   versionFiles,
+			Source:  skillversion.SourceSeed,
+			ActorID: ownerID,
+			Summary: fmt.Sprintf("Provisioned by Enact (bundle v%d)", SDLCDefaultsVersion),
+		}); err != nil {
+			return fmt.Errorf("record version for %s: %w", skill.Name, err)
 		}
 		skillIDs[skill.Name] = row.ID
 	}

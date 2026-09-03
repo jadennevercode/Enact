@@ -11,12 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type RuntimeLocalSkillRequestStatus string
@@ -891,6 +892,8 @@ func (h *Handler) ReportLocalSkillImportResult(w http.ResponseWriter, r *http.Re
 			Content:       body.Skill.Content,
 			Config:        config,
 			Files:         files,
+			Source:        skillversion.SourceImport,
+			ActorID:       creatorUUID,
 		})
 		if oerr != nil {
 			failMsg := oerr.Error()
@@ -941,6 +944,7 @@ func (h *Handler) ReportLocalSkillImportResult(w http.ResponseWriter, r *http.Re
 		Content:     body.Skill.Content,
 		Config:      config,
 		Files:       files,
+		Source:      skillversion.SourceImport,
 	})
 	if err != nil {
 		// A unique-violation here means another import won the race between our

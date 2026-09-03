@@ -13,6 +13,7 @@ import (
 
 	"github.com/enact-ai/enact/server/pkg/protocol"
 
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
@@ -181,6 +182,8 @@ func (h *Handler) RefreshSkill(w http.ResponseWriter, r *http.Request) {
 		Content:     imported.content,
 		Config:      mergeSkillConfigOrigin(skill.Config, imported.origin),
 		Files:       importedSkillFileRequests(imported),
+		Source:      skillversion.SourceRefresh,
+		ActorID:     parseUUID(userID),
 	})
 	if err != nil {
 		switch {

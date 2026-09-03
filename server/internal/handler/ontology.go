@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -382,6 +383,8 @@ func (h *Handler) AttachAgentOntology(w http.ResponseWriter, r *http.Request) {
 			Content:        bundle.Content,
 			Config:         config,
 			Files:          bundle.Files,
+			Source:         skillversion.SourceImport,
+			ActorID:        parseUUID(userID),
 		}); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to sync ontology")
 			return
@@ -406,6 +409,7 @@ func (h *Handler) AttachAgentOntology(w http.ResponseWriter, r *http.Request) {
 			Content:     bundle.Content,
 			Config:      config,
 			Files:       bundle.Files,
+			Source:      skillversion.SourceImport,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to import ontology")
