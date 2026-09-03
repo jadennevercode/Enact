@@ -55,6 +55,8 @@ function workspaceScoped(slug: string) {
     ontologies: () => `${ws}/ontologies`,
     skills: () => `${ws}/skills`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
+    lessons: () => `${ws}/lessons`,
+    lessonDetail: (id: string) => `${ws}/lessons/${encode(id)}`,
     settings: () => `${ws}/settings`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };

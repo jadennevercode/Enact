@@ -12,6 +12,7 @@
     "runtimes": "Runtimes",
     "ontologies": "Ontology",
     "skills": "Skills",
+    "lessons": "Lessons",
     "settings": "Settings"
   },
   "tab": {
@@ -22,6 +23,7 @@
     "member": "Member",
     "squad": "Squad",
     "skill": "Skill",
+    "lesson": "Lesson",
     "machine": "Machine",
     "runtime": "Runtime",
     "attachment": "Attachment",

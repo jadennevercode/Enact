@@ -47,6 +47,7 @@ export type TabLabelKey =
   | "member"
   | "squad"
   | "skill"
+  | "lesson"
   | "machine"
   | "runtime"
   | "attachment"
@@ -84,6 +85,7 @@ export interface TabEntityData {
   /** Resolved display name for an actor subject. */
   actorName?: string;
   skill?: { name: string };
+  lesson?: { title: string };
   machine?: { name: string };
   runtime?: { name: string };
   /** Resolved chat session title (already includes the "New chat" fallback). */
@@ -185,6 +187,11 @@ export function resolveTabPresentation(
       return {
         visual: { kind: "icon", icon: "BookOpenText" },
         title: textOr(data.skill?.name, "skill"),
+      };
+    case "lesson":
+      return {
+        visual: { kind: "icon", icon: "GraduationCap" },
+        title: textOr(data.lesson?.title, "lesson"),
       };
     case "machine":
       return {

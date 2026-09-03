@@ -21,6 +21,7 @@ import {
   memberListOptions,
   squadListOptions,
 } from "@enact/core/workspace/queries";
+import { lessonDetailOptions } from "@enact/core/lessons/queries";
 import { runtimeListOptions } from "@enact/core/runtimes/queries";
 import { runtimeDisplayName } from "@enact/core/runtimes";
 import { chatSessionsOptions } from "@enact/core/chat/queries";
@@ -68,6 +69,7 @@ const PENDING_RESOURCE_KEYS: ReadonlySet<TabLabelKey> = new Set<TabLabelKey>([
   "member",
   "squad",
   "skill",
+  "lesson",
   "machine",
   "runtime",
 ]);
@@ -128,6 +130,10 @@ function useTabEntityData(subject: TabSubject, wsId: string): TabEntityData {
     ...skillDetailOptions(wsId, subject.kind === "skill" ? subject.id : NONE),
     enabled: false,
   }).data;
+  const lesson = useQuery({
+    ...lessonDetailOptions(wsId, subject.kind === "lesson" ? subject.id : NONE),
+    enabled: false,
+  }).data;
 
   const agents = useQuery({ ...agentListOptions(wsId), enabled: false }).data;
   const members = useQuery({ ...memberListOptions(wsId), enabled: false }).data;
@@ -154,6 +160,9 @@ function useTabEntityData(subject: TabSubject, wsId: string): TabEntityData {
       break;
     case "skill":
       if (skill) data.skill = { name: skill.name };
+      break;
+    case "lesson":
+      if (lesson) data.lesson = { title: lesson.title };
       break;
     case "actor": {
       const name =

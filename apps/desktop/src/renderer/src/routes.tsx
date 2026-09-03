@@ -6,6 +6,7 @@ import { ProjectDetailPage } from "./pages/project-detail-page";
 import { ProjectArtifactsPage } from "./pages/project-artifacts-page";
 import { AutopilotDetailPage } from "./pages/autopilot-detail-page";
 import { SkillDetailPage } from "./pages/skill-detail-page";
+import { LessonDetailPage } from "./pages/lesson-detail-page";
 import { AgentDetailPage } from "./pages/agent-detail-page";
 import { AiBuilderSessionPage } from "./pages/ai-builder-session-page";
 import { MemberDetailPage } from "./pages/member-detail-page";
@@ -21,6 +22,7 @@ import { AutopilotsPage } from "@enact/views/autopilots/components";
 import { MyIssuesPage } from "@enact/views/my-issues";
 import { OntologiesPage } from "@enact/views/ontologies";
 import { SkillsPage } from "@enact/views/skills";
+import { LessonsPage } from "@enact/views/lessons";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
 import { DesktopAgentsPage } from "./components/desktop-agents-page";
 import {
@@ -194,6 +196,12 @@ export const appRoutes: RouteObject[] = [
             path: "skills/:id",
             element: <SkillDetailPage />,
             handle: { title: "Skill" },
+          },
+          { path: "lessons", element: <LessonsPage />, handle: { title: "Lessons" } },
+          {
+            path: "lessons/:id",
+            element: <LessonDetailPage />,
+            handle: { title: "Lesson" },
           },
           { path: "agents", element: <DesktopAgentsPage />, handle: { title: "Agents" } },
           {

@@ -1,0 +1,146 @@
+{
+  "page": {
+    "title": "经验沉淀",
+    "tagline": "这个工作区学到了什么，以及为此做出的改动。",
+    "run_retrospective": "发起复盘",
+    "retrospective_failed": "无法发起复盘。",
+    "tabs": {
+      "lessons": "经验",
+      "retrospectives": "复盘"
+    },
+    "empty": {
+      "title": "还没有经验",
+      "description": "Lesson Learner 会在复盘已完成的工作后提交经验。你可以手动发起一次复盘；智能体参与过的工作完成时，也会主动向你推荐。"
+    }
+  },
+  "filters": {
+    "all": "全部",
+    "proposed": "待审阅",
+    "published": "已采纳",
+    "rejected": "已驳回",
+    "deprecated": "已撤回"
+  },
+  "row": {
+    "stale": "已过期"
+  },
+  "lesson_status": {
+    "proposed": "待审阅",
+    "in_review": "审阅中",
+    "published": "已采纳",
+    "rejected": "已驳回",
+    "deprecated": "已撤回"
+  },
+  "retrospective_status": {
+    "suggested": "已推荐",
+    "dismissed": "已忽略",
+    "queued": "排队中",
+    "running": "进行中",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "retrospectives": {
+    "scope": {
+      "issue": "单个任务",
+      "project": "单个项目",
+      "workspace": "整个工作区"
+    },
+    "trigger": {
+      "suggestion": "工作完成时推荐",
+      "manual": "手动发起",
+      "schedule": "定时执行"
+    },
+    "lesson_count_other": "提交了 {{count}} 条经验",
+    "open_issue": "打开任务",
+    "start": "去复盘",
+    "dismiss": "不用了",
+    "empty": {
+      "title": "还没有复盘",
+      "description": "复盘会读完已经结束的工作，从中找出这里的智能体该改进的地方。"
+    }
+  },
+  "detail": {
+    "back": "经验沉淀",
+    "new_skill": "新建 skill",
+    "proposed_by": "由{{who}}于{{when}}提出",
+    "an_agent": "某个智能体",
+    "a_person": "某位成员",
+    "observation": "发生了什么",
+    "applies_when": "什么时候适用",
+    "counterexample": "什么时候不适用",
+    "change_summary": "改动说明",
+    "diff": "具体改动",
+    "history": "历史",
+    "decision_reason": "给出的理由",
+    "deprecation_reason": "撤回原因",
+    "affected": {
+      "title": "会因此改变的智能体",
+      "none": "目前没有智能体在用这个 skill，采纳后暂时不会改变任何行为。"
+    },
+    "stale": {
+      "title": "这条提议已过期",
+      "description": "写下它之后 skill 已经改过，现在无法按原样采纳。请让它基于当前版本重新写一份。"
+    },
+    "decision": {
+      "reason_label": "理由",
+      "reason_placeholder": "说明你为什么采纳或驳回，会随这个决定一起留存。",
+      "warning": "采纳后 skill 立即生效，上面这些智能体之后每次运行都会读到新版本。",
+      "approve": "采纳",
+      "reject": "驳回"
+    },
+    "withdraw": {
+      "description": "撤回会把 skill 还原成之前的样子；如果它之后又被改过，那些改动会原样保留。",
+      "reason_placeholder": "撤回的原因，必填。",
+      "action": "撤回"
+    },
+    "not_found": {
+      "title": "找不到这条经验",
+      "description": "它可能已被删除，或者属于另一个工作区。"
+    }
+  },
+  "event": {
+    "proposed": "已提出",
+    "submitted": "已送审",
+    "approved": "已采纳",
+    "rejected": "已驳回",
+    "published": "已采纳",
+    "deprecated": "已撤回",
+    "amended": "已修订",
+    "reopened": "已重开"
+  },
+  "diff": {
+    "name": "名称",
+    "description": "描述",
+    "no_changes": "这条提议没有改动任何内容。",
+    "file_unchanged": "这个文件没有改动。",
+    "lines_hidden_other": "已折叠 {{count}} 行未改动内容",
+    "status": {
+      "added": "新增文件",
+      "removed": "已删除"
+    }
+  },
+  "issue_bar": {
+    "title": "从这次工作里学点什么？",
+    "description": "智能体参与了这个任务。复盘会读完过程，就它们的工作方式提出改动。",
+    "start": "去复盘",
+    "dismiss": "不用了",
+    "running": "Lesson Learner 正在复盘。",
+    "completed_other": "复盘完成，提交了 {{count}} 条经验。",
+    "view": "查看"
+  },
+  "versions": {
+    "title": "版本",
+    "current": "当前",
+    "restore": "恢复",
+    "restore_confirm": "恢复到这个版本？当前内容会留在历史里，随时可以再改回来。",
+    "empty": "还没有版本历史。",
+    "source": {
+      "backfill": "开始记录历史时留存",
+      "manual": "在这里编辑",
+      "import": "导入",
+      "refresh": "从来源更新",
+      "lesson": "采纳经验后生成",
+      "rollback": "恢复版本",
+      "seed": "Enact 预置"
+    }
+  }
+}

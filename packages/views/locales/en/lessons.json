@@ -1,0 +1,149 @@
+{
+  "page": {
+    "title": "Lessons",
+    "tagline": "What this workspace has learned, and the changes it made to act on it.",
+    "run_retrospective": "Run a retrospective",
+    "retrospective_failed": "Could not start a retrospective.",
+    "tabs": {
+      "lessons": "Lessons",
+      "retrospectives": "Retrospectives"
+    },
+    "empty": {
+      "title": "No lessons yet",
+      "description": "The Lesson Learner files these after reviewing finished work. Run a retrospective, or finish work an agent helped with and you'll be offered one."
+    }
+  },
+  "filters": {
+    "all": "All",
+    "proposed": "Awaiting review",
+    "published": "Adopted",
+    "rejected": "Turned down",
+    "deprecated": "Withdrawn"
+  },
+  "row": {
+    "stale": "Out of date"
+  },
+  "lesson_status": {
+    "proposed": "Awaiting review",
+    "in_review": "In review",
+    "published": "Adopted",
+    "rejected": "Turned down",
+    "deprecated": "Withdrawn"
+  },
+  "retrospective_status": {
+    "suggested": "Offered",
+    "dismissed": "Declined",
+    "queued": "Queued",
+    "running": "Running",
+    "completed": "Done",
+    "failed": "Failed"
+  },
+  "retrospectives": {
+    "scope": {
+      "issue": "One issue",
+      "project": "One project",
+      "workspace": "The whole workspace"
+    },
+    "trigger": {
+      "suggestion": "Offered when work finished",
+      "manual": "Started by hand",
+      "schedule": "On a schedule"
+    },
+    "lesson_count_one": "{{count}} lesson filed",
+    "lesson_count_other": "{{count}} lessons filed",
+    "open_issue": "Open issue",
+    "start": "Review it",
+    "dismiss": "No thanks",
+    "empty": {
+      "title": "Nothing reviewed yet",
+      "description": "A retrospective reads work that is already finished and looks for what should change about how the agents here work."
+    }
+  },
+  "detail": {
+    "back": "Lessons",
+    "new_skill": "New skill",
+    "proposed_by": "Proposed by {{who}} {{when}}",
+    "an_agent": "an agent",
+    "a_person": "a person",
+    "observation": "What happened",
+    "applies_when": "When it applies",
+    "counterexample": "When it doesn't",
+    "change_summary": "What changes",
+    "diff": "The change",
+    "history": "History",
+    "decision_reason": "Reason given",
+    "deprecation_reason": "Why it was withdrawn",
+    "affected": {
+      "title": "Agents this would change",
+      "none": "No agent uses this skill right now, so nothing would change today."
+    },
+    "stale": {
+      "title": "This proposal is out of date",
+      "description": "The skill has changed since this was written, so it can no longer be adopted as it stands. Ask for it to be written again against the current version."
+    },
+    "decision": {
+      "reason_label": "Reason",
+      "reason_placeholder": "Why you are adopting or turning this down. Kept with the decision.",
+      "warning": "Adopting this changes the skill immediately. Every future run by the agents above reads the new version.",
+      "approve": "Adopt",
+      "reject": "Turn down"
+    },
+    "withdraw": {
+      "description": "Withdrawing puts the skill back the way it was, unless it has been changed since — in which case that work is left alone.",
+      "reason_placeholder": "Why this is being withdrawn. Required.",
+      "action": "Withdraw"
+    },
+    "not_found": {
+      "title": "Lesson not found",
+      "description": "It may have been removed, or it belongs to another workspace."
+    }
+  },
+  "event": {
+    "proposed": "Proposed",
+    "submitted": "Sent for review",
+    "approved": "Adopted",
+    "rejected": "Turned down",
+    "published": "Adopted",
+    "deprecated": "Withdrawn",
+    "amended": "Amended",
+    "reopened": "Reopened"
+  },
+  "diff": {
+    "name": "Name",
+    "description": "Description",
+    "no_changes": "This proposal does not change anything.",
+    "file_unchanged": "No changes in this file.",
+    "lines_hidden_one": "{{count}} unchanged line hidden",
+    "lines_hidden_other": "{{count}} unchanged lines hidden",
+    "status": {
+      "added": "New file",
+      "removed": "Deleted"
+    }
+  },
+  "issue_bar": {
+    "title": "Learn from this?",
+    "description": "Agents worked on this. A retrospective reads what happened and proposes changes to how they work.",
+    "start": "Review it",
+    "dismiss": "No thanks",
+    "running": "The Lesson Learner is reviewing this now.",
+    "completed_one": "Reviewed. {{count}} lesson filed.",
+    "completed_other": "Reviewed. {{count}} lessons filed.",
+    "view": "View"
+  },
+  "versions": {
+    "title": "Versions",
+    "current": "Current",
+    "restore": "Restore",
+    "restore_confirm": "Restore this version? The current text is kept in the history, so this can be undone.",
+    "empty": "No version history yet.",
+    "source": {
+      "backfill": "Recorded when history began",
+      "manual": "Edited here",
+      "import": "Imported",
+      "refresh": "Refreshed from source",
+      "lesson": "Adopted from a lesson",
+      "rollback": "Restored",
+      "seed": "Provisioned by Enact"
+    }
+  }
+}

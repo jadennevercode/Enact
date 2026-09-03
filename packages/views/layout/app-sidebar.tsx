@@ -124,6 +124,7 @@ type NavKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "lessons"
   | "settings";
 
 // Static schema (key only) — labels resolved at render via useT("layout"),
@@ -141,6 +142,7 @@ type NavLabelKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "lessons"
   | "settings";
 
 // Nav icons are NOT declared here: they are derived from each item's
@@ -165,6 +167,7 @@ const configureNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "runtimes", labelKey: "runtimes" },
   { key: "ontologies", labelKey: "ontologies" },
   { key: "skills", labelKey: "skills" },
+  { key: "lessons", labelKey: "lessons" },
   { key: "settings", labelKey: "settings" },
 ];
 

@@ -12,6 +12,7 @@
     "runtimes": "运行时",
     "ontologies": "Ontology",
     "skills": "Skills",
+    "lessons": "经验沉淀",
     "settings": "设置"
   },
   "tab": {
@@ -22,6 +23,7 @@
     "member": "成员",
     "squad": "小队",
     "skill": "Skill",
+    "lesson": "经验沉淀",
     "machine": "机器",
     "runtime": "运行时",
     "attachment": "附件",

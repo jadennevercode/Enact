@@ -1,0 +1,146 @@
+{
+  "page": {
+    "title": "배운 점",
+    "tagline": "이 워크스페이스가 배운 것과, 그에 따라 바꾼 것들입니다.",
+    "run_retrospective": "회고 실행",
+    "retrospective_failed": "회고를 시작하지 못했습니다.",
+    "tabs": {
+      "lessons": "배운 점",
+      "retrospectives": "회고"
+    },
+    "empty": {
+      "title": "아직 배운 점이 없습니다",
+      "description": "Lesson Learner가 끝난 작업을 검토한 뒤 등록합니다. 회고를 직접 실행하거나, 에이전트가 참여한 작업을 완료하면 회고를 제안받습니다."
+    }
+  },
+  "filters": {
+    "all": "전체",
+    "proposed": "검토 대기",
+    "published": "채택됨",
+    "rejected": "반려됨",
+    "deprecated": "철회됨"
+  },
+  "row": {
+    "stale": "내용이 오래됨"
+  },
+  "lesson_status": {
+    "proposed": "검토 대기",
+    "in_review": "검토 중",
+    "published": "채택됨",
+    "rejected": "반려됨",
+    "deprecated": "철회됨"
+  },
+  "retrospective_status": {
+    "suggested": "제안됨",
+    "dismissed": "건너뜀",
+    "queued": "대기 중",
+    "running": "실행 중",
+    "completed": "완료",
+    "failed": "실패"
+  },
+  "retrospectives": {
+    "scope": {
+      "issue": "태스크 1개",
+      "project": "프로젝트 1개",
+      "workspace": "워크스페이스 전체"
+    },
+    "trigger": {
+      "suggestion": "작업 완료 시 제안",
+      "manual": "직접 시작",
+      "schedule": "예약 실행"
+    },
+    "lesson_count_other": "배운 점 {{count}}건 등록",
+    "open_issue": "태스크 열기",
+    "start": "회고하기",
+    "dismiss": "괜찮아요",
+    "empty": {
+      "title": "아직 회고한 작업이 없습니다",
+      "description": "회고는 이미 끝난 작업을 읽고, 이곳 에이전트의 일하는 방식에서 바꿀 점을 찾습니다."
+    }
+  },
+  "detail": {
+    "back": "배운 점",
+    "new_skill": "새 스킬",
+    "proposed_by": "{{who}}이(가) {{when}} 제안",
+    "an_agent": "에이전트",
+    "a_person": "멤버",
+    "observation": "무슨 일이 있었나",
+    "applies_when": "적용되는 경우",
+    "counterexample": "적용되지 않는 경우",
+    "change_summary": "무엇이 바뀌나",
+    "diff": "변경 내용",
+    "history": "기록",
+    "decision_reason": "남긴 사유",
+    "deprecation_reason": "철회 사유",
+    "affected": {
+      "title": "이 변경에 영향을 받는 에이전트",
+      "none": "지금 이 스킬을 쓰는 에이전트가 없어서, 채택해도 당장 달라지는 것은 없습니다."
+    },
+    "stale": {
+      "title": "이 제안은 내용이 오래되었습니다",
+      "description": "작성된 뒤 스킬이 바뀌어 지금 상태로는 채택할 수 없습니다. 현재 버전에 맞게 다시 작성하도록 요청하세요."
+    },
+    "decision": {
+      "reason_label": "사유",
+      "reason_placeholder": "채택하거나 반려하는 이유. 결정과 함께 남습니다.",
+      "warning": "채택하면 스킬이 즉시 바뀝니다. 위 에이전트는 이후 실행부터 새 버전을 읽습니다.",
+      "approve": "채택",
+      "reject": "반려"
+    },
+    "withdraw": {
+      "description": "철회하면 스킬이 이전 상태로 돌아갑니다. 그 뒤에 수정된 내용이 있다면 그대로 둡니다.",
+      "reason_placeholder": "철회하는 이유. 필수입니다.",
+      "action": "철회"
+    },
+    "not_found": {
+      "title": "배운 점을 찾을 수 없습니다",
+      "description": "삭제되었거나 다른 워크스페이스에 속한 항목일 수 있습니다."
+    }
+  },
+  "event": {
+    "proposed": "제안됨",
+    "submitted": "검토 요청됨",
+    "approved": "채택됨",
+    "rejected": "반려됨",
+    "published": "채택됨",
+    "deprecated": "철회됨",
+    "amended": "수정됨",
+    "reopened": "다시 열림"
+  },
+  "diff": {
+    "name": "이름",
+    "description": "설명",
+    "no_changes": "이 제안은 아무것도 바꾸지 않습니다.",
+    "file_unchanged": "이 파일에는 변경이 없습니다.",
+    "lines_hidden_other": "변경 없는 {{count}}줄 숨김",
+    "status": {
+      "added": "새 파일",
+      "removed": "삭제됨"
+    }
+  },
+  "issue_bar": {
+    "title": "여기서 배울 점을 찾아볼까요?",
+    "description": "에이전트가 참여한 작업입니다. 회고가 진행 과정을 읽고 일하는 방식에 대한 변경을 제안합니다.",
+    "start": "회고하기",
+    "dismiss": "괜찮아요",
+    "running": "Lesson Learner가 지금 이 작업을 검토하고 있습니다.",
+    "completed_other": "검토 완료. 배운 점 {{count}}건을 등록했습니다.",
+    "view": "보기"
+  },
+  "versions": {
+    "title": "버전",
+    "current": "현재",
+    "restore": "복원",
+    "restore_confirm": "이 버전으로 되돌릴까요? 현재 내용은 기록에 남으므로 되돌릴 수 있습니다.",
+    "empty": "아직 버전 기록이 없습니다.",
+    "source": {
+      "backfill": "기록이 시작될 때 저장됨",
+      "manual": "여기서 편집",
+      "import": "가져오기",
+      "refresh": "소스에서 업데이트",
+      "lesson": "배운 점에서 채택",
+      "rollback": "복원됨",
+      "seed": "Enact 기본 제공"
+    }
+  }
+}
