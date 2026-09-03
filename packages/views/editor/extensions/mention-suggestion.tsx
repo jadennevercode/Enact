@@ -629,9 +629,9 @@ function MentionRow({
         <Badge variant="outline" className="ml-auto text-micro h-4 px-1.5">Agent</Badge>
       )}
       {item.type === "squad" && (
-        // "Squad" is a glossary-protected product term — kept un-translated.
+        // "Agent Family" is a glossary-protected product term — kept un-translated.
         // eslint-disable-next-line i18next/no-literal-string
-        <Badge variant="outline" className="ml-auto text-micro h-4 px-1.5">Squad</Badge>
+        <Badge variant="outline" className="ml-auto text-micro h-4 px-1.5">Agent Family</Badge>
       )}
     </button>
   );

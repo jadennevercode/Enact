@@ -234,11 +234,11 @@ export const appRoutes: RouteObject[] = [
             element: <MemberDetailPage />,
             handle: { title: "Member" },
           },
-          { path: "squads", element: <SquadsPage />, handle: { title: "Squads" } },
+          { path: "squads", element: <SquadsPage />, handle: { title: "Agent Families" } },
           {
             path: "squads/:id",
             element: <SquadDetailPageView />,
-            handle: { title: "Squad" },
+            handle: { title: "Agent Family" },
           },
           { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },

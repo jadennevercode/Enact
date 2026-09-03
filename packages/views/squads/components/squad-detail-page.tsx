@@ -172,7 +172,7 @@ export function SquadDetailPage() {
 
   const deleteMut = useMutation({
     mutationFn: () => api.deleteSquad(squadId),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) }); push(p.squads()); toast.success("Squad archived"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) }); push(p.squads()); toast.success("Agent Family archived"); },
     onError: (err) =>
       toast.error(err instanceof Error && err.message ? err.message : "Failed to archive squad"),
   });
@@ -383,7 +383,7 @@ function SquadNameEditor({
       value={value}
       onSave={onSave}
       title="Rename squad"
-      placeholder="Squad name"
+      placeholder="Agent Family name"
       validate={(v) => (v.trim().length > 0 ? null : "Name is required")}
     >
       {(triggerProps) => (
