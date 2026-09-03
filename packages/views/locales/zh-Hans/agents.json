@@ -287,8 +287,8 @@
         "description": "自己配置每个字段。适合已经明确知道智能体应该如何工作的用户。"
       },
       "template": {
-        "title": "使用模板",
-        "description": "从整理好的指令和 skill 开始，再根据工作区需要修改每个细节。"
+        "title": "从模版开始",
+        "description": "安装一个已发布的智能体模版再作调整。它自带指令、skill 和 MCP server。"
       },
       "ai": {
         "title": "通过 AI 创建",

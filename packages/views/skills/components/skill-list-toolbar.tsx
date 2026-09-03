@@ -8,6 +8,7 @@ import {
   Filter,
   HardDrive,
   Pencil,
+  Store,
   Search,
   X,
 } from "lucide-react";
@@ -79,11 +80,13 @@ const ORIGIN_TYPES: OriginType[] = [
   "clawhub",
   "skills_sh",
   "github",
+  "marketplace",
 ];
 
 function originIcon(type: OriginType) {
   if (type === "manual") return <Pencil className="size-3.5" />;
   if (type === "runtime_local") return <HardDrive className="size-3.5" />;
+  if (type === "marketplace") return <Store className="size-3.5" />;
   return <Download className="size-3.5" />;
 }
 
@@ -154,6 +157,7 @@ export function SkillListToolbar({
     clawhub: t(($) => $.table.source_clawhub),
     skills_sh: t(($) => $.table.source_skills_sh),
     github: t(($) => $.table.source_github),
+    marketplace: t(($) => $.table.source_marketplace),
   };
 
   const COLUMN_LABELS: Record<SkillColumnKey, string> = {

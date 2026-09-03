@@ -62,7 +62,8 @@
     "source_runtime_unknown": "ランタイムから",
     "source_clawhub": "ClawHub から",
     "source_skills_sh": "Skills.sh から",
-    "source_github": "GitHub から"
+    "source_github": "GitHub から",
+    "source_marketplace": "マーケットプレイス"
   },
   "actions": {
     "row_menu": "操作",
@@ -127,6 +128,7 @@
       "origin_clawhub": "インポート済み · ClawHub",
       "origin_skills_sh": "インポート済み · Skills.sh",
       "origin_github": "インポート済み · GitHub",
+      "origin_marketplace": "インストール済み · マーケットプレイス",
       "origin_workspace": "手動で作成"
     },
     "conflict_banner": {

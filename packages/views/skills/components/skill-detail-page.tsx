@@ -15,6 +15,7 @@ import {
   RotateCw,
   Save,
   Trash2,
+  Upload,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -85,6 +86,7 @@ import {
   type SkillActionsContext,
 } from "./skill-list-actions";
 import { RefreshSkillDialog } from "./refresh-skill-dialog";
+import { PublishDialog } from "../../marketplace";
 import { useT } from "../../i18n";
 import { ResourceLabelPicker } from "../../labels/resource-label-picker";
 
@@ -275,6 +277,9 @@ function useOriginLabel(origin: OriginInfo | null, runtime: AgentRuntime | null)
   if (origin.type === "clawhub") return t(($) => $.detail.subline.origin_clawhub);
   if (origin.type === "skills_sh") return t(($) => $.detail.subline.origin_skills_sh);
   if (origin.type === "github") return t(($) => $.detail.subline.origin_github);
+  if (origin.type === "marketplace") {
+    return t(($) => $.detail.subline.origin_marketplace);
+  }
   return t(($) => $.detail.subline.origin_workspace);
 }
 
@@ -762,6 +767,7 @@ function FilesTab({
 
 export function SkillDetailPage({ skillId }: { skillId: string }) {
   const { t } = useT("skills");
+  const { t: tMarketplace } = useT("marketplace");
   const wsId = useWorkspaceId();
   const qc = useQueryClient();
   const paths = useWorkspacePaths();
@@ -810,6 +816,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [showAddToAgents, setShowAddToAgents] = useState(false);
   const [addingFile, setAddingFile] = useState(false);
   const [conflictPending, setConflictPending] = useState(false);
@@ -1211,6 +1218,20 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
               <UserPlus className="h-3 w-3" />
               {t(($) => $.actions.add_to_agent)}
             </Button>
+            {/* Publishing is admin-gated on the server. The button is shown to
+                anyone who may edit the skill: hiding it from a member who then
+                cannot find why would be worse than a clear refusal. */}
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1"
+                onClick={() => setPublishOpen(true)}
+              >
+                <Upload className="h-3 w-3" />
+                {tMarketplace(($) => $.publish.action)}
+              </Button>
+            )}
             {canEdit && (
               <Tooltip>
                 <TooltipTrigger
@@ -1463,6 +1484,16 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
         // Adopt explicitly: the user just confirmed the overwrite, so a dirty
         // draft must be replaced instead of tripping the conflict banner.
         onRefreshed={(updated) => adoptServerVersion(updated)}
+      />
+      <PublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        defaultKind="skill"
+        defaultSourceId={skillId}
+        onPublished={(listingId) => {
+          setPublishOpen(false);
+          navigation.push(paths.marketplaceListing(listingId));
+        }}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   Lock,
   Pencil,
   Plus,
+  Store,
 } from "lucide-react";
 import { SkillIcon } from "../lib/skill-icon";
 import type {
@@ -175,6 +176,9 @@ function PageHeaderBar({
   onCreate: () => void;
 }) {
   const { t } = useT("skills");
+  const { t: tMarketplace } = useT("marketplace");
+  const paths = useWorkspacePaths();
+  const { push } = useNavigation();
   return (
     <CollectionPageHeader
       icon={SkillIcon}
@@ -186,11 +190,18 @@ function PageHeaderBar({
         label: t(($) => $.page.learn_more),
       }}
       actions={
-        <CollectionPageHeaderAction
-          icon={Plus}
-          label={t(($) => $.page.new_skill)}
-          onClick={onCreate}
-        />
+        <>
+          <CollectionPageHeaderAction
+            icon={Store}
+            label={tMarketplace(($) => $.title)}
+            onClick={() => push(paths.marketplace())}
+          />
+          <CollectionPageHeaderAction
+            icon={Plus}
+            label={t(($) => $.page.new_skill)}
+            onClick={onCreate}
+          />
+        </>
       }
     />
   );
@@ -350,6 +361,11 @@ function SourceCell({
   } else if (origin.type === "github") {
     icon = <Download className="h-3 w-3 shrink-0" />;
     label = t(($) => $.table.source_github);
+  } else if (origin.type === "marketplace") {
+    icon = <Store className="h-3 w-3 shrink-0" />;
+    // The listing's own name, not the skill's: a copy can be renamed on
+    // install, and what this cell answers is where it came from.
+    label = origin.name || t(($) => $.table.source_marketplace);
   }
 
   // Imported skills link to their upstream page; the anchor must not bubble

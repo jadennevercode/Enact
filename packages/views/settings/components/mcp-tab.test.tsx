@@ -29,6 +29,13 @@ const data = vi.hoisted(() => ({
   role: "owner" as "owner" | "admin" | "member",
 }));
 
+// The publish dialog belongs to the marketplace surface and is exercised
+// there; this file is about the MCP settings tab. Mocking it keeps the page's own
+// tests from having to stand up the three list queries the form loads.
+vi.mock("../../marketplace", () => ({
+  PublishDialog: () => null,
+}));
+
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({ data: data.servers, isLoading: data.isLoading }),
 }));

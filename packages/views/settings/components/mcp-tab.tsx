@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Pencil, Plus, Server, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Server, Trash2, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -28,6 +28,7 @@ import type { WorkspaceMcpServer } from "@enact/core/types";
 import { McpServerDialog } from "../../agents/components/tabs/mcp-server-dialog";
 import type { ManagedMcpServer } from "../../agents/components/tabs/mcp-config-model";
 import { useT } from "../../i18n";
+import { PublishDialog } from "../../marketplace";
 import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
 
 /**
@@ -65,6 +66,7 @@ export function McpTab() {
   );
 
   const [editorOpen, setEditorOpen] = useState(false);
+  const [publishServerId, setPublishServerId] = useState<string | null>(null);
   const [editingServer, setEditingServer] = useState<WorkspaceMcpServer | null>(
     null,
   );
@@ -180,6 +182,7 @@ export function McpTab() {
                     setEditorOpen(true);
                   }}
                   onDelete={() => setDeletingServer(server)}
+                  onPublish={() => setPublishServerId(server.id)}
                 />
               ))}
             </ul>
@@ -232,6 +235,15 @@ export function McpTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PublishDialog
+        open={publishServerId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPublishServerId(null);
+        }}
+        defaultKind="mcp"
+        defaultSourceId={publishServerId ?? undefined}
+        onPublished={() => setPublishServerId(null)}
+      />
     </SettingsTab>
   );
 }
@@ -241,13 +253,16 @@ function McpServerRow({
   canManage,
   onEdit,
   onDelete,
+  onPublish,
 }: {
   server: WorkspaceMcpServer;
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onPublish: () => void;
 }) {
   const { t } = useT("settings");
+  const { t: tMarketplace } = useT("marketplace");
   return (
     <li className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -263,6 +278,14 @@ function McpServerRow({
       </div>
       {canManage ? (
         <div className="flex shrink-0 items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onPublish}
+            aria-label={tMarketplace(($) => $.publish.action)}
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

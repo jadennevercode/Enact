@@ -296,8 +296,8 @@
         "description": "Configure every field yourself. Best when you already know exactly how this agent should work."
       },
       "template": {
-        "title": "Use a template",
-        "description": "Start from curated instructions and skills, then adapt every detail to your workspace."
+        "title": "From a template",
+        "description": "Install a published agent template and adjust it. It arrives with its instructions, skills and MCP servers already set up."
       },
       "ai": {
         "title": "Build with AI",

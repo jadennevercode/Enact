@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, FileText, MessageSquare } from "lucide-react";
+import { ChevronRight, FileText, MessageSquare, Store } from "lucide-react";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { cn } from "@enact/ui/lib/utils";
 import { AppLink, useBackOrReplace, useNavigation } from "../../navigation";
@@ -34,6 +34,7 @@ export function ChooseCreateMethodPage() {
         <CreateMethodChooser
           blankHref={withSquadParam(paths.newAgentManual(), squadId)}
           aiHref={withSquadParam(paths.newAgentAi(), squadId)}
+          templateHref={paths.marketplace()}
         />
       </main>
     </AgentCreateShell>
@@ -43,9 +44,15 @@ export function ChooseCreateMethodPage() {
 export function CreateMethodChooser({
   blankHref,
   aiHref,
+  templateHref,
 }: {
   blankHref: string;
   aiHref: string;
+  /**
+   * The marketplace, filtered to agent templates. Optional so a caller that
+   * has no workspace paths — the onboarding chooser — keeps two cards.
+   */
+  templateHref?: string;
 }) {
   const { t } = useT("agents");
   const modes = [
@@ -62,6 +69,17 @@ export function CreateMethodChooser({
       href: aiHref,
       recommended: true,
     },
+    ...(templateHref
+      ? [
+          {
+            icon: Store,
+            title: t(($) => $.creation_studio.modes.template.title),
+            description: t(($) => $.creation_studio.modes.template.description),
+            href: templateHref,
+            recommended: false,
+          },
+        ]
+      : []),
   ];
   return (
     <div className="m-auto w-full max-w-5xl">
@@ -76,7 +94,12 @@ export function CreateMethodChooser({
           {t(($) => $.creation_studio.choose_description)}
         </p>
       </div>
-      <div className="mx-auto mt-9 grid max-w-3xl gap-4 md:grid-cols-2">
+      <div
+        className={cn(
+          "mx-auto mt-9 grid gap-4 md:grid-cols-2",
+          modes.length > 2 ? "max-w-5xl lg:grid-cols-3" : "max-w-3xl",
+        )}
+      >
           {modes.map(
             ({ icon: Icon, title, description, href, recommended }) => (
               <AppLink

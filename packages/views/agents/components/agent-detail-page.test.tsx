@@ -24,6 +24,13 @@ const TEST_RESOURCES = { en: { common: enCommon, agents: enAgents } };
 // The DM tests exercise the header action wiring plus the real permission
 // rules (via auth + member fixtures); the tabbed body and avatar/presence
 // widgets are irrelevant weight, so they're stubbed.
+// The publish dialog belongs to the marketplace surface and is exercised
+// there; this file is about the agent detail page. Mocking it keeps the page's own
+// tests from having to stand up the three list queries the form loads.
+vi.mock("../../marketplace", () => ({
+  PublishDialog: () => null,
+}));
+
 vi.mock("./agent-overview-pane", () => ({
   AgentOverviewPane: ({
     agent,
