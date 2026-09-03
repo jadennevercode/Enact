@@ -54,6 +54,11 @@ function workspaceScoped(slug: string) {
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,
     ontologies: () => `${ws}/ontologies`,
     skills: () => `${ws}/skills`,
+    // The capability directory. A single-word section like every other
+    // workspace destination; a listing is addressed by id because slugs are
+    // scoped to their publisher and two workspaces may use the same one.
+    marketplace: () => `${ws}/marketplace`,
+    marketplaceListing: (id: string) => `${ws}/marketplace/${encode(id)}`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
     lessons: () => `${ws}/lessons`,
     lessonDetail: (id: string) => `${ws}/lessons/${encode(id)}`,

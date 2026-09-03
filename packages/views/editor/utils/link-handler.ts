@@ -32,6 +32,7 @@ const WORKSPACE_ROUTE_SEGMENTS = new Set([
   "ontologies",
   "skills",
   "lessons",
+  "marketplace",
   "settings",
 ]);
 

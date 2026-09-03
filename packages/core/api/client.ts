@@ -67,6 +67,16 @@ import type {
   GetRetrospectiveResponse,
   IssueRetrospectiveResponse,
   CreateRetrospectiveRequest,
+  MarketplaceCatalog,
+  MarketplaceInstall,
+  MarketplaceInstallRequest,
+  MarketplaceInstallResult,
+  MarketplaceListingDetail,
+  MarketplaceFile,
+  MarketplaceVersion,
+  PublishMarketplaceListingRequest,
+  PublishMarketplaceListingResponse,
+  UpdateMarketplaceListingRequest,
   OntologyDetail,
   OntologySummary,
   CreateSkillRequest,
@@ -437,6 +447,16 @@ import {
   EMPTY_ISSUE_RETROSPECTIVE_RESPONSE,
   emptyRetrospective,
   emptyRetrospectiveResponse,
+  MarketplaceCatalogSchema,
+  MarketplaceListingDetailSchema,
+  MarketplaceVersionListSchema,
+  PublishMarketplaceListingResponseSchema,
+  MarketplaceInstallListSchema,
+  MarketplaceInstallResultSchema,
+  MarketplaceFileSchema,
+  EMPTY_MARKETPLACE_CATALOG,
+  EMPTY_MARKETPLACE_INSTALL_RESULT,
+  EMPTY_MARKETPLACE_FILE,
   IssueViewSchema,
   IssueViewListSchema,
   IssueViewPreferenceSchema,
@@ -2966,6 +2986,131 @@ export class ApiClient {
     await this.fetch(`/api/workspaces/${workspaceId}`, {
       method: "DELETE",
     });
+  }
+
+  // Marketplace
+  //
+  // Every response goes through a schema: the directory is read across a
+  // version boundary — a workspace browsing listings published by a deployment
+  // running newer code — so a field this client has never seen must not drop
+  // the listing that carries it.
+
+  async listMarketplaceListings(params?: {
+    kind?: string;
+    category?: string;
+    tag?: string;
+    q?: string;
+    includeDeprecated?: boolean;
+    mine?: boolean;
+  }): Promise<MarketplaceCatalog> {
+    const query = new URLSearchParams();
+    if (params?.kind) query.set("kind", params.kind);
+    if (params?.category) query.set("category", params.category);
+    if (params?.tag) query.set("tag", params.tag);
+    if (params?.q) query.set("q", params.q);
+    if (params?.includeDeprecated) query.set("include_deprecated", "true");
+    if (params?.mine) query.set("mine", "true");
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    const raw = await this.fetch<unknown>(`/api/marketplace/listings${suffix}`);
+    return parseWithFallback(raw, MarketplaceCatalogSchema, EMPTY_MARKETPLACE_CATALOG, {
+      endpoint: "GET /api/marketplace/listings",
+    }) as MarketplaceCatalog;
+  }
+
+  async getMarketplaceListing(
+    id: string,
+    versionId?: string,
+  ): Promise<MarketplaceListingDetail | null> {
+    const suffix = versionId ? `?version_id=${encodeURIComponent(versionId)}` : "";
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}${suffix}`,
+    );
+    // A detail page cannot render a half-parsed listing, and inventing an empty
+    // one would show the reader a listing that does not exist, so the fallback
+    // is null and the caller renders "unavailable".
+    const parsed = MarketplaceListingDetailSchema.safeParse(raw);
+    return parsed.success ? (parsed.data as MarketplaceListingDetail) : null;
+  }
+
+  async listMarketplaceVersions(id: string): Promise<MarketplaceVersion[]> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/versions`,
+    );
+    return parseWithFallback(raw, MarketplaceVersionListSchema, [], {
+      endpoint: "GET /api/marketplace/listings/:id/versions",
+    }) as MarketplaceVersion[];
+  }
+
+  async getMarketplaceFile(
+    id: string,
+    path: string,
+    versionId?: string,
+  ): Promise<MarketplaceFile> {
+    const query = new URLSearchParams({ path });
+    if (versionId) query.set("version_id", versionId);
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/file?${query.toString()}`,
+    );
+    return parseWithFallback(raw, MarketplaceFileSchema, EMPTY_MARKETPLACE_FILE, {
+      endpoint: "GET /api/marketplace/listings/:id/file",
+    }) as MarketplaceFile;
+  }
+
+  async listMarketplaceInstalls(): Promise<MarketplaceInstall[]> {
+    const raw = await this.fetch<unknown>("/api/marketplace/installs");
+    return parseWithFallback(raw, MarketplaceInstallListSchema, [], {
+      endpoint: "GET /api/marketplace/installs",
+    }) as MarketplaceInstall[];
+  }
+
+  /**
+   * Publishes a workspace entity. Only its id travels — the server reads the
+   * entity and redacts it, so nothing this client sends can become the
+   * published content.
+   */
+  async publishMarketplaceListing(
+    data: PublishMarketplaceListingRequest,
+  ): Promise<PublishMarketplaceListingResponse> {
+    const raw = await this.fetch<unknown>("/api/marketplace/listings", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    const parsed = PublishMarketplaceListingResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new Error("the server sent a publish response this client could not read");
+    }
+    return parsed.data as PublishMarketplaceListingResponse;
+  }
+
+  async updateMarketplaceListing(
+    id: string,
+    data: UpdateMarketplaceListingRequest,
+  ): Promise<MarketplaceListingDetail | null> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+    const parsed = MarketplaceListingDetailSchema.safeParse(raw);
+    return parsed.success ? (parsed.data as MarketplaceListingDetail) : null;
+  }
+
+  async deleteMarketplaceListing(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/listings/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  }
+
+  async installMarketplaceListing(
+    id: string,
+    data: MarketplaceInstallRequest,
+  ): Promise<MarketplaceInstallResult> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/install`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+    return parseWithFallback(raw, MarketplaceInstallResultSchema, EMPTY_MARKETPLACE_INSTALL_RESULT, {
+      endpoint: "POST /api/marketplace/listings/:id/install",
+    }) as MarketplaceInstallResult;
   }
 
   // Skills

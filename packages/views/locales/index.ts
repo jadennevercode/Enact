@@ -18,6 +18,7 @@ import enResources from "./en/resources.json";
 import enAutopilots from "./en/autopilots.json";
 import enSkills from "./en/skills.json";
 import enLessons from "./en/lessons.json";
+import enMarketplace from "./en/marketplace.json";
 import enChat from "./en/chat.json";
 import enModals from "./en/modals.json";
 import enRuntimes from "./en/runtimes.json";
@@ -45,6 +46,7 @@ import zhHansResources from "./zh-Hans/resources.json";
 import zhHansAutopilots from "./zh-Hans/autopilots.json";
 import zhHansSkills from "./zh-Hans/skills.json";
 import zhHansLessons from "./zh-Hans/lessons.json";
+import zhHansMarketplace from "./zh-Hans/marketplace.json";
 import zhHansChat from "./zh-Hans/chat.json";
 import zhHansModals from "./zh-Hans/modals.json";
 import zhHansRuntimes from "./zh-Hans/runtimes.json";
@@ -72,6 +74,7 @@ import koResources from "./ko/resources.json";
 import koAutopilots from "./ko/autopilots.json";
 import koSkills from "./ko/skills.json";
 import koLessons from "./ko/lessons.json";
+import koMarketplace from "./ko/marketplace.json";
 import koChat from "./ko/chat.json";
 import koModals from "./ko/modals.json";
 import koRuntimes from "./ko/runtimes.json";
@@ -99,6 +102,7 @@ import jaResources from "./ja/resources.json";
 import jaAutopilots from "./ja/autopilots.json";
 import jaSkills from "./ja/skills.json";
 import jaLessons from "./ja/lessons.json";
+import jaMarketplace from "./ja/marketplace.json";
 import jaChat from "./ja/chat.json";
 import jaModals from "./ja/modals.json";
 import jaRuntimes from "./ja/runtimes.json";
@@ -132,6 +136,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     autopilots: enAutopilots,
     skills: enSkills,
     lessons: enLessons,
+    marketplace: enMarketplace,
     chat: enChat,
     modals: enModals,
     runtimes: enRuntimes,
@@ -161,6 +166,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     autopilots: zhHansAutopilots,
     skills: zhHansSkills,
     lessons: zhHansLessons,
+    marketplace: zhHansMarketplace,
     chat: zhHansChat,
     modals: zhHansModals,
     runtimes: zhHansRuntimes,
@@ -190,6 +196,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     autopilots: koAutopilots,
     skills: koSkills,
     lessons: koLessons,
+    marketplace: koMarketplace,
     chat: koChat,
     modals: koModals,
     runtimes: koRuntimes,
@@ -219,6 +226,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     autopilots: jaAutopilots,
     skills: jaSkills,
     lessons: jaLessons,
+    marketplace: jaMarketplace,
     chat: jaChat,
     modals: jaModals,
     runtimes: jaRuntimes,

@@ -12,6 +12,9 @@ import type {
   BillingTopupsPage,
   BillingTransactionsPage,
   CancelTaskResponse,
+  MarketplaceCatalog,
+  MarketplaceInstallResult,
+  MarketplaceFile,
   ChatMessage,
   ChatDraftRestoresResponse,
   ChatPendingTask,
@@ -3450,3 +3453,131 @@ export function emptyRetrospective(id: string): Retrospective {
 export function emptyRetrospectiveResponse(id: string): GetRetrospectiveResponse {
   return { retrospective: emptyRetrospective(id), lessons: [] };
 }
+// --- Marketplace -----------------------------------------------------------
+//
+// The directory is read by every workspace in the deployment, so its payloads
+// cross a version boundary the same way any other endpoint does: an installed
+// desktop client may be older than the backend serving it. Every object is
+// `.loose()` and every field defaulted, so a listing that grows a field stays
+// renderable by a client that has never heard of it.
+
+/**
+ * A manifest is kind-specific and the server owns its shape; it is validated
+ * as an object rather than field by field so a newer backend can extend it
+ * without an older client dropping the whole listing.
+ */
+export const MarketplaceManifestSchema = z.object({
+  kind: z.string().optional().default("skill"),
+}).loose();
+
+export const MarketplaceListingSchema = z.object({
+  id: z.string(),
+  kind: z.string().optional().default("skill"),
+  slug: z.string().optional().default(""),
+  name: z.string().optional().default(""),
+  description: z.string().optional().default(""),
+  category: z.string().optional().default(""),
+  tags: z.array(z.string()).optional().default([]),
+  visibility: z.string().optional().default("workspace"),
+  status: z.string().optional().default("draft"),
+  featured: z.boolean().optional().default(false),
+  install_count: z.number().optional().default(0),
+  publisher_workspace_id: z.string().optional().default(""),
+  publisher_workspace_name: z.string().optional().default(""),
+  latest_version: z.string().optional().default(""),
+  latest_version_id: z.string().optional(),
+  can_manage: z.boolean().optional().default(false),
+  installed_version: z.string().optional(),
+  installed_version_id: z.string().optional(),
+  created_at: z.string().optional().default(""),
+  updated_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceVersionSchema = z.object({
+  id: z.string(),
+  listing_id: z.string().optional().default(""),
+  version: z.string().optional().default(""),
+  changelog: z.string().optional().default(""),
+  digest: z.string().optional().default(""),
+  size_bytes: z.number().optional().default(0),
+  manifest: MarketplaceManifestSchema.optional().default({ kind: "skill" }),
+  published_by: z.string().nullable().optional().default(null),
+  created_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceFacetsSchema = z.object({
+  kinds: z.record(z.string(), z.number()).optional().default({}),
+  categories: z.record(z.string(), z.number()).optional().default({}),
+  tags: z.record(z.string(), z.number()).optional().default({}),
+}).loose();
+
+export const MarketplaceCatalogSchema = z.object({
+  count: z.number().optional().default(0),
+  total: z.number().optional().default(0),
+  listings: z.array(MarketplaceListingSchema).optional().default([]),
+  facets: MarketplaceFacetsSchema.optional().default({ kinds: {}, categories: {}, tags: {} }),
+}).loose();
+
+export const MarketplaceListingDetailSchema = MarketplaceListingSchema.extend({
+  version: MarketplaceVersionSchema.nullable().optional().default(null),
+  file_paths: z.array(z.string()).optional().default([]),
+}).loose();
+
+export const MarketplaceVersionListSchema = z.array(MarketplaceVersionSchema);
+
+export const MarketplaceInstallSchema = z.object({
+  id: z.string(),
+  listing_id: z.string().optional().default(""),
+  version_id: z.string().optional().default(""),
+  version: z.string().optional().default(""),
+  entity_kind: z.string().optional().default("skill"),
+  entity_id: z.string().optional().default(""),
+  created_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceInstallListSchema = z.array(MarketplaceInstallSchema);
+
+export const MarketplaceFileSchema = z.object({
+  path: z.string().optional().default(""),
+  content: z.string().optional().default(""),
+}).loose();
+
+/**
+ * An install result is a decision the UI acts on — it decides whether to show
+ * a conflict dialog or navigate to the new entity — so an unparseable one must
+ * not silently read as success. The fallback is a failure.
+ */
+export const MarketplaceInstallResultSchema = z.object({
+  status: z.string().optional().default("failed"),
+  reason: z.string().optional(),
+  entity_kind: z.string().optional(),
+  entity_id: z.string().optional(),
+  skill: z.unknown().optional(),
+  agent: z.unknown().optional(),
+  mcp_server: z.unknown().optional(),
+  existing_skill: z.object({
+    id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    created_by: z.string().optional(),
+    can_overwrite: z.boolean().optional(),
+  }).loose().optional(),
+}).loose();
+
+export const EMPTY_MARKETPLACE_CATALOG: MarketplaceCatalog = {
+  count: 0,
+  total: 0,
+  listings: [],
+  facets: { kinds: {}, categories: {}, tags: {} },
+};
+
+export const EMPTY_MARKETPLACE_INSTALL_RESULT: MarketplaceInstallResult = {
+  status: "failed",
+  reason: "the server sent a response this client could not read",
+};
+
+export const EMPTY_MARKETPLACE_FILE: MarketplaceFile = { path: "", content: "" };
+
+export const PublishMarketplaceListingResponseSchema = z.object({
+  listing: MarketplaceListingSchema,
+  version: MarketplaceVersionSchema,
+}).loose();

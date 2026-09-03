@@ -34,6 +34,7 @@ export type RouteIconName =
   | "Server"
   | "BookOpenText"
   | "GraduationCap"
+  | "Store"
   | "Settings"
   | "File"
   | "FileText"
@@ -59,6 +60,7 @@ export type NavLabelKey =
   | "ontologies"
   | "skills"
   | "lessons"
+  | "marketplace"
   | "settings";
 
 /** Stable identifier for each workspace navigation page. */
@@ -76,6 +78,7 @@ export type WorkspacePageKey =
   | "ontologies"
   | "skills"
   | "lessons"
+  | "marketplace"
   | "settings";
 
 export interface WorkspacePage {
@@ -105,6 +108,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
   skills: { segment: "skills", icon: "BookOpenText", navKey: "skills" },
   lessons: { segment: "lessons", icon: "GraduationCap", navKey: "lessons" },
+  marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
 
