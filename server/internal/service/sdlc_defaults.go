@@ -152,6 +152,12 @@ func SDLCDefaultAgentSpecs() []SDLCAgentSpec {
 
 func SDLCDefaultSquadSpec() SDLCSquadSpec { return sdlcDefaultSquad }
 
+// portableSystemAgentKeys is every product-provisioned agent that is created
+// runtime-less and repaired on daemon registration.
+func portableSystemAgentKeys() []string {
+	return append(SDLCDefaultSystemKeys(), LessonsLearnerSystemKey)
+}
+
 func SDLCDefaultSystemKeys() []string {
 	keys := make([]string, 0, len(sdlcDefaultAgents))
 	for _, spec := range sdlcDefaultAgents {
@@ -505,6 +511,13 @@ func EnsureSDLCDefaultsForAllWorkspaces(ctx context.Context, txStarter SDLCTxSta
 
 // BindUnboundSDLCDefaultAgents attaches newly provisioned portable roles to a
 // real runtime once a daemon has registered one for the workspace.
+//
+// "Portable role" now means every product-provisioned agent, not only the SDLC
+// nine: a workspace created before any daemon registered gets its agents with
+// no runtime, and one that stays unbound is an agent that can be assigned work
+// nothing will ever claim. The Lesson Learner is provisioned the same way and
+// needs the same repair, so it is bound here rather than in a second pass that
+// would have to be kept in step with this one.
 func BindUnboundSDLCDefaultAgents(ctx context.Context, txStarter SDLCTxStarter, q *db.Queries, workspaceID, runtimeID pgtype.UUID) error {
 	if !workspaceID.Valid || !runtimeID.Valid {
 		return nil
@@ -521,7 +534,7 @@ func BindUnboundSDLCDefaultAgents(ctx context.Context, txStarter SDLCTxStarter, 
 	if _, err := qtx.BindUnboundSDLCDefaultAgents(ctx, db.BindUnboundSDLCDefaultAgentsParams{
 		WorkspaceID: workspaceID,
 		RuntimeID:   runtimeID,
-		SystemKeys:  SDLCDefaultSystemKeys(),
+		SystemKeys:  portableSystemAgentKeys(),
 	}); err != nil {
 		return err
 	}

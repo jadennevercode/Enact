@@ -1530,6 +1530,8 @@ type Workspace struct {
 	SdlcDefaultsVersion   int32 `json:"sdlc_defaults_version"`
 	// Whether finishing an issue that agents worked on offers a retrospective. Does not affect manual or scheduled ones.
 	RetrospectiveSuggestionsEnabled bool `json:"retrospective_suggestions_enabled"`
+	// Version of the product-owned Lesson Learner bundle this workspace has been provisioned with. Behind the Go constant means it is re-applied at boot.
+	LessonsDefaultsVersion int32 `json:"lessons_defaults_version"`
 }
 
 type WorkspaceInvitation struct {

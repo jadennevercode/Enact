@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/service"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
@@ -49,8 +50,10 @@ const (
 )
 
 // LessonLearnerSystemKey identifies the workspace's Lesson Learner. Its display
-// name is owner-editable, so nothing server-side may key off that.
-const LessonLearnerSystemKey = "lessons:learner"
+// name is owner-editable, so nothing server-side may key off that. Aliased from
+// the provisioner rather than restated, so the two cannot drift into the
+// retrospective endpoint looking for an agent nothing creates.
+const LessonLearnerSystemKey = service.LessonsLearnerSystemKey
 
 // defaultRetrospectiveWindowDays bounds a project or workspace scan that did
 // not name a window. Long enough to catch a pattern repeating, short enough

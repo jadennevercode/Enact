@@ -56,6 +56,18 @@ import type {
   User,
   Skill,
   SkillSummary,
+  LessonDetail,
+  ListLessonsParams,
+  ListLessonsResponse,
+  CreateLessonRequest,
+  UpdateLessonRequest,
+  SkillVersionDetail,
+  ListSkillVersionsResponse,
+  Retrospective,
+  ListRetrospectivesResponse,
+  GetRetrospectiveResponse,
+  IssueRetrospectiveResponse,
+  CreateRetrospectiveRequest,
   OntologyDetail,
   OntologySummary,
   CreateSkillRequest,
@@ -412,6 +424,22 @@ import {
   MALFORMED_RUNTIME_MODEL_LIST_REQUEST,
   SkillSchema,
   EMPTY_SKILL,
+  LessonDetailSchema,
+  ListLessonsResponseSchema,
+  EMPTY_LIST_LESSONS_RESPONSE,
+  emptyLessonDetail,
+  SkillVersionDetailSchema,
+  ListSkillVersionsResponseSchema,
+  EMPTY_LIST_SKILL_VERSIONS_RESPONSE,
+  EMPTY_SKILL_VERSION_DETAIL,
+  RetrospectiveSchema,
+  ListRetrospectivesResponseSchema,
+  EMPTY_LIST_RETROSPECTIVES_RESPONSE,
+  GetRetrospectiveResponseSchema,
+  IssueRetrospectiveResponseSchema,
+  EMPTY_ISSUE_RETROSPECTIVE_RESPONSE,
+  emptyRetrospective,
+  emptyRetrospectiveResponse,
   IssueViewSchema,
   IssueViewListSchema,
   IssueViewPreferenceSchema,
@@ -2996,6 +3024,150 @@ export class ApiClient {
 
   async deleteSkill(id: string): Promise<void> {
     await this.fetch(`/api/skills/${id}`, { method: "DELETE" });
+  }
+
+  // Skill versions
+
+  async listSkillVersions(skillId: string): Promise<ListSkillVersionsResponse> {
+    const raw = await this.fetch<unknown>(`/api/skills/${skillId}/versions`);
+    return parseWithFallback(raw, ListSkillVersionsResponseSchema, EMPTY_LIST_SKILL_VERSIONS_RESPONSE, {
+      endpoint: "GET /api/skills/:id/versions",
+    });
+  }
+
+  async getSkillVersion(skillId: string, versionId: string): Promise<SkillVersionDetail> {
+    const raw = await this.fetch<unknown>(`/api/skills/${skillId}/versions/${versionId}`);
+    return parseWithFallback(raw, SkillVersionDetailSchema, EMPTY_SKILL_VERSION_DETAIL, {
+      endpoint: "GET /api/skills/:id/versions/:versionId",
+    });
+  }
+
+  async restoreSkillVersion(skillId: string, versionId: string, summary?: string): Promise<Skill> {
+    return this.fetch(`/api/skills/${skillId}/versions/${versionId}/restore`, {
+      method: "POST",
+      body: JSON.stringify({ summary: summary ?? "" }),
+    });
+  }
+
+  // Lessons
+
+  async listLessons(params: ListLessonsParams = {}): Promise<ListLessonsResponse> {
+    const query = new URLSearchParams();
+    if (params.status) query.set("status", params.status);
+    if (params.skill_id) query.set("skill_id", params.skill_id);
+    if (params.retrospective_id) query.set("retrospective_id", params.retrospective_id);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    const raw = await this.fetch<unknown>(`/api/lessons${suffix}`);
+    return parseWithFallback(raw, ListLessonsResponseSchema, EMPTY_LIST_LESSONS_RESPONSE, {
+      endpoint: "GET /api/lessons",
+    });
+  }
+
+  async getLesson(id: string): Promise<LessonDetail> {
+    const raw = await this.fetch<unknown>(`/api/lessons/${id}`);
+    return parseWithFallback(raw, LessonDetailSchema, emptyLessonDetail(id), {
+      endpoint: "GET /api/lessons/:id",
+    });
+  }
+
+  async createLesson(data: CreateLessonRequest): Promise<LessonDetail> {
+    const raw = await this.fetch<unknown>("/api/lessons", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, LessonDetailSchema, emptyLessonDetail(""), {
+      endpoint: "POST /api/lessons",
+    });
+  }
+
+  async updateLesson(id: string, data: UpdateLessonRequest): Promise<LessonDetail> {
+    const raw = await this.fetch<unknown>(`/api/lessons/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, LessonDetailSchema, emptyLessonDetail(id), {
+      endpoint: "PATCH /api/lessons/:id",
+    });
+  }
+
+  async approveLesson(id: string, reason?: string): Promise<LessonDetail> {
+    return this.decideLesson(id, "approve", reason);
+  }
+
+  async rejectLesson(id: string, reason?: string): Promise<LessonDetail> {
+    return this.decideLesson(id, "reject", reason);
+  }
+
+  async withdrawLesson(id: string, reason: string): Promise<LessonDetail> {
+    return this.decideLesson(id, "deprecate", reason);
+  }
+
+  private async decideLesson(
+    id: string,
+    action: "approve" | "reject" | "deprecate",
+    reason?: string,
+  ): Promise<LessonDetail> {
+    const raw = await this.fetch<unknown>(`/api/lessons/${id}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason ?? "" }),
+    });
+    return parseWithFallback(raw, LessonDetailSchema, emptyLessonDetail(id), {
+      endpoint: `POST /api/lessons/:id/${action}`,
+    });
+  }
+
+  // Retrospectives
+
+  async listRetrospectives(status?: string): Promise<ListRetrospectivesResponse> {
+    const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+    const raw = await this.fetch<unknown>(`/api/retrospectives${suffix}`);
+    return parseWithFallback(raw, ListRetrospectivesResponseSchema, EMPTY_LIST_RETROSPECTIVES_RESPONSE, {
+      endpoint: "GET /api/retrospectives",
+    });
+  }
+
+  async getRetrospective(id: string): Promise<GetRetrospectiveResponse> {
+    const raw = await this.fetch<unknown>(`/api/retrospectives/${id}`);
+    return parseWithFallback(raw, GetRetrospectiveResponseSchema, emptyRetrospectiveResponse(id), {
+      endpoint: "GET /api/retrospectives/:id",
+    });
+  }
+
+  async getIssueRetrospective(issueId: string): Promise<IssueRetrospectiveResponse> {
+    const raw = await this.fetch<unknown>(`/api/retrospectives/issue/${issueId}`);
+    return parseWithFallback(raw, IssueRetrospectiveResponseSchema, EMPTY_ISSUE_RETROSPECTIVE_RESPONSE, {
+      endpoint: "GET /api/retrospectives/issue/:issueId",
+    });
+  }
+
+  async createRetrospective(data: CreateRetrospectiveRequest): Promise<Retrospective> {
+    const raw = await this.fetch<{ retrospective?: unknown }>("/api/retrospectives", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw?.retrospective, RetrospectiveSchema, emptyRetrospective(""), {
+      endpoint: "POST /api/retrospectives",
+    });
+  }
+
+  async startRetrospective(id: string): Promise<Retrospective> {
+    const raw = await this.fetch<{ retrospective?: unknown }>(`/api/retrospectives/${id}/start`, {
+      method: "POST",
+    });
+    return parseWithFallback(raw?.retrospective, RetrospectiveSchema, emptyRetrospective(id), {
+      endpoint: "POST /api/retrospectives/:id/start",
+    });
+  }
+
+  async dismissRetrospective(id: string): Promise<Retrospective> {
+    const raw = await this.fetch<{ retrospective?: unknown }>(`/api/retrospectives/${id}/dismiss`, {
+      method: "POST",
+    });
+    return parseWithFallback(raw?.retrospective, RetrospectiveSchema, emptyRetrospective(id), {
+      endpoint: "POST /api/retrospectives/:id/dismiss",
+    });
   }
 
   async importSkill(data: { url: string }): Promise<Skill> {

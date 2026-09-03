@@ -86,6 +86,15 @@ import type {
   User,
   WebhookDelivery,
   WorkspaceMcpServer,
+  Lesson,
+  LessonDetail,
+  ListLessonsResponse,
+  SkillVersionDetail,
+  ListSkillVersionsResponse,
+  Retrospective,
+  GetRetrospectiveResponse,
+  ListRetrospectivesResponse,
+  IssueRetrospectiveResponse,
 } from "../types";
 import type { CloudRuntimeNode } from "../runtimes/cloud-runtime";
 import type { CreateFeedbackResponse } from "../feedback/types";
@@ -3165,3 +3174,279 @@ export const EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE: ListProjectArtifactsResponse
   total: 0,
   truncated: false,
 };
+
+// --- Lessons, skill versions, retrospectives ---
+//
+// Lenient the way every schema here is: unknown enum values parse as plain
+// strings so a backend that grows a status does not blank the page in an
+// installed desktop build. The UI's switches carry `default` branches.
+
+export const LessonEvidenceSchema = z.object({
+  kind: z.string().default(""),
+  id: z.string().default(""),
+  note: z.string().optional().default(""),
+}).loose();
+
+export const LessonSkillFileSchema = z.object({
+  path: z.string().default(""),
+  content: z.string().default(""),
+}).loose();
+
+export const LessonSkillStateSchema = z.object({
+  name: z.string().default(""),
+  description: z.string().default(""),
+  content: z.string().default(""),
+  files: z.array(LessonSkillFileSchema).default([]),
+}).loose();
+
+export const LessonAffectedAgentSchema = z.object({
+  id: z.string().default(""),
+  name: z.string().default(""),
+  enabled: z.boolean().default(true),
+}).loose();
+
+export const LessonEventSchema = z.object({
+  id: z.string().default(""),
+  kind: z.string().default(""),
+  actor_type: z.string().default("member"),
+  actor_id: z.string().nullable().default(null),
+  note: z.string().default(""),
+  details: z.unknown().optional(),
+  created_at: z.string().default(""),
+}).loose();
+
+export const LessonSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().default(""),
+  number: z.number().default(0),
+  key: z.string().default(""),
+  title: z.string().default(""),
+  status: z.string().default("proposed"),
+  target_kind: z.string().default("skill"),
+  target_skill_id: z.string().nullable().default(null),
+  target_skill_name: z.string().optional().default(""),
+  base_version_id: z.string().nullable().default(null),
+  base_version: z.number().optional(),
+  // Defaults false: an unreadable or absent flag must not let the UI present a
+  // stale proposal as approvable. The server would refuse it anyway; the point
+  // is to say so before the reviewer reads the diff.
+  base_version_current: z.boolean().default(false),
+  new_asset: z.boolean().default(false),
+  proposed_skill_name: z.string().optional().default(""),
+  observation: z.string().default(""),
+  evidence: z.array(LessonEvidenceSchema).default([]),
+  applies_when: z.string().default(""),
+  counterexample: z.string().default(""),
+  change_summary: z.string().default(""),
+  retrospective_id: z.string().nullable().default(null),
+  source_task_id: z.string().nullable().default(null),
+  source_issue_id: z.string().nullable().default(null),
+  proposed_by_type: z.string().default("agent"),
+  proposed_by_id: z.string().nullable().default(null),
+  decided_by: z.string().nullable().default(null),
+  decided_at: z.string().nullable().default(null),
+  decision_reason: z.string().default(""),
+  published_version_id: z.string().nullable().default(null),
+  published_at: z.string().nullable().default(null),
+  deprecated_at: z.string().nullable().default(null),
+  deprecation_reason: z.string().default(""),
+  reverted_version_id: z.string().nullable().default(null),
+  parent_lesson_id: z.string().nullable().default(null),
+  created_at: z.string().default(""),
+  updated_at: z.string().default(""),
+}).loose();
+
+export const LessonDetailSchema = LessonSchema.extend({
+  base: LessonSkillStateSchema.nullable().default(null),
+  proposed: LessonSkillStateSchema.default({
+    name: "",
+    description: "",
+    content: "",
+    files: [],
+  }),
+  affected_agents: z.array(LessonAffectedAgentSchema).default([]),
+  events: z.array(LessonEventSchema).default([]),
+}).loose();
+
+export const ListLessonsResponseSchema = z.object({
+  lessons: z.array(LessonSchema).default([]),
+  counts: z.record(z.string(), z.number()).default({}),
+}).loose();
+
+export const EMPTY_LIST_LESSONS_RESPONSE: ListLessonsResponse = {
+  lessons: [],
+  counts: {},
+};
+
+export const SkillVersionSchema = z.object({
+  id: z.string(),
+  skill_id: z.string().default(""),
+  workspace_id: z.string().default(""),
+  version: z.number().default(0),
+  name: z.string().default(""),
+  description: z.string().default(""),
+  config: z.record(z.string(), z.unknown()).default({}),
+  content_hash: z.string().default(""),
+  source: z.string().default("manual"),
+  lesson_id: z.string().nullable().default(null),
+  created_by: z.string().nullable().default(null),
+  summary: z.string().default(""),
+  created_at: z.string().default(""),
+  is_current: z.boolean().default(false),
+}).loose();
+
+export const SkillVersionDetailSchema = SkillVersionSchema.extend({
+  content: z.string().default(""),
+  files: z.array(LessonSkillFileSchema).default([]),
+}).loose();
+
+export const ListSkillVersionsResponseSchema = z.object({
+  versions: z.array(SkillVersionSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_SKILL_VERSIONS_RESPONSE: ListSkillVersionsResponse = {
+  versions: [],
+};
+
+export const RetrospectiveSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().default(""),
+  status: z.string().default("suggested"),
+  scope: z.string().default("workspace"),
+  scope_id: z.string().nullable().default(null),
+  trigger: z.string().default("manual"),
+  since: z.string().nullable().default(null),
+  issue_id: z.string().nullable().default(null),
+  task_id: z.string().nullable().default(null),
+  autopilot_id: z.string().nullable().default(null),
+  requested_by: z.string().nullable().default(null),
+  dismissed_at: z.string().nullable().default(null),
+  dismissed_by: z.string().nullable().default(null),
+  lesson_count: z.number().default(0),
+  failure_reason: z.string().default(""),
+  started_at: z.string().nullable().default(null),
+  completed_at: z.string().nullable().default(null),
+  created_at: z.string().default(""),
+  updated_at: z.string().default(""),
+}).loose();
+
+export const ListRetrospectivesResponseSchema = z.object({
+  retrospectives: z.array(RetrospectiveSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_RETROSPECTIVES_RESPONSE: ListRetrospectivesResponse = {
+  retrospectives: [],
+};
+
+export const GetRetrospectiveResponseSchema = z.object({
+  retrospective: RetrospectiveSchema,
+  lessons: z.array(LessonSchema).default([]),
+}).loose();
+
+// The issue page asks on every load and "none" is the normal answer, so the
+// absence of a retrospective is a null field rather than an error.
+export const IssueRetrospectiveResponseSchema = z.object({
+  retrospective: RetrospectiveSchema.nullable().default(null),
+}).loose();
+
+export const EMPTY_ISSUE_RETROSPECTIVE_RESPONSE: IssueRetrospectiveResponse = {
+  retrospective: null,
+};
+
+export const EMPTY_SKILL_VERSION_DETAIL: SkillVersionDetail = {
+  id: "",
+  skill_id: "",
+  workspace_id: "",
+  version: 0,
+  name: "",
+  description: "",
+  config: {},
+  content_hash: "",
+  source: "manual",
+  lesson_id: null,
+  created_by: null,
+  summary: "",
+  created_at: "",
+  is_current: false,
+  content: "",
+  files: [],
+};
+
+// Fallbacks for the single-object endpoints. They take the id the caller asked
+// for so a degraded render still points at the right thing, and carry a status
+// no action is offered on: a lesson that failed to parse must not present an
+// approve button.
+export function emptyLesson(id: string): Lesson {
+  return {
+    id,
+    workspace_id: "",
+    number: 0,
+    key: "",
+    title: "",
+    status: "proposed",
+    target_kind: "skill",
+    target_skill_id: null,
+    base_version_id: null,
+    base_version_current: false,
+    new_asset: false,
+    observation: "",
+    evidence: [],
+    applies_when: "",
+    counterexample: "",
+    change_summary: "",
+    retrospective_id: null,
+    source_task_id: null,
+    source_issue_id: null,
+    proposed_by_type: "agent",
+    proposed_by_id: null,
+    decided_by: null,
+    decided_at: null,
+    decision_reason: "",
+    published_version_id: null,
+    published_at: null,
+    deprecated_at: null,
+    deprecation_reason: "",
+    reverted_version_id: null,
+    parent_lesson_id: null,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
+export function emptyLessonDetail(id: string): LessonDetail {
+  return {
+    ...emptyLesson(id),
+    base: null,
+    proposed: { name: "", description: "", content: "", files: [] },
+    affected_agents: [],
+    events: [],
+  };
+}
+
+export function emptyRetrospective(id: string): Retrospective {
+  return {
+    id,
+    workspace_id: "",
+    status: "suggested",
+    scope: "workspace",
+    scope_id: null,
+    trigger: "manual",
+    since: null,
+    issue_id: null,
+    task_id: null,
+    autopilot_id: null,
+    requested_by: null,
+    dismissed_at: null,
+    dismissed_by: null,
+    lesson_count: 0,
+    failure_reason: "",
+    started_at: null,
+    completed_at: null,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
+export function emptyRetrospectiveResponse(id: string): GetRetrospectiveResponse {
+  return { retrospective: emptyRetrospective(id), lessons: [] };
+}
