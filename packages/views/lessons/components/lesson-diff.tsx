@@ -195,7 +195,7 @@ function DiffFile({
                               "select-none pr-2",
                               line.kind === "added" && "text-emerald-600 dark:text-emerald-400",
                               line.kind === "removed" && "text-destructive",
-                              line.kind === "context" && "text-muted-foreground/50",
+                              line.kind === "context" && "text-faint-foreground",
                             )}
                           >
                             {line.kind === "added" ? "+" : line.kind === "removed" ? "-" : " "}

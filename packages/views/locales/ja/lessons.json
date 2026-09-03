@@ -141,6 +141,7 @@
       "lesson": "学びを採用",
       "rollback": "復元",
       "seed": "Enact が用意"
-    }
+    },
+    "number": "v{{version}}"
   }
 }

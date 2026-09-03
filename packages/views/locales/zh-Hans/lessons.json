@@ -141,6 +141,7 @@
       "lesson": "采纳经验后生成",
       "rollback": "恢复版本",
       "seed": "Enact 预置"
-    }
+    },
+    "number": "v{{version}}"
   }
 }

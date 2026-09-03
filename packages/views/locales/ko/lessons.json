@@ -141,6 +141,7 @@
       "lesson": "배운 점에서 채택",
       "rollback": "복원됨",
       "seed": "Enact 기본 제공"
-    }
+    },
+    "number": "v{{version}}"
   }
 }

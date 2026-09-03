@@ -134,6 +134,7 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     runtimes: () => "/acme/runtimes",
     ontologies: () => "/acme/ontologies",
     skills: () => "/acme/skills",
+    lessons: () => "/acme/lessons",
     settings: () => "/acme/settings",
     issueDetail: (id: string) => `/acme/issues/${id}`,
     projectDetail: (id: string) => `/acme/projects/${id}`,

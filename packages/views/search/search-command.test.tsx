@@ -187,6 +187,7 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     runtimes: () => "/ws-test/runtimes",
     ontologies: () => "/ws-test/ontologies",
     skills: () => "/ws-test/skills",
+    lessons: () => "/ws-test/lessons",
     settings: () => "/ws-test/settings",
     issueDetail: (id: string) => `/ws-test/issues/${id}`,
     memberDetail: (id: string) => `/ws-test/members/${id}`,

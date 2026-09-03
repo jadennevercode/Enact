@@ -1,0 +1,106 @@
+---
+title: Lessons
+description: Turn what your team learns from finished work into reviewed, reversible changes to the skills your agents run on.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A **lesson** is a proposal to change a [skill](/skills), written after reviewing work that is already finished. A person adopts it or turns it down. Adopting it changes the skill immediately, for every agent that uses it.
+
+The point is the loop: a workspace that only ever writes skills by hand gets better at the rate someone remembers to go back and edit them. A workspace running lessons gets better at the rate it finishes work.
+
+## How a lesson gets filed
+
+Every workspace has an agent called the **Lesson Learner**. It is the only agent that files lessons, and filing is the only thing it does.
+
+That is deliberate. The signal that justifies a rule is a pattern across several pieces of work — the same clarifying question asked twice, rework landing repeatedly in one place — and none of that is visible from inside a single run. An agent hired to do one job and asked to also judge whether its own run implies a durable rule has neither the view nor the distance.
+
+The Learner works from a **retrospective**: one scan over a scope of finished work. There are three ways to start one.
+
+| Trigger | Scope | How it starts |
+|---|---|---|
+| **Offered** | One issue | An issue that agents worked on reaches a done status, and Enact offers a retrospective on the issue and in your inbox. |
+| **By hand** | An issue, a project, or the workspace | **Run a retrospective** on the Lessons page, or from an issue. |
+| **On a schedule** | A project or the workspace | An [autopilot](/autopilots) assigned to the Lesson Learner. |
+
+A retrospective runs as an ordinary issue assigned to the Learner, so it has a transcript you can read, a comment thread you can steer it from, and a place for it to report what it found.
+
+<Callout>
+The offer after an issue is completed appears once per issue and never again, whichever way you answer. Declining is a normal answer. A workspace that finds the prompt noisy can turn it off in workspace settings without affecting retrospectives started by hand or on a schedule.
+</Callout>
+
+## What a proposal contains
+
+Four fields are required, and the API refuses a proposal missing any of them:
+
+| Field | What it answers |
+|---|---|
+| **What happened** | The specific events, referenced to the runs, issues and comments they happened in. |
+| **When it applies** | The conditions under which the rule holds. |
+| **When it doesn't** | A case where following it would be wrong. |
+| **What changes** | The concrete edit to the skill. |
+
+The counterexample is the one people are tempted to skip, and it is the most load-bearing. A rule whose author cannot say where it stops has usually not been found yet — one case has been generalised. Requiring it up front is cheaper than discovering it later, after the rule has quietly shaped every run for a month.
+
+## Reviewing one
+
+Open a lesson from the **Lessons** page or from your inbox. The page shows, in this order:
+
+1. Whether the proposal can still be adopted at all.
+2. What it observed, when it applies, and when it does not.
+3. Which agents currently use the target skill — everyone whose behaviour would change.
+4. The diff against the skill as it stands.
+
+Adopting takes effect immediately. There is no separate rollout step, so there is never a moment where the decision and the state of the skill disagree.
+
+Anyone who can edit a skill can decide a lesson that targets it — its creator, or a workspace `owner` / `admin`. A lesson proposing a brand-new skill needs an `owner` or `admin`. **An agent can never decide a lesson, including one it filed itself.** Enact refuses agent credentials on those endpoints.
+
+### Out-of-date proposals
+
+A proposal names the exact version of the skill it was written against. If the skill changed in the meantime, the proposal is marked out of date and cannot be adopted.
+
+This is not friction for its own sake. Without it, a reviewer could approve a diff against text nobody is running any more. Ask for the proposal to be written again against the current version — and read it fresh, because the change may no longer make sense on top of what the skill now says.
+
+## Version history and undo
+
+Every change to a skill's content is recorded as a version, whatever made it: an edit in the app, an import, a refresh from source, an adopted lesson, or a restore. The **Versions** list on the skill page shows all of them, with what produced each one.
+
+Two ways back:
+
+- **Restore a version** from the skill page. The restored text is appended as a new version rather than rewinding history, so a restore can itself be undone.
+- **Withdraw a lesson** from its page. This reverts the skill to what it said before — unless the skill has been changed since, in which case that later work is left alone and only the lesson is marked withdrawn. Withdrawing requires a reason.
+
+A withdrawn lesson keeps its record. A rule that was tried and reversed is different from one that was never proposed, and the next person to have the same idea needs to be able to find out which.
+
+## From the CLI
+
+```bash
+enact lesson list --status proposed
+enact lesson get <id>
+
+# Find the version to propose against, then propose.
+enact skill versions <skill-id>
+enact lesson propose \
+  --skill <skill-id> --base-version <version-id> \
+  --title "Name the runtime in the handoff" \
+  --observation "Two runs in a row asked which machine to use." \
+  --applies-when "Issues that touch a local repository." \
+  --counterexample "Cloud-only work has one runtime; saying so is noise." \
+  --change-summary "Add a line to the handoff checklist." \
+  --content ./proposed-SKILL.md
+
+enact lesson approve <id> --reason "seen twice, boundary is clear"
+enact lesson reject <id> --reason "one occurrence"
+enact lesson withdraw <id> --reason "it fired on cloud-only work too"
+
+enact retrospective start --scope workspace --since-days 14
+enact retrospective list
+```
+
+`--base-version` has no default and cannot get one. A proposal names the version it was written against, and resolving "current" on your behalf would quietly reintroduce the race the field exists to close.
+
+## Related
+
+- [Skills](/skills) — what a lesson changes.
+- [Agents](/agents) — who a change reaches.
+- [Autopilots](/autopilots) — scheduling a recurring retrospective.

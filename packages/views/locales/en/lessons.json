@@ -144,6 +144,7 @@
       "lesson": "Adopted from a lesson",
       "rollback": "Restored",
       "seed": "Provisioned by Enact"
-    }
+    },
+    "number": "v{{version}}"
   }
 }
