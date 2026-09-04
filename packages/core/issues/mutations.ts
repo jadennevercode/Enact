@@ -2,7 +2,6 @@ import { normalizeStatusPatch } from "./status-category";
 import { hashKey, useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { api } from "../api";
 import { issueKeys } from "./queries";
-import { projectKeys } from "../projects/queries";
 import { inboxKeys } from "../inbox/queries";
 import {
   applyIssueChange,
@@ -99,8 +98,7 @@ export function useCreateIssue() {
       qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-      qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
-      qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
+      qc.invalidateQueries({ queryKey: issueKeys.scheduledAll(wsId) });
     },
   });
 }
@@ -275,14 +273,10 @@ export function useUpdateIssue() {
       // the specific list keys the coordinator flagged as drifted (unknown
       // membership, enter/leave beyond the loaded window, bucket-count drift).
       // Those stale keys are the surgical replacement for the old blanket
-      // "invalidate myAll on project move" safety net (ENA-3669 / #4548): the
-      // old project's loaded list already had the card removed in onMutate,
-      // and only genuinely undecidable lists refetch here.
-      invalidateIssueDerivatives(qc, wsId, {
-        statusOrProjectChanged:
-          vars.status !== undefined ||
-          Object.prototype.hasOwnProperty.call(vars, "project_id"),
-      });
+      // "invalidate myAll on membership move" safety net (ENA-3669 / #4548):
+      // the old list already had the card removed in onMutate, and only
+      // genuinely undecidable lists refetch here.
+      invalidateIssueDerivatives(qc, wsId);
       qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
       if (ctx) {
         invalidateStaleListKeys(qc, ctx.change.staleKeys);
@@ -403,8 +397,7 @@ export function useDeleteIssue() {
       qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-      qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
-      qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
+      qc.invalidateQueries({ queryKey: issueKeys.scheduledAll(wsId) });
       if (ctx?.metadata) invalidateDeletedIssueParentCaches(qc, wsId, ctx.metadata);
     },
   });
@@ -553,12 +546,8 @@ export function useBatchUpdateIssues() {
       // caches that cannot be recomputed from a single-issue patch are
       // refreshed below, plus the specific keys the coordinator flagged as
       // drifted — the surgical replacement for the old blanket "invalidate
-      // myAll on project move" safety net (ENA-3669 / #4548).
-      invalidateIssueDerivatives(qc, wsId, {
-        statusOrProjectChanged:
-          _vars.updates.status !== undefined ||
-          Object.prototype.hasOwnProperty.call(_vars.updates, "project_id"),
-      });
+      // myAll on membership move" safety net (ENA-3669 / #4548).
+      invalidateIssueDerivatives(qc, wsId);
       qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
       if (ctx) {
         invalidateStaleListKeys(qc, ctx.staleKeys);
@@ -698,8 +687,7 @@ export function useBatchDeleteIssues() {
       qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
       qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-      qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
-      qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
+      qc.invalidateQueries({ queryKey: issueKeys.scheduledAll(wsId) });
       if (ctx?.parentIssueIds && ctx.parentIssueIds.size > 0) {
         invalidateDeletedIssueParentCaches(qc, wsId, {
           parentIssueIds: Array.from(ctx.parentIssueIds),

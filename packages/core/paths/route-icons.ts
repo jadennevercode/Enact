@@ -2,7 +2,7 @@
  * Registry of workspace navigation *pages* and their icons.
  *
  * A "page" here is a collection or tool surface that has no specific resource
- * of its own — Issues, Projects, Settings, etc. Its icon is a stable, static
+ * of its own — Issues, Artifacts, Settings, etc. Its icon is a stable, static
  * choice keyed by the URL route segment (`/{slug}/{segment}/...`).
  *
  * This is the source of truth the sidebar nav uses (via `resolveRouteIconName`
@@ -24,7 +24,7 @@ export type RouteIconName =
   | "MessageSquare"
   | "CircleUser"
   | "ListTodo"
-  | "FolderKanban"
+  | "FolderOpen"
   | "Zap"
   | "Bot"
   | "Users"
@@ -50,7 +50,7 @@ export type NavLabelKey =
   | "chat"
   | "my_issues"
   | "issues"
-  | "projects"
+  | "artifacts"
   | "autopilots"
   | "agents"
   | "squads"
@@ -67,7 +67,7 @@ export type WorkspacePageKey =
   | "chat"
   | "myIssues"
   | "issues"
-  | "projects"
+  | "artifacts"
   | "autopilots"
   | "agents"
   | "squads"
@@ -96,7 +96,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   chat: { segment: "chat", icon: "MessageSquare", navKey: "chat" },
   myIssues: { segment: "my-issues", icon: "CircleUser", navKey: "my_issues" },
   issues: { segment: "issues", icon: "ListTodo", navKey: "issues" },
-  projects: { segment: "projects", icon: "FolderKanban", navKey: "projects" },
+  artifacts: { segment: "artifacts", icon: "FolderOpen", navKey: "artifacts" },
   autopilots: { segment: "autopilots", icon: "Zap", navKey: "autopilots" },
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },

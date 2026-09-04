@@ -215,10 +215,6 @@
         "label": "タスクへ移動",
         "description": "タスク一覧を開きます。"
       },
-      "goProjects": {
-        "label": "プロジェクトへ移動",
-        "description": "プロジェクト一覧を開きます。"
-      },
       "goAutopilots": {
         "label": "自動化へ移動",
         "description": "ワークスペースの自動化を開きます。"
@@ -275,7 +271,6 @@
       "priority": "優先度",
       "assignee": "担当者",
       "labels": "ラベル",
-      "project": "プロジェクト",
       "due_date": "期限",
       "start_date": "開始日"
     }
@@ -316,6 +311,7 @@
       "tokens": "API トークン",
       "general": "一般",
       "repositories": "リポジトリ",
+      "resources": "リソース",
       "github": "GitHub",
       "integrations": "連携",
       "labs": "ラボ",

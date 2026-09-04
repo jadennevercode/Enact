@@ -192,13 +192,13 @@ func writeContextFiles(workDir, provider string, ctx TaskContextForEnv, manifest
 		}
 	}
 
-	// Project resources are best-effort: a write failure logs but does not
+	// Workspace resources are best-effort: a write failure logs but does not
 	// block task startup. Missing resources surface as the agent simply not
 	// seeing the file, which matches the "scoped, not dumped" design (the
 	// meta skill content always lists what the agent should expect).
-	if err := writeProjectResources(workDir, ctx, manifest); err != nil {
+	if err := writeWorkspaceResourcesFile(workDir, ctx, manifest); err != nil {
 		// Caller logs warnings; avoid noisy returns for non-fatal context.
-		return fmt.Errorf("write project resources: %w", err)
+		return fmt.Errorf("write workspace resources: %w", err)
 	}
 
 	return nil
@@ -246,19 +246,16 @@ func writeTaskContextMarker(workDir string, ctx TaskContextForEnv, manifest *sid
 	return nil
 }
 
-// projectResourceFile is the on-disk JSON written into the agent's working
+// workspaceResourceFile is the on-disk JSON written into the agent's working
 // directory. Schema is intentionally a thin pass-through of the API response
 // so consumers (skills, future tooling) don't need a separate parser.
-type projectResourceFile struct {
-	ProjectID          string                  `json:"project_id,omitempty"`
-	ProjectTitle       string                  `json:"project_title,omitempty"`
-	ProjectDescription string                  `json:"project_description,omitempty"`
-	Resources          []ProjectResourceForEnv `json:"resources"`
+type workspaceResourceFile struct {
+	Resources []WorkspaceResourceForEnv `json:"resources"`
 }
 
 // MarshalJSON renders the resource_ref field as raw JSON instead of a base64
 // blob. The struct's other fields are simple strings.
-func (p ProjectResourceForEnv) MarshalJSON() ([]byte, error) {
+func (p WorkspaceResourceForEnv) MarshalJSON() ([]byte, error) {
 	type alias struct {
 		ID           string          `json:"id"`
 		ResourceType string          `json:"resource_type"`
@@ -277,32 +274,25 @@ func (p ProjectResourceForEnv) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// writeProjectResources writes .enact/project/resources.json into the
-// working directory when the task carries project context. The file is
-// always written when a project is attached (even with zero resources) so
-// agents can rely on its presence as a signal that a project exists.
+// writeWorkspaceResourcesFile writes .enact/project/resources.json into the
+// working directory when the workspace has resources attached.
+//
+// The path keeps its `.enact/project/` segment: installed agents and the
+// built-in skills both reference that exact location, so moving it would
+// break every runtime that already looks there.
 //
 // manifest, when non-nil, is populated with the .enact/project chain
 // of created directories and the resources.json file so CleanupSidecars
 // can undo them on local_directory teardown.
-func writeProjectResources(workDir string, ctx TaskContextForEnv, manifest *sidecarManifest) error {
-	if ctx.ProjectID == "" && len(ctx.ProjectResources) == 0 {
+func writeWorkspaceResourcesFile(workDir string, ctx TaskContextForEnv, manifest *sidecarManifest) error {
+	if len(ctx.WorkspaceResources) == 0 {
 		return nil
 	}
 	dir := filepath.Join(workDir, ".enact", "project")
 	if err := recordMkdirAll(dir, 0o755, manifest); err != nil {
 		return err
 	}
-	resources := ctx.ProjectResources
-	if resources == nil {
-		resources = []ProjectResourceForEnv{}
-	}
-	payload := projectResourceFile{
-		ProjectID:          ctx.ProjectID,
-		ProjectTitle:       ctx.ProjectTitle,
-		ProjectDescription: ctx.ProjectDescription,
-		Resources:          resources,
-	}
+	payload := workspaceResourceFile{Resources: ctx.WorkspaceResources}
 	data, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return err
@@ -311,7 +301,7 @@ func writeProjectResources(workDir string, ctx TaskContextForEnv, manifest *side
 		// .enact/project/resources.json is Enact-owned and a
 		// pre-existing path is almost certainly user content the
 		// manifest must not destroy. The runtime brief already lists
-		// every project resource so the agent runs fine without the
+		// every workspace resource so the agent runs fine without the
 		// JSON sidecar — collision degrades to brief-only mode.
 		if !errors.Is(err, errPathPreExists) {
 			return err

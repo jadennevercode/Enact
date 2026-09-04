@@ -128,31 +128,6 @@ func (q *Queries) DeleteIssueViewPreferencesByUser(ctx context.Context, arg Dele
 	return err
 }
 
-const deleteIssueViewsByProjectScope = `-- name: DeleteIssueViewsByProjectScope :exec
-WITH deleted AS (
-    DELETE FROM issue_view
-    WHERE issue_view.workspace_id = $1 AND issue_view.scope_type = 'project' AND issue_view.scope_id = $2
-    RETURNING issue_view.id
-)
-DELETE FROM pinned_item
-WHERE pinned_item.item_type = 'view'
-  AND pinned_item.workspace_id = $1
-  AND pinned_item.item_id IN (SELECT deleted.id FROM deleted)
-`
-
-type DeleteIssueViewsByProjectScopeParams struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	ScopeID     pgtype.UUID `json:"scope_id"`
-}
-
-// Project deletion cleanup: called inside DeleteProject's application
-// transaction so project views never outlive their surface. Their sidebar
-// pins fall in the same statement (see DeleteIssueView).
-func (q *Queries) DeleteIssueViewsByProjectScope(ctx context.Context, arg DeleteIssueViewsByProjectScopeParams) error {
-	_, err := q.db.Exec(ctx, deleteIssueViewsByProjectScope, arg.WorkspaceID, arg.ScopeID)
-	return err
-}
-
 const deletePrivateIssueViewsByOwner = `-- name: DeletePrivateIssueViewsByOwner :exec
 WITH deleted AS (
     DELETE FROM issue_view

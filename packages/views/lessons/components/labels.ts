@@ -51,8 +51,6 @@ export function retrospectiveScopeLabel(t: LessonsT, scope: string): string {
   switch (scope) {
     case "issue":
       return t(($) => $.retrospectives.scope.issue);
-    case "project":
-      return t(($) => $.retrospectives.scope.project);
     case "workspace":
       return t(($) => $.retrospectives.scope.workspace);
     default:

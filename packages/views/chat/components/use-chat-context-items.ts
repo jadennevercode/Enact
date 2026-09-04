@@ -5,8 +5,7 @@ import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { selectRecentContexts, useRecentContextStore, type RecentContextEntry } from "@enact/core/chat";
 import { issueDetailOptions } from "@enact/core/issues/queries";
-import { projectDetailOptions } from "@enact/core/projects/queries";
-import type { Issue, Project } from "@enact/core/types";
+import type { Issue } from "@enact/core/types";
 import type { MentionItem } from "../../editor/extensions/mention-suggestion";
 import { useNavigation } from "../../navigation";
 
@@ -34,18 +33,6 @@ function issueToMentionItem(
   };
 }
 
-function projectToMentionItem(project: Pick<Project, "id" | "title" | "description" | "icon" | "status">, group: "current" | "recent"): MentionItem {
-  return {
-    id: project.id,
-    label: project.title,
-    type: "project",
-    description: project.description ?? undefined,
-    icon: project.icon,
-    projectStatus: project.status,
-    group,
-  };
-}
-
 function recentEntryToMentionItem(entry: RecentContextEntry): MentionItem {
   return {
     id: entry.id,
@@ -53,25 +40,18 @@ function recentEntryToMentionItem(entry: RecentContextEntry): MentionItem {
     type: entry.type,
     description: entry.subtitle,
     status: entry.status,
-    projectStatus: entry.projectStatus,
-    icon: entry.icon,
     group: "recent",
   };
 }
 
-function hydrateRecentEntry(entry: RecentContextEntry, data: Issue | Project | undefined): MentionItem {
+function hydrateRecentEntry(entry: RecentContextEntry, data: Issue | undefined): MentionItem {
   if (!data) return recentEntryToMentionItem(entry);
-  return entry.type === "issue"
-    ? issueToMentionItem(data as Issue, "recent")
-    : projectToMentionItem(data as Project, "recent");
+  return issueToMentionItem(data, "recent");
 }
 
-export function parseCurrentContextRoute(pathname: string, searchParams: URLSearchParams): { type: "issue" | "project"; id: string } | null {
+export function parseCurrentContextRoute(pathname: string, searchParams: URLSearchParams): { type: "issue"; id: string } | null {
   const issueMatch = pathname.match(/^\/[^/]+\/issues\/([^/]+)$/);
   if (issueMatch?.[1]) return { type: "issue", id: decodeURIComponent(issueMatch[1]) };
-
-  const projectMatch = pathname.match(/^\/[^/]+\/projects\/([^/]+)$/);
-  if (projectMatch?.[1]) return { type: "project", id: decodeURIComponent(projectMatch[1]) };
 
   const inboxMatch = pathname.match(/^\/[^/]+\/inbox$/);
   const inboxIssueId = searchParams.get("issue");
@@ -90,20 +70,13 @@ export function useChatContextItems(wsId: string): MentionItem[] {
   );
 
   const { data: currentIssue } = useQuery({
-    ...issueDetailOptions(wsId, currentRoute?.type === "issue" ? currentRoute.id : ""),
-    enabled: currentRoute?.type === "issue",
-  });
-
-  const { data: currentProject } = useQuery({
-    ...projectDetailOptions(wsId, currentRoute?.type === "project" ? currentRoute.id : ""),
-    enabled: currentRoute?.type === "project",
+    ...issueDetailOptions(wsId, currentRoute?.id ?? ""),
+    enabled: !!currentRoute,
   });
 
   const recentQueries = useQueries({
     queries: visibleRecentEntries.map((entry) => ({
-      ...(entry.type === "issue"
-        ? issueDetailOptions(wsId, entry.id)
-        : projectDetailOptions(wsId, entry.id)),
+      ...issueDetailOptions(wsId, entry.id),
       staleTime: 30_000,
     })),
   });
@@ -111,14 +84,13 @@ export function useChatContextItems(wsId: string): MentionItem[] {
   return useMemo(() => {
     const currentItems: MentionItem[] = [];
     if (currentIssue) currentItems.push(issueToMentionItem(currentIssue, "current"));
-    if (currentProject) currentItems.push(projectToMentionItem(currentProject, "current"));
 
     const hidden = new Set(currentItems.map(mentionKey));
     const recentItems = visibleRecentEntries
-      .map((entry, index) => hydrateRecentEntry(entry, recentQueries[index]?.data as Issue | Project | undefined))
+      .map((entry, index) => hydrateRecentEntry(entry, recentQueries[index]?.data as Issue | undefined))
       .filter((item) => !hidden.has(mentionKey(item)))
       .slice(0, MAX_RECENT_MENTION_ITEMS);
 
     return [...currentItems, ...recentItems];
-  }, [currentIssue, currentProject, recentQueries, visibleRecentEntries]);
+  }, [currentIssue, recentQueries, visibleRecentEntries]);
 }

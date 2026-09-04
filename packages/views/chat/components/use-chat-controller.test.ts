@@ -5,7 +5,6 @@ import type { ChatMessage, ChatMessagesPage, ChatPendingTask } from "@enact/core
 import {
   hasInFlightPendingTask,
   isStillOnComposeTarget,
-  planProjectContextChange,
   seedAcceptedPendingTask,
 } from "./use-chat-controller";
 
@@ -154,60 +153,5 @@ describe("isStillOnComposeTarget", () => {
 
   it("is false when the user starts a new chat mid-send from a session", () => {
     expect(isStillOnComposeTarget(null, sid)).toBe(false);
-  });
-});
-
-// The project-switch decision, shared by BOTH chat surfaces (the chat tab's
-// controller and the floating ChatWindow) so the stale-agent rule cannot drift.
-// Regression (ENA-5150 review): switching an existing session to another
-// project opens a fresh chat, and that chat MUST bind to the open session's
-// agent — not the stored `selectedAgentId`, which can be a stale preference for
-// a different agent (open session belongs to agent B while the persisted pick
-// is still agent A). Without pinning, the lazily-created session and its first
-// send would land on agent A.
-describe("planProjectContextChange", () => {
-  const sessionB = { id: "sB", agent_id: "agent-b" };
-
-  it("waits when an active session id is set but its row has not loaded yet", () => {
-    expect(
-      planProjectContextChange({
-        targetProjectId: "project-x",
-        activeSessionId: "sB",
-        currentSession: null,
-      }),
-    ).toEqual({ kind: "awaitSession" });
-  });
-
-  it("detaches in place when the current session's project is removed", () => {
-    expect(
-      planProjectContextChange({
-        targetProjectId: null,
-        activeSessionId: "sB",
-        currentSession: sessionB,
-      }),
-    ).toEqual({ kind: "detachCurrent", sessionId: "sB" });
-  });
-
-  it("starts a fresh chat pinned to the open session's agent, ignoring a stale selectedAgentId", () => {
-    // The stale `selectedAgentId` never reaches this function — the plan pins
-    // the fresh chat to the open session's agent by construction, which is
-    // exactly what stops the switch from binding to the wrong agent.
-    expect(
-      planProjectContextChange({
-        targetProjectId: "project-x",
-        activeSessionId: "sB",
-        currentSession: sessionB,
-      }),
-    ).toEqual({ kind: "startFreshChat", agentId: "agent-b", projectId: "project-x" });
-  });
-
-  it("only adjusts the new-chat draft project when there is no open session", () => {
-    expect(
-      planProjectContextChange({
-        targetProjectId: "project-x",
-        activeSessionId: null,
-        currentSession: null,
-      }),
-    ).toEqual({ kind: "setDraftProject", projectId: "project-x" });
   });
 });

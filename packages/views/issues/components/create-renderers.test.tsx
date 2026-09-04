@@ -122,7 +122,6 @@ describe("issue renderer create entrypoints", () => {
         group={{ id: "todo", title: "todo", status: "todo", createData: { status: "todo" } }}
         issueIds={[]}
         issueMap={new Map()}
-        projectId="project-1"
         onCreateIssue={onCreateIssue}
       />,
     );
@@ -132,7 +131,6 @@ describe("issue renderer create entrypoints", () => {
 
     expect(onCreateIssue).toHaveBeenCalledWith({
       status: "todo",
-      project_id: "project-1",
     });
     expect(openModal).not.toHaveBeenCalled();
   });
@@ -145,7 +143,6 @@ describe("issue renderer create entrypoints", () => {
         issues={[]}
         visibleStatuses={["todo"]}
         statusPagination={emptyStatusPagination()}
-        projectId="project-1"
         onCreateIssue={onCreateIssue}
       />,
     );
@@ -155,7 +152,6 @@ describe("issue renderer create entrypoints", () => {
 
     expect(onCreateIssue).toHaveBeenCalledWith({
       status: "todo",
-      project_id: "project-1",
     });
     expect(openModal).not.toHaveBeenCalled();
   });

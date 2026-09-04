@@ -273,7 +273,7 @@ func TestRunGCLeavesDaemonInternalCachesAlone(t *testing.T) {
 	}
 }
 
-// TestRepoBarePathIsLiveCoversBothURLSets pins the union that keeps project
+// TestRepoBarePathIsLiveCoversBothURLSets pins the union that keeps workspace-resource
 // repos safe. taskRepoURLs holds repos the server surfaced through a task
 // claim; they never appear in GetWorkspaceRepos, so checking only
 // allowedRepoURLs would evict caches that tasks are actively checking out.
@@ -299,7 +299,7 @@ func TestRepoBarePathIsLiveCoversBothURLSets(t *testing.T) {
 		want bool
 	}{
 		{"workspace-level binding", workspaceRepo, true},
-		{"task-surfaced project repo", taskRepo, true},
+		{"task-surfaced resource repo", taskRepo, true},
 		{"repo no workspace claims", strangerRepo, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

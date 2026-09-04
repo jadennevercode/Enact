@@ -6,7 +6,7 @@
  * null → uuid hydration on workspace load.
  *
  * Consumers: any screen whose view-store carries workspace-scoped filter
- * state (my-issues, all-issues, future projects/inbox filters). The hook
+ * state (my-issues, all-issues, future inbox filters). The hook
  * doesn't import any specific store — the caller passes a stable `clearFn`
  * (typically `useFooViewStore.getState().clearFilters`) so the hook stays
  * store-agnostic.

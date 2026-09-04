@@ -546,42 +546,6 @@ func TestRuntimesAndReposSkillCoversClaimAndCheckoutChain(t *testing.T) {
 	}
 }
 
-func TestProjectsAndResourcesSkillCoversDurableContext(t *testing.T) {
-	skill, ok := findSkill(t, "enact-projects-and-resources")
-	if !ok {
-		return
-	}
-	fm, body, _ := splitFrontmatter(skill.Content)
-
-	if got := strings.TrimSpace(fm["user-invocable"]); got != "false" {
-		t.Errorf("user-invocable = %q, want false", got)
-	}
-	if got := strings.TrimSpace(fm["allowed-tools"]); !strings.Contains(got, "Bash(enact *)") {
-		t.Errorf("allowed-tools = %q, want access to the Enact CLI", got)
-	}
-
-	mustContain := []string{
-		"Projects are durable context containers",
-		".enact/project/resources.json",
-		"enact project resource list <project-id> --output json",
-		"enact project resource add <project-id> --type github_repo --url <github-url> --output json",
-		"enact project resource add <project-id> --type github_repo --url <github-url> --ref <branch-or-sha> --output json",
-		"enact project resource add <project-id> --type local_directory",
-		"Project resources are durable and affect future tasks",
-		"github_repo.resource_ref.url",
-		"resource_ref.ref",
-		"references/projects-and-resources-source-map.md",
-	}
-	for _, want := range mustContain {
-		if !strings.Contains(body, want) {
-			t.Errorf("projects-and-resources skill missing %q", want)
-		}
-	}
-	if !skillHasFile(skill, "references/projects-and-resources-source-map.md") {
-		t.Errorf("projects-and-resources skill missing supporting file references/projects-and-resources-source-map.md")
-	}
-}
-
 func findSkill(t *testing.T, name string) (AgentSkillData, bool) {
 	t.Helper()
 	for _, s := range loadBuiltinSkills() {

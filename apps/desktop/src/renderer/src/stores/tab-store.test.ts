@@ -32,7 +32,7 @@ describe("sanitizeTabPath", () => {
 
   it("passes through valid workspace-scoped paths", () => {
     expect(sanitizeTabPath("/acme/issues")).toBe("/acme/issues");
-    expect(sanitizeTabPath("/my-team/projects/abc")).toBe("/my-team/projects/abc");
+    expect(sanitizeTabPath("/my-team/artifacts/abc")).toBe("/my-team/artifacts/abc");
   });
 
   it("rejects paths whose first segment is a reserved slug (missing workspace prefix)", () => {
@@ -68,7 +68,7 @@ describe("migrateV1ToV2", () => {
     const v1 = {
       tabs: [
         { id: "t1", path: "/acme/issues", title: "Issues", icon: "ListTodo" },
-        { id: "t2", path: "/acme/projects", title: "Projects", icon: "FolderKanban" },
+        { id: "t2", path: "/acme/artifacts", title: "Artifacts", icon: "FolderKanban" },
         { id: "t3", path: "/butter/issues", title: "Issues", icon: "ListTodo" },
       ],
       activeTabId: "t2",
@@ -130,9 +130,9 @@ describe("useTabStore actions", () => {
   it("switchWorkspace without openPath restores the group's last active tab", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
-    const acmeProjectsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
-    store.setActiveTab(acmeProjectsId);
+    store.addTab("/acme/artifacts", "Artifacts");
+    const acmeArtifactsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
+    store.setActiveTab(acmeArtifactsId);
 
     // Enter a different workspace then come back
     store.switchWorkspace("butter");
@@ -141,13 +141,13 @@ describe("useTabStore actions", () => {
     store.switchWorkspace("acme");
     const s = useTabStore.getState();
     expect(s.activeWorkspaceSlug).toBe("acme");
-    expect(s.byWorkspace.acme.activeTabId).toBe(acmeProjectsId);
+    expect(s.byWorkspace.acme.activeTabId).toBe(acmeArtifactsId);
   });
 
   it("switchWorkspace with openPath dedupes into an existing tab with the same resourceKey", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme"); // creates default /acme/issues
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
 
     store.switchWorkspace("acme", "/acme/issues");
     const s = useTabStore.getState();
@@ -173,10 +173,10 @@ describe("useTabStore actions", () => {
   it("openTab dedupes by resourceKey within the active workspace", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    const id1 = store.openTab("/acme/projects", "Projects");
-    const id2 = store.openTab("/acme/projects", "Projects");
+    const id1 = store.openTab("/acme/artifacts", "Artifacts");
+    const id2 = store.openTab("/acme/artifacts", "Artifacts");
     expect(id1).toBe(id2);
-    expect(useTabStore.getState().byWorkspace.acme.tabs).toHaveLength(2); // default + projects
+    expect(useTabStore.getState().byWorkspace.acme.tabs).toHaveLength(2); // default + artifacts
   });
 
   it("openTab with a different query focuses the existing tab and keeps its url (RFC §8.2 semantic change)", () => {
@@ -201,16 +201,16 @@ describe("useTabStore actions", () => {
     it("inserts the new tab immediately right of the active tab, not at the end", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A = /acme/issues, active
-      store.addTab("/acme/projects", "B");
+      store.addTab("/acme/artifacts", "B");
       store.addTab("/acme/skills", "C");
-      expect(urls()).toEqual(["/acme/issues", "/acme/projects", "/acme/skills"]);
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
 
       store.openTab("/acme/issues/d", "D"); // background: A stays active
       const s = useTabStore.getState();
       expect(urls()).toEqual([
         "/acme/issues",
         "/acme/issues/d",
-        "/acme/projects",
+        "/acme/artifacts",
         "/acme/skills",
       ]);
       expect(getActiveTab(s)?.url).toBe("/acme/issues");
@@ -219,7 +219,7 @@ describe("useTabStore actions", () => {
     it("inserts right of a mid-strip opener", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A
-      store.addTab("/acme/projects", "B");
+      store.addTab("/acme/artifacts", "B");
       store.addTab("/acme/skills", "C");
       const bId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
       store.setActiveTab(bId);
@@ -228,7 +228,7 @@ describe("useTabStore actions", () => {
       const s = useTabStore.getState();
       expect(urls()).toEqual([
         "/acme/issues",
-        "/acme/projects",
+        "/acme/artifacts",
         "/acme/issues/d",
         "/acme/skills",
       ]);
@@ -238,13 +238,13 @@ describe("useTabStore actions", () => {
     it("a pinned opener's 'right' is the start of the unpinned zone", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A
-      store.addTab("/acme/projects", "B");
+      store.addTab("/acme/artifacts", "B");
       const aId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
       store.togglePin(aId); // [A(pinned, active), B]
 
       store.openTab("/acme/issues/d", "D");
       const s = useTabStore.getState();
-      expect(urls()).toEqual(["/acme/issues", "/acme/issues/d", "/acme/projects"]);
+      expect(urls()).toEqual(["/acme/issues", "/acme/issues/d", "/acme/artifacts"]);
       expect(s.byWorkspace.acme.tabs[0].pinned).toBe(true);
       expect(s.byWorkspace.acme.tabs[1].pinned).toBe(false);
     });
@@ -252,20 +252,20 @@ describe("useTabStore actions", () => {
     it("the explicit new-tab button (addTab) still appends", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A active
-      store.addTab("/acme/projects", "B");
+      store.addTab("/acme/artifacts", "B");
       store.addTab("/acme/skills", "C"); // active is still A — must append anyway
-      expect(urls()).toEqual(["/acme/issues", "/acme/projects", "/acme/skills"]);
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
     });
 
     it("a dedupe hit focuses the existing tab without reordering", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A active
-      store.addTab("/acme/projects", "B");
+      store.addTab("/acme/artifacts", "B");
       store.addTab("/acme/skills", "C");
 
       store.openTab("/acme/skills", "C again"); // hits C, at the far end
       const s = useTabStore.getState();
-      expect(urls()).toEqual(["/acme/issues", "/acme/projects", "/acme/skills"]);
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
       expect(getActiveTab(s)?.url).toBe("/acme/skills");
     });
   });
@@ -399,13 +399,13 @@ describe("navigateActiveSession", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
 
-    store.navigateActiveSession("/acme/projects?sort=name");
+    store.navigateActiveSession("/acme/artifacts?sort=name");
 
     const active = getActiveTab(useTabStore.getState())!;
-    expect(active.url).toBe("/acme/projects?sort=name");
-    expect(active.resourceKey).toBe("/acme/projects");
+    expect(active.url).toBe("/acme/artifacts?sort=name");
+    expect(active.resourceKey).toBe("/acme/artifacts");
     expect(active.history).toEqual({
-      stack: ["/acme/issues", "/acme/projects?sort=name"],
+      stack: ["/acme/issues", "/acme/artifacts?sort=name"],
       index: 1,
     });
   });
@@ -413,13 +413,13 @@ describe("navigateActiveSession", () => {
   it("replace swaps the current history entry instead of pushing", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.navigateActiveSession("/acme/projects");
+    store.navigateActiveSession("/acme/artifacts");
 
-    store.navigateActiveSession("/acme/projects?sort=name", { replace: true });
+    store.navigateActiveSession("/acme/artifacts?sort=name", { replace: true });
 
     const active = getActiveTab(useTabStore.getState())!;
     expect(active.history).toEqual({
-      stack: ["/acme/issues", "/acme/projects?sort=name"],
+      stack: ["/acme/issues", "/acme/artifacts?sort=name"],
       index: 1,
     });
   });
@@ -427,7 +427,7 @@ describe("navigateActiveSession", () => {
   it("a push after going back truncates the forward stack", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.navigateActiveSession("/acme/projects");
+    store.navigateActiveSession("/acme/artifacts");
     store.navigateActiveSession("/acme/agents");
     store.goBack();
     store.goBack();
@@ -454,7 +454,7 @@ describe("navigateActiveSession", () => {
   it("goBack/goForward project the history stack back into the url", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.navigateActiveSession("/acme/projects");
+    store.navigateActiveSession("/acme/artifacts");
 
     store.goBack();
     let active = getActiveTab(useTabStore.getState())!;
@@ -463,7 +463,7 @@ describe("navigateActiveSession", () => {
 
     store.goForward();
     active = getActiveTab(useTabStore.getState())!;
-    expect(active.url).toBe("/acme/projects");
+    expect(active.url).toBe("/acme/artifacts");
     expect(active.history.index).toBe(1);
 
     // Bounds: no-ops at the edges.
@@ -714,33 +714,33 @@ describe("bulk tab closing", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
     store.addTab("/acme/settings", "Settings");
     store.togglePin(issuesId);
     store.setActiveTab(useTabStore.getState().byWorkspace.acme.tabs[2].id);
 
-    store.closeOtherTabs(projectsId);
+    store.closeOtherTabs(artifactsId);
 
     const group = useTabStore.getState().byWorkspace.acme;
-    expect(group.tabs.map((tab) => tab.id)).toEqual([issuesId, projectsId]);
-    expect(group.activeTabId).toBe(projectsId);
+    expect(group.tabs.map((tab) => tab.id)).toEqual([issuesId, artifactsId]);
+    expect(group.activeTabId).toBe(artifactsId);
   });
 
   it("keeps a surviving active tab when closing other tabs", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
     store.addTab("/acme/settings", "Settings");
     store.togglePin(issuesId);
     store.setActiveTab(issuesId);
 
-    store.closeOtherTabs(projectsId);
+    store.closeOtherTabs(artifactsId);
 
     const group = useTabStore.getState().byWorkspace.acme;
-    expect(group.tabs.map((tab) => tab.id)).toEqual([issuesId, projectsId]);
+    expect(group.tabs.map((tab) => tab.id)).toEqual([issuesId, artifactsId]);
     expect(group.activeTabId).toBe(issuesId);
   });
 });
@@ -753,7 +753,7 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     const agentsId = store.addTab("/acme/agents", "Agents");
 
     store.setActiveTab(issuesId);
@@ -761,7 +761,7 @@ describe("closeTab activation order (ENA-5665)", () => {
     store.closeTab(agentsId);
 
     const group = useTabStore.getState().byWorkspace.acme;
-    expect(group.activeTabId).toBe(issuesId); // positional would give Projects
+    expect(group.activeTabId).toBe(issuesId); // positional would give Artifacts
     expect(group.recentTabIds).toEqual([]);
   });
 
@@ -769,24 +769,24 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     const agentsId = store.addTab("/acme/agents", "Agents");
     const settingsId = store.addTab("/acme/settings", "Settings");
 
-    store.setActiveTab(projectsId);
+    store.setActiveTab(artifactsId);
     store.setActiveTab(agentsId);
     store.setActiveTab(settingsId);
     expect(useTabStore.getState().byWorkspace.acme.recentTabIds).toEqual([
       agentsId,
-      projectsId,
+      artifactsId,
       issuesId,
     ]);
 
     store.closeTab(settingsId);
     expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(agentsId);
     store.closeTab(agentsId);
-    expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(projectsId);
-    store.closeTab(projectsId);
+    expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(artifactsId);
+    store.closeTab(artifactsId);
     expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(issuesId);
   });
 
@@ -794,16 +794,16 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     const agentsId = store.addTab("/acme/agents", "Agents");
 
-    store.setActiveTab(projectsId); // recent: [issues]
-    store.setActiveTab(issuesId); // recent: [projects]
-    store.setActiveTab(agentsId); // recent: [issues, projects]
+    store.setActiveTab(artifactsId); // recent: [issues]
+    store.setActiveTab(issuesId); // recent: [artifacts]
+    store.setActiveTab(agentsId); // recent: [issues, artifacts]
 
     expect(useTabStore.getState().byWorkspace.acme.recentTabIds).toEqual([
       issuesId,
-      projectsId,
+      artifactsId,
     ]);
     store.closeTab(agentsId);
     expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(issuesId);
@@ -813,13 +813,13 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     const agentsId = store.addTab("/acme/agents", "Agents");
 
-    store.setActiveTab(projectsId);
-    store.setActiveTab(agentsId); // recent: [projects, issues]
+    store.setActiveTab(artifactsId);
+    store.setActiveTab(agentsId); // recent: [artifacts, issues]
 
-    store.closeTab(projectsId); // not the active tab
+    store.closeTab(artifactsId); // not the active tab
     const group = useTabStore.getState().byWorkspace.acme;
     expect(group.activeTabId).toBe(agentsId); // untouched
     expect(group.recentTabIds).toEqual([issuesId]);
@@ -832,20 +832,20 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
 
     // addTab never activates, so the active tab has no visit history behind it.
     store.closeTab(issuesId);
 
-    expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(projectsId);
+    expect(useTabStore.getState().byWorkspace.acme.activeTabId).toBe(artifactsId);
   });
 
   it("opening a tab in a new tab and closing it returns to the opener", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     const detailId = store.openTab("/acme/issues/bug-42", "Bug 42", {
       activate: true,
     });
@@ -859,18 +859,18 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
     const agentsId = store.addTab("/acme/agents", "Agents");
     store.togglePin(issuesId);
     store.setActiveTab(issuesId);
-    store.setActiveTab(projectsId);
-    store.setActiveTab(agentsId); // recent: [projects, issues]
+    store.setActiveTab(artifactsId);
+    store.setActiveTab(agentsId); // recent: [artifacts, issues]
 
     store.closeOtherTabs(agentsId);
 
     const group = useTabStore.getState().byWorkspace.acme;
     expect(group.tabs.map((t) => t.id)).toEqual([issuesId, agentsId]);
-    expect(group.recentTabIds).toEqual([issuesId]); // projects is gone
+    expect(group.recentTabIds).toEqual([issuesId]); // artifacts is gone
     expect(group.activeTabId).toBe(agentsId);
   });
 
@@ -878,8 +878,8 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const acmeIssuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const acmeProjectsId = store.addTab("/acme/projects", "Projects");
-    store.setActiveTab(acmeProjectsId);
+    const acmeArtifactsId = store.addTab("/acme/artifacts", "Artifacts");
+    store.setActiveTab(acmeArtifactsId);
 
     store.switchWorkspace("butter");
     const butterIssuesId = useTabStore.getState().byWorkspace.butter.tabs[0].id;
@@ -896,11 +896,11 @@ describe("closeTab activation order (ENA-5665)", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = store.addTab("/acme/projects", "Projects");
-    store.setActiveTab(projectsId);
+    const artifactsId = store.addTab("/acme/artifacts", "Artifacts");
+    store.setActiveTab(artifactsId);
     store.closeTab(issuesId);
 
-    store.closeTab(projectsId); // last tab — reseeds the default
+    store.closeTab(artifactsId); // last tab — reseeds the default
 
     const group = useTabStore.getState().byWorkspace.acme;
     expect(group.tabs).toHaveLength(1);
@@ -926,7 +926,7 @@ describe("togglePin", () => {
   it("moves a newly-pinned tab to the start of the pinned zone", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme"); // creates default unpinned tab at index 0
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
     const agentsId = useTabStore.getState().byWorkspace.acme.tabs[2].id;
 
@@ -941,20 +941,20 @@ describe("togglePin", () => {
   it("appends a second pinned tab after the first pinned tab", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
-    const projectsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
+    const artifactsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
     const agentsId = useTabStore.getState().byWorkspace.acme.tabs[2].id;
 
     store.togglePin(agentsId);
-    store.togglePin(projectsId);
+    store.togglePin(artifactsId);
 
-    // Both pinned, in the order they were pinned (agents first, projects
+    // Both pinned, in the order they were pinned (agents first, artifacts
     // second), then the unpinned default tab.
     const tabs = useTabStore.getState().byWorkspace.acme.tabs;
     expect(tabs.map((t) => t.id)).toEqual([
       agentsId,
-      projectsId,
+      artifactsId,
       tabs[2].id,
     ]);
     expect(tabs.map((t) => t.pinned)).toEqual([true, true, false]);
@@ -963,17 +963,17 @@ describe("togglePin", () => {
   it("returns an unpinned tab to the start of the unpinned zone", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
-    const projectsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
+    const artifactsId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
 
     // Pin both, then unpin one.
     store.togglePin(issuesId);
-    store.togglePin(projectsId);
+    store.togglePin(artifactsId);
     store.togglePin(issuesId);
 
     const tabs = useTabStore.getState().byWorkspace.acme.tabs;
-    expect(tabs.map((t) => t.id)).toEqual([projectsId, issuesId]);
+    expect(tabs.map((t) => t.id)).toEqual([artifactsId, issuesId]);
     expect(tabs.map((t) => t.pinned)).toEqual([true, false]);
   });
 });
@@ -982,11 +982,11 @@ describe("moveTab boundary clamp", () => {
   it("clamps a pinned-tab move so it never crosses into the unpinned zone", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
 
-    store.togglePin(issuesId); // [issues(pinned), projects, agents]
+    store.togglePin(issuesId); // [issues(pinned), artifacts, agents]
 
     // User tries to drag the pinned tab to index 2 (unpinned zone end).
     store.moveTab(0, 2);
@@ -999,12 +999,12 @@ describe("moveTab boundary clamp", () => {
   it("clamps an unpinned-tab move so it never crosses into the pinned zone", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
     const issuesId = useTabStore.getState().byWorkspace.acme.tabs[0].id;
     const agentsId = useTabStore.getState().byWorkspace.acme.tabs[2].id;
 
-    store.togglePin(issuesId); // [issues(pinned), projects, agents]
+    store.togglePin(issuesId); // [issues(pinned), artifacts, agents]
 
     // User tries to drag agents (index 2) to index 0 (pinned zone).
     store.moveTab(2, 0);
@@ -1018,7 +1018,7 @@ describe("moveTab boundary clamp", () => {
   it("reorders freely within the same zone", () => {
     const store = useTabStore.getState();
     store.switchWorkspace("acme");
-    store.addTab("/acme/projects", "Projects");
+    store.addTab("/acme/artifacts", "Artifacts");
     store.addTab("/acme/agents", "Agents");
 
     // All unpinned; move agents (2) to position 0.
@@ -1027,7 +1027,7 @@ describe("moveTab boundary clamp", () => {
     expect(tabs.map((t) => t.url)).toEqual([
       "/acme/agents",
       "/acme/issues",
-      "/acme/projects",
+      "/acme/artifacts",
     ]);
   });
 });
@@ -1041,7 +1041,7 @@ describe("migrateV2ToV3", () => {
           activeTabId: "t1",
           tabs: [
             { id: "t1", path: "/acme/issues", title: "Issues", icon: "ListTodo" },
-            { id: "t2", path: "/acme/projects", title: "Projects", icon: "FolderKanban" },
+            { id: "t2", path: "/acme/artifacts", title: "Artifacts", icon: "FolderKanban" },
           ],
         },
       },
@@ -1050,7 +1050,7 @@ describe("migrateV2ToV3", () => {
     expect(v3.activeWorkspaceSlug).toBe("acme");
     expect(v3.byWorkspace.acme.tabs).toEqual([
       { id: "t1", path: "/acme/issues", title: "Issues", icon: "ListTodo", pinned: false },
-      { id: "t2", path: "/acme/projects", title: "Projects", icon: "FolderKanban", pinned: false },
+      { id: "t2", path: "/acme/artifacts", title: "Artifacts", icon: "FolderKanban", pinned: false },
     ]);
   });
 
@@ -1144,9 +1144,9 @@ describe("mergePersistedTabs (rehydration, ENA-4370)", () => {
   });
 
   it("ignores an unknown or corrupted persisted icon", () => {
-    const tab = rehydrate(persistedTab("/acme/projects", { icon: "NotARealIcon" }));
+    const tab = rehydrate(persistedTab("/acme/artifacts", { icon: "NotARealIcon" }));
     expect(tab).not.toHaveProperty("icon");
-    expect(tab.url).toBe("/acme/projects");
+    expect(tab.url).toBe("/acme/artifacts");
   });
 
   it("rehydrates payloads with no icon field at all", () => {
@@ -1194,7 +1194,7 @@ describe("mergePersistedTabs (rehydration, ENA-4370)", () => {
   it("restores the MRU order so the first close after a restart still returns there", () => {
     const group = rehydrateGroup(
       "t3",
-      { t1: "/acme/issues", t2: "/acme/projects", t3: "/acme/agents" },
+      { t1: "/acme/issues", t2: "/acme/artifacts", t3: "/acme/agents" },
       ["t1", "t2"],
     );
     expect(group.recentTabIds).toEqual(["t1", "t2"]);
@@ -1210,7 +1210,7 @@ describe("mergePersistedTabs (rehydration, ENA-4370)", () => {
   it("sanitizes an MRU order carrying dropped, duplicate, or active tab ids", () => {
     const group = rehydrateGroup(
       "t2",
-      { t1: "/acme/issues", t2: "/acme/projects" },
+      { t1: "/acme/issues", t2: "/acme/artifacts" },
       ["gone", "t1", "t1", "t2", 7],
     );
     expect(group.recentTabIds).toEqual(["t1"]);

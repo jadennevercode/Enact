@@ -4,7 +4,7 @@
     "chat": "Chat",
     "my_issues": "My Issues",
     "issues": "Issues",
-    "projects": "Projects",
+    "artifacts": "Artifacts",
     "autopilots": "Autopilot",
     "agents": "Agents",
     "squads": "Agent Families",
@@ -17,7 +17,6 @@
   },
   "tab": {
     "issue": "Issue",
-    "project": "Project",
     "autopilot": "Autopilot",
     "agent": "Agent",
     "member": "Member",

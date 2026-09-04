@@ -15,9 +15,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/channelmedia"
 	"github.com/enact-ai/enact/server/internal/dispatch"
 	"github.com/enact-ai/enact/server/internal/entitlement"
@@ -30,6 +27,9 @@ import (
 	agentpkg "github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // IssueResponse is the JSON response for an issue.
@@ -53,7 +53,6 @@ type IssueResponse struct {
 	CreatorType    string  `json:"creator_type"`
 	CreatorID      string  `json:"creator_id"`
 	ParentIssueID  *string `json:"parent_issue_id"`
-	ProjectID      *string `json:"project_id"`
 	Position       float64 `json:"position"`
 	// Stage groups sub-issues under the same parent into ordered barrier
 	// groups (null = unstaged). See issue_child_done.go for how a closed
@@ -291,7 +290,6 @@ func issueToResponse(i db.Issue, issuePrefix string) IssueResponse {
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
-		ProjectID:      uuidToPtr(i.ProjectID),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -328,7 +326,6 @@ func issueListRowToResponse(i db.ListIssuesRow, issuePrefix string) IssueRespons
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
-		ProjectID:      uuidToPtr(i.ProjectID),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -397,7 +394,6 @@ func openIssueRowToResponse(i db.ListOpenIssuesRow, issuePrefix string) IssueRes
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
-		ProjectID:      uuidToPtr(i.ProjectID),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -836,7 +832,7 @@ func buildSearchQuery(phrase string, terms []string, queryNum int, hasNum bool, 
 	query := fmt.Sprintf(`SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
 		i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
 		i.parent_issue_id, i.acceptance_criteria, i.context_refs, i.position,
-		i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.project_id,
+		i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number,
 		i.revision,
 		COUNT(*) OVER() AS total_count,
 		%s AS match_source,
@@ -930,7 +926,6 @@ func (h *Handler) SearchIssues(w http.ResponseWriter, r *http.Request) {
 				&sr.issue.UpdatedAt,
 				&sr.issue.LastActivityAt,
 				&sr.issue.Number,
-				&sr.issue.ProjectID,
 				&sr.issue.Revision,
 				&sr.totalCount,
 				&sr.matchSource,
@@ -1073,14 +1068,6 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 		}
 		creatorFilter = id
 	}
-	var projectFilter pgtype.UUID
-	if p := r.URL.Query().Get("project_id"); p != "" {
-		id, ok := parseUUIDOrBadRequest(w, p, "project_id")
-		if !ok {
-			return
-		}
-		projectFilter = id
-	}
 	// involves_user_id widens the assignee filter to surface issues where the
 	// user is the indirect assignee (their owned agent, or a squad they belong
 	// to / lead / have an agent inside). Direct member-assignment is excluded
@@ -1127,7 +1114,6 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 			AssigneeID:       assigneeFilter,
 			AssigneeIds:      assigneeIdsFilter,
 			CreatorID:        creatorFilter,
-			ProjectID:        projectFilter,
 			InvolvesUserID:   involvesUserFilter,
 			MetadataFilter:   metadataFilter,
 			PropertiesFilter: openPropertiesFilter,
@@ -1228,8 +1214,8 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// scheduled=true restricts the result to issues that have at least one of
-	// start_date / due_date set. Used by the Project Gantt view, which only
-	// renders schedulable rows and shouldn't pay for the full project list.
+	// start_date / due_date set. Used by the Gantt view, which only renders
+	// schedulable rows and shouldn't pay for the full issue list.
 	var scheduledFilter pgtype.Bool
 	if r.URL.Query().Get("scheduled") == "true" {
 		scheduledFilter = pgtype.Bool{Bool: true, Valid: true}
@@ -1336,10 +1322,6 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 	if creatorFilter.Valid {
 		where = append(where, fmt.Sprintf("i.creator_id = %s::uuid", addArg(creatorFilter)))
 	}
-	if projectFilter.Valid {
-		where = append(where, fmt.Sprintf("i.project_id = %s::uuid", addArg(projectFilter)))
-	}
-
 	// Table facets must be part of the server window. Applying them after
 	// LIMIT/OFFSET hides matches that live on later pages and makes `total`
 	// disagree with the rows the user sees/exports.
@@ -1375,22 +1357,6 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 				addArg(filter.actorType),
 				addArg(filter.actorID),
 			))
-		}
-		where = append(where, "("+strings.Join(ors, " OR ")+")")
-	}
-
-	projectIDs, ok := parseUUIDParamList(w, r.URL.Query().Get("project_ids"), "project_ids")
-	if !ok {
-		return
-	}
-	includeNoProject := r.URL.Query().Get("include_no_project") == "true"
-	if len(projectIDs) > 0 || includeNoProject {
-		ors := make([]string, 0, 2)
-		if len(projectIDs) > 0 {
-			ors = append(ors, fmt.Sprintf("i.project_id = ANY(%s::uuid[])", addArg(projectIDs)))
-		}
-		if includeNoProject {
-			ors = append(ors, "i.project_id IS NULL")
 		}
 		where = append(where, "("+strings.Join(ors, " OR ")+")")
 	}
@@ -1498,7 +1464,7 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
        i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
-       i.parent_issue_id, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.project_id, i.metadata, i.stage, i.properties,
+       i.parent_issue_id, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.metadata, i.stage, i.properties,
 	   i.revision
 FROM issue i
 WHERE %s
@@ -1535,7 +1501,6 @@ LIMIT %s OFFSET %s`, whereSql, orderBy, limitRef, offsetRef)
 			&row.UpdatedAt,
 			&row.LastActivityAt,
 			&row.Number,
-			&row.ProjectID,
 			&row.Metadata,
 			&row.Stage,
 			&row.Properties,
@@ -1856,13 +1821,6 @@ func (h *Handler) ListGroupedIssues(w http.ResponseWriter, r *http.Request) {
 		}
 		where = append(where, fmt.Sprintf("i.creator_id = %s::uuid", addArg(id)))
 	}
-	if raw := r.URL.Query().Get("project_id"); raw != "" {
-		id, ok := parseUUIDOrBadRequest(w, raw, "project_id")
-		if !ok {
-			return
-		}
-		where = append(where, fmt.Sprintf("i.project_id = %s::uuid", addArg(id)))
-	}
 	if filter, ok := parseMetadataFilterParam(w, r.URL.Query().Get("metadata")); !ok {
 		return
 	} else if filter != nil {
@@ -1950,22 +1908,6 @@ func (h *Handler) ListGroupedIssues(w http.ResponseWriter, r *http.Request) {
 				addArg(filter.actorType),
 				addArg(filter.actorID),
 			))
-		}
-		where = append(where, "("+strings.Join(ors, " OR ")+")")
-	}
-
-	projectIDs, ok := parseUUIDParamList(w, r.URL.Query().Get("project_ids"), "project_ids")
-	if !ok {
-		return
-	}
-	includeNoProject := r.URL.Query().Get("include_no_project") == "true"
-	if len(projectIDs) > 0 || includeNoProject {
-		ors := make([]string, 0, 2)
-		if len(projectIDs) > 0 {
-			ors = append(ors, fmt.Sprintf("i.project_id = ANY(%s::uuid[])", addArg(projectIDs)))
-		}
-		if includeNoProject {
-			ors = append(ors, "i.project_id IS NULL")
 		}
 		where = append(where, "("+strings.Join(ors, " OR ")+")")
 	}
@@ -2097,7 +2039,7 @@ WITH ranked AS (
 		i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
 		i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
 		i.parent_issue_id, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at,
-		i.number, i.project_id, i.metadata, i.stage, i.properties, i.revision,
+		i.number, i.metadata, i.stage, i.properties, i.revision,
 		COUNT(*) OVER (PARTITION BY i.assignee_type, i.assignee_id) AS group_total,
 		ROW_NUMBER() OVER (
 			PARTITION BY i.assignee_type, i.assignee_id
@@ -2110,7 +2052,7 @@ SELECT
 	id, workspace_id, title, description, status, priority,
 	assignee_type, assignee_id, creator_type, creator_id,
 	parent_issue_id, position, start_date, due_date, created_at, updated_at, last_activity_at,
-	number, project_id, metadata, stage, properties, revision, group_total
+	number, metadata, stage, properties, revision, group_total
 FROM ranked
 WHERE rn > %s AND rn <= %s + %s
 ORDER BY
@@ -2154,7 +2096,6 @@ ORDER BY
 			&row.UpdatedAt,
 			&row.LastActivityAt,
 			&row.Number,
-			&row.ProjectID,
 			&row.Metadata,
 			&row.Stage,
 			&row.Properties,
@@ -2509,11 +2450,6 @@ func (h *Handler) ChildIssueProgress(w http.ResponseWriter, r *http.Request) {
 // the same Operating Protocol briefing it would for an issue assigned to
 // the squad, so it can choose to delegate to a squad member as usual.
 //
-// ProjectID is optional and lets the modal target a specific project so
-// the agent's `enact issue create` invocation passes `--project <uuid>`
-// instead of letting it default. The frontend remembers the user's last
-// pick per workspace, so frequent users skip retyping "in project X".
-//
 // ParentIssueID is optional and is set by the "Add sub issue" entry point
 // when the modal is opened from an existing issue. The agent passes it
 // through as `--parent <uuid>` so the new issue is filed as a sub-issue,
@@ -2525,7 +2461,6 @@ type QuickCreateIssueRequest struct {
 	Prompt        string   `json:"prompt"`
 	Priority      string   `json:"priority,omitempty"`
 	DueDate       string   `json:"due_date,omitempty"`
-	ProjectID     string   `json:"project_id,omitempty"`
 	ParentIssueID string   `json:"parent_issue_id,omitempty"`
 	AttachmentIDs []string `json:"attachment_ids,omitempty"`
 }
@@ -2685,26 +2620,6 @@ func (h *Handler) QuickCreateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optional project_id — validate it belongs to the same workspace before
-	// pinning the task to it. The handler is the trust boundary; the frontend
-	// already only shows projects from the active workspace, but we re-check
-	// here so a forged request can't smuggle a foreign project ID through.
-	var projectUUID pgtype.UUID
-	if strings.TrimSpace(req.ProjectID) != "" {
-		pid, ok := parseUUIDOrBadRequest(w, req.ProjectID, "project_id")
-		if !ok {
-			return
-		}
-		if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-			ID:          pid,
-			WorkspaceID: wsUUID,
-		}); err != nil {
-			writeError(w, http.StatusBadRequest, "project not found")
-			return
-		}
-		projectUUID = pid
-	}
-
 	// Optional parent_issue_id — validate same-workspace membership just like
 	// the regular CreateIssue path. Frontend seeds this from the "Add sub
 	// issue" entry, but the handler re-checks so a forged request can't
@@ -2726,7 +2641,7 @@ func (h *Handler) QuickCreateIssue(w http.ResponseWriter, r *http.Request) {
 		parentIssueUUID = pid
 	}
 
-	task, err := h.TaskService.EnqueueQuickCreateTask(r.Context(), wsUUID, requesterUUID, agentUUID, squadUUID, prompt, priority, dueDate, projectUUID, parentIssueUUID, attachmentIDs)
+	task, err := h.TaskService.EnqueueQuickCreateTask(r.Context(), wsUUID, requesterUUID, agentUUID, squadUUID, prompt, priority, dueDate, parentIssueUUID, attachmentIDs)
 	if err != nil {
 		slog.Warn("quick-create enqueue failed", append(logger.RequestAttrs(r), "error", err)...)
 		writeError(w, http.StatusInternalServerError, "failed to enqueue quick-create task")
@@ -2841,7 +2756,6 @@ type CreateIssueRequest struct {
 	AssigneeType  *string  `json:"assignee_type"`
 	AssigneeID    *string  `json:"assignee_id"`
 	ParentIssueID *string  `json:"parent_issue_id"`
-	ProjectID     *string  `json:"project_id"`
 	Stage         *int32   `json:"stage,omitempty"`
 	StartDate     *string  `json:"start_date"`
 	DueDate       *string  `json:"due_date"`
@@ -2928,14 +2842,6 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var parentIssueID pgtype.UUID
-	var projectID pgtype.UUID
-	if req.ProjectID != nil {
-		id, ok := parseUUIDOrBadRequest(w, *req.ProjectID, "project_id")
-		if !ok {
-			return
-		}
-		projectID = id
-	}
 	if req.ParentIssueID != nil {
 		id, ok := parseUUIDOrBadRequest(w, *req.ParentIssueID, "parent_issue_id")
 		if !ok {
@@ -2943,7 +2849,7 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		}
 		parentIssueID = id
 	}
-	// Cross-workspace parent / project existence is enforced inside
+	// Cross-workspace parent existence is enforced inside
 	// IssueService.Create (atomically with the create), so every entry
 	// point — HTTP, Lark, future MCP — gets the same boundary check
 	// without duplicating the lookup here.
@@ -3075,7 +2981,6 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		CreatorType:    creatorType,
 		CreatorID:      parseUUID(actualCreatorID),
 		ParentIssueID:  parentIssueID,
-		ProjectID:      projectID,
 		StartDate:      startDate,
 		DueDate:        dueDate,
 		OriginType:     originType,
@@ -3120,10 +3025,6 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, service.ErrParentIssueNotFound) {
 		writeError(w, http.StatusBadRequest, "parent issue not found in this workspace")
-		return
-	}
-	if errors.Is(err, service.ErrProjectNotFound) {
-		writeError(w, http.StatusBadRequest, "project not found in this workspace")
 		return
 	}
 	if errors.Is(err, service.ErrIssueLabelNotFound) {
@@ -3176,7 +3077,6 @@ type UpdateIssueRequest struct {
 	StartDate       *string  `json:"start_date"`
 	DueDate         *string  `json:"due_date"`
 	ParentIssueID   *string  `json:"parent_issue_id"`
-	ProjectID       *string  `json:"project_id"`
 	Stage           *int32   `json:"stage"`
 	// AttachmentIDs lets the description editor bind newly uploaded files to
 	// this issue so they surface in `GET /api/issues/:id/attachments` and the
@@ -3264,9 +3164,6 @@ func refreshUntouchedNullableIssueParams(params *db.UpdateIssueParams, current d
 	}
 	if _, touched := rawFields["parent_issue_id"]; !touched {
 		params.ParentIssueID = current.ParentIssueID
-	}
-	if _, touched := rawFields["project_id"]; !touched {
-		params.ProjectID = current.ProjectID
 	}
 	if _, touched := rawFields["stage"]; !touched {
 		params.Stage = current.Stage
@@ -3405,7 +3302,6 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		StartDate:     prevIssue.StartDate,
 		DueDate:       prevIssue.DueDate,
 		ParentIssueID: prevIssue.ParentIssueID,
-		ProjectID:     prevIssue.ProjectID,
 		Stage:         prevIssue.Stage,
 	}
 	if req.ExpectedRevision != nil {
@@ -3530,30 +3426,6 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 			params.ParentIssueID = pgtype.UUID{Valid: false} // explicit null = remove parent
 		}
 	}
-	if _, ok := rawFields["project_id"]; ok {
-		if req.ProjectID != nil {
-			projectUUID, ok := parseUUIDOrBadRequest(w, *req.ProjectID, "project_id")
-			if !ok {
-				return
-			}
-			if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-				ID:          projectUUID,
-				WorkspaceID: prevIssue.WorkspaceID,
-			}); err != nil {
-				if !isNotFound(err) {
-					slog.Error("update issue: validate project scope",
-						append(logger.RequestAttrs(r), "project_id", uuidToString(projectUUID), "error", err)...)
-					writeError(w, http.StatusInternalServerError, "failed to validate project")
-					return
-				}
-				writeError(w, http.StatusBadRequest, "project not found in this workspace")
-				return
-			}
-			params.ProjectID = projectUUID
-		} else {
-			params.ProjectID = pgtype.UUID{Valid: false}
-		}
-	}
 	if _, ok := rawFields["stage"]; ok {
 		if req.Stage != nil {
 			if *req.Stage < 1 {
@@ -3632,11 +3504,6 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		(prevIssue.AssigneeType.String != issue.AssigneeType.String || uuidToString(prevIssue.AssigneeID) != uuidToString(issue.AssigneeID))
 	statusChanged := req.Status != nil && prevIssue.Status != issue.Status
 	priorityChanged := req.Priority != nil && prevIssue.Priority != issue.Priority
-	// project_changed gates the client's per-project issue-list refetch the way
-	// status/assignee flags gate theirs. Without it the client must diff
-	// project_id against its own cache, which breaks once an optimistic local
-	// move has overwritten the cached value (ENA-3669 / #4548).
-	projectChanged := req.ProjectID != nil && uuidToString(prevIssue.ProjectID) != uuidToString(issue.ProjectID)
 	descriptionChanged := req.Description != nil && textToPtr(prevIssue.Description) != resp.Description
 	titleChanged := req.Title != nil && prevIssue.Title != issue.Title
 	prevStartDate := dateToPtr(prevIssue.StartDate)
@@ -3651,7 +3518,6 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		"assignee_changed":    assigneeChanged,
 		"status_changed":      statusChanged,
 		"priority_changed":    priorityChanged,
-		"project_changed":     projectChanged,
 		"start_date_changed":  startDateChanged,
 		"due_date_changed":    dueDateChanged,
 		"description_changed": descriptionChanged,
@@ -4037,7 +3903,7 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 		req.Updates.Priority != nil ||
 		req.Updates.Position != nil
 	if !hasMutation {
-		for _, k := range []string{"assignee_type", "assignee_id", "start_date", "due_date", "parent_issue_id", "project_id", "stage"} {
+		for _, k := range []string{"assignee_type", "assignee_id", "start_date", "due_date", "parent_issue_id", "stage"} {
 			if _, ok := rawUpdates[k]; ok {
 				hasMutation = true
 				break
@@ -4070,31 +3936,6 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// The batch shares one project_id, so it is checked once here rather than
-	// per issue, and rejected instead of skipped like the per-item guards in
-	// the loop: a foreign project invalidates the whole request.
-	batchProjectID := pgtype.UUID{Valid: false}
-	if _, ok := rawUpdates["project_id"]; ok && req.Updates.ProjectID != nil {
-		projectUUID, ok := parseUUIDOrBadRequest(w, *req.Updates.ProjectID, "project_id")
-		if !ok {
-			return
-		}
-		if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-			ID:          projectUUID,
-			WorkspaceID: wsUUID,
-		}); err != nil {
-			if !isNotFound(err) {
-				slog.Error("batch update issues: validate project scope",
-					append(logger.RequestAttrs(r), "project_id", uuidToString(projectUUID), "error", err)...)
-				writeError(w, http.StatusInternalServerError, "failed to validate project")
-				return
-			}
-			writeError(w, http.StatusBadRequest, "project not found in this workspace")
-			return
-		}
-		batchProjectID = projectUUID
-	}
-
 	updated := 0
 	// One Resolver for the whole batch — a per-issue filler would query the
 	// catalog once per custom-status row. (ENA-6243)
@@ -4123,7 +3964,6 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 			StartDate:     prevIssue.StartDate,
 			DueDate:       prevIssue.DueDate,
 			ParentIssueID: prevIssue.ParentIssueID,
-			ProjectID:     prevIssue.ProjectID,
 			Stage:         prevIssue.Stage,
 		}
 
@@ -4222,10 +4062,6 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 				params.ParentIssueID = pgtype.UUID{Valid: false}
 			}
 		}
-		if _, ok := rawUpdates["project_id"]; ok {
-			// Resolved before the loop; an explicit null stays invalid and clears.
-			params.ProjectID = batchProjectID
-		}
 		if _, ok := rawUpdates["stage"]; ok {
 			if req.Updates.Stage != nil {
 				if *req.Updates.Stage < 1 {
@@ -4286,14 +4122,12 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 			(prevIssue.AssigneeType.String != issue.AssigneeType.String || uuidToString(prevIssue.AssigneeID) != uuidToString(issue.AssigneeID))
 		statusChanged := req.Updates.Status != nil && prevIssue.Status != issue.Status
 		priorityChanged := req.Updates.Priority != nil && prevIssue.Priority != issue.Priority
-		projectChanged := req.Updates.ProjectID != nil && uuidToString(prevIssue.ProjectID) != uuidToString(issue.ProjectID)
 
 		h.publish(protocol.EventIssueUpdated, workspaceID, actorType, actorID, map[string]any{
 			"issue":            resp,
 			"assignee_changed": assigneeChanged,
 			"status_changed":   statusChanged,
 			"priority_changed": priorityChanged,
-			"project_changed":  projectChanged,
 		})
 
 		// Reassignment does not cancel existing tasks (#4963 / ENA-4113) —

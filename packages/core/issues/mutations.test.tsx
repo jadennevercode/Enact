@@ -50,7 +50,6 @@ function makeIssue(idx: number, overrides: Partial<Issue> = {}): Issue {
     creator_type: "member",
     creator_id: "user-1",
     parent_issue_id: null,
-    project_id: null,
     position: idx,
     stage: null,
     start_date: null,
@@ -100,14 +99,11 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
   const sort: IssueSortParam = { sort_by: "position", sort_direction: undefined };
   const myScope = "assigned";
   const myFilter = { assignee_id: "user-1" };
-  const projectScope = "project:p1";
-  const projectFilter = { project_id: "p1" };
   const wsKey = issueKeys.listSorted(WS_ID, sort);
   const inboxKey = inboxKeys.list(WS_ID);
-  // My-Issues AND the Project board both ride this myList cache; a move that
-  // only patched the workspace cache snaps back on those boards.
+  // My-Issues rides this myList cache; a move that only patched the workspace
+  // cache snaps back on that board.
   const myKey = issueKeys.myListSorted(WS_ID, myScope, myFilter, sort);
-  const projectKey = issueKeys.myListSorted(WS_ID, projectScope, projectFilter, sort);
 
   let qc: QueryClient;
   let updateIssue: ReturnType<typeof vi.fn<(id: string, data: unknown) => Promise<Issue>>>;
@@ -143,7 +139,6 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
     setApiInstance({ updateIssue, moveIssue } as unknown as ApiClient);
     qc.setQueryData<ListIssuesCache>(wsKey, makeBucketed());
     qc.setQueryData<ListIssuesCache>(myKey, makeBucketed());
-    qc.setQueryData<ListIssuesCache>(projectKey, makeBucketed());
     qc.setQueryData<InboxItem[]>(inboxKey, [
       makeInboxItem("inbox-1", "issue-1"),
       makeInboxItem("inbox-2", "issue-2"),
@@ -172,7 +167,7 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
     });
 
     // Optimistic state — the regression: myList must move too, not just ws.
-    for (const key of [wsKey, myKey, projectKey]) {
+    for (const key of [wsKey, myKey]) {
       expect(bucketIds(key, "todo")).toEqual([]);
       expect(bucketIds(key, "in_progress")).toEqual(["issue-1"]);
     }
@@ -182,7 +177,7 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
     });
 
     // Authoritative settle keeps the card in place in both caches.
-    for (const key of [wsKey, myKey, projectKey]) {
+    for (const key of [wsKey, myKey]) {
       expect(bucketIds(key, "in_progress")).toEqual(["issue-1"]);
     }
   });
@@ -380,7 +375,7 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
         .catch(() => {});
     });
 
-    for (const key of [wsKey, myKey, projectKey]) {
+    for (const key of [wsKey, myKey]) {
       expect(bucketIds(key, "todo")).toEqual(["issue-1"]);
       expect(bucketIds(key, "in_progress")).toEqual([]);
     }
@@ -427,12 +422,12 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
     expect(invalidatedKeys).not.toContainEqual(issueKeys.myAll(WS_ID));
   });
 
-  it("surgically removes the issue from the old project's list on a project move (no blanket myAll refetch)", async () => {
-    // A project move makes the issue leave the old project's filtered list.
-    // The membership-aware coordinator removes the card from that loaded list
-    // in onMutate — deterministic, no WS echo or refetch needed — replacing
-    // the old blanket "invalidate myAll on settle" safety net (ENA-3669 /
-    // #4548). Lists whose filter the move cannot affect stay untouched.
+  it("surgically removes the issue from the assignee-filtered list on a reassignment (no blanket myAll refetch)", async () => {
+    // A reassignment makes the issue leave the assignee-filtered list. The
+    // membership-aware coordinator removes the card from that loaded list in
+    // onMutate — deterministic, no WS echo or refetch needed — replacing the
+    // old blanket "invalidate myAll on settle" safety net (ENA-3669 / #4548).
+    // Lists whose filter the move cannot affect stay untouched.
     let resolve!: (issue: Issue) => void;
     updateIssue.mockReturnValue(
       new Promise<Issue>((r) => {
@@ -446,25 +441,28 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
     });
 
     act(() => {
-      result.current.mutate({ id: "issue-1", project_id: "project-9" });
+      result.current.mutate({
+        id: "issue-1",
+        assignee_type: "member",
+        assignee_id: "user-9",
+      });
     });
 
-    // Optimistic: gone from the old project's list immediately; the
-    // workspace board and the assignee-filtered list keep the card.
-    expect(bucketIds(projectKey, "todo")).toEqual([]);
+    // Optimistic: gone from the assignee-filtered list immediately; the
+    // unfiltered workspace board keeps the card.
+    expect(bucketIds(myKey, "todo")).toEqual([]);
     expect(bucketIds(wsKey, "todo")).toEqual(["issue-1"]);
-    expect(bucketIds(myKey, "todo")).toEqual(["issue-1"]);
 
     await act(async () => {
-      resolve(makeIssue(1, { project_id: "project-9" }));
+      resolve(makeIssue(1, { assignee_type: "member", assignee_id: "user-9" }));
     });
 
-    expect(bucketIds(projectKey, "todo")).toEqual([]);
+    expect(bucketIds(myKey, "todo")).toEqual([]);
     const invalidatedKeys = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
     expect(invalidatedKeys).not.toContainEqual(issueKeys.myAll(WS_ID));
   });
 
-  it("rolls the membership removal back when a project move fails", async () => {
+  it("rolls the membership removal back when a reassignment fails", async () => {
     updateIssue.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() => useUpdateIssue(), {
@@ -473,11 +471,15 @@ describe("useUpdateIssue — optimistic move keeps every bucketed board in sync"
 
     await act(async () => {
       await result.current
-        .mutateAsync({ id: "issue-1", project_id: "project-9" })
+        .mutateAsync({
+          id: "issue-1",
+          assignee_type: "member",
+          assignee_id: "user-9",
+        })
         .catch(() => {});
     });
 
-    expect(bucketIds(projectKey, "todo")).toEqual(["issue-1"]);
+    expect(bucketIds(myKey, "todo")).toEqual(["issue-1"]);
   });
 });
 
@@ -723,14 +725,10 @@ describe("useBatchUpdateIssues — optimistic patch covers filtered boards too",
     expect(invalidatedKeys).not.toContainEqual(issueKeys.list(WS_ID));
   });
 
-  it("surgically removes moved issues from the old project's list (no blanket myAll refetch)", async () => {
-    // Mirrors useUpdateIssue: a batch project move drops the cards from the
-    // old project's loaded list via the membership-aware coordinator instead
-    // of refetching every filtered list (ENA-3669 / #4548).
-    const projectScope = "project:p1";
-    const projectFilter = { project_id: "p1" };
-    const projectKey = issueKeys.myListSorted(WS_ID, projectScope, projectFilter, sort);
-    qc.setQueryData<ListIssuesCache>(projectKey, makeBucketed());
+  it("surgically removes reassigned issues from the assignee-filtered list (no blanket myAll refetch)", async () => {
+    // Mirrors useUpdateIssue: a batch reassignment drops the cards from the
+    // assignee-filtered list via the membership-aware coordinator instead of
+    // refetching every filtered list (ENA-3669 / #4548).
     batchUpdateIssues.mockResolvedValue({ updated: 1 });
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
 
@@ -741,13 +739,13 @@ describe("useBatchUpdateIssues — optimistic patch covers filtered boards too",
     await act(async () => {
       await result.current.mutateAsync({
         ids: ["issue-1"],
-        updates: { project_id: "project-9" },
+        updates: { assignee_type: "member", assignee_id: "user-9" },
       });
     });
 
-    expect(bucketIds(projectKey, "todo")).toEqual([]);
-    // The assignee-filtered list is untouched by a project move.
-    expect(bucketIds(myKey, "todo")).toEqual(["issue-1"]);
+    expect(bucketIds(myKey, "todo")).toEqual([]);
+    // The unfiltered workspace board is untouched by a reassignment.
+    expect(bucketIds(wsKey, "todo")).toEqual(["issue-1"]);
     const invalidatedKeys = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
     expect(invalidatedKeys).not.toContainEqual(issueKeys.myAll(WS_ID));
   });

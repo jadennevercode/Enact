@@ -79,7 +79,6 @@ function installApi(listIssueStatuses: () => Promise<unknown>) {
     },
     listIssueTableFacets: async () => ({ query_fingerprint: "test", total: 0, facets: [] }),
     listIssues: async () => ({ issues: [], total: 0 }),
-    listProjects: async () => ({ projects: [], total: 0 }),
     getWorkspaceWorkingAgents: async () => [],
     getChildIssueProgress: async () => ({ progress: [] }),
     getAgentTaskSnapshot: async () => ({ tasks: [] }),

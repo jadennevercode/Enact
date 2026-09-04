@@ -48,7 +48,7 @@ export function ChatEmptyState({ hasSessions, agentName, onPickPrompt }: Props) 
               ✨ They know your workspace —{" "}
             </Text>
             <Text className="text-sm font-medium text-foreground">
-              issues, projects, skills
+              issues, skills
             </Text>
             <Text className="text-sm text-muted-foreground">.</Text>
           </Text>

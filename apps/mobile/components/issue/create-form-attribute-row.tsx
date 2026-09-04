@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { AttributeChip } from "@/components/issue/attribute-chip";
 import { ActorAvatar } from "@/components/ui/actor-avatar";
 import { PriorityIcon } from "@/components/ui/priority-icon";
-import { ProjectIcon } from "@/components/ui/project-icon";
 import { StatusIcon } from "@/components/ui/status-icon";
 import { formatDateOnly } from "@enact/core/issues/date";
 import { useActorLookup } from "@/data/use-actor-name";
@@ -34,14 +33,12 @@ type NewIssuePickerField =
   | "status"
   | "priority"
   | "assignee"
-  | "project"
   | "due-date";
 
 const NEW_ISSUE_PICKER_PATHNAMES = {
   status: "/[workspace]/new-issue-picker/status",
   priority: "/[workspace]/new-issue-picker/priority",
   assignee: "/[workspace]/new-issue-picker/assignee",
-  project: "/[workspace]/new-issue-picker/project",
   "due-date": "/[workspace]/new-issue-picker/due-date",
 } as const satisfies Record<NewIssuePickerField, string>;
 
@@ -51,7 +48,6 @@ export function CreateFormAttributeRow() {
   const priority = useNewIssueDraftStore((s) => s.priority);
   const assignee = useNewIssueDraftStore((s) => s.assignee);
   const dueDate = useNewIssueDraftStore((s) => s.dueDate);
-  const project = useNewIssueDraftStore((s) => s.project);
 
   const { getName } = useActorLookup();
   // The draft can hold a custom status the user picked in the sheet. (ENA-6243)
@@ -124,18 +120,6 @@ export function CreateFormAttributeRow() {
           label={dueDate ? formatDueDate(dueDate) : "Due date"}
           variant={dueDate ? "filled" : "dimmed"}
           onPress={() => open("due-date")}
-        />
-        <AttributeChip
-          icon={
-            project ? (
-              <ProjectIcon icon={project.icon} size="sm" />
-            ) : (
-              <Ionicons name="folder-outline" size={14} color="#a1a1aa" />
-            )
-          }
-          label={project?.title ?? "Project"}
-          variant={project ? "filled" : "dimmed"}
-          onPress={() => open("project")}
         />
       </View>
     </View>

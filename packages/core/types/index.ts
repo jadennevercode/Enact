@@ -138,11 +138,8 @@ export type {
 export type { IssueSubscriber } from "./subscriber";
 export type * from "./events";
 export type * from "./api";
-export type {
-  Attachment,
-  ProjectArtifact,
-  ListProjectArtifactsResponse,
-} from "./attachment";
+export type { Attachment } from "./attachment";
+export type { Artifact, ListArtifactsResponse } from "./artifacts";
 export {
   attachmentDownloadPath,
   attachmentIdFromDownloadURL,
@@ -173,22 +170,16 @@ export type {
 } from "./chat";
 export type { StorageAdapter } from "./storage";
 export type {
-  Project,
-  ProjectStatus,
-  ProjectPriority,
-  CreateProjectRequest,
-  UpdateProjectRequest,
-  ListProjectsResponse,
-  ProjectResource,
-  ProjectResourceType,
-  ProjectResourceRef,
+  WorkspaceResource,
+  WorkspaceResourceType,
+  WorkspaceResourceRef,
   GithubRepoResourceRef,
   LocalDirectoryResourceRef,
   LocalDirectoryExecutionMode,
-  CreateProjectResourceRequest,
-  UpdateProjectResourceRequest,
-  ListProjectResourcesResponse,
-} from "./project";
+  CreateWorkspaceResourceRequest,
+  UpdateWorkspaceResourceRequest,
+  ListWorkspaceResourcesResponse,
+} from "./resources";
 export type { PinnedItem, PinnedItemType, CreatePinRequest, ReorderPinsRequest } from "./pin";
 export type {
   GitHubInstallation,

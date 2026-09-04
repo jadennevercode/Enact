@@ -381,9 +381,11 @@ WHERE storage_key = $1
 }
 
 func TestDeleteWorkspace_DirtyTriggersHaveTeardownGuard(t *testing.T) {
+	// trg_issue_delete_dirty_hourly is deliberately absent: migration 435
+	// dropped it with the project dimension, since every remaining bucket-key
+	// column lives on the queue row that trg_atq_dirty_hourly already covers.
 	for _, triggerName := range []string{
 		"trg_atq_dirty_hourly",
-		"trg_issue_delete_dirty_hourly",
 		"trg_tu_dirty_hourly",
 	} {
 		var definition string

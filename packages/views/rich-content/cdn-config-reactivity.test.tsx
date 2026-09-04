@@ -56,9 +56,6 @@ vi.mock("../issues/components/issue-mention-card", () => ({
   IssueMentionCard: ({ issueId }: { issueId: string }) => <span>{issueId}</span>,
 }));
 
-vi.mock("../projects/components/project-chip", () => ({
-  ProjectChip: ({ projectId }: { projectId: string }) => <span>{projectId}</span>,
-}));
 
 vi.mock("../editor/link-hover-card", () => ({
   useLinkHover: () => ({}),

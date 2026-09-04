@@ -62,45 +62,45 @@ describe("issue surface view store registry", () => {
   it("isolates view state by surface key inside one workspace registry", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const projectA = getIssueSurfaceViewStore("project:a");
-    const projectB = getIssueSurfaceViewStore("project:b");
+    const surfaceA = getIssueSurfaceViewStore("actor:a");
+    const surfaceB = getIssueSurfaceViewStore("actor:b");
 
-    projectA.getState().setViewMode("list");
-    projectA.getState().togglePriorityFilter("high");
+    surfaceA.getState().setViewMode("list");
+    surfaceA.getState().togglePriorityFilter("high");
 
-    expect(projectA.getState().viewMode).toBe("list");
-    expect(projectB.getState().viewMode).toBe("board");
-    expect(projectB.getState().priorityFilters).toEqual([]);
+    expect(surfaceA.getState().viewMode).toBe("list");
+    expect(surfaceB.getState().viewMode).toBe("board");
+    expect(surfaceB.getState().priorityFilters).toEqual([]);
 
     const raw = localStorage.getItem(`${ISSUE_SURFACE_VIEW_STORAGE_KEY}:acme`);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string);
-    expect(parsed.state.surfaces["project:a"].state.viewMode).toBe("list");
-    expect(parsed.state.surfaces["project:a"].state.priorityFilters).toEqual([
+    expect(parsed.state.surfaces["actor:a"].state.viewMode).toBe("list");
+    expect(parsed.state.surfaces["actor:a"].state.priorityFilters).toEqual([
       "high",
     ]);
-    expect(parsed.state.surfaces["project:b"]).toBeUndefined();
+    expect(parsed.state.surfaces["actor:b"]).toBeUndefined();
   });
 
   it("persists table columns, order, widths, grouping, and calculation per surface", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const projectA = getIssueSurfaceViewStore("project:table-a");
-    const projectB = getIssueSurfaceViewStore("project:table-b");
+    const surfaceA = getIssueSurfaceViewStore("actor:table-a");
+    const surfaceB = getIssueSurfaceViewStore("actor:table-b");
 
-    projectA.getState().setViewMode("table");
-    projectA.getState().toggleTableColumn("identifier");
-    projectA.getState().toggleTableColumn("property:estimate");
-    projectA
+    surfaceA.getState().setViewMode("table");
+    surfaceA.getState().toggleTableColumn("identifier");
+    surfaceA.getState().toggleTableColumn("property:estimate");
+    surfaceA
       .getState()
       .reorderTableColumn("property:estimate", "identifier");
-    projectA.getState().setTableColumnWidth("property:estimate", 184);
-    projectA.getState().setTableGrouping("status");
-    projectA.getState().setTableCalculation("average");
+    surfaceA.getState().setTableColumnWidth("property:estimate", 184);
+    surfaceA.getState().setTableGrouping("status");
+    surfaceA.getState().setTableCalculation("average");
 
-    expect(projectA.getState().viewMode).toBe("table");
+    expect(surfaceA.getState().viewMode).toBe("table");
     expect(
-      projectA.getState().tableColumns.map((column) => column.key),
+      surfaceA.getState().tableColumns.map((column) => column.key),
     ).toEqual([
       "title",
       "status",
@@ -112,17 +112,17 @@ describe("issue surface view store registry", () => {
       "identifier",
     ]);
     expect(
-      projectA
+      surfaceA
         .getState()
         .tableColumns.find((column) => column.key === "property:estimate")
         ?.width,
     ).toBe(184);
-    expect(projectA.getState().tableGrouping).toBe("status");
-    expect(projectA.getState().tableCalculation).toBe("average");
+    expect(surfaceA.getState().tableGrouping).toBe("status");
+    expect(surfaceA.getState().tableCalculation).toBe("average");
 
-    expect(projectB.getState().viewMode).toBe("board");
+    expect(surfaceB.getState().viewMode).toBe("board");
     expect(
-      projectB.getState().tableColumns.some((column) =>
+      surfaceB.getState().tableColumns.some((column) =>
         column.key.startsWith("property:"),
       ),
     ).toBe(false);
@@ -130,44 +130,44 @@ describe("issue surface view store registry", () => {
     const raw = localStorage.getItem(`${ISSUE_SURFACE_VIEW_STORAGE_KEY}:acme`);
     const parsed = JSON.parse(raw as string);
     expect(
-      parsed.state.surfaces["project:table-a"].state.tableColumns,
+      parsed.state.surfaces["actor:table-a"].state.tableColumns,
     ).toContainEqual({ key: "property:estimate", width: 184 });
   });
 
   it("rehydrates existing surface stores when the workspace changes", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const projectA = getIssueSurfaceViewStore("project:a");
-    projectA.getState().setViewMode("list");
+    const surfaceA = getIssueSurfaceViewStore("actor:a");
+    surfaceA.getState().setViewMode("list");
 
     setCurrentWorkspace("beta", "ws_b");
     await flush();
-    expect(projectA.getState().viewMode).toBe("board");
-    projectA.getState().setViewMode("swimlane");
+    expect(surfaceA.getState().viewMode).toBe("board");
+    surfaceA.getState().setViewMode("swimlane");
 
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    expect(projectA.getState().viewMode).toBe("list");
+    expect(surfaceA.getState().viewMode).toBe("list");
 
     setCurrentWorkspace("beta", "ws_b");
     await flush();
-    expect(projectA.getState().viewMode).toBe("swimlane");
+    expect(surfaceA.getState().viewMode).toBe("swimlane");
   });
 
   it("clears one surface without touching sibling surfaces", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const projectA = getIssueSurfaceViewStore("project:a");
-    const projectB = getIssueSurfaceViewStore("project:b");
-    projectA.getState().setViewMode("list");
-    projectB.getState().setViewMode("gantt");
+    const surfaceA = getIssueSurfaceViewStore("actor:a");
+    const surfaceB = getIssueSurfaceViewStore("actor:b");
+    surfaceA.getState().setViewMode("list");
+    surfaceB.getState().setViewMode("gantt");
 
-    clearIssueSurfaceViewState("project:a");
+    clearIssueSurfaceViewState("actor:a");
 
-    expect(projectA.getState().viewMode).toBe("board");
-    expect(projectB.getState().viewMode).toBe("gantt");
-    expect(getIssueSurfaceViewStateRegistrySnapshot()["project:a"]).toBeUndefined();
-    expect(getIssueSurfaceViewStateRegistrySnapshot()["project:b"]?.state.viewMode).toBe(
+    expect(surfaceA.getState().viewMode).toBe("board");
+    expect(surfaceB.getState().viewMode).toBe("gantt");
+    expect(getIssueSurfaceViewStateRegistrySnapshot()["actor:a"]).toBeUndefined();
+    expect(getIssueSurfaceViewStateRegistrySnapshot()["actor:b"]?.state.viewMode).toBe(
       "gantt",
     );
   });
@@ -175,25 +175,25 @@ describe("issue surface view store registry", () => {
   it("prunes invalid surfaces and resets live stores for pruned keys", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const projectA = getIssueSurfaceViewStore("project:a");
-    const projectB = getIssueSurfaceViewStore("project:b");
-    projectA.getState().setViewMode("list");
-    projectB.getState().setViewMode("gantt");
+    const surfaceA = getIssueSurfaceViewStore("actor:a");
+    const surfaceB = getIssueSurfaceViewStore("actor:b");
+    surfaceA.getState().setViewMode("list");
+    surfaceB.getState().setViewMode("gantt");
 
-    pruneIssueSurfaceViewStates(["project:a"]);
+    pruneIssueSurfaceViewStates(["actor:a"]);
 
-    expect(projectA.getState().viewMode).toBe("list");
-    expect(projectB.getState().viewMode).toBe("board");
-    expect(getIssueSurfaceViewStateRegistrySnapshot()["project:a"]?.state.viewMode).toBe(
+    expect(surfaceA.getState().viewMode).toBe("list");
+    expect(surfaceB.getState().viewMode).toBe("board");
+    expect(getIssueSurfaceViewStateRegistrySnapshot()["actor:a"]?.state.viewMode).toBe(
       "list",
     );
-    expect(getIssueSurfaceViewStateRegistrySnapshot()["project:b"]).toBeUndefined();
+    expect(getIssueSurfaceViewStateRegistrySnapshot()["actor:b"]).toBeUndefined();
   });
 
   it("works as a real StoreApi with ViewStoreProvider subscriptions", async () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    const store = getIssueSurfaceViewStore("project:provider");
+    const store = getIssueSurfaceViewStore("actor:provider");
 
     function Probe() {
       const viewMode = useViewStore((state) => state.viewMode);

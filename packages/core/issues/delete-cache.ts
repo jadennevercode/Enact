@@ -207,10 +207,6 @@ export function cleanupDeletedIssueCaches(
   qc.invalidateQueries({ queryKey: issueKeys.myAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.flatAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
-  // Project Gantt cache lives outside `myAll`, so it needs an explicit
-  // refresh when an issue is removed — the deleted row may have been a
-  // scheduled bar visible right now.
-  qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
   invalidateDeletedIssueDependentCaches(qc, wsId);
 
   // Recent Issues store persists to localStorage and survives reloads, so a

@@ -215,10 +215,6 @@
         "label": "Go to Issues",
         "description": "Open the issue list."
       },
-      "goProjects": {
-        "label": "Go to Projects",
-        "description": "Open the project list."
-      },
       "goAutopilots": {
         "label": "Go to Autopilot",
         "description": "Open workspace automations."
@@ -275,7 +271,6 @@
       "priority": "Priority",
       "assignee": "Assignee",
       "labels": "Labels",
-      "project": "Project",
       "due_date": "Due date",
       "start_date": "Start date"
     }
@@ -316,6 +311,7 @@
       "tokens": "API Tokens",
       "general": "General",
       "repositories": "Repositories",
+      "resources": "Resources",
       "github": "GitHub",
       "integrations": "Integrations",
       "labs": "Labs",

@@ -314,7 +314,7 @@ func TestHealthHandlerRespondsWhileTaskRepoLookupWaits(t *testing.T) {
 	}
 }
 
-func TestRepoCheckoutUsesTaskScopedProjectRefByDefault(t *testing.T) {
+func TestRepoCheckoutUsesTaskScopedResourceRefByDefault(t *testing.T) {
 	t.Parallel()
 
 	const workspaceID = "ws-checkout"
@@ -382,7 +382,7 @@ func TestRepoCheckoutRejectsAnotherTaskWorkdir(t *testing.T) {
 	}
 }
 
-func TestRepoCheckoutExplicitRefOverridesProjectDefault(t *testing.T) {
+func TestRepoCheckoutExplicitRefOverridesResourceDefault(t *testing.T) {
 	t.Parallel()
 
 	const workspaceID = "ws-checkout"

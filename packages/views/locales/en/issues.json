@@ -56,12 +56,10 @@
     "no_results": "No results",
     "no_labels": "No labels yet",
     "no_assignee": "No assignee",
-    "no_project": "No project",
     "section_status": "Status",
     "section_priority": "Priority",
     "section_assignee": "Assignee",
     "section_creator": "Creator",
-    "section_project": "Project",
     "section_label": "Label",
     "section_date": "Date",
     "date_field": "Field",
@@ -101,7 +99,6 @@
     "group_status": "Status",
     "group_assignee": "Assignee",
     "group_parent": "Parent issue",
-    "group_project": "Project",
     "sort_manual": "Manual",
     "sort_status": "Status",
     "sort_priority": "Priority",
@@ -115,7 +112,6 @@
     "card_assignee": "Assignee",
     "card_start_date": "Start date",
     "card_due_date": "Due date",
-    "card_project": "Project",
     "card_labels": "Labels",
     "card_child_progress": "Sub-issue progress",
     "show_sub_issues": "Show sub-issues"
@@ -182,7 +178,6 @@
       "priority": "Priority",
       "assignee": "Assignee",
       "labels": "Labels",
-      "project": "Project",
       "start_date": "Start date",
       "due_date": "Due date",
       "created_at": "Created",
@@ -239,7 +234,6 @@
   "swimlane": {
     "no_parent": "No parent",
     "other_parents": "Other parents",
-    "no_project": "No project",
     "no_assignee": "Unassigned",
     "open_parent": "Open parent issue",
     "toggle_collapse": "Toggle lane"
@@ -256,7 +250,6 @@
   },
   "detail": {
     "not_found": "This issue does not exist or has been deleted in this workspace.",
-    "breadcrumb_project_unknown": "Unknown project",
     "back": "Back",
     "title_placeholder": "Issue title",
     "desc_placeholder": "Add description...",
@@ -313,7 +306,6 @@
     "prop_assignee": "Assignee",
     "prop_start_date": "Start date",
     "prop_due_date": "Due date",
-    "prop_project": "Project",
     "prop_labels": "Labels",
     "add_property_action": "Add property",
     "prop_created_by": "Created by",
@@ -370,6 +362,7 @@
       "close": "Close find"
     },
     "update_failed": "Failed to update issue",
+    "move_issue_failed": "Failed to move issue",
     "link_copied": "Link copied",
     "link_copy_failed": "Failed to copy link",
     "workdir_path_copied": "Workdir path copied",
@@ -512,6 +505,11 @@
     "title": "No issues match these filters",
     "hint": "Adjust or clear the filters to see the issues in this view.",
     "clear_button": "Clear filters"
+  },
+  "surface": {
+    "empty_title": "No issues yet",
+    "empty_hint": "Create an issue to start tracking work in this workspace.",
+    "empty_new_button": "New Issue"
   },
   "agent_live": {
     "is_working": "{{name}} is working",
@@ -740,9 +738,6 @@
     "hint_my_assigned": "Based on My issues · Assigned",
     "hint_my_created": "Based on My issues · Created",
     "hint_my_involved": "Based on My issues · Involved",
-    "hint_project": "Based on project “{{title}}”, available only on that project page",
-    "hint_project_agents": "Based on project “{{title}}” issues assigned to agents, available only on that project page",
-    "hint_project_members": "Based on project “{{title}}” issues assigned to members, available only on that project page",
     "my_private_note": "My issues views are visible only to you",
     "name_label": "Name",
     "visibility_label": "Visibility",

@@ -350,7 +350,7 @@
       "empty_description": "Describe its role, workflow, output, or constraints. A useful first draft will appear on the right.",
       "prompt_review": "Review frontend pull requests",
       "prompt_research": "Research competitors and summarize findings",
-      "prompt_assistant": "Help our team plan and write projects",
+      "prompt_assistant": "Help our team plan and write specs",
       "thinking": "Updating the draft…",
       "placeholder": "Describe the agent you need…",
       "send": "Send message"

@@ -42,10 +42,6 @@ export function dimsForDays(days: TimeRange): readonly Dim[] {
   );
 }
 
-/** Sentinel for "no project filter" — kept distinct from the empty string so
- *  it survives a refactor that ever lets a project be slug-keyed. */
-export const ALL_PROJECTS = "__all__";
-
 /**
  * Card-local segmented control — the pill toggle used *inside* a card to pick
  * what that card shows. The page header deliberately uses outline Buttons

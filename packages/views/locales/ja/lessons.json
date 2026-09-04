@@ -41,7 +41,6 @@
   "retrospectives": {
     "scope": {
       "issue": "タスク 1 件",
-      "project": "プロジェクト 1 件",
       "workspace": "ワークスペース全体"
     },
     "trigger": {

@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { useViewStore, useViewStoreApi } from "@enact/core/issues/stores/view-store-context";
 import type { GanttZoom } from "@enact/core/issues/stores/view-store";
-import { projectListOptions } from "@enact/core/projects/queries";
 import type { Issue, IssueStatusCategory } from "@enact/core/types";
 import { issueStatusCategory } from "@enact/core/issues";
 import { dateOnlyToUTCDate } from "@enact/core/issues/date";
@@ -19,7 +16,6 @@ import {
 import { Button } from "@enact/ui/components/ui/button";
 import { AppLink } from "../../navigation";
 import { ActorAvatar } from "../../common/actor-avatar";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { StatusIcon } from "./status-icon";
 import { PriorityIcon } from "./priority-icon";
 import { IssueActionsContextMenu } from "../actions";
@@ -323,13 +319,6 @@ function ScheduledRow({
   const { t } = useT("issues");
   const locale = useLocale();
   const p = useWorkspacePaths();
-  const wsId = useWorkspaceId();
-  const { data: projects = [] } = useQuery({
-    ...projectListOptions(wsId),
-    enabled: !!issue.project_id,
-  });
-  const project = issue.project_id ? projects.find((pr) => pr.id === issue.project_id) : undefined;
-
   const start = parseDay(issue.start_date);
   const due = parseDay(issue.due_date);
 
@@ -386,7 +375,6 @@ function ScheduledRow({
             {issue.identifier}
           </span>
           <span className="truncate flex-1">{issue.title}</span>
-          {project && <ProjectIcon project={project} size="sm" />}
           {issue.assignee_type && issue.assignee_id && (
             <ActorAvatar
               actorType={issue.assignee_type}

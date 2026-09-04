@@ -5,7 +5,7 @@ import { AppLink } from "../../navigation";
 import { useSortable, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Issue, IssueProperty, Project, UpdateIssueRequest } from "@enact/core/types";
+import type { Issue, IssueProperty, UpdateIssueRequest } from "@enact/core/types";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { propertyListOptions } from "@enact/core/properties";
@@ -18,7 +18,6 @@ import { PropertyIcon } from "../../common/property-icon";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { useActorName } from "@enact/core/workspace/hooks";
 import { useTimeAgo } from "../../i18n";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { PriorityIcon } from "./priority-icon";
 import { PriorityPicker, AssigneePicker, StartDatePicker, DueDatePicker } from "./pickers";
 import { useViewStore } from "@enact/core/issues/stores/view-store-context";
@@ -52,12 +51,10 @@ export const BoardCardContent = memo(function BoardCardContent({
   issue,
   editable = false,
   childProgress,
-  project,
 }: {
   issue: Issue;
   editable?: boolean;
   childProgress?: ChildProgress;
-  project?: Project;
 }) {
   const { t } = useT("issues");
   const timeAgo = useTimeAgo();
@@ -89,7 +86,6 @@ export const BoardCardContent = memo(function BoardCardContent({
   const hasAssignee = !!issue.assignee_type && !!issue.assignee_id;
   const showStartDate = storeProperties.startDate && issue.start_date;
   const showDueDate = storeProperties.dueDate && issue.due_date;
-  const showProject = storeProperties.project && project;
   const showChildProgress = storeProperties.childProgress && childProgress;
   const showLabels = storeProperties.labels && labels.length > 0;
   // Keeps the chip row from rendering an empty flex container when the status
@@ -200,18 +196,12 @@ export const BoardCardContent = memo(function BoardCardContent({
         );
       })()}
 
-      {/* Chip row: status + project + labels + custom property values.
+      {/* Chip row: status + labels + custom property values.
           The status chip renders only for a CUSTOM status — the column header
           already names the category. (ENA-6243) */}
-      {(showCustomStatus || showProject || showLabels || cardCustomProperties.length > 0) && (
+      {(showCustomStatus || showLabels || cardCustomProperties.length > 0) && (
         <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
           <CustomStatusChip status={issue.status} />
-          {showProject && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5 text-micro text-muted-foreground max-w-[160px]">
-              <ProjectIcon project={project} size="sm" />
-              <span className="truncate">{project!.title}</span>
-            </span>
-          )}
           {showLabels && labels.map((label) => (
             <LabelChip key={label.id} label={label} />
           ))}
@@ -326,12 +316,10 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) => {
 export const DraggableBoardCard = memo(function DraggableBoardCard({
   issue,
   childProgress,
-  project,
   disableSorting,
 }: {
   issue: Issue;
   childProgress?: ChildProgress;
-  project?: Project;
   disableSorting?: boolean;
 }) {
   const p = useWorkspacePaths();
@@ -373,7 +361,6 @@ export const DraggableBoardCard = memo(function DraggableBoardCard({
             issue={issue}
             editable
             childProgress={childProgress}
-            project={project}
           />
         </AppLink>
       </div>

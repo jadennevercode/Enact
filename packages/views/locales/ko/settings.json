@@ -215,10 +215,6 @@
         "label": "태스크로 이동",
         "description": "태스크 목록을 엽니다."
       },
-      "goProjects": {
-        "label": "프로젝트로 이동",
-        "description": "프로젝트 목록을 엽니다."
-      },
       "goAutopilots": {
         "label": "자동화로 이동",
         "description": "워크스페이스 자동화를 엽니다."
@@ -275,7 +271,6 @@
       "priority": "우선순위",
       "assignee": "담당자",
       "labels": "레이블",
-      "project": "프로젝트",
       "due_date": "마감일",
       "start_date": "시작일"
     }
@@ -316,6 +311,7 @@
       "tokens": "API 토큰",
       "general": "일반",
       "repositories": "저장소",
+      "resources": "리소스",
       "github": "GitHub",
       "integrations": "연동",
       "labs": "실험실",

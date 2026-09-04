@@ -903,7 +903,7 @@ RETURNING *;
 -- name: MarkAgentTaskWaitingLocalDirectory :one
 -- Transitions a freshly-dispatched task into 'waiting_local_directory' while
 -- the daemon waits for another in-flight task to release the path lock on a
--- project_resource of type local_directory. wait_reason carries a short
+-- workspace_resource of type local_directory. wait_reason carries a short
 -- human-readable hint (typically the contested path) that the UI surfaces
 -- alongside the status.
 --

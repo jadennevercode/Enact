@@ -31,7 +31,8 @@ const sidecarManifestFile = ".enact_sidecar_manifest.json"
 //     so the agent still discovers the Enact skill, just under a
 //     different directory name.
 //   - For Enact-only namespaces (.agent_context/issue_context.md,
-//     .enact/project/resources.json) the caller swallows the error
+//     .enact/project/resources.json — the workspace-resource sidecar) the
+//     caller swallows the error
 //     and proceeds — the agent's runtime brief already carries every
 //     fact that would have appeared in those files, so missing-from-
 //     disk is degraded behavior, not failure.

@@ -22,8 +22,6 @@ export type TabSubject =
   | { kind: "page"; page: WorkspacePageKey }
   /** A single issue detail. */
   | { kind: "issue"; id: string }
-  /** A single project detail. */
-  | { kind: "project"; id: string }
   /** A single autopilot detail. */
   | { kind: "autopilot"; id: string }
   /** An agent / member / squad detail (has an avatar identity). */
@@ -82,8 +80,10 @@ export function parseTabSubject(url: string): TabSubject {
       return id ? { kind: "issue", id } : { kind: "page", page: "issues" };
     case "my-issues":
       return { kind: "page", page: "myIssues" };
-    case "projects":
-      return id ? { kind: "project", id } : { kind: "page", page: "projects" };
+    case "artifacts":
+      // Artifacts is a section route with no per-file detail page; a file
+      // opens through `/attachments/:id/preview` instead.
+      return { kind: "page", page: "artifacts" };
     case "autopilots":
       return id ? { kind: "autopilot", id } : { kind: "page", page: "autopilots" };
     case "agents":
@@ -147,8 +147,6 @@ export function tabSubjectKey(subject: TabSubject): string {
       return `page:${subject.page}`;
     case "issue":
       return `issue:${subject.id}`;
-    case "project":
-      return `project:${subject.id}`;
     case "autopilot":
       return `autopilot:${subject.id}`;
     case "actor":

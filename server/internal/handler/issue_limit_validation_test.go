@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -27,17 +28,13 @@ func TestListIssues_LimitValidation(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	// Seed three issues in a dedicated project so the test is hermetic and
-	// not polluted by other tests' fixtures in the workspace.
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Limit Validation %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
+	// Seed three issues under a per-run metadata tag so the test is hermetic
+	// and not polluted by other tests' fixtures in the workspace.
+	scope := fmt.Sprintf("limit-validation-%d", suffix)
+	scopeFilter := "&metadata=" + url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope))
 	t.Cleanup(func() {
-		testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		testPool.Exec(context.Background(),
+			`DELETE FROM issue WHERE workspace_id = $1 AND metadata->>'scope' = $2`, testWorkspaceID, scope)
 	})
 
 	insertIssue := func(title string) string {
@@ -51,9 +48,9 @@ func TestListIssues_LimitValidation(t *testing.T) {
 		}
 		var id string
 		if err := testPool.QueryRow(ctx, `
-			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id)
-			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, $5) RETURNING id
-		`, testWorkspaceID, title, testUserID, number, projectID).Scan(&id); err != nil {
+			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, metadata)
+			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, jsonb_build_object('scope', $5::text)) RETURNING id
+		`, testWorkspaceID, title, testUserID, number, scope).Scan(&id); err != nil {
 			t.Fatalf("create issue %q: %v", title, err)
 		}
 		return id
@@ -68,8 +65,8 @@ func TestListIssues_LimitValidation(t *testing.T) {
 	}
 
 	call := func(query string) (int, listResp, string) {
-		path := fmt.Sprintf("/api/issues?workspace_id=%s&project_id=%s%s",
-			testWorkspaceID, projectID, query)
+		path := fmt.Sprintf("/api/issues?workspace_id=%s%s%s",
+			testWorkspaceID, scopeFilter, query)
 		w := httptest.NewRecorder()
 		testHandler.ListIssues(w, newRequest("GET", path, nil))
 		var resp listResp
@@ -150,15 +147,11 @@ func TestListIssues_LimitClamp(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Limit Clamp %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
+	scope := fmt.Sprintf("limit-clamp-%d", suffix)
+	scopeFilter := "&metadata=" + url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope))
 	t.Cleanup(func() {
-		testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		testPool.Exec(context.Background(),
+			`DELETE FROM issue WHERE workspace_id = $1 AND metadata->>'scope' = $2`, testWorkspaceID, scope)
 	})
 
 	// Seed 101 issues. Each row is inserted individually so the workspace's
@@ -176,9 +169,9 @@ func TestListIssues_LimitClamp(t *testing.T) {
 			t.Fatalf("next issue number: %v", err)
 		}
 		if _, err := testPool.Exec(ctx, `
-			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id)
-			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, $5)
-		`, testWorkspaceID, title, testUserID, number, projectID); err != nil {
+			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, metadata)
+			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, jsonb_build_object('scope', $5::text))
+		`, testWorkspaceID, title, testUserID, number, scope); err != nil {
 			t.Fatalf("create issue #%d: %v", idx, err)
 		}
 	}
@@ -192,8 +185,8 @@ func TestListIssues_LimitClamp(t *testing.T) {
 	}
 
 	call := func(query string) (int, listResp, string) {
-		path := fmt.Sprintf("/api/issues?workspace_id=%s&project_id=%s%s",
-			testWorkspaceID, projectID, query)
+		path := fmt.Sprintf("/api/issues?workspace_id=%s%s%s",
+			testWorkspaceID, scopeFilter, query)
 		w := httptest.NewRecorder()
 		testHandler.ListIssues(w, newRequest("GET", path, nil))
 		var resp listResp

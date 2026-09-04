@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -18,15 +19,10 @@ func TestListIssues_AssigneeTypesFilter(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	// Dedicated project so counts aren't polluted by other tests sharing the
-	// workspace.
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Assignee Types %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID) })
+	// Per-run metadata tag so counts aren't polluted by other tests sharing
+	// the workspace.
+	scope := fmt.Sprintf("assignee-types-%d", suffix)
+	scopeFilter := "&metadata=" + url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope))
 
 	var agentID string
 	if err := testPool.QueryRow(ctx, `
@@ -52,9 +48,9 @@ func TestListIssues_AssigneeTypesFilter(t *testing.T) {
 		}
 		var id string
 		if err := testPool.QueryRow(ctx, `
-			INSERT INTO issue (workspace_id, title, status, priority, assignee_type, assignee_id, creator_type, creator_id, position, number, project_id)
-			VALUES ($1, $2, 'todo', 'none', $3, $4, 'member', $5, 0, $6, $7) RETURNING id
-		`, testWorkspaceID, title, assigneeType, assigneeID, testUserID, number, projectID).Scan(&id); err != nil {
+			INSERT INTO issue (workspace_id, title, status, priority, assignee_type, assignee_id, creator_type, creator_id, position, number, metadata)
+			VALUES ($1, $2, 'todo', 'none', $3, $4, 'member', $5, 0, $6, jsonb_build_object('scope', $7::text)) RETURNING id
+		`, testWorkspaceID, title, assigneeType, assigneeID, testUserID, number, scope).Scan(&id); err != nil {
 			t.Fatalf("create issue %q: %v", title, err)
 		}
 		t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, id) })
@@ -67,8 +63,8 @@ func TestListIssues_AssigneeTypesFilter(t *testing.T) {
 	unassignedIssue := insertIssue(fmt.Sprintf("at-none-%d", suffix), nil, nil)
 
 	list := func(query string) (ids []string, total int64) {
-		path := fmt.Sprintf("/api/issues?workspace_id=%s&project_id=%s&limit=500%s",
-			testWorkspaceID, projectID, query)
+		path := fmt.Sprintf("/api/issues?workspace_id=%s&limit=500%s%s",
+			testWorkspaceID, scopeFilter, query)
 		w := httptest.NewRecorder()
 		testHandler.ListIssues(w, newRequest("GET", path, nil))
 		if w.Code != http.StatusOK {

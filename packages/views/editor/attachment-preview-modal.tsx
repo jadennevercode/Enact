@@ -889,7 +889,7 @@ function PreviewContent({
 // Text-backed preview — fetches body once, then hands to the render prop
 // ---------------------------------------------------------------------------
 
-// React Query owns server state per the project convention; re-opening the
+// React Query owns server state per the repo convention; re-opening the
 // same attachment hits the cache instead of re-fetching. Query is keyed on
 // the attachment id alone — the 30 min TTL on the server-side signed URL
 // is much longer than any plausible preview session.

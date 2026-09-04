@@ -25,10 +25,9 @@ import { toast } from "sonner";
 import type {
   MemberWithUser,
   SearchIssueResult,
-  SearchProjectResult,
 } from "@enact/core/types";
 import { api } from "@enact/core/api";
-import { partitionAggregatedSearchResults } from "@enact/core/search/cancelled-rank";
+import { partitionCancelledIssues } from "@enact/core/search/cancelled-rank";
 import {
   openCreateIssueWithPreference,
   selectRecentIssues,
@@ -40,16 +39,12 @@ import { issueDetailOptions, issueTimelineOptions } from "@enact/core/issues/que
 import { useWorkspaceId } from "@enact/core";
 import { useWorkspacePaths, WORKSPACE_PAGES } from "@enact/core/paths";
 import type { WorkspacePageKey, WorkspacePaths } from "@enact/core/paths";
-import { useModalStore } from "@enact/core/modals";
 import { createShortcutChord } from "@enact/core/shortcuts";
 import { memberListOptions } from "@enact/core/workspace/queries";
 import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
 import { StatusIcon } from "../issues/components";
 import { resolvedThreadRootIds, rootCommentIds } from "../issues/components/thread-utils";
-import { ProjectIcon } from "../projects/components/project-icon";
 import { routeIconForPath } from "../layout/route-icon-components";
-import { PROJECT_STATUS_CONFIG } from "@enact/core/projects/config";
-import type { ProjectStatus } from "@enact/core/types";
 import { ActorAvatar } from "../common/actor-avatar";
 import { ShortcutKeycaps } from "../common/shortcut-keycaps";
 import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/actor-avatar";
@@ -92,7 +87,7 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   chat: ["chat", "messages", "conversation", "聊天", "消息", "对话"],
   myIssues: ["my", "issues", "assigned", "mine", "我的", "任务"],
   issues: ["issues", "tasks", "bugs", "任务"],
-  projects: ["projects", "kanban", "项目"],
+  artifacts: ["artifacts", "files", "outputs", "产物", "附件"],
   autopilots: ["autopilot", "autopilots", "automation", "schedule", "cron", "webhook", "自动化", "定时"],
   agents: ["agents", "bots", "ai", "智能体"],
   squads: ["squads", "teams", "小队", "团队"],
@@ -172,50 +167,9 @@ function IssueAssigneeAvatar({
   );
 }
 
-// Project / issue rows are rendered from three groups (Projects, Issues,
-// Cancelled — see the partition note on the results list), so the row markup
-// lives in one component each instead of being duplicated per group.
-function ProjectResultRow({
-  project,
-  query,
-  disabled,
-  onSelect,
-}: {
-  project: SearchProjectResult;
-  query: string;
-  disabled?: boolean;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <CommandPrimitive.Item
-      key={`project:${project.id}`}
-      value={`project:${project.id}`}
-      disabled={disabled}
-      onSelect={onSelect}
-      className="flex cursor-default select-none flex-col gap-1 rounded-lg px-3 py-2.5 text-body outline-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-accent"
-    >
-      <div className="flex items-center gap-2.5">
-        <ProjectIcon project={project} size="md" />
-        <span className="truncate">
-          <HighlightText text={project.title} query={query} />
-        </span>
-        <span
-          className={`ml-auto text-caption shrink-0 ${PROJECT_STATUS_CONFIG[project.status as ProjectStatus]?.color ?? "text-muted-foreground"}`}
-        >
-          {PROJECT_STATUS_CONFIG[project.status as ProjectStatus]?.label ?? project.status}
-        </span>
-      </div>
-      {project.match_source === "description" && project.matched_snippet && (
-        <div className="flex items-start gap-2 pl-[26px]">
-          <span className="text-caption text-muted-foreground truncate">
-            <HighlightText text={project.matched_snippet} query={query} />
-          </span>
-        </div>
-      )}
-    </CommandPrimitive.Item>
-  );
-}
-
+// Issue rows are rendered from two groups (Issues, Cancelled — see the
+// partition note on the results list), so the row markup lives in one
+// component instead of being duplicated per group.
 function IssueResultRow({
   issue,
   query,
@@ -293,10 +247,9 @@ interface SearchResults {
    */
   query: string;
   issues: SearchIssueResult[];
-  projects: SearchProjectResult[];
 }
 
-const NO_RESULTS: SearchResults = { query: "", issues: [], projects: [] };
+const NO_RESULTS: SearchResults = { query: "", issues: [] };
 
 // One heading treatment for every group. Headings go through cmdk's `heading`
 // prop rather than a hand-rolled div: cmdk renders it into a
@@ -407,16 +360,6 @@ export function SearchCommand() {
         keywords: ["new", "issue", "create", "add"],
         onSelect: () => {
           openCreateIssueWithPreference();
-          setOpen(false);
-        },
-      },
-      {
-        key: "new-project",
-        label: t(($) => $.commands.new_project),
-        icon: Plus,
-        keywords: ["new", "project", "create", "add"],
-        onSelect: () => {
-          useModalStore.getState().open("create-project");
           setOpen(false);
         },
       },
@@ -534,8 +477,8 @@ export function SearchCommand() {
   const filteredCommands = useMemo(() => {
     const q = query.trim().toLowerCase();
     // No query: only surface the primary creation action. Other commands
-    // (theme switches, copy actions, New Project) are revealed as the user
-    // types, leaving the empty-state space to Recent.
+    // (theme switches, copy actions) are revealed as the user types, leaving
+    // the empty-state space to Recent.
     if (!q) return commands.filter((c) => c.key === "new-issue");
     return commands.filter((c) => matchesRow(c.label, c.keywords, q));
   }, [commands, query]);
@@ -554,10 +497,7 @@ export function SearchCommand() {
       .slice(0, 10);
   }, [members, query]);
 
-  const hasResults =
-    results.issues.length > 0 ||
-    results.projects.length > 0 ||
-    filteredMembers.length > 0;
+  const hasResults = results.issues.length > 0 || filteredMembers.length > 0;
 
   // Rows answering an earlier query are still painted while the next request
   // is in flight — that is what keeps the list from strobing on every
@@ -566,18 +506,13 @@ export function SearchCommand() {
   // Enter into a jump to a result the user has already typed past.
   const resultsAreStale = results.query !== query.trim();
 
-  // Cross-type cancelled demotion (ENA-5824). The two searches are ranked
-  // independently server-side, so the partition has to happen here, where they
-  // are aggregated for display. See the render note on the results list.
+  // Cancelled demotion (ENA-5824): a cancelled issue never outranks a live
+  // one, unless the query names it exactly. See the render note on the list.
   const partitionedResults = useMemo(
     () =>
-      partitionAggregatedSearchResults({
-        issues: results.issues,
-        projects: results.projects,
-        // The partition describes these rows, so it keys off the query they
-        // answer — not what the user has typed since.
-        query: results.query,
-      }),
+      // The partition describes these rows, so it keys off the query they
+      // answer — not what the user has typed since.
+      partitionCancelledIssues(results.issues, results.query),
     [results],
   );
 
@@ -627,26 +562,14 @@ export function SearchCommand() {
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const [issueRes, projectRes] = await Promise.all([
-          api.searchIssues({
-            q: q.trim(),
-            limit: 20,
-            include_closed: true,
-            signal: controller.signal,
-          }),
-          api.searchProjects({
-            q: q.trim(),
-            limit: 10,
-            include_closed: true,
-            signal: controller.signal,
-          }),
-        ]);
+        const issueRes = await api.searchIssues({
+          q: q.trim(),
+          limit: 20,
+          include_closed: true,
+          signal: controller.signal,
+        });
         if (!controller.signal.aborted) {
-          setResults({
-            query: q.trim(),
-            issues: issueRes.issues,
-            projects: projectRes.projects,
-          });
+          setResults({ query: q.trim(), issues: issueRes.issues });
           setIsLoading(false);
         }
       } catch {
@@ -654,7 +577,7 @@ export function SearchCommand() {
           // Drop the previous query's rows rather than leaving them on screen
           // permanently greyed out: the request that would have replaced them
           // is never coming. The list falls through to the empty state.
-          setResults({ query: q.trim(), issues: [], projects: [] });
+          setResults({ query: q.trim(), issues: [] });
           setIsLoading(false);
         }
       }
@@ -672,11 +595,7 @@ export function SearchCommand() {
   const handleSelect = useCallback(
     (value: string) => {
       setOpen(false);
-      const href = value.startsWith("project:")
-        ? // value is "project:<id>" — slice off the 8-char prefix to extract the id.
-          p.projectDetail(value.slice(8))
-        : p.issueDetail(value);
-      intentNavigate(href, consumeIntent());
+      intentNavigate(p.issueDetail(value), consumeIntent());
     },
     [intentNavigate, consumeIntent, setOpen, p],
   );
@@ -775,7 +694,7 @@ export function SearchCommand() {
               </CommandPrimitive.Group>
             )}
 
-            {/* Commands section — New Issue / New Project / Copy link / Theme, only shown when query matches */}
+            {/* Commands section — New Issue / Copy link / Theme, only shown when query matches */}
             {filteredCommands.length > 0 && (
               <CommandPrimitive.Group
                 heading={t(($) => $.groups.commands)}
@@ -854,40 +773,19 @@ export function SearchCommand() {
               )}
 
             {/*
-              Render order is the cross-type cancelled partition (ENA-5824):
-              live projects → live issues → one trailing Cancelled section
-              holding cancelled projects then cancelled issues. Projects and
-              issues arrive as two independently ranked responses, so per-type
-              ordering is not enough — the whole Projects group used to render
-              above the whole Issues group, letting one cancelled project be the
-              first row of the list. Keeping cancelled rows in a single trailing
-              section is the only arrangement where no cancelled row of either
-              type can precede a live row of the other. Direct hits stay in
-              their live section (see partitionAggregatedSearchResults).
+              Render order is the cancelled partition (ENA-5824): live issues,
+              then one trailing Cancelled section. A cancelled issue ranked
+              highly by the server used to be able to open the list; keeping
+              cancelled rows in a single trailing section means no cancelled
+              row can precede a live one. Direct hits stay in their live
+              section (see partitionCancelledIssues).
             */}
-            {partitionedResults.liveProjects.length > 0 && (
-              <CommandPrimitive.Group
-                heading={t(($) => $.groups.projects)}
-                className={GROUP_CLASS}
-              >
-                {partitionedResults.liveProjects.map((project) => (
-                  <ProjectResultRow
-                    key={`project:${project.id}`}
-                    project={project}
-                    query={results.query}
-                    disabled={resultsAreStale}
-                    onSelect={handleSelect}
-                  />
-                ))}
-              </CommandPrimitive.Group>
-            )}
-
-            {partitionedResults.liveIssues.length > 0 && (
+            {partitionedResults.live.length > 0 && (
               <CommandPrimitive.Group
                 heading={t(($) => $.groups.issues)}
                 className={GROUP_CLASS}
               >
-                {partitionedResults.liveIssues.map((issue) => (
+                {partitionedResults.live.map((issue) => (
                   <IssueResultRow
                     key={issue.id}
                     issue={issue}
@@ -899,21 +797,12 @@ export function SearchCommand() {
               </CommandPrimitive.Group>
             )}
 
-            {partitionedResults.hasCancelled && (
+            {partitionedResults.cancelled.length > 0 && (
               <CommandPrimitive.Group
                 heading={t(($) => $.groups.cancelled)}
                 className={GROUP_CLASS}
               >
-                {partitionedResults.cancelledProjects.map((project) => (
-                  <ProjectResultRow
-                    key={`project:${project.id}`}
-                    project={project}
-                    query={results.query}
-                    disabled={resultsAreStale}
-                    onSelect={handleSelect}
-                  />
-                ))}
-                {partitionedResults.cancelledIssues.map((issue) => (
+                {partitionedResults.cancelled.map((issue) => (
                   <IssueResultRow
                     key={issue.id}
                     issue={issue}

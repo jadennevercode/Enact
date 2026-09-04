@@ -76,7 +76,7 @@ func TestPrepareRollsBackSidecarsWhenPrepareFailsInPlace(t *testing.T) {
 
 // TestPrepareRollsBackWhenWriteContextFilesFailsAfterMarker covers the earliest
 // failure window there is: writeContextFiles lays the marker down as its very
-// first act, then creates .agent_context, writes skills and writes project
+// first act, then creates .agent_context, writes skills and writes workspace
 // resources — any of which can fail with the marker already on disk.
 //
 // The first version of the ENA-6132 fix armed the rollback only after

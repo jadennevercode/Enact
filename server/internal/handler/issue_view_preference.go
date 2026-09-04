@@ -17,7 +17,7 @@ import (
 
 // resolvePreferenceScope validates scope params and backfills scope_id so
 // the composite key never carries NULL: workspace scope uses the workspace
-// id, my scope the user id, project scope the project id (validated).
+// id, my scope the user id.
 func (h *Handler) resolvePreferenceScope(
 	w http.ResponseWriter, r *http.Request,
 	wsUUID pgtype.UUID, userID string, scopeType, rawScopeID string,
@@ -27,22 +27,6 @@ func (h *Handler) resolvePreferenceScope(
 		return wsUUID, true
 	case "my":
 		return parseUUID(userID), true
-	case "project":
-		if rawScopeID == "" {
-			writeError(w, http.StatusBadRequest, "scope_id is required for project scope")
-			return pgtype.UUID{}, false
-		}
-		projUUID, ok := parseUUIDOrBadRequest(w, rawScopeID, "scope_id")
-		if !ok {
-			return pgtype.UUID{}, false
-		}
-		if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-			ID: projUUID, WorkspaceID: wsUUID,
-		}); err != nil {
-			writeError(w, http.StatusNotFound, "project not found")
-			return pgtype.UUID{}, false
-		}
-		return projUUID, true
 	default:
 		writeError(w, http.StatusBadRequest, "invalid scope_type")
 		return pgtype.UUID{}, false

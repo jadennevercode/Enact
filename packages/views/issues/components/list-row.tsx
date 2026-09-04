@@ -5,9 +5,7 @@ import { useSortable, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AppLink } from "../../navigation";
-import type { Issue, Project,
-  IssueProperty,
-} from "@enact/core/types";
+import type { Issue, IssueProperty } from "@enact/core/types";
 import { formatDateOnly } from "@enact/core/issues/date";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { PropertyIcon } from "../../common/property-icon";
@@ -17,7 +15,6 @@ import { useViewStore } from "@enact/core/issues/stores/view-store-context";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { propertyListOptions } from "@enact/core/properties";
 import { CustomPropertyValueDisplay } from "./pickers/custom-property-picker";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { PriorityIcon } from "./priority-icon";
 import { ProgressRing } from "./progress-ring";
 import { IssueActionsContextMenu } from "../actions";
@@ -42,7 +39,6 @@ function formatDate(date: string): string {
 function ListRowContent({
   issue,
   childProgress,
-  project,
   isDragging,
   containerRef,
   containerStyle,
@@ -51,7 +47,6 @@ function ListRowContent({
 }: {
   issue: Issue;
   childProgress?: ChildProgress;
-  project?: Project;
   isDragging?: boolean;
   containerRef?: Ref<HTMLDivElement>;
   containerStyle?: React.CSSProperties;
@@ -72,7 +67,6 @@ function ListRowContent({
     .filter((p): p is IssueProperty => !!p && issue.properties?.[p.id] !== undefined);
   const labels = issue.labels ?? [];
 
-  const showProject = storeProperties.project && project;
   const showChildProgress = storeProperties.childProgress && childProgress;
   const showAssignee = storeProperties.assignee && issue.assignee_type && issue.assignee_id;
   const showStartDate = storeProperties.startDate && issue.start_date;
@@ -162,12 +156,6 @@ function ListRowContent({
               </span>
             )}
           </span>
-          {showProject && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground max-w-[140px]">
-              <ProjectIcon project={project} size="sm" />
-              <span className="truncate">{project!.title}</span>
-            </span>
-          )}
           {showStartDate && (
             <span className="shrink-0 text-caption text-muted-foreground">
               {formatDate(issue.start_date!)}
@@ -195,19 +183,11 @@ function ListRowContent({
 export const ListRow = memo(function ListRow({
   issue,
   childProgress,
-  project,
 }: {
   issue: Issue;
   childProgress?: ChildProgress;
-  project?: Project;
 }) {
-  return (
-    <ListRowContent
-      issue={issue}
-      childProgress={childProgress}
-      project={project}
-    />
-  );
+  return <ListRowContent issue={issue} childProgress={childProgress} />;
 });
 
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {
@@ -223,12 +203,10 @@ const stopDrag = (e: React.SyntheticEvent) => {
 export const DraggableListRow = memo(function DraggableListRow({
   issue,
   childProgress,
-  project,
   disableSorting,
 }: {
   issue: Issue;
   childProgress?: ChildProgress;
-  project?: Project;
   disableSorting?: boolean;
 }) {
   const {
@@ -254,7 +232,6 @@ export const DraggableListRow = memo(function DraggableListRow({
     <ListRowContent
       issue={issue}
       childProgress={childProgress}
-      project={project}
       isDragging={isDragging}
       containerRef={setNodeRef}
       containerStyle={style}

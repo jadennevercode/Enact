@@ -39,6 +39,10 @@ const _myIssuesViewStore = createStore<MyIssuesViewState>()(
     {
       name: basePersist.name,
       storage: basePersist.storage,
+      // Same payload version + Project-strip as the base view store:
+      // this store persists the same slice under its own key.
+      version: basePersist.version,
+      migrate: basePersist.migrate,
       partialize: (state: MyIssuesViewState) => ({
         ...basePersist.partialize(state),
         scope: state.scope,

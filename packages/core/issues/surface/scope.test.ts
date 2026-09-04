@@ -17,9 +17,6 @@ describe("issue surface scope", () => {
     expect(
       issueScopeKey({ type: "my", relation: "assigned", userId: "u1" }),
     ).toBe("my:u1:assigned");
-    expect(issueScopeKey({ type: "project", projectId: "p1" })).toBe(
-      "project:p1",
-    );
     expect(
       issueScopeKey({
         type: "actor",
@@ -43,17 +40,6 @@ describe("issue surface scope", () => {
       scopeKey: "workspace:agents",
       queryFilter: { assignee_types: ["agent", "squad"] },
       createDefaults: {},
-    });
-    expect(
-      buildIssueSurfaceQueryPlan({
-        type: "project",
-        projectId: "p1",
-        actorKind: "members",
-      }),
-    ).toEqual({
-      scopeKey: "project:p1:members",
-      queryFilter: { project_id: "p1", assignee_types: ["member"] },
-      createDefaults: { project_id: "p1" },
     });
     expect(
       buildIssueSurfaceQueryPlan({

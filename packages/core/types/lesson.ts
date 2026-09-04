@@ -219,7 +219,7 @@ export type RetrospectiveStatus =
   | "completed"
   | "failed";
 
-export type RetrospectiveScope = "issue" | "project" | "workspace";
+export type RetrospectiveScope = "issue" | "workspace";
 
 export type RetrospectiveTrigger = "suggestion" | "manual" | "schedule";
 

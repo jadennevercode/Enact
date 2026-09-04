@@ -111,7 +111,7 @@ WHERE workspace_id = sqlc.arg('workspace_id')::uuid
   AND status = sqlc.arg('key')::text;
 
 -- name: DeleteIssueStatusEntriesForWorkspace :exec
--- No foreign keys by project rule, so workspace teardown cleans up here.
+-- No foreign keys by repository rule, so workspace teardown cleans up here.
 DELETE FROM issue_status WHERE workspace_id = sqlc.arg('workspace_id')::uuid;
 
 -- name: LockIssueStatusCatalog :exec

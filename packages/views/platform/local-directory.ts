@@ -1,4 +1,4 @@
-// Desktop-only helpers for the project_resource local_directory flow.
+// Desktop-only helpers for the workspace_resource local_directory flow.
 //
 // These wrap the preload `desktopAPI` surface so view components can
 // SSR-render on web (where `window.desktopAPI` is undefined) and degrade

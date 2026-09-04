@@ -41,7 +41,6 @@
   "retrospectives": {
     "scope": {
       "issue": "태스크 1개",
-      "project": "프로젝트 1개",
       "workspace": "워크스페이스 전체"
     },
     "trigger": {

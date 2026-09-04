@@ -19,7 +19,6 @@ var issueMoveFields = map[string]struct{}{
 	"assignee_type":     {},
 	"assignee_id":       {},
 	"parent_issue_id":   {},
-	"project_id":        {},
 	"before_id":         {},
 	"after_id":          {},
 	"expected_revision": {},
@@ -62,29 +61,6 @@ func (h *Handler) MoveIssue(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "after_id is required")
 		return
 	}
-	if rawProjectID, touched := fields["project_id"]; touched && !rawJSONNull(rawProjectID) {
-		projectID, valid := decodeIssueMoveAnchor(w, rawProjectID, "project_id")
-		if !valid {
-			return
-		}
-		var exists bool
-		err := h.DB.QueryRow(r.Context(), `
-			SELECT EXISTS (
-				SELECT 1
-				FROM project
-				WHERE workspace_id = $1 AND id = $2
-			)
-		`, current.WorkspaceID, *projectID).Scan(&exists)
-		if err != nil {
-			writeIssueTableQueryFailure(w, r, "failed to validate move project")
-			return
-		}
-		if !exists {
-			writeError(w, http.StatusBadRequest, "project not found in this workspace")
-			return
-		}
-	}
-
 	beforeID, ok := decodeIssueMoveAnchor(w, fields["before_id"], "before_id")
 	if !ok {
 		return

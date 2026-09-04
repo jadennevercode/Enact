@@ -281,9 +281,6 @@ vi.mock("../../common/actor-avatar", () => ({
   ),
 }));
 
-vi.mock("../../projects/components/project-picker", () => ({
-  ProjectPicker: () => <span data-testid="project-picker">Project</span>,
-}));
 
 // Mock api
 const mockApiObj = vi.hoisted(() => ({
@@ -319,8 +316,6 @@ const mockApiObj = vi.hoisted(() => ({
   removeCommentReaction: vi.fn(),
   listMembers: vi.fn().mockResolvedValue([{ user_id: "user-1", name: "Test User", email: "test@test.com", role: "admin" }]),
   listAgents: vi.fn().mockResolvedValue([]),
-  getProject: vi.fn(),
-  listProjects: vi.fn().mockResolvedValue({ projects: [] }),
 }));
 
 vi.mock("@enact/core/api", () => ({
@@ -549,7 +544,6 @@ const mockIssue: Issue = {
   creator_type: "member",
   creator_id: "user-1",
   parent_issue_id: null,
-  project_id: null,
   position: 0,
   stage: null,
   start_date: null,
@@ -705,9 +699,6 @@ describe("IssueDetail (shared)", () => {
       { user_id: "user-1", name: "Test User", email: "test@test.com", role: "admin" },
     ]);
     mockApiObj.listAgents.mockResolvedValue([]);
-    // Reset project mock — individual tests override per case. Default fixture
-    // has project_id: null so getProject is not invoked.
-    mockApiObj.getProject.mockReset();
   });
 
   it("shows loading skeleton while data is loading", () => {
@@ -837,45 +828,6 @@ describe("IssueDetail (shared)", () => {
     expect(leaf.closest("a")).toHaveAttribute("href", "/test/issues/issue-1");
   });
 
-  it("omits the project breadcrumb segment when the issue has no project_id", async () => {
-    // Default fixture has project_id: null.
-    renderIssueDetail();
-
-    // Leaf renders once loaded; a bare issue has no ancestor crumbs at all.
-    await screen.findByText("TES-1 Implement authentication");
-
-    // Project is never fetched and no project crumb appears.
-    expect(mockApiObj.getProject).not.toHaveBeenCalled();
-    expect(screen.queryByText("Marketing site refresh")).not.toBeInTheDocument();
-  });
-
-  it("renders the project breadcrumb segment when the issue belongs to a project", async () => {
-    mockApiObj.getIssue.mockResolvedValue({ ...mockIssue, project_id: "p-1" });
-    mockApiObj.getProject.mockResolvedValue({
-      id: "p-1",
-      workspace_id: "ws-1",
-      title: "Marketing site refresh",
-      description: null,
-      icon: "🚀",
-      status: "in_progress",
-      priority: "none",
-      lead_type: null,
-      lead_id: null,
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
-      issue_count: 0,
-      done_count: 0,
-      resource_count: 0,
-    });
-
-    renderIssueDetail();
-
-    const projectLink = await screen.findByText("Marketing site refresh");
-    // The whole project segment is a single AppLink pointing at the project
-    // detail route under the active workspace slug.
-    expect(projectLink.closest("a")).toHaveAttribute("href", "/test/projects/p-1");
-  });
-
   it("renders properties sidebar with all core rows plus set optional rows", async () => {
     renderIssueDetail();
 
@@ -886,8 +838,6 @@ describe("IssueDetail (shared)", () => {
     // Core rows — always rendered regardless of whether the issue has a value.
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Assignee")).toBeInTheDocument();
-    // "Project" appears twice (row label + picker stub), so disambiguate by id.
-    expect(screen.getByTestId("project-picker")).toBeInTheDocument();
     // priority="high" + due_date are set in the fixture, so both optional rows show.
     expect(screen.getByText("Priority")).toBeInTheDocument();
     expect(screen.getByText("Due date")).toBeInTheDocument();
@@ -920,8 +870,6 @@ describe("IssueDetail (shared)", () => {
     expect(screen.queryByText("Priority")).not.toBeInTheDocument();
     expect(screen.queryByText("Due date")).not.toBeInTheDocument();
     expect(screen.queryByText("Labels")).not.toBeInTheDocument();
-    // Project stays as a core row regardless of value.
-    expect(screen.getByTestId("project-picker")).toBeInTheDocument();
     // No parent → no standalone Parent issue section either.
     expect(screen.queryByText("Parent issue")).not.toBeInTheDocument();
     expect(screen.getByText("Add property")).toBeInTheDocument();

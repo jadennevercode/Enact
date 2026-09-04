@@ -1,15 +1,7 @@
 -- name: CreateChatSession :one
-INSERT INTO chat_session (workspace_id, agent_id, creator_id, title, runtime_id, is_agent_intro, project_id, id)
-VALUES ($1, $2, $3, $4, (SELECT runtime_id FROM agent WHERE id = $2), $5, sqlc.narg('project_id'), COALESCE(sqlc.narg('id')::uuid, gen_random_uuid()))
+INSERT INTO chat_session (workspace_id, agent_id, creator_id, title, runtime_id, is_agent_intro, id)
+VALUES ($1, $2, $3, $4, (SELECT runtime_id FROM agent WHERE id = $2), $5, COALESCE(sqlc.narg('id')::uuid, gen_random_uuid()))
 RETURNING *;
-
--- name: ClearChatSessionProjectByProject :exec
--- Project references are intentionally soft (no database FK). Keep chat
--- history while removing the context selection when a project is deleted.
--- Do not touch updated_at: context cleanup is not chat activity.
-UPDATE chat_session
-SET project_id = NULL
-WHERE project_id = $1 AND workspace_id = $2;
 
 -- name: GetChatSession :one
 SELECT * FROM chat_session
@@ -196,14 +188,6 @@ ORDER BY COALESCE(lm.created_at, d.updated_at, cs.updated_at) DESC;
 -- name: UpdateChatSessionTitle :one
 UPDATE chat_session SET title = $2, updated_at = now()
 WHERE id = $1
-RETURNING *;
-
--- name: UpdateChatSessionProject :one
--- Project context is user-editable session metadata. Do not touch updated_at:
--- changing context is not conversation activity and must not reorder history.
-UPDATE chat_session
-SET project_id = sqlc.narg('project_id')
-WHERE id = sqlc.arg('id') AND workspace_id = sqlc.arg('workspace_id')
 RETURNING *;
 
 -- name: UpdateChatSessionTitleIfCurrent :one

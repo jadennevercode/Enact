@@ -23,7 +23,7 @@ const state = vi.hoisted(() => ({
       activeTabId: "tA",
       tabs: [
         { id: "tA", url: "/acme/issues", title: "Issues", pinned: false },
-        { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+        { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
       ] as MockTab[],
     },
   } as Record<string, { activeTabId: string; tabs: MockTab[] }>,
@@ -101,7 +101,7 @@ function reset() {
       activeTabId: "tA",
       tabs: [
         { id: "tA", url: "/acme/issues", title: "Issues", pinned: false },
-        { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+        { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
       ],
     },
   };
@@ -147,7 +147,7 @@ describe("TabBar hover action buttons", () => {
   it("renders a Pin button on every unpinned tab and an Unpin button on every pinned tab", () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues", title: "Issues", pinned: true },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
     ];
     const { getAllByLabelText } = render(<TabBar />);
     expect(getAllByLabelText("Unpin tab")).toHaveLength(1);
@@ -157,14 +157,14 @@ describe("TabBar hover action buttons", () => {
   it("clicking the Pin button calls togglePin for the tab", () => {
     const { getAllByLabelText } = render(<TabBar />);
     const pinButtons = getAllByLabelText("Pin tab");
-    fireEvent.click(pinButtons[1]); // click Pin on tB (Projects)
+    fireEvent.click(pinButtons[1]); // click Pin on tB (Artifacts)
     expect(state.togglePin).toHaveBeenCalledWith("tB");
   });
 
   it("clicking the Unpin button on a pinned tab calls togglePin", () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues", title: "Issues", pinned: true },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
     ];
     const { getByLabelText } = render(<TabBar />);
     fireEvent.click(getByLabelText("Unpin tab"));
@@ -174,7 +174,7 @@ describe("TabBar hover action buttons", () => {
   it("hides the X close button on a pinned tab but keeps it on an unpinned tab", () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues", title: "Issues", pinned: true },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
     ];
     const { queryAllByLabelText } = render(<TabBar />);
     // Only the unpinned tab exposes a Close affordance — pinned tab requires
@@ -197,14 +197,14 @@ describe("TabBar hover action buttons", () => {
   it("renders the resource leading visual for every tab", () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/autopilots", title: "Autopilots", pinned: false },
-      { id: "tB", url: "/acme/projects/proj-1", title: "Project", pinned: false },
+      { id: "tB", url: "/acme/agents/agent-1", title: "Agent", pinned: false },
     ];
     const { getByLabelText } = render(<TabBar />);
     expect(
       getByLabelText("Autopilots").querySelector('[data-testid="tab-leading"]'),
     ).toBeTruthy();
     expect(
-      getByLabelText("Project").querySelector('[data-testid="tab-leading"]'),
+      getByLabelText("Agent").querySelector('[data-testid="tab-leading"]'),
     ).toBeTruthy();
   });
 
@@ -213,7 +213,7 @@ describe("TabBar hover action buttons", () => {
   it("keeps the resource leading visual on a pinned tab (pin does not replace it)", () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues", title: "Issues", pinned: true },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
     ];
     const { getByLabelText } = render(<TabBar />);
     const pinnedTab = getByLabelText("Issues (pinned)");
@@ -229,7 +229,7 @@ describe("TabBar active-tab title persistence", () => {
     pres.title = "ENA-1: Fixed";
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues/i1", title: "Issues", pinned: false },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
     ];
     state.byWorkspace.acme.activeTabId = "tA";
     render(<TabBar />);
@@ -313,7 +313,7 @@ describe("TabBar merged-tab chrome", () => {
   it("draws the merged cap only on the active tab", () => {
     const { getByLabelText } = render(<TabBar />);
     expect(
-      getByLabelText("Projects")
+      getByLabelText("Artifacts")
         .closest("[data-tab-frame]")
         ?.querySelector(".rounded-t-lg"),
     ).toBeNull();
@@ -569,12 +569,12 @@ describe("TabBar context menu", () => {
   it("closes other tabs from the context menu", async () => {
     state.byWorkspace.acme.tabs = [
       { id: "tA", url: "/acme/issues", title: "Issues", pinned: true },
-      { id: "tB", url: "/acme/projects", title: "Projects", pinned: false },
+      { id: "tB", url: "/acme/artifacts", title: "Artifacts", pinned: false },
       { id: "tC", url: "/acme/agents", title: "Agents", pinned: false },
     ];
 
     const { findByText, getByLabelText } = render(<TabBar />);
-    fireEvent.contextMenu(getByLabelText("Projects"));
+    fireEvent.contextMenu(getByLabelText("Artifacts"));
     fireEvent.click(await findByText("Close other tabs"));
 
     expect(state.closeOtherTabs).toHaveBeenCalledWith("tB");

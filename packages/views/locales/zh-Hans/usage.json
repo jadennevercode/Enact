@@ -6,8 +6,6 @@
     "refresh": "刷新"
   },
   "filter": {
-    "project_label": "项目",
-    "all_projects": "全部项目",
     "period_label": "时间范围"
   },
   "kpi": {

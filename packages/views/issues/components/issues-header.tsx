@@ -10,8 +10,6 @@ import {
   CircleDot,
   Columns3,
   Filter,
-  FolderKanban,
-  FolderMinus,
   List,
   Rows3,
   SignalHigh,
@@ -63,7 +61,6 @@ import { StatusIcon, PriorityIcon } from ".";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { memberListOptions, agentListOptions, squadListOptions } from "@enact/core/workspace/queries";
-import { projectListOptions } from "@enact/core/projects/queries";
 import { labelListOptions } from "@enact/core/labels/queries";
 import { propertyListOptions } from "@enact/core/properties";
 import { propertyIdFromViewKey } from "@enact/core/issues/stores/view-store";
@@ -75,7 +72,6 @@ import type {
   WorkingAgentSummary,
 } from "@enact/core/types";
 import { formatActorRef, isActorPropertyType } from "@enact/core/types";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { PropertyIcon } from "../../common/property-icon";
 import { LabelChip } from "../../labels/label-chip";
@@ -138,8 +134,6 @@ function getActiveFilterCount(
     assigneeFilters: ActorFilterValue[];
     includeNoAssignee: boolean;
     creatorFilters: ActorFilterValue[];
-    projectFilters: string[];
-    includeNoProject: boolean;
     labelFilters: string[];
     propertyFilters?: Record<string, string[]>;
     dateFilter?: IssueDateFilter | null;
@@ -158,10 +152,6 @@ function getActiveFilterCount(
     (state.includeNoAssignee && !(baseline?.includeNoAssignee ?? false));
   if (assigneeDelta) count++;
   if (delta(state.creatorFilters.map(actorFilterKey), baseline?.creator) > 0) count++;
-  const projectDelta =
-    delta(state.projectFilters, baseline?.project) > 0 ||
-    (state.includeNoProject && !(baseline?.includeNoProject ?? false));
-  if (projectDelta) count++;
   if (delta(state.labelFilters, baseline?.label) > 0) count++;
   for (const [id, selected] of Object.entries(state.propertyFilters ?? {})) {
     if (delta(selected, baseline?.property.get(id)) > 0) count++;
@@ -196,13 +186,11 @@ function useIssueCounts(
     const priority = new Map<string, number>();
     const assignee = new Map<string, number>();
     const creator = new Map<string, number>();
-    const project = new Map<string, number>();
     const label = new Map<string, number>();
     // property definition id → option key → count. Checkbox values count
     // under the "true"/"false" pseudo-option keys the filter store uses.
     const property = new Map<string, Map<string, number>>();
     let noAssignee = 0;
-    let noProject = 0;
 
     if (serverFacets) {
       for (const facet of serverFacets.facets) {
@@ -215,11 +203,9 @@ function useIssueCounts(
                 ? assignee
                 : facet.kind === "creator"
                   ? creator
-                  : facet.kind === "project"
-                    ? project
-                    : facet.kind === "label"
-                      ? label
-                      : null;
+                  : facet.kind === "label"
+                    ? label
+                    : null;
         if (facet.kind === "property" && facet.property_id) {
           property.set(
             facet.property_id,
@@ -230,14 +216,12 @@ function useIssueCounts(
         for (const value of facet.values) {
           if (facet.kind === "assignee" && value.key === "__none__") {
             noAssignee = value.count;
-          } else if (facet.kind === "project" && value.key === "__none__") {
-            noProject = value.count;
           } else {
             target?.set(value.key, value.count);
           }
         }
       }
-      return { status, priority, assignee, creator, noAssignee, project, noProject, label, property };
+      return { status, priority, assignee, creator, noAssignee, label, property };
     }
 
     for (const issue of allIssues) {
@@ -253,12 +237,6 @@ function useIssueCounts(
 
       const cKey = `${issue.creator_type}:${issue.creator_id}`;
       creator.set(cKey, (creator.get(cKey) ?? 0) + 1);
-
-      if (!issue.project_id) {
-        noProject++;
-      } else {
-        project.set(issue.project_id, (project.get(issue.project_id) ?? 0) + 1);
-      }
 
       if (issue.labels) {
         for (const l of issue.labels) {
@@ -287,7 +265,7 @@ function useIssueCounts(
       }
     }
 
-    return { status, priority, assignee, creator, noAssignee, project, noProject, label, property };
+    return { status, priority, assignee, creator, noAssignee, label, property };
   }, [allIssues, serverFacets]);
 }
 
@@ -475,107 +453,6 @@ function ActorSubContent({
         )}
 
         {filteredMembers.length === 0 && filteredAgents.length === 0 && (!showSquads || filteredSquads.length === 0) && search && (
-          <div className="px-2 py-3 text-center text-body text-muted-foreground">
-            {t(($) => $.filters.no_results)}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Project sub-menu content
-// ---------------------------------------------------------------------------
-
-function ProjectSubContent({
-  counts,
-  selected,
-  onToggle,
-  includeNoProject,
-  onToggleNoProject,
-  noProjectCount,
-  fixedIds,
-  noProjectFixed = false,
-  fixedTitle,
-}: {
-  counts: Map<string, number>;
-  selected: string[];
-  onToggle: (projectId: string) => void;
-  includeNoProject: boolean;
-  onToggleNoProject: () => void;
-  noProjectCount: number;
-  fixedIds?: Set<string>;
-  noProjectFixed?: boolean;
-  fixedTitle?: string;
-}) {
-  const { t } = useT("issues");
-  const [search, setSearch] = useState("");
-  const wsId = useWorkspaceId();
-  const { data: projects = [] } = useQuery(projectListOptions(wsId));
-  const query = search.trim().toLowerCase();
-  const filtered = projects.filter((p) =>
-    p.title.toLowerCase().includes(query),
-  );
-
-  return (
-    <>
-      <div className="px-2 py-1.5 border-b border-foreground/5">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t(($) => $.filters.placeholder)}
-          className="w-full bg-transparent text-body placeholder:text-muted-foreground outline-none"
-          autoFocus
-        />
-      </div>
-
-      <div className="max-h-64 overflow-y-auto p-1">
-        {(!query || "no project".includes(query) || "unassigned".includes(query)) && (
-          <DropdownMenuCheckboxItem
-            checked={includeNoProject}
-            disabled={noProjectFixed}
-            title={noProjectFixed ? fixedTitle : undefined}
-            onCheckedChange={() => onToggleNoProject()}
-            className={FILTER_ITEM_CLASS}
-          >
-            <HoverCheck checked={includeNoProject} />
-            <FolderMinus className="size-3.5 text-muted-foreground" />
-            {t(($) => $.filters.no_project)}
-            {noProjectCount > 0 && (
-              <span className="ml-auto text-caption text-muted-foreground">
-                {noProjectCount}
-              </span>
-            )}
-          </DropdownMenuCheckboxItem>
-        )}
-
-        {filtered.map((p) => {
-          const checked = selected.includes(p.id);
-          const count = counts.get(p.id) ?? 0;
-          return (
-            <DropdownMenuCheckboxItem
-              key={p.id}
-              checked={checked}
-              disabled={fixedIds?.has(p.id) === true}
-              title={fixedIds?.has(p.id) === true ? fixedTitle : undefined}
-              onCheckedChange={() => onToggle(p.id)}
-              className={FILTER_ITEM_CLASS}
-            >
-              <HoverCheck checked={checked} />
-              <ProjectIcon project={p} size="sm" />
-              <span className="truncate">{p.title}</span>
-              {count > 0 && (
-                <span className="ml-auto text-caption text-muted-foreground">
-                  {count}
-                </span>
-              )}
-            </DropdownMenuCheckboxItem>
-          );
-        })}
-
-        {filtered.length === 0 && search && (
           <div className="px-2 py-3 text-center text-body text-muted-foreground">
             {t(($) => $.filters.no_results)}
           </div>
@@ -955,17 +832,14 @@ export function IssuesHeader({
   tableFacetCounts?: IssueTableFacetsResponse;
   onTableFacetChange?: (facet: IssueTableFacetSpec | null) => void;
   /** Where "save as view" files the view. /issues keeps the workspace
-   *  default; the project-detail fallback passes its project scope; `null`
-   *  hides the save affordance entirely. */
+   *  default; `null` hides the save affordance entirely. */
   saveViewScope?: SaveViewScope | null;
 }) {
   const { t } = useT("issues");
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const headerWsId = useWorkspaceId();
   const viewListScope: IssueViewScope | null = saveViewScope
-    ? saveViewScope.kind === "project"
-      ? { scope_type: "project", scope_id: saveViewScope.projectId }
-      : { scope_type: saveViewScope.kind }
+    ? { scope_type: saveViewScope.kind }
     : null;
   const { activeView, views, viewsReady, setActive, missing } = useActiveIssueView(
     headerWsId,
@@ -989,13 +863,9 @@ export function IssuesHeader({
   } | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id ?? null);
   const isViewOwner = !!activeView && activeView.owner_id === currentUserId;
-  // The tab belongs to THIS page (Issues vs each project) — see
-  // IssuesScopePageKey. The header both renders the tabs and seeds the
-  // save-view dialog's default variant from them.
-  const scopePage: IssuesScopePageKey =
-    saveViewScope?.kind === "project"
-      ? `project:${saveViewScope.projectId}`
-      : "issues";
+  // The tab belongs to THIS page — see IssuesScopePageKey. The header both
+  // renders the tabs and seeds the save-view dialog's default variant from them.
+  const scopePage: IssuesScopePageKey = "issues";
   const scope = useIssuesScope(scopePage);
   const setScopeForPage = useIssuesScopeStore((s) => s.setScope);
   const setScope = useCallback(
@@ -1011,24 +881,16 @@ export function IssuesHeader({
   const dialogActorKind = activeView
     ? actorKindForViewVariant(activeView.scope_variant)
     : scope;
-  const dialogProjectId =
-    saveViewScope?.kind === "project" ? saveViewScope.projectId : null;
   const dialogMyVariant =
     saveViewScope?.kind === "my" ? saveViewScope.variant : null;
   const dialogScope = useMemo<SaveViewScope | null>(() => {
     if (dialogMyVariant) return { kind: "my", variant: dialogMyVariant };
-    if (dialogProjectId)
-      return {
-        kind: "project",
-        projectId: dialogProjectId,
-        actorKind: dialogActorKind,
-      };
     if (saveViewScope) return { kind: "workspace", actorKind: dialogActorKind };
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- identity keyed on the primitive projections
-  }, [dialogMyVariant, dialogProjectId, dialogActorKind, !!saveViewScope]);
+  }, [dialogMyVariant, dialogActorKind, !!saveViewScope]);
   // Bind the workspace agents-working chip to the active view store so
-  // shared IssuesHeader consumers (/issues and project detail) toggle the
+  // shared IssuesHeader consumers toggle the
   // same filter state as the rest of the display controls. /my-issues keeps
   // its own sibling header and passes chip state explicitly.
   const agentRunningFilter = useViewStore((s) => s.agentRunningFilter);
@@ -1218,8 +1080,6 @@ export function IssueFilterMenu({
   const assigneeFilters = useViewStore((s) => s.assigneeFilters);
   const includeNoAssignee = useViewStore((s) => s.includeNoAssignee);
   const creatorFilters = useViewStore((s) => s.creatorFilters);
-  const projectFilters = useViewStore((s) => s.projectFilters);
-  const includeNoProject = useViewStore((s) => s.includeNoProject);
   const labelFilters = useViewStore((s) => s.labelFilters);
   const propertyFilters = useViewStore((s) => s.propertyFilters);
   const viewStoreApi = useViewStoreApi();
@@ -1258,8 +1118,6 @@ export function IssueFilterMenu({
         assigneeFilters,
         includeNoAssignee,
         creatorFilters,
-        projectFilters,
-        includeNoProject,
         labelFilters,
         dateFilter: showDateFilter ? dateFilter : null,
       },
@@ -1479,36 +1337,6 @@ export function IssueFilterMenu({
               </DropdownMenuSubContent>
             </DropdownMenuSub>
 
-            {/* Project */}
-            <DropdownMenuSub
-              onOpenChange={(open) =>
-                onTableFacetChange?.(open ? { kind: "project" } : null)
-              }
-            >
-              <DropdownMenuSubTrigger>
-                <FolderKanban className="size-3.5" />
-                <span className="flex-1">{t(($) => $.filters.section_project)}</span>
-                {(projectFilters.length > 0 || includeNoProject) && (
-                  <span className="text-caption text-primary font-medium">
-                    {projectFilters.length + (includeNoProject ? 1 : 0)}
-                  </span>
-                )}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-auto min-w-52 p-0">
-                <ProjectSubContent
-                  counts={counts.project}
-                  selected={projectFilters}
-                  onToggle={act.toggleProjectFilter}
-                  includeNoProject={includeNoProject}
-                  onToggleNoProject={act.toggleNoProject}
-                  noProjectCount={counts.noProject}
-                  fixedIds={viewBaseline?.project}
-                  noProjectFixed={viewBaseline?.includeNoProject === true}
-                  fixedTitle={fixedTitle}
-                />
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-
             {/* Label */}
             <DropdownMenuSub
               onOpenChange={(open) =>
@@ -1620,9 +1448,9 @@ export function IssueDisplayControls({
   /** Open saved view: menu marks the view's values checked-and-disabled;
    *  the trigger count only counts additions on top. */
   viewBaseline?: IssueViewBaseline;
-  // Only Project Detail renders <GanttView>; other surfaces (global /issues,
-  // /my-issues, actor panel) ignore viewMode === "gantt" and would silently
-  // fall back to List if the option were exposed there. Keep Gantt opt-in.
+  // Some surfaces (global /issues, /my-issues, actor panel) ignore
+  // viewMode === "gantt" and would silently fall back to List if the option
+  // were exposed there. Keep Gantt opt-in.
   allowGantt?: boolean;
   /**
    * Whether `scopedIssues` covers the surface's full window. Table does not
@@ -1643,8 +1471,6 @@ export function IssueDisplayControls({
   const assigneeFilters = useViewStore((s) => s.assigneeFilters);
   const includeNoAssignee = useViewStore((s) => s.includeNoAssignee);
   const creatorFilters = useViewStore((s) => s.creatorFilters);
-  const projectFilters = useViewStore((s) => s.projectFilters);
-  const includeNoProject = useViewStore((s) => s.includeNoProject);
   const labelFilters = useViewStore((s) => s.labelFilters);
   const propertyFilters = useViewStore((s) => s.propertyFilters);
   const cardPropertyIds = useViewStore((s) => s.cardPropertyIds);
@@ -1712,8 +1538,6 @@ export function IssueDisplayControls({
       assigneeFilters,
       includeNoAssignee,
       creatorFilters,
-      projectFilters,
-      includeNoProject,
       labelFilters,
       dateFilter: showDateFilter ? dateFilter : null,
     },
@@ -1731,23 +1555,20 @@ export function IssueDisplayControls({
     updated_at: "sort_updated",
     title: "sort_title",
   };
-  const GROUPING_LABEL_KEY: Record<typeof GROUPING_OPTIONS[number]["value"], "group_status" | "group_assignee" | "group_project"> = {
+  const GROUPING_LABEL_KEY: Record<typeof GROUPING_OPTIONS[number]["value"], "group_status" | "group_assignee"> = {
     status: "group_status",
     assignee: "group_assignee",
-    project: "group_project",
   };
-  const SWIMLANE_GROUPING_LABEL_KEY: Record<SwimlaneGrouping, "group_parent" | "group_project" | "group_assignee"> = {
+  const SWIMLANE_GROUPING_LABEL_KEY: Record<SwimlaneGrouping, "group_parent" | "group_assignee"> = {
     parent: "group_parent",
-    project: "group_project",
     assignee: "group_assignee",
   };
-  const CARD_PROPERTY_LABEL_KEY: Record<typeof CARD_PROPERTY_OPTIONS[number]["key"], "card_priority" | "card_description" | "card_assignee" | "card_start_date" | "card_due_date" | "card_project" | "card_labels" | "card_child_progress"> = {
+  const CARD_PROPERTY_LABEL_KEY: Record<typeof CARD_PROPERTY_OPTIONS[number]["key"], "card_priority" | "card_description" | "card_assignee" | "card_start_date" | "card_due_date" | "card_labels" | "card_child_progress"> = {
     priority: "card_priority",
     description: "card_description",
     assignee: "card_assignee",
     startDate: "card_start_date",
     dueDate: "card_due_date",
-    project: "card_project",
     labels: "card_labels",
     childProgress: "card_child_progress",
   };
@@ -1775,9 +1596,7 @@ export function IssueDisplayControls({
       ? t(($) => $.table.columns.status)
       : effectiveTableGrouping === "assignee"
         ? t(($) => $.table.columns.assignee)
-        : effectiveTableGrouping === "project"
-          ? t(($) => $.table.columns.project)
-          : t(($) => $.table.group_none);
+        : t(($) => $.table.group_none);
   const controlButtonClass = "h-8 w-8 gap-1 px-0 text-muted-foreground md:h-7 md:w-auto md:px-2.5";
 
   return (
@@ -1854,9 +1673,6 @@ export function IssueDisplayControls({
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="assignee">
                   {t(($) => $.table.columns.assignee)}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="project">
-                  {t(($) => $.table.columns.project)}
                 </DropdownMenuRadioItem>
                 {tableGroupableProperties.map((property) => (
                   <DropdownMenuRadioItem

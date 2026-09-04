@@ -13,14 +13,14 @@ import (
 	"sync"
 )
 
-// localDirectoryResourceType is the project_resource discriminator the daemon
+// localDirectoryResourceType is the workspace_resource discriminator the daemon
 // looks for when deciding whether a task should run against an existing
 // user directory rather than a fresh git worktree. Mirrors the server-side
 // constant — keep in sync if the type string is ever renamed.
 const localDirectoryResourceType = "local_directory"
 
 // Execution modes for local_directory resources. Mirrors the server-side
-// constants in handler/project_resource.go — keep in sync. An absent or empty
+// constants in handler/workspace_resource.go — keep in sync. An absent or empty
 // value means in_place, so resources created before worktree mode existed keep
 // their original behavior.
 const (
@@ -29,7 +29,7 @@ const (
 )
 
 // localDirectoryRef mirrors the server-side ref shape for local_directory
-// project resources. Defined locally so the daemon does not have to import
+// workspace resources. Defined locally so the daemon does not have to import
 // the server handler package.
 type localDirectoryRef struct {
 	LocalPath     string `json:"local_path"`
@@ -122,7 +122,7 @@ func localDirectoryAssignmentForTask(task Task, daemonID string) (*localDirector
 	if task.IsLeaderTask {
 		return nil, nil
 	}
-	return findLocalDirectoryAssignment(task.ProjectResources, daemonID)
+	return findLocalDirectoryAssignment(task.WorkspaceResources, daemonID)
 }
 
 // localDirectoryLockExempt reports whether a task may run inside an in_place
@@ -152,7 +152,7 @@ func localDirectoryLockExempt(task Task) bool {
 	return task.ChatSessionID != ""
 }
 
-// findLocalDirectoryAssignment scans the task's project resources for one of
+// findLocalDirectoryAssignment scans the task's workspace resources for one of
 // type local_directory whose daemon_id matches this daemon. Returns nil
 // (without error) when no such resource exists — the task takes the regular
 // github_repo / worktree code path. Returns an error only when the matching
@@ -162,10 +162,10 @@ func localDirectoryLockExempt(task Task) bool {
 // agent write into an arbitrary directory the user didn't intend.
 //
 // Server-side `findLocalDirectoryConflict` enforces a single local_directory
-// per (project, daemon), so two matches here means either the constraint
+// per (workspace, daemon), so two matches here means either the constraint
 // was bypassed (older API client) or the data was corrupted. Either way,
 // fail fast rather than guess.
-func findLocalDirectoryAssignment(resources []ProjectResourceData, daemonID string) (*localDirectoryAssignment, error) {
+func findLocalDirectoryAssignment(resources []WorkspaceResourceData, daemonID string) (*localDirectoryAssignment, error) {
 	var match *localDirectoryAssignment
 	for _, r := range resources {
 		if r.ResourceType != localDirectoryResourceType {
@@ -181,17 +181,17 @@ func findLocalDirectoryAssignment(resources []ProjectResourceData, daemonID stri
 		}
 		if ref.DaemonID != daemonID {
 			// A different daemon owns this resource. Skip silently; the
-			// project may have multiple local_directory resources, one
+			// workspace may have multiple local_directory resources, one
 			// per daemon, and other daemons will resolve their own row.
 			continue
 		}
 		if match != nil {
 			// Server-side invariant: at most one local_directory per
-			// (project, daemon). Two matches here means the constraint
+			// (workspace, daemon). Two matches here means the constraint
 			// was bypassed by an older API client or by direct DB writes.
 			// Either way, refuse to guess which directory the user meant.
 			return nil, fmt.Errorf(
-				"local_directory: project has multiple local_directory resources for this daemon (%q and %q); remove the extra in project settings",
+				"local_directory: workspace has multiple local_directory resources for this daemon (%q and %q); remove the extra in workspace settings",
 				match.AbsPath,
 				strings.TrimSpace(ref.LocalPath),
 			)
@@ -439,7 +439,7 @@ func checkDirReadWrite(dir string) error {
 
 // isGitWorkTree reports whether path is the working tree of a git repo. The
 // daemon uses this to skip branch / worktree machinery when the user has
-// already pointed the project at their own clone — the agent operates on
+// already pointed the workspace at their own clone — the agent operates on
 // the current branch in place. Returns false on any error (git not on PATH,
 // path not in a repo, exec failure) so the caller can treat "not a git
 // tree" and "can't tell" the same way: skip the git-specific path.
@@ -585,7 +585,7 @@ func (l *LocalPathLocker) releaser(realPath string, entry *pathLockEntry) func()
 			// We deliberately keep the entry in the map even when nothing
 			// is queued. The cost is one *pathLockEntry per distinct path
 			// the daemon has ever served, which is bounded by the number
-			// of local_directory project resources a workspace has — tiny
+			// of local_directory resources a workspace has — tiny
 			// in practice. Pruning would race with a sibling caller that
 			// just looked up the same entry and is about to TryLock.
 			_ = realPath

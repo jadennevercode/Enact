@@ -80,7 +80,6 @@ type DraftUploadEntry = {
 
 const emptyIssueDraft = () => ({
   shared: {
-    projectId: undefined as string | undefined,
     priority: "none" as "none" | "low" | "medium" | "high" | "urgent",
     dueDate: null as string | null,
     attachments: [] as DraftUploadEntry[],
@@ -126,7 +125,6 @@ type ManualCreateField =
   | "priority"
   | "assignee"
   | "labels"
-  | "project"
   | "due_date"
   | "start_date";
 
@@ -135,7 +133,6 @@ const DEFAULT_MANUAL_FIELDS: ManualCreateField[] = [
   "priority",
   "assignee",
   "labels",
-  "project",
 ];
 
 const mockCreateSettingsStore = {
@@ -437,19 +434,6 @@ vi.mock("../issues/components/pickers/custom-property-picker", () => ({
   CustomPropertyValueDisplay: ({ value }: any) => <span>{String(value)}</span>,
 }));
 
-vi.mock("../projects/components/project-picker", () => ({
-  ProjectPicker: ({ projectId, onUpdate }: any) => (
-    <button
-      type="button"
-      data-testid="project-picker"
-      data-project-id={projectId ?? "none"}
-      onClick={() => onUpdate({ project_id: "proj-1" })}
-    >
-      Project {projectId ?? "none"}
-    </button>
-  ),
-}));
-
 vi.mock("@enact/ui/components/ui/dialog", () => ({
   Dialog: ({ children }: { children: React.ReactNode }) => <div data-testid="dialog-root">{children}</div>,
   DialogContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -582,7 +566,7 @@ describe("CreateIssueModal", () => {
     mockSetKeepOpen.mockImplementation((v: boolean) => {
       mockQuickCreateStore.keepOpen = v;
     });
-    // Reset the unified draft mock so per-test seeding (assignee, project, …)
+    // Reset the unified draft mock so per-test seeding (assignee, labels, …)
     // doesn't leak into the next test in the suite.
     mockDraftStore.draft = emptyIssueDraft();
     mockSetShared.mockImplementation((patch: Partial<typeof mockDraftStore.draft.shared>) => {
@@ -676,7 +660,6 @@ describe("CreateIssueModal", () => {
         due_date: undefined,
         attachment_ids: undefined,
         parent_issue_id: undefined,
-        project_id: undefined,
       });
     });
 
@@ -788,7 +771,6 @@ describe("CreateIssueModal", () => {
         due_date: undefined,
         attachment_ids: undefined,
         parent_issue_id: undefined,
-        project_id: undefined,
       });
     });
 
@@ -807,7 +789,6 @@ describe("CreateIssueModal", () => {
     });
     expect(mockSetShared).toHaveBeenCalledWith({
       priority: "none",
-      projectId: undefined,
       dueDate: null,
       attachments: [],
     });
@@ -1115,10 +1096,10 @@ describe("CreateIssueModal", () => {
     expect(mockToastError).toHaveBeenCalledWith("Failed to create issue");
   });
 
-  // Manual → agent must preserve the picked project. It now rides the shared
-  // draft slot rather than the carry: the switch commits the (data-seeded)
-  // project into `shared` so the agent panel reads it from there.
-  it("commits the picked project to the shared draft when switching to agent mode", async () => {
+  // Manual → agent must preserve the shared fields. They ride the shared
+  // draft slot rather than the carry: the switch commits them so the agent
+  // panel reads them from there.
+  it("commits the shared fields to the draft when switching to agent mode", async () => {
     const user = userEvent.setup();
     const onSwitchMode = vi.fn();
 
@@ -1126,7 +1107,6 @@ describe("CreateIssueModal", () => {
       <ManualCreatePanel
         onClose={vi.fn()}
         onSwitchMode={onSwitchMode}
-        data={{ project_id: "proj-1" }}
         isExpanded={false}
         setIsExpanded={vi.fn()}
       />,
@@ -1138,24 +1118,9 @@ describe("CreateIssueModal", () => {
 
     expect(onSwitchMode).toHaveBeenCalledTimes(1);
     expect(mockSetShared).toHaveBeenCalledWith(
-      expect.objectContaining({ projectId: "proj-1" }),
+      expect.objectContaining({ priority: "none", dueDate: null }),
     );
     expect(mockSetAgent).toHaveBeenCalledWith({ prompt: "Refactor auth" });
-  });
-
-  it("restores an unfinished project selection after manual create remounts", async () => {
-    const user = userEvent.setup();
-
-    const firstOpen = renderModal(<CreateIssueModal onClose={vi.fn()} />);
-    expect(screen.getByTestId("project-picker")).toHaveAttribute("data-project-id", "none");
-
-    await user.click(screen.getByTestId("project-picker"));
-    expect(mockSetShared).toHaveBeenCalledWith({ projectId: "proj-1" });
-
-    firstOpen.unmount();
-    renderModal(<CreateIssueModal onClose={vi.fn()} />);
-
-    expect(screen.getByTestId("project-picker")).toHaveAttribute("data-project-id", "proj-1");
   });
 
   // Manual → agent must forward parent_issue_id when the modal was opened
@@ -1252,7 +1217,7 @@ describe("CreateIssueModal", () => {
 
   it("hides toolbar fields turned off in Settings → Issue and re-reveals them from the overflow", async () => {
     const user = userEvent.setup();
-    mockCreateSettingsStore.manualCreateFields = ["status", "priority", "assignee", "project"];
+    mockCreateSettingsStore.manualCreateFields = ["status", "priority", "assignee"];
 
     renderModal(<CreateIssueModal onClose={vi.fn()} />);
 
@@ -1269,7 +1234,7 @@ describe("CreateIssueModal", () => {
   });
 
   it("keeps a hidden field on the toolbar while it holds a value", () => {
-    mockCreateSettingsStore.manualCreateFields = ["status", "priority", "assignee", "project"];
+    mockCreateSettingsStore.manualCreateFields = ["status", "priority", "assignee"];
     mockDraftStore.draft.manual.labelIds = ["label-1"];
 
     renderModal(<CreateIssueModal onClose={vi.fn()} />);

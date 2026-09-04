@@ -1,12 +1,12 @@
 /**
  * Bare in-app entity URLs render as chips (ENA-5499).
  *
- * A project has no `ENA-123` shorthand — only a UUID and a free-text title — so
- * the link copied out of the app IS how people reference one. This fixture pins
- * the three conditions that decide whether such a link becomes a chip, because
- * each of them fails silently: an over-eager rule eats an author's link label,
- * and a cross-workspace unfurl replaces a working link with a chip that can
- * never resolve.
+ * This fixture pins the conditions that decide whether such a link becomes a
+ * chip, because each of them fails silently: an over-eager rule eats an
+ * author's link label, and a cross-workspace unfurl replaces a working link
+ * with a chip that can never resolve. A URL into a route the product no longer
+ * has — `/…/projects/<uuid>` in content written before projects were removed —
+ * has to stay a plain link for the same reason.
  *
  * The real RichLink / preprocessing pipeline is exercised; only the chips
  * themselves are stubbed, so the assertions are about which branch the renderer
@@ -55,20 +55,13 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@enact/core/paths")>()),
   useWorkspacePaths: () => ({
     issueDetail: (id: string) => `/acme/issues/${id}`,
-    projectDetail: (id: string) => `/acme/projects/${id}`,
-  }),
+    }),
   useWorkspaceSlug: () => "acme",
 }));
 
 vi.mock("../issues/components/issue-mention-card", () => ({
   IssueMentionCard: ({ issueId }: { issueId: string }) => (
     <span data-testid="issue-chip">{issueId}</span>
-  ),
-}));
-
-vi.mock("../projects/components/project-chip", () => ({
-  ProjectChip: ({ projectId }: { projectId: string }) => (
-    <span data-testid="project-chip">{projectId}</span>
   ),
 }));
 
@@ -80,7 +73,7 @@ vi.mock("../editor/link-hover-card", () => ({
 import { RichContent } from "./rich-content";
 
 const APP_ORIGIN = "https://app.enact.ai";
-const PROJECT_ID = "8f14e45f-ceea-4d0e-a1a2-9b1c0d3e4f5a";
+const STALE_PROJECT_ID = "8f14e45f-ceea-4d0e-a1a2-9b1c0d3e4f5a";
 const ISSUE_ID = "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed";
 
 function adapter(): NavigationAdapter {
@@ -105,17 +98,6 @@ function renderContent(content: string) {
 }
 
 describe("bare entity URLs in readonly content", () => {
-  it("renders a pasted project URL as a project chip linking to the project", () => {
-    const { container, getByTestId } = renderContent(
-      `Tracked under ${APP_ORIGIN}/acme/projects/${PROJECT_ID} for now.`,
-    );
-
-    expect(getByTestId("project-chip").textContent).toBe(PROJECT_ID);
-    expect(
-      container.querySelector(`a[href="/acme/projects/${PROJECT_ID}"]`),
-    ).not.toBeNull();
-  });
-
   it("renders a pasted issue URL as an issue chip", () => {
     const { getByTestId } = renderContent(
       `See ${APP_ORIGIN}/acme/issues/${ISSUE_ID} for context.`,
@@ -156,10 +138,10 @@ describe("bare entity URLs in readonly content", () => {
     // Replacing this with a chip would throw away "Roadmap" — the author said
     // what they wanted the link to read as.
     const { container, queryByTestId } = renderContent(
-      `[Roadmap](${APP_ORIGIN}/acme/projects/${PROJECT_ID})`,
+      `[Roadmap](${APP_ORIGIN}/acme/issues/${ISSUE_ID})`,
     );
 
-    expect(queryByTestId("project-chip")).toBeNull();
+    expect(queryByTestId("issue-chip")).toBeNull();
     const anchor = container.querySelector("a");
     expect(anchor?.textContent).toBe("Roadmap");
   });
@@ -168,27 +150,32 @@ describe("bare entity URLs in readonly content", () => {
     // The chip resolves its title in the CURRENT workspace, so unfurling here
     // would swap a working link for a permanently empty chip.
     const { container, queryByTestId } = renderContent(
-      `${APP_ORIGIN}/other-ws/projects/${PROJECT_ID}`,
+      `${APP_ORIGIN}/other-ws/issues/${ISSUE_ID}`,
     );
 
-    expect(queryByTestId("project-chip")).toBeNull();
+    expect(queryByTestId("issue-chip")).toBeNull();
     expect(
       container.querySelector(
-        `a[href="${APP_ORIGIN}/other-ws/projects/${PROJECT_ID}"]`,
+        `a[href="${APP_ORIGIN}/other-ws/issues/${ISSUE_ID}"]`,
       ),
     ).not.toBeNull();
   });
 
-  it("leaves a project list URL as a plain link", () => {
-    const { queryByTestId } = renderContent(`${APP_ORIGIN}/acme/projects`);
-    expect(queryByTestId("project-chip")).toBeNull();
+  // Content written while projects existed still carries these URLs. The route
+  // is gone, so there is nothing to unfurl to — but the author wrote a link,
+  // and silently dropping it would strip the only pointer they left behind.
+  it("leaves a stale project URL as a plain link", () => {
+    const staleUrl = `${APP_ORIGIN}/acme/projects/${STALE_PROJECT_ID}`;
+    const { container, queryByTestId } = renderContent(staleUrl);
+
+    expect(queryByTestId("issue-chip")).toBeNull();
+    expect(container.querySelector(`a[href="${staleUrl}"]`)).not.toBeNull();
   });
 
   it("leaves an external URL as a plain link", () => {
     const { queryByTestId, container } = renderContent(
       `https://github.com/enact-ai/enact/pull/1`,
     );
-    expect(queryByTestId("project-chip")).toBeNull();
     expect(queryByTestId("issue-chip")).toBeNull();
     expect(container.querySelector("a")).not.toBeNull();
   });

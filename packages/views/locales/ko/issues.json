@@ -56,12 +56,10 @@
     "no_results": "결과 없음",
     "no_labels": "아직 라벨이 없습니다",
     "no_assignee": "담당자 없음",
-    "no_project": "프로젝트 없음",
     "section_status": "상태",
     "section_priority": "우선순위",
     "section_assignee": "담당자",
     "section_creator": "생성자",
-    "section_project": "프로젝트",
     "section_label": "라벨",
     "section_date": "날짜",
     "date_field": "필드",
@@ -99,7 +97,6 @@
     "group_status": "상태",
     "group_assignee": "담당자",
     "group_parent": "상위 태스크",
-    "group_project": "프로젝트",
     "sort_manual": "수동",
     "sort_status": "상태",
     "sort_priority": "우선순위",
@@ -113,7 +110,6 @@
     "card_assignee": "담당자",
     "card_start_date": "시작일",
     "card_due_date": "마감일",
-    "card_project": "프로젝트",
     "card_labels": "라벨",
     "card_child_progress": "하위 태스크 진행률",
     "show_sub_issues": "하위 태스크 표시"
@@ -180,7 +176,6 @@
       "priority": "우선순위",
       "assignee": "담당자",
       "labels": "라벨",
-      "project": "프로젝트",
       "start_date": "시작일",
       "due_date": "마감일",
       "created_at": "생성일",
@@ -237,7 +232,6 @@
   "swimlane": {
     "no_parent": "상위 태스크 없음",
     "other_parents": "기타 상위 태스크",
-    "no_project": "프로젝트 없음",
     "no_assignee": "담당자 없음",
     "open_parent": "상위 태스크 열기",
     "toggle_collapse": "레인 접기/펼치기"
@@ -254,7 +248,6 @@
   },
   "detail": {
     "not_found": "이 워크스페이스에 해당 태스크가 없거나 삭제되었습니다.",
-    "breadcrumb_project_unknown": "알 수 없는 프로젝트",
     "back": "뒤로",
     "title_placeholder": "태스크 제목",
     "desc_placeholder": "설명 추가...",
@@ -310,7 +303,6 @@
     "prop_assignee": "담당자",
     "prop_start_date": "시작일",
     "prop_due_date": "마감일",
-    "prop_project": "프로젝트",
     "prop_labels": "라벨",
     "add_property_action": "속성 추가",
     "prop_created_by": "생성자",
@@ -365,6 +357,7 @@
       "close": "찾기 닫기"
     },
     "update_failed": "태스크를 업데이트하지 못했습니다",
+    "move_issue_failed": "태스크를 이동하지 못했습니다",
     "link_copied": "링크를 복사했습니다",
     "link_copy_failed": "링크를 복사하지 못했습니다",
     "workdir_path_copied": "작업 디렉터리 경로를 복사했습니다",
@@ -491,6 +484,11 @@
     "title": "필터 조건에 맞는 태스크가 없습니다",
     "hint": "필터를 조정하거나 해제하면 이 보기의 태스크가 표시됩니다.",
     "clear_button": "필터 해제"
+  },
+  "surface": {
+    "empty_title": "아직 태스크가 없습니다",
+    "empty_hint": "태스크를 만들어 이 워크스페이스의 작업을 추적하세요.",
+    "empty_new_button": "새 태스크"
   },
   "agent_live": {
     "is_working": "{{name}} 작업 중",
@@ -709,9 +707,6 @@
     "hint_my_assigned": "「내 이슈 · 나에게 할당됨」 기준으로 생성",
     "hint_my_created": "「내 이슈 · 내가 생성함」 기준으로 생성",
     "hint_my_involved": "「내 이슈 · 참여 중」 기준으로 생성",
-    "hint_project": "프로젝트 「{{title}}」 기준으로 생성, 해당 프로젝트 페이지에서만 사용 가능",
-    "hint_project_agents": "프로젝트 「{{title}}」에서 에이전트가 담당하는 이슈 기준으로 생성, 해당 프로젝트 페이지에서만 사용 가능",
-    "hint_project_members": "프로젝트 「{{title}}」에서 구성원이 담당하는 이슈 기준으로 생성, 해당 프로젝트 페이지에서만 사용 가능",
     "my_private_note": "내 이슈 뷰는 본인에게만 표시됩니다",
     "name_label": "이름",
     "visibility_label": "공개 범위",

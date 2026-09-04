@@ -18,7 +18,7 @@ export interface BreadcrumbSegment {
   label: ReactNode;
   /**
    * Overrides the default `shrink-0`. Pass `flex items-center gap-1 min-w-0
-   * max-w-72` for a truncating segment (e.g. a long project title).
+   * max-w-72` for a truncating segment (e.g. a long issue title).
    */
   className?: string;
 }

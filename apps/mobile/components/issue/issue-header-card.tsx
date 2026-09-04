@@ -5,7 +5,7 @@
  *   - identifier (ENA-NN) above as a small muted label
  *   - title in a large bold treatment
  *   - attribute chip row below (status / priority / assignee / labels /
- *     project / due date) — tappable, opens picker sheets
+ *     due date) — tappable, opens picker sheets
  *
  * The native iOS Stack header still renders `issue.identifier` as the
  * navigation title; the body re-renders it more prominently per the

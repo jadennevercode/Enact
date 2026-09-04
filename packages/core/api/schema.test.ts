@@ -149,7 +149,6 @@ describe("ApiClient schema fallback", () => {
       creator_type: "member",
       creator_id: "user-1",
       parent_issue_id: null,
-      project_id: null,
       position: 0,
       start_date: null,
       due_date: null,
@@ -217,7 +216,6 @@ describe("ApiClient schema fallback", () => {
       creator_type: "member",
       creator_id: "user-1",
       parent_issue_id: null,
-      project_id: null,
       position: 0,
       stage: null,
       start_date: null,
@@ -287,15 +285,6 @@ describe("ApiClient schema fallback", () => {
       const client = new ApiClient("https://api.example.test");
       const res = await client.searchIssues({ q: "bug" });
       expect(res).toEqual({ issues: [], total: 0 });
-    });
-  });
-
-  describe("searchProjects", () => {
-    it("falls back to an empty result when the response is malformed", async () => {
-      stubFetchJson({ projects: "not-an-array", total: 0 });
-      const client = new ApiClient("https://api.example.test");
-      const res = await client.searchProjects({ q: "roadmap" });
-      expect(res).toEqual({ projects: [], total: 0 });
     });
   });
 

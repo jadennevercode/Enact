@@ -1848,21 +1848,18 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				})
 			})
 
-			// Projects
-			r.Route("/api/projects", func(r chi.Router) {
-				r.Get("/search", h.SearchProjects)
-				r.Get("/", h.ListProjects)
-				r.Post("/", h.CreateProject)
-				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", h.GetProject)
-					r.Put("/", h.UpdateProject)
-					r.Delete("/", h.DeleteProject)
-					r.Get("/artifacts", h.ListProjectArtifacts)
-					r.Get("/resources", h.ListProjectResources)
-					r.Post("/resources", h.CreateProjectResource)
-					r.Put("/resources/{resourceId}", h.UpdateProjectResource)
-					r.Delete("/resources/{resourceId}", h.DeleteProjectResource)
-				})
+			// Artifacts — every file produced or attached anywhere in the
+			// workspace, newest first. Rows carry their owning issue when they
+			// have one; chat-origin attachments come back with none.
+			r.Get("/api/artifacts", h.ListArtifacts)
+
+			// Resources — repos and local directories the workspace's agents
+			// check out to work in.
+			r.Route("/api/resources", func(r chi.Router) {
+				r.Get("/", h.ListWorkspaceResources)
+				r.Post("/", h.CreateWorkspaceResource)
+				r.Put("/{resourceId}", h.UpdateWorkspaceResource)
+				r.Delete("/{resourceId}", h.DeleteWorkspaceResource)
 			})
 
 			// Squads
@@ -2078,8 +2075,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 			})
 
 			// Dashboard — workspace-wide token + run-time rollups for the
-			// "/{slug}/dashboard" page. Optional ?project_id filter scopes
-			// the rollup to a single project.
+			// "/{slug}/dashboard" page.
 			r.Route("/api/dashboard", func(r chi.Router) {
 				r.Get("/usage/daily", h.GetDashboardUsageDaily)
 				r.Get("/usage/by-agent", h.GetDashboardUsageByAgent)

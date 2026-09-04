@@ -58,7 +58,6 @@ function legacyParamsForStatus(
     status,
     limit: 50,
     offset: 0,
-    ...(scope.kind === "project" ? { project_id: scope.project_id } : {}),
     ...(scope.kind === "assignee" && scope.actor
       ? {
           assignee_type: scope.actor.type,
@@ -140,7 +139,7 @@ function workingAgentFacetValues(
 
 function primaryDescriptor(
   issue: Issue,
-  primary: "assignee" | "project" | "parent",
+  primary: "assignee" | "parent",
   issueById: ReadonlyMap<string, Issue>,
 ): Omit<IssueTableGroupDescriptor, "count" | "secondary_groups"> {
   if (primary === "assignee") {
@@ -153,12 +152,6 @@ function primaryDescriptor(
         ? `assignee:${actor.type}:${actor.id}`
         : "assignee:unassigned",
       value: { kind: "assignee", actor },
-    };
-  }
-  if (primary === "project") {
-    return {
-      key: issue.project_id ? `project:${issue.project_id}` : "project:none",
-      value: { kind: "project", project_id: issue.project_id },
     };
   }
   const parent = issue.parent_issue_id

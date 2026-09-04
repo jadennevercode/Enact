@@ -6,8 +6,6 @@
     "refresh": "새로고침"
   },
   "filter": {
-    "project_label": "프로젝트",
-    "all_projects": "모든 프로젝트",
     "period_label": "기간"
   },
   "kpi": {

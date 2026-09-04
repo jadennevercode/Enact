@@ -205,7 +205,6 @@ function makeIssue(id: string): Issue {
     creator_type: "member",
     creator_id: "member-1",
     parent_issue_id: null,
-    project_id: null,
     position: 1,
     stage: null,
     start_date: null,
@@ -244,7 +243,7 @@ const EMPTY_PROGRESS = new Map();
 const noop = () => {};
 const exportIssues = () => Promise.resolve([]);
 const resolveExportLookups = () =>
-  Promise.resolve({ projectMap: new Map(), childProgressMap: new Map() });
+  Promise.resolve({ childProgressMap: new Map() });
 
 let commits = 0;
 

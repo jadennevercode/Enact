@@ -35,8 +35,8 @@ func TestClassifyTask(t *testing.T) {
 	}
 }
 
-// TestTaskKindHasIssueContext pins the predicate that gates Project
-// Context / Issue Metadata / Sub-issue Creation in the slim dispatcher.
+// TestTaskKindHasIssueContext pins the predicate that gates Issue Metadata /
+// Sub-issue Creation in the slim dispatcher.
 func TestTaskKindHasIssueContext(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -185,7 +185,7 @@ func TestBuildMetaSkillContentSlimKindMatrix(t *testing.T) {
 // the calendar-day format the server canonically accepts
 // (util.ParseCalendarDate: YYYY-MM-DD; an RFC3339 value passes only at exact
 // UTC midnight). ENA-5696 found the brief teaching `<RFC3339>` while the CLI
-// help and the projects skill say YYYY-MM-DD, steering agents that computed a
+// help says YYYY-MM-DD, steering agents that computed a
 // natural timestamp into 400s.
 func TestBriefDueDateTeachesCalendarDayFormat(t *testing.T) {
 	for name, ctx := range map[string]TaskContextForEnv{

@@ -262,19 +262,6 @@ func buildQuickCreatePrompt(task Task) string {
 		fmt.Fprintf(&b, "- **due-date**: required for this run. Pass `--due-date %s`; the quick-create selection is authoritative.\n\n", task.QuickCreateDueDate)
 	}
 
-	// project — pinned by the modal when the user picked one, otherwise
-	// omitted so the platform routes to the workspace default. Always pass
-	// the UUID (never a name) so the issue lands in the right project even
-	// when several share a title.
-	if task.ProjectID != "" {
-		if task.ProjectTitle != "" {
-			fmt.Fprintf(&b, "- **project**: required for this run. Pass `--project %q` so the new issue lands in project %q (the user picked it in the quick-create modal). Do not infer a different project from the prompt text — the modal selection is authoritative.\n", task.ProjectID, task.ProjectTitle)
-		} else {
-			fmt.Fprintf(&b, "- **project**: required for this run. Pass `--project %q` so the new issue lands in the project the user picked in the quick-create modal. Do not infer a different project from the prompt text — the modal selection is authoritative.\n", task.ProjectID)
-		}
-	} else {
-		b.WriteString("- **project**: omit. The platform will route the issue to the workspace default.\n")
-	}
 	// parent — pinned by the modal when the user opened it from "Add sub
 	// issue" on an existing issue. Pass the UUID (never the identifier) so
 	// the create lands the sub-issue under the right parent even when the

@@ -107,7 +107,7 @@ export function createSuggestionPopupRender<
         // case the caret sits near the viewport top. A `bottom-start` default
         // instead stayed down whenever *any* space existed below — even when far
         // more room was above — which read as "mostly opens down and gets
-        // squashed". Document-body editors (issue/project description, agent
+        // squashed". Document-body editors (issue description, agent
         // instructions) also host this popup; there the caret usually has room
         // both ways, so `flip` keeps them on-screen regardless of the default.
         placement: "top-start",

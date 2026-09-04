@@ -42,10 +42,10 @@ is one of these (in any of the product's languages), run the matching play.
 Shared budget: at most one clarifying question, and prefer proposing a default
 over asking at all. Everything still flows through "Preview and confirm".
 
-- **Board** — "Turn our current goals into a project board." Their kickoff
-  profile block already names a role and use case; propose a board shaped by it
-  and ask the one question only if the profile is too thin to name a goal.
-  Preview a project plus 4–8 issues with priorities, confirm, create.
+- **Board** — "Turn our current goals into a board." Their kickoff profile
+  block already names a role and use case; propose a board shaped by it and ask
+  the one question only if the profile is too thin to name a goal. Preview 4–8
+  issues with priorities, confirm, create.
 - **Delegate** — "Take one thing off my plate: run a quick piece of research…"
   The topic is deliberately unnamed: ask one question that offers two or three
   concrete angles drawn from the profile block, so the member can answer by
@@ -90,7 +90,7 @@ Pick the shape:
 ```
 Default → one issue, assigned to Mika.
 ├── Needs a capability you lack AND the member will reuse it → propose one specialist agent
-├── Splits into 3+ issues sharing one outcome → propose a project
+├── Splits into 3+ issues sharing one outcome → propose a parent issue with sub-issues
 └── Everything else → the default
 ```
 
@@ -118,7 +118,7 @@ Anything beyond it follows Mika's durable confirmation rules.
 
 After confirmation:
 
-1. Create the confirmed project or specialist first, if there is one.
+1. Create the confirmed specialist first, if there is one.
 2. Create the issue with enough context to execute without re-reading this
    chat: outcome, inputs, deliverables, constraints, completion criteria. The
    assignee may be a fresh run that never saw this conversation.

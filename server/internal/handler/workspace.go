@@ -1284,7 +1284,7 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			run:  func() error { return qtx.DeleteWorkspaceIssueRoots(ctx, requester.WorkspaceID) },
 		},
 		{
-			// issue_status carries no foreign key by project rule, so its rows
+			// issue_status carries no foreign key by repo rule, so its rows
 			// are swept explicitly. Placed after the issue deletes so no issue
 			// row outlives the catalog its status key resolves against.
 			// (ENA-6243)
@@ -1322,8 +1322,8 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			run:  func() error { return qtx.DeleteWorkspaceAgents(ctx, requester.WorkspaceID) },
 		},
 		{
-			name: "delete runtimes and projects",
-			run:  func() error { return qtx.DeleteWorkspaceRuntimesAndProjects(ctx, requester.WorkspaceID) },
+			name: "delete runtimes",
+			run:  func() error { return qtx.DeleteWorkspaceRuntimes(ctx, requester.WorkspaceID) },
 		},
 		{
 			name: "delete administration data",

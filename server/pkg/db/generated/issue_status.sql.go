@@ -135,7 +135,7 @@ const deleteIssueStatusEntriesForWorkspace = `-- name: DeleteIssueStatusEntriesF
 DELETE FROM issue_status WHERE workspace_id = $1::uuid
 `
 
-// No foreign keys by project rule, so workspace teardown cleans up here.
+// No foreign keys by repository rule, so workspace teardown cleans up here.
 func (q *Queries) DeleteIssueStatusEntriesForWorkspace(ctx context.Context, workspaceID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteIssueStatusEntriesForWorkspace, workspaceID)
 	return err

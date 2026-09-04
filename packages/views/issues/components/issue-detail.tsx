@@ -75,8 +75,7 @@ import { IssueActionsDropdown, useIssueActions, IssueActionsContextMenu, IssueCo
 import { LabelChip } from "../../labels/label-chip";
 import { IssueAgentActivityIndicator } from "./issue-agent-activity-indicator";
 import { SubIssuesAgentWorkingChip } from "./sub-issues-agent-working-chip";
-import { ProjectPicker } from "../../projects/components/project-picker";
-import { LocalDirectoryHint } from "../../projects/components/local-directory-hint";
+import { LocalDirectoryHint } from "../../common/local-directory";
 import { CommentCard } from "./comment-card";
 import { RevisionConflictCompare } from "./revision-conflict-compare";
 import { CommentInput } from "./comment-input";
@@ -100,8 +99,6 @@ import { useActorName } from "@enact/core/workspace/hooks";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useRecentContextStore } from "@enact/core/chat";
 import { issueListOptions, issueDetailOptions, childIssuesOptions, childIssueProgressOptions, issueAttachmentsOptions } from "@enact/core/issues/queries";
-import { projectDetailOptions } from "@enact/core/projects/queries";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { issueLabelsOptions } from "@enact/core/labels";
 import { propertyListOptions } from "@enact/core/properties";
 import { memberListOptions, agentListOptions } from "@enact/core/workspace/queries";
@@ -379,7 +376,7 @@ const EMPTY_REPLIES: TimelineEntry[] = [];
 // ---------------------------------------------------------------------------
 //
 // Properties shown in the sidebar split into two groups:
-//   - core: always rendered (status / assignee / project)
+//   - core: always rendered (status / assignee)
 //   - optional: rendered only when the issue has a value for that field OR
 //     the user explicitly added it via "+ Add property" in this session
 //     (priority / due_date / labels)
@@ -1774,13 +1771,6 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
     initialData: () => allIssues.find((i) => i.id === parentIssueId),
   });
 
-  // Project segment in the breadcrumb. The issue's project_id is the source of
-  // truth — same URL renders the same breadcrumb regardless of entry path.
-  const issueProjectId = issue?.project_id;
-  const { data: breadcrumbProject = null } = useQuery({
-    ...projectDetailOptions(wsId, issueProjectId ?? ""),
-    enabled: !!issueProjectId,
-  });
   const {
     data: childIssues = [],
     isSuccess: childIssuesLoaded,
@@ -2305,12 +2295,6 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
           <PropRow label={t(($) => $.detail.prop_assignee)}>
             <AssigneePicker assigneeType={issue.assignee_type} assigneeId={issue.assignee_id} onUpdate={handleUpdateField} align="start" />
           </PropRow>
-          <PropRow label={t(($) => $.detail.prop_project)}>
-            <ProjectPicker
-              projectId={issue.project_id}
-              onUpdate={handleUpdateField}
-            />
-          </PropRow>
 
           {/* Optional props — rendered only when set on the issue OR added
               via "+ Add property" in this session. Row order follows the
@@ -2684,28 +2668,12 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
     );
   };
 
-  // Breadcrumb shows the single most-direct container, never a fabricated chain.
-  // project_id and parent_issue_id are orthogonal (a sub-issue can live in a
-  // different project than its parent), so we never render both: parent wins,
-  // else project, else nothing. The project is still shown in the properties
-  // panel. The workspace name is intentionally absent — "all issues" is a view,
-  // not a container.
+  // Breadcrumb shows the single most-direct container, never a fabricated
+  // chain: the parent issue when there is one, else nothing. The workspace
+  // name is intentionally absent — "all issues" is a view, not a container.
   const breadcrumbSegments: BreadcrumbSegment[] = parentIssue
     ? [{ href: paths.issueDetail(parentIssue.id), label: parentIssue.identifier }]
-    : breadcrumbProject
-      ? [
-          {
-            href: paths.projectDetail(breadcrumbProject.id),
-            className: "flex items-center gap-1 min-w-0 max-w-72",
-            label: (
-              <>
-                <ProjectIcon project={breadcrumbProject} size="sm" />
-                <span className="min-w-0 truncate">{breadcrumbProject.title}</span>
-              </>
-            ),
-          },
-        ]
-      : [];
+    : [];
 
   const detailContent = (
     // Hosts the one image viewer this issue's images page through — see
@@ -3366,7 +3334,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
               </div>
             </div>
 
-            <LocalDirectoryHint projectId={issue?.project_id} />
+            <LocalDirectoryHint />
 
             {/* Offered only after the server has decided to ask — see
                 IssueRetrospectiveBar. Sits above the timeline because it is

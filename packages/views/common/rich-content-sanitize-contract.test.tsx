@@ -47,7 +47,6 @@ vi.mock("@enact/core/api", () => ({
 vi.mock("@enact/core/paths", () => ({
   useWorkspacePaths: () => ({
     issueDetail: (id: string) => `/test/issues/${id}`,
-    projectDetail: (id: string) => `/test/projects/${id}`,
   }),
   useWorkspaceSlug: () => "test",
 }));
@@ -64,10 +63,6 @@ vi.mock("../navigation", () => ({
 
 vi.mock("../issues/components/issue-mention-card", () => ({
   IssueMentionCard: ({ issueId }: { issueId: string }) => <span>{issueId}</span>,
-}));
-
-vi.mock("../projects/components/project-chip", () => ({
-  ProjectChip: ({ projectId }: { projectId: string }) => <span>{projectId}</span>,
 }));
 
 vi.mock("../editor/link-hover-card", () => ({

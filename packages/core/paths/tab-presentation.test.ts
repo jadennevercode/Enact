@@ -19,9 +19,9 @@ describe("resolveTabPresentation — pages", () => {
       visual: { kind: "icon", icon: "ListTodo" },
       title: { kind: "nav", navKey: "issues" },
     });
-    expect(present("/acme/projects")).toEqual({
-      visual: { kind: "icon", icon: "FolderKanban" },
-      title: { kind: "nav", navKey: "projects" },
+    expect(present("/acme/artifacts")).toEqual({
+      visual: { kind: "icon", icon: "FolderOpen" },
+      title: { kind: "nav", navKey: "artifacts" },
     });
     expect(present("/acme/ontologies")).toEqual({
       visual: { kind: "icon", icon: "Network" },
@@ -45,19 +45,6 @@ describe("resolveTabPresentation — direct resources", () => {
       // the glyph for a custom status key. (ENA-6243)
       visual: { kind: "issue-status", status: "in_progress", category: "in_progress" },
       title: { kind: "text", text: "ENA-1: Fix" },
-    });
-  });
-
-  it("project shows its own icon + title, pending shows default glyph + label", () => {
-    expect(present("/acme/projects/p1")).toEqual({
-      visual: { kind: "project-icon", icon: null },
-      title: { kind: "tab", tabKey: "project" },
-    });
-    expect(
-      present("/acme/projects/p1", { project: { icon: "🚀", title: "Apollo" } }),
-    ).toEqual({
-      visual: { kind: "project-icon", icon: "🚀" },
-      title: { kind: "text", text: "Apollo" },
     });
   });
 
@@ -124,15 +111,16 @@ describe("resolveTabPresentation — direct resources", () => {
   });
 
   it("never borrows the Issues icon while a resource is loading", () => {
-    // A pending issue uses issue-status (not the ListTodo page icon); a pending
-    // project uses project-icon; neither is the generic page fallback.
+    // A pending issue uses issue-status, not the ListTodo page icon and not
+    // the generic page fallback.
     expect(present("/acme/issues/i1").visual).toEqual({
       kind: "issue-status",
       status: null,
     });
-    expect(present("/acme/projects/p1").visual).toEqual({
-      kind: "project-icon",
-      icon: null,
+    // A pending autopilot keeps its own type icon for the same reason.
+    expect(present("/acme/autopilots/a1").visual).toEqual({
+      kind: "icon",
+      icon: "Zap",
     });
   });
 });

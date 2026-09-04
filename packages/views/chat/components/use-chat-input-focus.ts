@@ -7,8 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  * `focusRequest` is handed to ChatInput, which pulls keyboard focus into the
  * editor every time the number changes; `0` is inert. Callers bump it for the
- * moments that mean "you are about to type something new" — a fresh chat, an
- * agent switch, a project-context change.
+ * moments that mean "you are about to type something new" — a fresh chat or
+ * an agent switch.
  *
  * Opening the window is one of those moments (ENA-5522): the whole point of the
  * toggle shortcut is reaching chat without a mouse, so landing in a window you

@@ -30,18 +30,17 @@ export const INSTALL_RUNTIME_ISSUE_TITLE = {
 
 const en = `Welcome to Enact.
 
-Agents need a runtime before they can execute work. You can still use Enact as a lightweight project-management workspace while you install one.
+Agents need a runtime before they can execute work. You can still use Enact as a lightweight issue-tracking workspace while you install one.
 
 ## Try Enact first
 
 Before the runtime is ready, you can:
 
-1. Create a project for your current work.
-2. Create a few issues and move them across backlog, todo, in_progress, and done.
-3. Add priorities, labels, comments, and subscriptions.
-4. Use Inbox to track assignments and mentions.
+1. Create a few issues for your current work and move them across backlog, todo, in_progress, and done.
+2. Add priorities, labels, comments, and subscriptions.
+3. Use Inbox to track assignments and mentions.
 
-That gives you the project-management layer first. Once a runtime is connected, agents can start working from the same issues.
+That gives you the issue-tracking layer first. Once a runtime is connected, agents can start working from the same issues.
 
 ## Install your first agent runtime
 
@@ -72,18 +71,17 @@ Mika will turn one real goal into an issue, start it with the right agent, and s
 
 const zh = `欢迎来到 Enact。
 
-智能体需要先连上运行时才能执行工作。运行时还没准备好时,你也可以先把 Enact 当作轻量项目管理工具体验起来。
+智能体需要先连上运行时才能执行工作。运行时还没准备好时,你也可以先把 Enact 当作轻量任务管理工具体验起来。
 
-## 先体验项目管理功能
+## 先体验任务管理功能
 
 运行时安装前,你可以先做这些事:
 
-1. 为当前工作创建一个项目。
-2. 新建几个任务,并在 backlog、todo、in_progress、done 之间流转。
-3. 给任务加优先级、标签、评论和订阅。
-4. 用收件箱追踪分配给你的事项和 @mention。
+1. 为当前工作新建几个任务,并在 backlog、todo、in_progress、done 之间流转。
+2. 给任务加优先级、标签、评论和订阅。
+3. 用收件箱追踪分配给你的事项和 @mention。
 
-这样你先熟悉项目管理层。连上运行时后,智能体会直接在这些任务上开始工作。
+这样你先熟悉任务管理层。连上运行时后,智能体会直接在这些任务上开始工作。
 
 ## 安装第一个 Agent 运行时
 
@@ -113,18 +111,17 @@ Mika 会把一个真实目标转化为任务，交给合适的智能体启动执
 
 const ko = `Enact에 오신 것을 환영합니다.
 
-agent가 작업을 실행하려면 먼저 runtime이 필요합니다. runtime을 설치하는 동안에도 Enact를 가벼운 프로젝트 관리 워크스페이스로 먼저 사용할 수 있습니다.
+agent가 작업을 실행하려면 먼저 runtime이 필요합니다. runtime을 설치하는 동안에도 Enact를 가벼운 태스크 관리 워크스페이스로 먼저 사용할 수 있습니다.
 
 ## 먼저 Enact를 사용해 보기
 
 runtime이 준비되기 전에는 다음을 해볼 수 있습니다:
 
-1. 현재 작업을 위한 project를 만듭니다.
-2. 태스크 몇 개를 만들고 backlog, todo, in_progress, done 사이에서 이동해 봅니다.
-3. priority, label, comment, subscription을 추가합니다.
-4. Inbox에서 나에게 배정된 작업과 mention을 확인합니다.
+1. 현재 작업을 위한 태스크 몇 개를 만들고 backlog, todo, in_progress, done 사이에서 이동해 봅니다.
+2. priority, label, comment, subscription을 추가합니다.
+3. Inbox에서 나에게 배정된 작업과 mention을 확인합니다.
 
-이렇게 프로젝트 관리 계층을 먼저 익힐 수 있습니다. runtime이 연결되면 agent가 같은 태스크에서 바로 작업을 시작합니다.
+이렇게 태스크 관리 계층을 먼저 익힐 수 있습니다. runtime이 연결되면 agent가 같은 태스크에서 바로 작업을 시작합니다.
 
 ## 첫 agent runtime 설치하기
 
@@ -155,18 +152,17 @@ Mika가 실제 목표 하나를 태스크로 만들고 적합한 에이전트와
 
 const ja = `Enact へようこそ。
 
-agent が作業を実行するには、まず runtime が必要です。runtime をインストールしている間も、Enact を軽量なプロジェクト管理ワークスペースとして先に使うことができます。
+agent が作業を実行するには、まず runtime が必要です。runtime をインストールしている間も、Enact を軽量なタスク管理ワークスペースとして先に使うことができます。
 
 ## まず Enact を使ってみる
 
 runtime が準備できる前に、次のことを試せます:
 
-1. いまの仕事のための project を作る。
-2. タスクをいくつか作り、backlog、todo、in_progress、done の間で動かしてみる。
-3. priority、label、comment、subscription を追加する。
-4. Inbox で自分への割り当てや mention を確認する。
+1. いまの仕事のためのタスクをいくつか作り、backlog、todo、in_progress、done の間で動かしてみる。
+2. priority、label、comment、subscription を追加する。
+3. Inbox で自分への割り当てや mention を確認する。
 
-これでまずプロジェクト管理のレイヤーに慣れることができます。runtime を接続すると、agent が同じタスクから作業を始められます。
+これでまずタスク管理のレイヤーに慣れることができます。runtime を接続すると、agent が同じタスクから作業を始められます。
 
 ## 最初の agent runtime をインストールする
 

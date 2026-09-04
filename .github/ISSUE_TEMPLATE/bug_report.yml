@@ -29,7 +29,7 @@ body:
         - Mobile app (iOS)
         - CLI
         - Agents and runtimes
-        - Issues, projects and workspaces
+        - Issues and workspaces
         - Chat integration — Feishu / Lark or Slack
         - Chat integration — DingTalk (community-maintained)
         - Chat integration — WeCom (community-maintained)

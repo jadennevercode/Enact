@@ -38,7 +38,6 @@ import {
 } from "@enact/core/issue-views/active-view-store";
 import { ApiError } from "@enact/core/api/client";
 import type { CreateIssueViewRequest, IssueView } from "@enact/core/api/schemas";
-import { projectListOptions } from "@enact/core/projects/queries";
 import { propertyListOptions } from "@enact/core/properties";
 import {
   viewStoreSlice,
@@ -67,12 +66,7 @@ import { useT } from "../../i18n";
  *  by the user — the dialog only explains it. */
 export type SaveViewScope =
   | { kind: "workspace"; actorKind?: "all" | "members" | "agents" }
-  | { kind: "my"; variant: "any" | "assigned" | "created" | "involved" }
-  | {
-      kind: "project";
-      projectId: string;
-      actorKind?: "all" | "members" | "agents";
-    };
+  | { kind: "my"; variant: "any" | "assigned" | "created" | "involved" };
 
 const WORKSPACE_VARIANTS = ["all", "members", "agents"] as const;
 const MY_VARIANTS = ["any", "assigned", "created", "involved"] as const;
@@ -108,12 +102,10 @@ const LAYOUT_LABEL_KEY = {
 const GROUPING_LABEL_KEY = {
   status: "group_status",
   assignee: "group_assignee",
-  project: "group_project",
 } as const;
 
 const SWIMLANE_LABEL_KEY = {
   parent: "group_parent",
-  project: "group_project",
   assignee: "group_assignee",
 } as const;
 
@@ -134,7 +126,6 @@ const CARD_PROPERTY_LABEL_KEY = {
   assignee: "card_assignee",
   startDate: "card_start_date",
   dueDate: "card_due_date",
-  project: "card_project",
   labels: "card_labels",
   childProgress: "card_child_progress",
 } as const;
@@ -512,7 +503,7 @@ export function SaveViewDialog({
     setName(editView?.name ?? "");
     setNameError(false);
     setVisibility(editView?.visibility === "workspace" ? "workspace" : "private");
-    if (scope.kind === "workspace" || scope.kind === "project") {
+    if (scope.kind === "workspace") {
       const fromEdit = editView?.scope_variant;
       setVariant(
         fromEdit === "members" || fromEdit === "agents"
@@ -531,15 +522,6 @@ export function SaveViewDialog({
     }
   }, [open, liveStore, editView, seedFromDefinition, scope]);
 
-  const { data: projects = [] } = useQuery({
-    ...projectListOptions(wsId),
-    enabled: open && scope.kind === "project",
-  });
-  const projectTitle =
-    scope.kind === "project"
-      ? projects.find((p) => p.id === scope.projectId)?.title ?? ""
-      : "";
-
   const scopeHint =
     scope.kind === "workspace"
       ? variant === "members"
@@ -547,19 +529,13 @@ export function SaveViewDialog({
         : variant === "agents"
           ? t(($) => $.save_view.hint_workspace_agents)
           : t(($) => $.save_view.hint_workspace)
-      : scope.kind === "my"
-        ? t(($) => $.save_view[
-            MY_VARIANT_HINT_KEY[
-              (MY_VARIANTS as readonly string[]).includes(variant)
-                ? (variant as (typeof MY_VARIANTS)[number])
-                : scope.variant
-            ]
-          ])
-        : variant === "members"
-          ? t(($) => $.save_view.hint_project_members, { title: projectTitle })
-          : variant === "agents"
-            ? t(($) => $.save_view.hint_project_agents, { title: projectTitle })
-            : t(($) => $.save_view.hint_project, { title: projectTitle });
+      : t(($) => $.save_view[
+          MY_VARIANT_HINT_KEY[
+            (MY_VARIANTS as readonly string[]).includes(variant)
+              ? (variant as (typeof MY_VARIANTS)[number])
+              : scope.variant
+          ]
+        ]);
 
   const create = () => {
     if (!draftStore) return;
@@ -573,7 +549,7 @@ export function SaveViewDialog({
       name: name.trim(),
       visibility: scope.kind === "my" ? ("private" as const) : visibility,
       scope_type: scope.kind,
-      scope_id: scope.kind === "project" ? scope.projectId : null,
+      scope_id: null,
       scope_variant:
         scope.kind === "my"
           ? ((MY_VARIANTS as readonly string[]).includes(variant)
@@ -589,8 +565,6 @@ export function SaveViewDialog({
         assigneeFilters: state.assigneeFilters,
         includeNoAssignee: state.includeNoAssignee,
         creatorFilters: state.creatorFilters,
-        projectFilters: state.projectFilters,
-        includeNoProject: state.includeNoProject,
         labelFilters: state.labelFilters,
         propertyFilters: state.propertyFilters,
       },

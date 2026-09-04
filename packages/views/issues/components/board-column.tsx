@@ -2,14 +2,13 @@
 
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { EyeOff, FolderMinus, MoreHorizontal, Plus, UserMinus } from "lucide-react";
+import { EyeOff, MoreHorizontal, Plus, UserMinus } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type {
   Issue,
   IssueAssigneeType,
   IssueStatusCategory,
-  Project,
 } from "@enact/core/types";
 import { Button } from "@enact/ui/components/ui/button";
 import {
@@ -26,7 +25,6 @@ import { DraggableBoardCard } from "./board-card";
 import type { ChildProgress } from "./list-row";
 import { useT } from "../../i18n";
 import { ActorAvatar } from "../../common/actor-avatar";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { useRestoredScrollOffset, useRestoredScrollRef } from "../../platform";
 import { DeferredPopup } from "../../common/deferred-popup";
 import { DeferredTooltip } from "../../common/deferred-tooltip";
@@ -79,12 +77,6 @@ export interface BoardColumnGroup {
   status?: IssueStatusCategory;
   assigneeType?: IssueAssigneeType | null;
   assigneeId?: string | null;
-  /** Project id for this column; null = the "No project" column. Set only
-   *  when the board is grouped by project. */
-  projectId?: string | null;
-  /** Display-only, for the column's leading icon. Null on the "No project"
-   *  column and on a project the projects query cannot resolve. */
-  project?: Pick<Project, "icon"> | null;
   /** Set when the board is grouped by a select-type custom property. */
   propertyId?: string;
   /** Option id for this column; null = the "No value" column. */
@@ -99,10 +91,8 @@ export const BoardColumn = memo(function BoardColumn({
   issueIds,
   issueMap,
   childProgressMap,
-  projectMap,
   totalCount,
   footer,
-  projectId,
   onCreateIssue,
   sortLabel,
 }: {
@@ -110,11 +100,8 @@ export const BoardColumn = memo(function BoardColumn({
   issueIds: string[];
   issueMap: Map<string, Issue>;
   childProgressMap?: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   totalCount?: number;
   footer?: ReactNode;
-  /** When set, the per-column "+" pre-fills the project on the create form. */
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   sortLabel?: string | null;
 }) {
@@ -177,9 +164,6 @@ export const BoardColumn = memo(function BoardColumn({
       <DraggableBoardCard
         issue={issue}
         childProgress={childProgressMap?.get(issue.id)}
-        project={
-          issue.project_id ? projectMap?.get(issue.project_id) : undefined
-        }
         disableSorting={!!sortLabel}
       />
     </div>
@@ -236,13 +220,7 @@ export const BoardColumn = memo(function BoardColumn({
                   variant="ghost"
                   size="icon-sm"
                   className="rounded-full text-muted-foreground"
-                  onClick={() => {
-                    const data = {
-                      ...(group.createData ?? {}),
-                      ...(projectId ? { project_id: projectId } : {}),
-                    };
-                    onCreateIssue(data);
-                  }}
+                  onClick={() => onCreateIssue(group.createData ?? {})}
                 >
                   <Plus className="size-3.5" />
                 </Button>
@@ -353,26 +331,6 @@ function BoardGroupHeading({
           className="size-2.5 shrink-0 rounded-full bg-muted-foreground/30"
           style={group.propertyOptionColor ? { backgroundColor: group.propertyOptionColor } : undefined}
         />
-        <span className="truncate text-body font-medium" title={group.title}>
-          {group.title}
-        </span>
-        <span className="shrink-0 rounded-full bg-background px-1.5 py-0.5 text-micro font-medium tabular-nums text-muted-foreground">
-          {count}
-        </span>
-      </div>
-    );
-  }
-
-  if (group.projectId !== undefined) {
-    return (
-      <div className="flex min-w-0 items-center gap-2">
-        {group.project ? (
-          <ProjectIcon project={group.project} size="sm" />
-        ) : (
-          <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground">
-            <FolderMinus className="size-3.5" />
-          </span>
-        )}
         <span className="truncate text-body font-medium" title={group.title}>
           {group.title}
         </span>

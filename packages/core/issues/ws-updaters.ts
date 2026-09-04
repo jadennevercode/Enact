@@ -2,7 +2,6 @@ import { issueStatusCategory } from "./status-category";
 import type { QueryClient } from "@tanstack/react-query";
 import { issueKeys } from "./queries";
 import { labelKeys } from "../labels/queries";
-import { projectKeys } from "../projects/queries";
 import {
   applyIssueChange,
   bucketedListEntries,
@@ -214,19 +213,6 @@ function patchIssueSnapshot(
   qc.setQueryData<Issue>(issueKeys.detail(wsId, issueId), (old) =>
     old ? mergeIssuePatch(old, patch, orderRevision) : old,
   );
-  for (const [key, data] of issueArrayEntries(
-    qc,
-    issueKeys.projectGanttAll(wsId),
-  )) {
-    qc.setQueryData<Issue[]>(
-      key,
-      data.map((issue) =>
-        issue.id === issueId
-          ? mergeIssuePatch(issue, patch, orderRevision)
-          : issue,
-      ),
-    );
-  }
 }
 
 function freshestCachedIssueRevision(
@@ -251,7 +237,7 @@ function freshestCachedIssueRevision(
   for (const [, data] of tableRowEntries(qc, wsId)) {
     consider(data.rows.find((row) => row.issue.id === issueId)?.issue);
   }
-  for (const prefix of [issueKeys.childrenAll(wsId), issueKeys.projectGanttAll(wsId)]) {
+  for (const prefix of [issueKeys.childrenAll(wsId)]) {
     for (const [, data] of issueArrayEntries(qc, prefix)) {
       consider(data.find((issue) => issue.id === issueId));
     }
@@ -301,7 +287,7 @@ function invalidateIssueOwnerProjectionsWhere(
       invalidateExact(key);
     }
   }
-  for (const prefix of [issueKeys.childrenAll(wsId), issueKeys.projectGanttAll(wsId)]) {
+  for (const prefix of [issueKeys.childrenAll(wsId)]) {
     for (const [key, data] of issueArrayEntries(qc, prefix)) {
       if (data.some((issue) => issue.id === issueId && shouldInvalidate(issue))) {
         invalidateExact(key);
@@ -399,14 +385,6 @@ export function onIssueCreated(
   qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-  if (issue.project_id) {
-    qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
-  }
-  // Refresh every Project Gantt cache that might be observing this issue.
-  // We invalidate the whole prefix rather than the issue's own project
-  // because a fresh issue isn't necessarily scheduled yet; the active Gantt
-  // page (if any) will refetch and pick it up if it qualifies.
-  qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
   if (issue.parent_issue_id) {
     qc.invalidateQueries({ queryKey: issueKeys.children(wsId, issue.parent_issue_id) });
     qc.invalidateQueries({ queryKey: issueKeys.childProgress(wsId) });
@@ -417,15 +395,14 @@ export function onIssueUpdated(
   qc: QueryClient,
   wsId: string,
   issue: Partial<Issue> & { id: string },
-  // assigneeChanged / statusChanged / projectChanged come from the server's
-  // issue:updated flags — authoritative "did this write move a membership
-  // dimension" signals. They feed the coordinator's changed-dims input so a
+  // assigneeChanged / statusChanged come from the server's issue:updated
+  // flags — authoritative "did this write move a membership dimension"
+  // signals. They feed the coordinator's changed-dims input so a
   // non-membership change (title / position / priority / label) keeps every
   // loaded list in place instead of refetching.
   meta: {
     assigneeChanged?: boolean;
     statusChanged?: boolean;
-    projectChanged?: boolean;
   } = {},
 ) {
   // Look up the OLD parent + cached entity before mutating cache state, so we
@@ -462,7 +439,6 @@ export function onIssueUpdated(
   // and keeps a new frontend on an old backend from regressing (ENA-3669 /
   // #4548). The local move itself is covered by useUpdateIssue's own
   // coordinator pass, which never depends on these flags.
-  const oldProjectId = detailData?.project_id ?? cachedIssue?.project_id ?? null;
   const changed = {
     assignee:
       meta.assigneeChanged ??
@@ -471,9 +447,6 @@ export function onIssueUpdated(
           issue.assignee_id !== cachedIssue.assignee_id) ||
           (issue.assignee_type !== undefined &&
             issue.assignee_type !== cachedIssue.assignee_type))),
-    project:
-      meta.projectChanged ??
-      (issue.project_id !== undefined && (issue.project_id ?? null) !== oldProjectId),
     status:
       meta.statusChanged ??
       (cachedIssue !== undefined &&
@@ -496,10 +469,7 @@ export function onIssueUpdated(
       issue.revision > current.revision,
   });
   invalidateStaleListKeys(qc, change.staleKeys);
-  invalidateIssueDerivatives(qc, wsId, {
-    statusOrProjectChanged:
-      issue.status !== undefined || issue.project_id !== undefined,
-  });
+  invalidateIssueDerivatives(qc, wsId);
   // Group counts, branch membership and hierarchy are server-owned. Never
   // guess deltas from a partial branch; refetch the active Table queries.
   qc.invalidateQueries({ queryKey: issueKeys.tableAll(wsId) });
@@ -761,5 +731,4 @@ export function onIssueDeleted(
   cleanupDeletedIssueCaches(qc, wsId, issueId);
   qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-  qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
 }

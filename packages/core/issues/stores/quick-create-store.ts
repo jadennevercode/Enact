@@ -16,14 +16,6 @@ export type QuickCreateActorType = "agent" | "squad";
 // matches how draft-store / issues-scope-store / comment-collapse-store
 // already namespace themselves.
 //
-// The last project is deliberately NOT remembered (ENA-5862). Actor and
-// project look symmetrical but aren't: an issue's target project is a
-// property of the issue being filed, not a standing preference, so carrying
-// the previous one forward guesses wrong as soon as the user moves on — and
-// silently files the next issue into a project they never picked. The two
-// seeds that survive both have the user's intent behind them: the project
-// page they opened the modal from, and their own unfinished draft.
-//
 // lastActorType + lastActorId replace the prior `lastAgentId` field once
 // squads became selectable. Users who had a persisted agent preference
 // land back on whatever the picker shows first; a one-time re-pick is

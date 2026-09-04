@@ -94,7 +94,7 @@ export function moveBucketTotal(
 
 /**
  * Count-only reconcile for an issue BEYOND the loaded window that LEFT the
- * list (reassigned / moved project): the bucket it was counted in loses one.
+ * list (reassigned): the bucket it was counted in loses one.
  */
 export function decrementBucketTotal(
   resp: ListIssuesCache,

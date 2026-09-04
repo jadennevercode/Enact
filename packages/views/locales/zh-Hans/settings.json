@@ -215,10 +215,6 @@
         "label": "前往任务",
         "description": "打开任务列表。"
       },
-      "goProjects": {
-        "label": "前往项目",
-        "description": "打开项目列表。"
-      },
       "goAutopilots": {
         "label": "前往自动化",
         "description": "打开工作区自动化。"
@@ -275,7 +271,6 @@
       "priority": "优先级",
       "assignee": "负责人",
       "labels": "标签",
-      "project": "项目",
       "due_date": "截止日期",
       "start_date": "开始日期"
     }
@@ -316,6 +311,7 @@
       "tokens": "API Token",
       "general": "常规",
       "repositories": "代码仓库",
+      "resources": "资源",
       "github": "GitHub",
       "integrations": "集成",
       "labs": "实验室",

@@ -32,7 +32,6 @@ function makeIssue(id: string, status: string, category: IssueStatusCategory): I
     assignee_id: null,
     creator_type: "member",
     creator_id: "u-1",
-    project_id: null,
     parent_issue_id: null,
     stage: null,
     position: 1,

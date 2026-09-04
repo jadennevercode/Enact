@@ -14,7 +14,6 @@ import {
   Check,
   ChevronRight,
   CircleUser,
-  FolderKanban,
   Maximize2,
   Minimize2,
   MoreHorizontal,
@@ -56,7 +55,6 @@ import { useShortcut } from "@enact/core/shortcuts";
 import { ShortcutKeycaps } from "../common/shortcut-keycaps";
 import { StatusIcon, StatusPicker, PriorityIcon, PriorityPicker, StagePicker, AssigneePicker, StartDatePicker, DueDatePicker, LabelPicker } from "../issues/components";
 import { maxSiblingStage } from "../issues/components/pickers/stage-picker";
-import { ProjectPicker } from "../projects/components/project-picker";
 import { useIssueTriggerPreview } from "../issues/hooks/use-issue-trigger-preview";
 import { useActorName } from "@enact/core/workspace/hooks";
 import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
@@ -83,7 +81,7 @@ import {
   parseWithFallback,
 } from "@enact/core/api";
 import { FileUploadButton } from "@enact/ui/components/common/file-upload-button";
-import { ClearablePillButton, PillButton } from "../common/pill-button";
+import { PillButton } from "../common/pill-button";
 import { ActorAvatar } from "../common/actor-avatar";
 import { PropertyIcon } from "../common/property-icon";
 import {
@@ -210,7 +208,6 @@ export function ManualCreatePanel({
 }) {
   const { t } = useT("modals");
   const { t: tEditor } = useT("editor");
-  const { t: tProjects } = useT("projects");
   const router = useNavigation();
   const p = useWorkspacePaths();
   const workspaceName = useCurrentWorkspace()?.name;
@@ -258,12 +255,6 @@ export function ManualCreatePanel({
   const [labelIds, setLabelIds] = useState<string[]>(draft.manual.labelIds);
   const [propertyValues, setPropertyValues] = useState(draft.manual.propertyValues ?? {});
   const [customPropertyPickerId, setCustomPropertyPickerId] = useState<string | null>(null);
-  const [projectId, setProjectId] = useState<string | undefined>(() => {
-    if (data && "project_id" in data) {
-      return (data.project_id as string | null) ?? undefined;
-    }
-    return draft.shared.projectId;
-  });
   const [parentIssueId, setParentIssueId] = useState<string | undefined>(
     (data?.parent_issue_id as string) || undefined,
   );
@@ -353,7 +344,7 @@ export function ManualCreatePanel({
   } = useIssueCreateUploads("manual", uploadGate, descEditorRef);
 
   // Sync field changes to the draft store — manual-only fields to the manual
-  // slot, project / priority / due date to the shared slot.
+  // slot, priority / due date to the shared slot.
   const updateTitle = (v: string) => { setTitle(v); setManual({ title: v }); };
   const updateStatus = (v: IssueStatus) => { setStatus(v); setManual({ status: v }); };
   const updatePriority = (v: IssuePriority) => { setPriority(v); setShared({ priority: v }); };
@@ -361,7 +352,6 @@ export function ManualCreatePanel({
     setAssigneeType(type); setAssigneeId(id);
     setManual({ assigneeType: type, assigneeId: id });
   };
-  const updateProject = (id?: string) => { setProjectId(id); setShared({ projectId: id }); };
   const updateStartDate = (v: string | null) => { setStartDate(v); setManual({ startDate: v }); };
   const updateDueDate = (v: string | null) => { setDueDate(v); setShared({ dueDate: v }); };
   const updateLabelIds = (ids: string[]) => { setLabelIds(ids); setManual({ labelIds: ids }); };
@@ -382,7 +372,6 @@ export function ManualCreatePanel({
     priority: manualFields.includes("priority") || priority !== "none" || fieldPickerOpen === "priority",
     assignee: manualFields.includes("assignee") || assigneeId != null || fieldPickerOpen === "assignee",
     labels: manualFields.includes("labels") || labelIds.length > 0 || fieldPickerOpen === "labels",
-    project: manualFields.includes("project") || projectId != null || fieldPickerOpen === "project",
     due_date: manualFields.includes("due_date") || dueDate !== null || dueDatePickerOpen,
     start_date: manualFields.includes("start_date") || startDate !== null || startDatePickerOpen,
   };
@@ -400,7 +389,6 @@ export function ManualCreatePanel({
     setLabelIds([]);
     setPropertyValues({});
     setCustomPropertyPickerId(null);
-    setProjectId(undefined);
     setParentIssueId(undefined);
     setStage(null);
     setChildIssues([]);
@@ -418,7 +406,6 @@ export function ManualCreatePanel({
     });
     setShared({
       priority: "none",
-      projectId: undefined,
       dueDate: null,
       attachments: [],
     });
@@ -480,7 +467,6 @@ export function ManualCreatePanel({
         parent_issue_id: parentIssueId,
         // Stage is only meaningful for a sub-issue (relative to its siblings).
         stage: parentIssueId && stage != null ? stage : undefined,
-        project_id: projectId,
       });
 
       // Custom-property values can only be addressed once the issue has an
@@ -702,7 +688,7 @@ export function ManualCreatePanel({
 
   // Switch to agent mode WITHOUT destroying the manual draft. The manual slot
   // (title, description, …) is left untouched so a later agent→manual flip
-  // restores it verbatim. Project / priority / due date already live in the
+  // restores it verbatim. Priority / due date already live in the
   // shared slot, so they carry across for free. Only two things are handed to
   // the agent panel:
   //   1. A one-time assist-init of the agent prompt / actor: when the agent
@@ -716,10 +702,9 @@ export function ManualCreatePanel({
     // pending image into the agent prompt, so gate the switch too.
     if (gate.isBlocked()) return;
     // Commit the shared fields to the draft so the agent panel reads them from
-    // there. Local state can hold a value seeded from `data` (e.g. an opener's
-    // project) that was never written through a picker, so a plain flip would
-    // otherwise drop it.
-    setShared({ projectId, priority, dueDate });
+    // there. Local state can hold a value seeded from `data` that was never
+    // written through a picker, so a plain flip would otherwise drop it.
+    setShared({ priority, dueDate });
     const existingPrompt = draft.agent.prompt;
     if (!existingPrompt.trim()) {
       const desc = descEditorRef.current?.getMarkdown()?.trim() ?? "";
@@ -945,23 +930,6 @@ export function ManualCreatePanel({
                 />
               )}
 
-              {/* Project */}
-              {showField.project && (
-                <ProjectPicker
-                  projectId={projectId ?? null}
-                  onUpdate={(u) => updateProject(u.project_id ?? undefined)}
-                  triggerRender={
-                    <ClearablePillButton
-                      onClear={projectId ? () => updateProject(undefined) : undefined}
-                      clearLabel={tProjects(($) => $.picker.clear_aria)}
-                    />
-                  }
-                  align="start"
-                  open={fieldPickerOpen === "project" ? true : undefined}
-                  onOpenChange={(open) => setFieldPickerOpen(open ? "project" : null)}
-                />
-              )}
-
               {/* Stage — only relevant when creating a sub-issue under a parent */}
               {parentIssueId && (
                 <StagePicker
@@ -1130,12 +1098,6 @@ export function ManualCreatePanel({
                     <DropdownMenuItem onClick={() => setFieldPickerOpen("labels")}>
                       <Tag className="h-3.5 w-3.5" />
                       {t(($) => $.create_issue.set_labels)}
-                    </DropdownMenuItem>
-                  )}
-                  {!showField.project && (
-                    <DropdownMenuItem onClick={() => setFieldPickerOpen("project")}>
-                      <FolderKanban className="h-3.5 w-3.5" />
-                      {t(($) => $.create_issue.set_project)}
                     </DropdownMenuItem>
                   )}
                   {!showField.due_date && (

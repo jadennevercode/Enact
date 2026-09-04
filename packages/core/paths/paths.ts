@@ -21,9 +21,9 @@ function workspaceScoped(slug: string) {
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,
-    projects: () => `${ws}/projects`,
-    projectDetail: (id: string) => `${ws}/projects/${encode(id)}`,
-    projectArtifacts: (id: string) => `${ws}/projects/${encode(id)}/artifacts`,
+    // Every file the workspace produced. A section route with no per-file
+    // detail page — a file opens through `attachmentPreview`.
+    artifacts: () => `${ws}/artifacts`,
     autopilots: () => `${ws}/autopilots`,
     autopilotDetail: (id: string) => `${ws}/autopilots/${encode(id)}`,
     agents: () => `${ws}/agents`,
@@ -58,6 +58,7 @@ function workspaceScoped(slug: string) {
     lessons: () => `${ws}/lessons`,
     lessonDetail: (id: string) => `${ws}/lessons/${encode(id)}`,
     settings: () => `${ws}/settings`,
+    settingsResources: () => `${ws}/settings/resources`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
 }

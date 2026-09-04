@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/entitlement"
 	"github.com/enact-ai/enact/server/internal/logger"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const (
@@ -110,7 +110,6 @@ type issueTableActorRef struct {
 type issueTableScope struct {
 	Kind          string              `json:"kind"`
 	AssigneeTypes []string            `json:"assignee_types,omitempty"`
-	ProjectID     string              `json:"project_id,omitempty"`
 	Actor         *issueTableActorRef `json:"actor,omitempty"`
 	Relation      string              `json:"relation,omitempty"`
 }
@@ -127,8 +126,6 @@ type issueTableFiltersRequest struct {
 	Assignees         []issueTableActorRef         `json:"assignees,omitempty"`
 	IncludeNoAssignee bool                         `json:"include_no_assignee,omitempty"`
 	Creators          []issueTableActorRef         `json:"creators,omitempty"`
-	ProjectIDs        []string                     `json:"project_ids,omitempty"`
-	IncludeNoProject  bool                         `json:"include_no_project,omitempty"`
 	LabelIDs          []string                     `json:"label_ids,omitempty"`
 	Properties        map[string][]string          `json:"properties,omitempty"`
 	Date              *issueTableDateFilterRequest `json:"date,omitempty"`
@@ -294,7 +291,6 @@ func canonicalIssueTableFingerprint(workspaceID string, spec issueTableQuerySpec
 	normalized.Scope.AssigneeTypes = sortedUniqueStrings(normalized.Scope.AssigneeTypes)
 	normalized.Filters.Statuses = sortedUniqueStrings(normalized.Filters.Statuses)
 	normalized.Filters.Priorities = sortedUniqueStrings(normalized.Filters.Priorities)
-	normalized.Filters.ProjectIDs = sortedUniqueStrings(normalized.Filters.ProjectIDs)
 	normalized.Filters.LabelIDs = sortedUniqueStrings(normalized.Filters.LabelIDs)
 	normalized.Filters.Assignees = sortedUniqueActors(normalized.Filters.Assignees)
 	normalized.Filters.WorkingIssueIDs = sortedUniqueStrings(normalized.Filters.WorkingIssueIDs)
@@ -486,8 +482,8 @@ func (h *Handler) compileIssueTableQuery(w http.ResponseWriter, r *http.Request,
 		where = append(where, fmt.Sprintf("i.priority = ANY(%s::text[])", addArg(sortedUniqueStrings(spec.Filters.Priorities))))
 	}
 
-	// Workspace and project scopes share the optional assignee-type
-	// narrowing (the Members/Agents tabs above both surfaces).
+	// The workspace scope carries the optional assignee-type narrowing
+	// (the Members/Agents tabs above the surface).
 	appendAssigneeTypes := func() bool {
 		for _, actorType := range spec.Scope.AssigneeTypes {
 			if !isIssueActorType(actorType) {
@@ -502,16 +498,6 @@ func (h *Handler) compileIssueTableQuery(w http.ResponseWriter, r *http.Request,
 	}
 	switch spec.Scope.Kind {
 	case "workspace":
-		if !appendAssigneeTypes() {
-			return issueTableSQL{}, false
-		}
-	case "project":
-		projectID, err := util.ParseUUID(spec.Scope.ProjectID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid scope.project_id")
-			return issueTableSQL{}, false
-		}
-		where = append(where, fmt.Sprintf("i.project_id = %s::uuid", addArg(projectID)))
 		if !appendAssigneeTypes() {
 			return issueTableSQL{}, false
 		}
@@ -600,21 +586,6 @@ func (h *Handler) compileIssueTableQuery(w http.ResponseWriter, r *http.Request,
 				return issueTableSQL{}, false
 			}
 			ors = append(ors, fmt.Sprintf("(i.creator_type = %s::text AND i.creator_id = %s::uuid)", addArg(actor.actorType), addArg(actor.actorID)))
-		}
-		where = append(where, "("+strings.Join(ors, " OR ")+")")
-	}
-
-	projectIDs, ok := parseIssueTableUUIDList(w, spec.Filters.ProjectIDs, "filters.project_ids")
-	if !ok {
-		return issueTableSQL{}, false
-	}
-	if len(projectIDs) > 0 || spec.Filters.IncludeNoProject {
-		ors := make([]string, 0, 2)
-		if len(projectIDs) > 0 {
-			ors = append(ors, fmt.Sprintf("i.project_id = ANY(%s::uuid[])", addArg(projectIDs)))
-		}
-		if spec.Filters.IncludeNoProject {
-			ors = append(ors, "i.project_id IS NULL")
 		}
 		where = append(where, "("+strings.Join(ors, " OR ")+")")
 	}

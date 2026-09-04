@@ -24,12 +24,11 @@ describe("clearWorkspaceStorage", () => {
     expect(adapter.removeItem).toHaveBeenCalledWith("enact_issues_scope:ws_123");
     expect(adapter.removeItem).toHaveBeenCalledWith("enact_my_issues_view:ws_123");
     expect(adapter.removeItem).toHaveBeenCalledWith("enact:chat:selectedAgentId:ws_123");
-    expect(adapter.removeItem).toHaveBeenCalledWith("enact:chat:selectedProjectId:ws_123");
     expect(adapter.removeItem).toHaveBeenCalledWith("enact:chat:activeSessionId:ws_123");
     expect(adapter.removeItem).toHaveBeenCalledWith("enact:chat:expanded:ws_123");
     expect(adapter.removeItem).toHaveBeenCalledWith("enact_navigation:ws_123");
     // 8 non-draft keys, and no registered drafts in this test.
-    expect(adapter.removeItem).toHaveBeenCalledTimes(9);
+    expect(adapter.removeItem).toHaveBeenCalledTimes(8);
   });
 
   it("also clears registered draft keys via the registry", () => {
@@ -55,6 +54,6 @@ describe("clearWorkspaceStorage", () => {
     // Globally-namespaced draft keys are removed without the slug suffix.
     expect(adapter.removeItem).toHaveBeenCalledWith("enact_test_global_draft");
     // 8 non-draft keys + 2 registered draft keys.
-    expect(adapter.removeItem).toHaveBeenCalledTimes(11);
+    expect(adapter.removeItem).toHaveBeenCalledTimes(10);
   });
 });

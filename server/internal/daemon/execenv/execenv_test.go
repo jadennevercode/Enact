@@ -177,16 +177,13 @@ func TestPrepareDirectoryMode(t *testing.T) {
 	}
 }
 
-func TestPrepareWithProjectResources(t *testing.T) {
+func TestPrepareWithWorkspaceResources(t *testing.T) {
 	t.Parallel()
 	workspacesRoot := t.TempDir()
 
 	taskCtx := TaskContextForEnv{
-		IssueID:            "11111111-2222-3333-4444-555555555555",
-		ProjectID:          "22222222-3333-4444-5555-666666666666",
-		ProjectTitle:       "Agent UX 2026",
-		ProjectDescription: "Always write copy in British English. Ship behind a feature flag.",
-		ProjectResources: []ProjectResourceForEnv{
+		IssueID: "11111111-2222-3333-4444-555555555555",
+		WorkspaceResources: []WorkspaceResourceForEnv{
 			{
 				ID:           "33333333-4444-5555-6666-777777777777",
 				ResourceType: "github_repo",
@@ -214,10 +211,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 		t.Fatalf("failed to read resources.json: %v", err)
 	}
 	var got struct {
-		ProjectID          string `json:"project_id"`
-		ProjectTitle       string `json:"project_title"`
-		ProjectDescription string `json:"project_description"`
-		Resources          []struct {
+		Resources []struct {
 			ID           string          `json:"id"`
 			ResourceType string          `json:"resource_type"`
 			ResourceRef  json.RawMessage `json:"resource_ref"`
@@ -226,20 +220,16 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("resources.json unmarshal: %v\n%s", err, string(raw))
 	}
-	if got.ProjectID != taskCtx.ProjectID {
-		t.Errorf("resources.json project_id = %q, want %q", got.ProjectID, taskCtx.ProjectID)
-	}
-	if got.ProjectTitle != taskCtx.ProjectTitle {
-		t.Errorf("resources.json project_title = %q, want %q", got.ProjectTitle, taskCtx.ProjectTitle)
-	}
-	if got.ProjectDescription != taskCtx.ProjectDescription {
-		t.Errorf("resources.json project_description = %q, want %q", got.ProjectDescription, taskCtx.ProjectDescription)
+	// The file is workspace resources only — the project fields it used to
+	// carry went away with the concept.
+	if strings.Contains(string(raw), "project_id") || strings.Contains(string(raw), "project_description") {
+		t.Errorf("resources.json still carries project fields:\n%s", raw)
 	}
 	if len(got.Resources) != 1 || got.Resources[0].ResourceType != "github_repo" {
 		t.Fatalf("resources.json resources mismatch: %+v", got.Resources)
 	}
 
-	// CLAUDE.md should mention the project context block.
+	// CLAUDE.md should mention the workspace resources block.
 	if _, err := InjectRuntimeConfig(env.WorkDir, "claude", taskCtx); err != nil {
 		t.Fatalf("InjectRuntimeConfig: %v", err)
 	}
@@ -249,9 +239,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	}
 	s := string(content)
 	for _, want := range []string{
-		"## Project Context",
-		"Agent UX 2026",
-		"Always write copy in British English. Ship behind a feature flag.",
+		"## Workspace Resources",
 		"GitHub repo",
 		"https://github.com/enact-ai/enact",
 		"checkout ref: `release/v2`",
@@ -264,15 +252,12 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	}
 }
 
-func TestChatProjectContextInjectedIntoRuntimeBrief(t *testing.T) {
+func TestChatWorkspaceResourcesInjectedIntoRuntimeBrief(t *testing.T) {
 	t.Parallel()
 
 	ctx := TaskContextForEnv{
-		ChatSessionID:      "chat-project-context",
-		ProjectID:          "22222222-3333-4444-5555-666666666666",
-		ProjectTitle:       "Project Beta",
-		ProjectDescription: "Use the beta repository and follow the beta rollout plan.",
-		ProjectResources: []ProjectResourceForEnv{
+		ChatSessionID: "chat-workspace-resources",
+		WorkspaceResources: []WorkspaceResourceForEnv{
 			{
 				ID:           "33333333-4444-5555-6666-777777777777",
 				ResourceType: "github_repo",
@@ -301,13 +286,11 @@ func TestChatProjectContextInjectedIntoRuntimeBrief(t *testing.T) {
 			}
 			s := string(content)
 			for _, want := range []string{
-				"## Project Context",
-				"Project Beta",
-				"Use the beta repository and follow the beta rollout plan.",
+				"## Workspace Resources",
 				"https://github.com/org/beta",
 			} {
 				if !strings.Contains(s, want) {
-					t.Errorf("%s missing chat project context %q", tc.filename, want)
+					t.Errorf("%s missing chat workspace resources %q", tc.filename, want)
 				}
 			}
 			for _, banned := range []string{
@@ -323,25 +306,23 @@ func TestChatProjectContextInjectedIntoRuntimeBrief(t *testing.T) {
 	}
 }
 
-// When the issue's project has its own github_repo resources, those should be
+// When the workspace has its own github_repo resources, those should be
 // the only repos rendered in the meta-skill — workspace-level repos must not
 // leak into the agent prompt to avoid confusing it about which repo to use.
 //
 // The handler-side override is exercised in handler tests; this test confirms
 // the rendering side: given a TaskContextForEnv where Repos was already
-// narrowed by the server to project repos only, the meta skill renders just
+// narrowed by the server to resource repos only, the meta skill renders just
 // those.
-func TestProjectReposReplaceWorkspaceReposInMetaSkill(t *testing.T) {
+func TestResourceReposReplaceWorkspaceReposInMetaSkill(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	ctx := TaskContextForEnv{
-		IssueID:      "11111111-2222-3333-4444-555555555555",
-		ProjectID:    "22222222-3333-4444-5555-666666666666",
-		ProjectTitle: "Project A",
+		IssueID: "11111111-2222-3333-4444-555555555555",
 		Repos: []RepoContextForEnv{
 			{URL: "https://github.com/org/project-repo"},
 		},
-		ProjectResources: []ProjectResourceForEnv{
+		WorkspaceResources: []WorkspaceResourceForEnv{
 			{
 				ID:           "33333333-4444-5555-6666-777777777777",
 				ResourceType: "github_repo",
@@ -358,21 +339,21 @@ func TestProjectReposReplaceWorkspaceReposInMetaSkill(t *testing.T) {
 	}
 	s := string(content)
 	if !strings.Contains(s, "https://github.com/org/project-repo") {
-		t.Errorf("CLAUDE.md missing project repo URL")
+		t.Errorf("CLAUDE.md missing resource repo URL")
 	}
 	if strings.Contains(s, "https://github.com/org/workspace-repo") {
-		t.Errorf("CLAUDE.md should not contain workspace repo when project has its own")
+		t.Errorf("CLAUDE.md should not contain the registry repo when the workspace has resource repos")
 	}
 }
 
-func TestWriteProjectResourcesSkippedWhenNone(t *testing.T) {
+func TestWriteWorkspaceResourcesSkippedWhenNone(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	if err := writeProjectResources(dir, TaskContextForEnv{}, nil); err != nil {
-		t.Fatalf("writeProjectResources: %v", err)
+	if err := writeWorkspaceResourcesFile(dir, TaskContextForEnv{}, nil); err != nil {
+		t.Fatalf("writeWorkspaceResourcesFile: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, ".enact", "project", "resources.json")); !os.IsNotExist(err) {
-		t.Errorf("expected no resources.json to be written when project context is empty")
+		t.Errorf("expected no resources.json to be written when the workspace has no resources")
 	}
 }
 

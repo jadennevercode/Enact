@@ -7,10 +7,10 @@ import { cn } from "@enact/ui/lib/utils";
 // variant puts it on the shell that holds the trigger and the clear button, so
 // both read as the same object.
 //
-// Hard width cap: pills carry user-generated text (project title, assignee
+// Hard width cap: pills carry user-generated text (issue title, assignee
 // name, label names), and the create toolbars are flex-wrap rows — an uncapped
 // pill stretches until it owns the whole line and pushes every sibling to the
-// next one. 14rem matches the chat composer's project pill. `min-w-0` +
+// next one. 14rem matches the chat composer's pills. `min-w-0` +
 // `overflow-hidden` let the inner `truncate` spans actually shrink (a flex item
 // only drops `min-width: auto` once its overflow is hidden); leading icons are
 // `shrink-0`, so the text yields first.
@@ -42,7 +42,7 @@ export function PillButton({
 
 /**
  * Pill trigger with a trailing quick-clear ×, for pills whose value can be
- * dropped in one click (project context, parent link, …). Same chrome as
+ * dropped in one click (parent link, due date, …). Same chrome as
  * `PillButton`, so a row can mix the two.
  *
  * Two sibling `<button>`s inside a plain shell — never a button nested in a
@@ -71,7 +71,7 @@ export function ClearablePillButton({
   /** Omit to render a plain pill — the × appears only when there is a value
    *  to drop. */
   onClear?: (() => void) | undefined;
-  /** Accessible name for the × ("Clear project"). Required whenever
+  /** Accessible name for the × ("Clear parent"). Required whenever
    *  `onClear` is set: the button has no text. */
   clearLabel?: string;
 }) {

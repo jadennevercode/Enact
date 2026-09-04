@@ -18,14 +18,11 @@ func TestIssueCollectionProjectionsIncludePositiveRevision(t *testing.T) {
 
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Revision projection %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
+	// A per-run metadata tag narrows the REST list and a per-run label
+	// narrows the table query — between them both projections see exactly
+	// this one seeded row now that there is no project to scope them by.
+	scope := fmt.Sprintf("revision-projection-%d", suffix)
+	labelID := seedIssueTableLabel(t, scope)
 
 	var issueNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -45,24 +42,28 @@ func TestIssueCollectionProjectionsIncludePositiveRevision(t *testing.T) {
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO issue (
 			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id, revision
+			position, number, metadata, revision
 		)
-		VALUES ($1, $2, 'in_review', 'none', 'member', $3, 1, $4, $5, 7)
+		VALUES ($1, $2, 'in_review', 'none', 'member', $3, 1, $4, jsonb_build_object('scope', $5::text), 7)
 		RETURNING id
-	`, testWorkspaceID, title, testUserID, issueNumber, projectID).Scan(&issueID); err != nil {
+	`, testWorkspaceID, title, testUserID, issueNumber, scope).Scan(&issueID); err != nil {
 		t.Fatalf("seed issue: %v", err)
+	}
+	if _, err := testPool.Exec(ctx,
+		`INSERT INTO issue_to_label (issue_id, label_id) VALUES ($1, $2)`, issueID, labelID); err != nil {
+		t.Fatalf("label seeded issue: %v", err)
 	}
 	t.Cleanup(func() {
 		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, issueID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
 	})
 
 	groupKey := "status:in_review"
 	tableRecorder := httptest.NewRecorder()
 	testHandler.ListIssueTableRows(tableRecorder, newRequest(http.MethodPost, "/api/issues/table/rows", issueTableRowsRequest{
 		Query: issueTableQuerySpec{
-			Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-			Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+			Scope:   issueTableScope{Kind: "workspace"},
+			Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+			Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 		},
 		Group:     issueTableGroupSpec{Kind: "status"},
 		GroupKey:  &groupKey,
@@ -84,7 +85,8 @@ func TestIssueCollectionProjectionsIncludePositiveRevision(t *testing.T) {
 	}
 
 	listRecorder := httptest.NewRecorder()
-	testHandler.ListIssues(listRecorder, newRequest(http.MethodGet, "/api/issues?project_id="+url.QueryEscape(projectID), nil))
+	testHandler.ListIssues(listRecorder, newRequest(http.MethodGet,
+		"/api/issues?metadata="+url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope)), nil))
 	if listRecorder.Code != http.StatusOK {
 		t.Fatalf("list issues status = %d: %s", listRecorder.Code, listRecorder.Body.String())
 	}

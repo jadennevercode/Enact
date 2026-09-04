@@ -54,9 +54,9 @@ func workingAgentsFacetRequest(scope, filters map[string]any) *http.Request {
 
 // ENA-5525. The header chip's count used to come from a workspace-wide
 // projection while the list came from the surface's own compiled query, so a
-// project page could advertise "2 agents working" and then open an empty list.
-// The `working_agents` facet answers the same question against the same scope
-// and filters the rows come from.
+// filtered page could advertise "2 agents working" and then open an empty
+// list. The `working_agents` facet answers the same question against the same
+// scope and filters the rows come from.
 func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
@@ -67,16 +67,21 @@ func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T)
 	outsideAgentID := createHandlerTestAgent(t, "facet-working-outside", []byte(`{}`))
 	idleAgentID := createHandlerTestAgent(t, "facet-working-idle", []byte(`{}`))
 
-	var projectID string
+	// A label is what scopes the "surface" here now that projects are gone:
+	// the rows the surface shows are the labelled ones, so the facet must
+	// count only the agents working on those.
+	var labelID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, 'Working Agents Facet Project')
+		INSERT INTO issue_label (workspace_id, name, color)
+		VALUES ($1, 'Working Agents Facet Label', '#6366f1')
 		RETURNING id
-	`, testWorkspaceID).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
+	`, testWorkspaceID).Scan(&labelID); err != nil {
+		t.Fatalf("create label: %v", err)
 	}
 	t.Cleanup(func() {
-		testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		bg := context.Background()
+		testPool.Exec(bg, `DELETE FROM issue_to_label WHERE label_id = $1`, labelID)
+		testPool.Exec(bg, `DELETE FROM issue_label WHERE id = $1`, labelID)
 	})
 
 	var finalNumber int
@@ -92,49 +97,62 @@ func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T)
 		t.Fatalf("reserve issue numbers: %v", err)
 	}
 
-	insertIssue := func(title, status string, number int, project any, parent any) string {
+	insertIssue := func(title, status string, number int, labelled bool, parent any) string {
 		t.Helper()
 		var issueID string
 		if err := testPool.QueryRow(ctx, `
 			INSERT INTO issue (
 				workspace_id, title, status, priority, creator_type, creator_id,
-				project_id, parent_issue_id, position, number
+				parent_issue_id, position, number
 			)
-			VALUES ($1, $2, $3, 'none', 'member', $4, $5, $6, $7, $8)
+			VALUES ($1, $2, $3, 'none', 'member', $4, $5, $6, $7)
 			RETURNING id
 		`,
-			testWorkspaceID, title, status, testUserID, project, parent, number, number,
+			testWorkspaceID, title, status, testUserID, parent, number, number,
 		).Scan(&issueID); err != nil {
 			t.Fatalf("insert issue %q: %v", title, err)
 		}
 		t.Cleanup(func() {
 			testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, issueID)
 		})
+		if labelled {
+			if _, err := testPool.Exec(ctx,
+				`INSERT INTO issue_to_label (issue_id, label_id) VALUES ($1, $2)`, issueID, labelID); err != nil {
+				t.Fatalf("label issue %q: %v", title, err)
+			}
+		}
 		return issueID
 	}
 
-	inProjectTodoID := insertIssue("in project, todo", "todo", finalNumber-3, projectID, nil)
-	inProjectDoneID := insertIssue("in project, done", "done", finalNumber-2, projectID, nil)
-	outsideProjectID := insertIssue("outside the project", "todo", finalNumber-1, nil, nil)
-	subIssueID := insertIssue("in project, sub-issue", "todo", finalNumber, projectID, inProjectTodoID)
+	insideTodoID := insertIssue("labelled, todo", "todo", finalNumber-3, true, nil)
+	insideDoneID := insertIssue("labelled, done", "done", finalNumber-2, true, nil)
+	outsideID := insertIssue("outside the label", "todo", finalNumber-1, false, nil)
+	subIssueID := insertIssue("labelled, sub-issue", "todo", finalNumber, true, insideTodoID)
 
-	// insideAgent holds two running tasks inside the project (one on each
-	// status) plus one on the sub-issue; outsideAgent works only outside it;
-	// idleAgent has no running task at all.
-	createHandlerTestTaskForAgentOnIssue(t, insideAgentID, inProjectTodoID)
-	createHandlerTestTaskForAgentOnIssue(t, insideAgentID, inProjectDoneID)
+	// insideAgent holds two running tasks on labelled issues (one on each
+	// status) plus one on the sub-issue; outsideAgent works only outside the
+	// label; idleAgent has no running task at all.
+	createHandlerTestTaskForAgentOnIssue(t, insideAgentID, insideTodoID)
+	createHandlerTestTaskForAgentOnIssue(t, insideAgentID, insideDoneID)
 	createHandlerTestTaskForAgentOnIssue(t, insideAgentID, subIssueID)
-	createHandlerTestTaskForAgentOnIssue(t, outsideAgentID, outsideProjectID)
+	createHandlerTestTaskForAgentOnIssue(t, outsideAgentID, outsideID)
 
-	projectScope := map[string]any{"kind": "project", "project_id": projectID}
+	workspaceScope := map[string]any{"kind": "workspace"}
+	scopedFilters := func(extra map[string]any) map[string]any {
+		filters := map[string]any{"label_ids": []string{labelID}}
+		for k, v := range extra {
+			filters[k] = v
+		}
+		return filters
+	}
 
-	t.Run("project scope excludes agents working elsewhere", func(t *testing.T) {
-		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, nil))
+	t.Run("the surface filter excludes agents working elsewhere", func(t *testing.T) {
+		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(nil)))
 		if counts[insideAgentID] != 3 {
 			t.Errorf("inside agent count = %d, want 3", counts[insideAgentID])
 		}
 		if _, present := counts[outsideAgentID]; present {
-			t.Errorf("agent working outside the project was counted: %s", outsideAgentID)
+			t.Errorf("agent working outside the label was counted: %s", outsideAgentID)
 		}
 		if _, present := counts[idleAgentID]; present {
 			t.Errorf("agent with no running task was counted: %s", idleAgentID)
@@ -142,27 +160,27 @@ func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T)
 	})
 
 	t.Run("a status filter narrows the count like it narrows the rows", func(t *testing.T) {
-		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, map[string]any{
+		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(map[string]any{
 			"statuses": []string{"done"},
-		}))
+		})))
 		if counts[insideAgentID] != 1 {
 			t.Errorf("inside agent count under status=done = %d, want 1", counts[insideAgentID])
 		}
 	})
 
 	t.Run("hiding sub-issues drops their tasks from the count", func(t *testing.T) {
-		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, map[string]any{
+		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(map[string]any{
 			"include_sub_issues": false,
-		}))
+		})))
 		if counts[insideAgentID] != 2 {
 			t.Errorf("inside agent count without sub-issues = %d, want 2", counts[insideAgentID])
 		}
 	})
 
 	t.Run("a filter that matches nothing reports a real zero", func(t *testing.T) {
-		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, map[string]any{
+		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(map[string]any{
 			"statuses": []string{"cancelled"},
-		}))
+		})))
 		if len(counts) != 0 {
 			t.Errorf("counts = %v, want empty", counts)
 		}
@@ -172,16 +190,16 @@ func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T)
 	// the agents-working filter is on or off. That is what lets the chip's number
 	// stay put when you click it.
 	t.Run("the working filter itself does not change the answer", func(t *testing.T) {
-		off := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, nil))
-		on := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, map[string]any{
-			"working_issue_ids": []string{inProjectTodoID},
-		}))
+		off := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(nil)))
+		on := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(map[string]any{
+			"working_issue_ids": []string{insideTodoID},
+		})))
 		if off[insideAgentID] != on[insideAgentID] {
 			t.Errorf("count moved with the filter: off=%d on=%d", off[insideAgentID], on[insideAgentID])
 		}
-		matchNone := workingAgentsFacetCounts(t, workingAgentsFacetRequest(projectScope, map[string]any{
+		matchNone := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, scopedFilters(map[string]any{
 			"working_issue_ids": []string{},
-		}))
+		})))
 		if matchNone[insideAgentID] != off[insideAgentID] {
 			t.Errorf(
 				"an explicit match-none working filter changed the count: %d vs %d",
@@ -190,10 +208,8 @@ func TestIssueTableWorkingAgentsFacetFollowsSurfaceScopeAndFilters(t *testing.T)
 		}
 	})
 
-	t.Run("workspace scope still sees both agents", func(t *testing.T) {
-		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(
-			map[string]any{"kind": "workspace"}, nil,
-		))
+	t.Run("the unfiltered workspace still sees both agents", func(t *testing.T) {
+		counts := workingAgentsFacetCounts(t, workingAgentsFacetRequest(workspaceScope, nil))
 		if counts[insideAgentID] != 3 || counts[outsideAgentID] != 1 {
 			t.Errorf(
 				"workspace counts inside=%d outside=%d, want 3 and 1",

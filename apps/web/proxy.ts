@@ -13,7 +13,6 @@ import { isOfficialMarketingHost } from "./lib/public-host";
 // and post-revert-and-reapply users don't hit 404.
 const LEGACY_ROUTE_SEGMENTS = new Set([
   "issues",
-  "projects",
   "agents",
   "squads",
   "inbox",

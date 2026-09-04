@@ -50,10 +50,10 @@ func TestCodexShellEnvAllowlistUsesExactTaskAndSafeInheritedNames(t *testing.T) 
 		"ENACT_SERVER_URL=https://wrong.example",
 	}
 	explicit := map[string]string{
-		"ENACT_TOKEN":      "mat_task",
-		"ENACT_SERVER_URL": "https://task.example",
-		"CUSTOM_FLAG":        "enabled",
-		"ANTHROPIC_API_KEY":  "agent-secret",
+		"ENACT_TOKEN":       "mat_task",
+		"ENACT_SERVER_URL":  "https://task.example",
+		"CUSTOM_FLAG":       "enabled",
+		"ANTHROPIC_API_KEY": "agent-secret",
 	}
 	authorizedExplicit := []string{"ANTHROPIC_API_KEY"}
 
@@ -94,7 +94,7 @@ func TestCodexShellEnvAllowlistOnlyAuthorizesExplicitCustomSecrets(t *testing.T)
 		"x_secret":            "agent-secret",
 		"Y_KEY":               "agent-secret",
 		"UNAUTHORIZED_TOKEN":  "daemon-secret",
-		"ENACT_TOKEN":       "mat_task",
+		"ENACT_TOKEN":         "mat_task",
 	}
 	authorizedExplicit := []string{
 		"custom_access_token", // Authorization matching is case-insensitive.

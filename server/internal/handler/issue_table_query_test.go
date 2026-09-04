@@ -86,16 +86,14 @@ func TestCanonicalIssueTableFingerprintNormalizesSetLikeArrays(t *testing.T) {
 	left := issueTableQuerySpec{
 		Scope: issueTableScope{Kind: "workspace", AssigneeTypes: []string{"agent", "member", "agent"}},
 		Filters: issueTableFiltersRequest{
-			Statuses:   []string{"todo", "backlog", "todo"},
-			ProjectIDs: []string{"b", "a"},
+			Statuses: []string{"todo", "backlog", "todo"},
 		},
 		Sort: issueTableSortRequest{Field: "title", Direction: "asc"},
 	}
 	right := issueTableQuerySpec{
 		Scope: issueTableScope{Kind: "workspace", AssigneeTypes: []string{"member", "agent"}},
 		Filters: issueTableFiltersRequest{
-			Statuses:   []string{"backlog", "todo"},
-			ProjectIDs: []string{"a", "b"},
+			Statuses: []string{"backlog", "todo"},
 		},
 		Sort: issueTableSortRequest{Field: "title", Direction: "asc"},
 	}
@@ -165,48 +163,6 @@ func TestIssueTableExplicitEmptyAssigneesMatchesNone(t *testing.T) {
 	}
 	if !strings.Contains(compiled.where, "FALSE") {
 		t.Fatalf("explicit empty assignees predicate = %q, want FALSE", compiled.where)
-	}
-}
-
-func TestIssueTableProjectScopeAssigneeTypes(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-
-	spec := issueTableQuerySpec{
-		Scope: issueTableScope{
-			Kind:          "project",
-			ProjectID:     "00000000-0000-0000-0000-000000000001",
-			AssigneeTypes: []string{"agent", "squad"},
-		},
-		Sort: issueTableSortRequest{Field: "position", Direction: "asc"},
-	}
-
-	w := httptest.NewRecorder()
-	compiled, ok := testHandler.compileIssueTableQuery(
-		w,
-		newRequest(http.MethodPost, "/api/issues/table/rows", nil),
-		spec,
-	)
-	if !ok {
-		t.Fatalf("compile failed: %d %s", w.Code, w.Body.String())
-	}
-	if !strings.Contains(compiled.where, "i.project_id") {
-		t.Fatalf("project predicate missing: %q", compiled.where)
-	}
-	if !strings.Contains(compiled.where, "i.assignee_type = ANY") {
-		t.Fatalf("assignee-type narrowing missing on project scope: %q", compiled.where)
-	}
-
-	bad := spec
-	bad.Scope.AssigneeTypes = []string{"martian"}
-	w = httptest.NewRecorder()
-	if _, ok := testHandler.compileIssueTableQuery(
-		w,
-		newRequest(http.MethodPost, "/api/issues/table/rows", nil),
-		bad,
-	); ok {
-		t.Fatal("invalid assignee_types must be rejected on project scope")
 	}
 }
 
@@ -537,21 +493,34 @@ func TestIssueTableCompoundCellKeyResolvesPrimaryAndStatus(t *testing.T) {
 	}
 }
 
+// seedIssueTableLabel returns a fresh label id that scopes one test's fixture
+// rows. The table query filters on it, which is what keeps these assertions
+// about the rows the test seeded rather than everything else in the shared
+// fixture workspace — the job the project scope used to do before the project
+// concept was removed.
+func seedIssueTableLabel(t *testing.T, name string) string {
+	t.Helper()
+	ctx := context.Background()
+	var id string
+	if err := testPool.QueryRow(ctx, `
+		INSERT INTO issue_label (workspace_id, name, color) VALUES ($1, $2, '#6366f1') RETURNING id
+	`, testWorkspaceID, name).Scan(&id); err != nil {
+		t.Fatalf("create scope label: %v", err)
+	}
+	t.Cleanup(func() {
+		bg := context.Background()
+		_, _ = testPool.Exec(bg,
+			`DELETE FROM issue WHERE id IN (SELECT issue_id FROM issue_to_label WHERE label_id = $1)`, id)
+		_, _ = testPool.Exec(bg, `DELETE FROM issue_to_label WHERE label_id = $1`, id)
+		_, _ = testPool.Exec(bg, `DELETE FROM issue_label WHERE id = $1`, id)
+	})
+	return id
+}
+
 func TestIssueTableRowsCommitsBeforeBestEffortEnrichment(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Table enrichment %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, fmt.Sprintf("Table enrichment %d", suffix))
 
 	var issueNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -566,12 +535,16 @@ func TestIssueTableRowsCommitsBeforeBestEffortEnrichment(t *testing.T) {
 		t.Fatalf("reserve issue number: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			VALUES ($1, 'table-enrichment', 'todo', 'none', 'member', $2, 1, $3)
+			RETURNING id
 		)
-		VALUES ($1, 'table-enrichment', 'todo', 'none', 'member', $2, 1, $3, $4)
-	`, testWorkspaceID, testUserID, issueNumber, projectID); err != nil {
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
+	`, testWorkspaceID, testUserID, issueNumber, labelID); err != nil {
 		t.Fatalf("seed issue: %v", err)
 	}
 
@@ -588,8 +561,9 @@ func TestIssueTableRowsCommitsBeforeBestEffortEnrichment(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	handler.ListIssueTableRows(recorder, newRequest("POST", "/api/issues/table/rows", issueTableRowsRequest{
 		Query: issueTableQuerySpec{
-			Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-			Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+			Scope:   issueTableScope{Kind: "workspace"},
+			Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+			Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 		},
 		Group:     issueTableGroupSpec{Kind: "none"},
 		Hierarchy: issueTableHierarchyRequest{Enabled: false},
@@ -625,18 +599,7 @@ func TestIssueTableRowsCommitsBeforeBestEffortEnrichment(t *testing.T) {
 func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Server table grouping %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, fmt.Sprintf("Server table grouping %d", suffix))
 
 	var finalNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -652,22 +615,26 @@ func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 	}
 	firstNumber := finalNumber - 1000
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			SELECT $1, 'server-table-' || n::text,
+			       CASE WHEN n <= 501 THEN 'todo' ELSE 'done' END,
+			       'none', 'member', $2, n::double precision,
+			       $3 + n - 1
+			FROM generate_series(1, 1001) AS n
+			RETURNING id
 		)
-		SELECT $1, 'server-table-' || n::text,
-		       CASE WHEN n <= 501 THEN 'todo' ELSE 'done' END,
-		       'none', 'member', $2, n::double precision,
-		       $3 + n - 1, $4
-		FROM generate_series(1, 1001) AS n
-	`, testWorkspaceID, testUserID, firstNumber, projectID); err != nil {
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
+	`, testWorkspaceID, testUserID, firstNumber, labelID); err != nil {
 		t.Fatalf("seed issues: %v", err)
 	}
 
 	query := issueTableQuerySpec{
-		Scope:   issueTableScope{Kind: "project", ProjectID: projectID},
-		Filters: issueTableFiltersRequest{},
+		Scope:   issueTableScope{Kind: "workspace"},
+		Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
 		Sort:    issueTableSortRequest{Field: "title", Direction: "asc"},
 	}
 	w := httptest.NewRecorder()
@@ -942,7 +909,6 @@ func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 			{Kind: "priority"},
 			{Kind: "assignee"},
 			{Kind: "creator"},
-			{Kind: "project"},
 		},
 	}))
 	if batchRecorder.Code != http.StatusOK {
@@ -952,7 +918,7 @@ func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 	if err := json.NewDecoder(batchRecorder.Body).Decode(&batchResponse); err != nil {
 		t.Fatalf("decode batch facets: %v", err)
 	}
-	if batchResponse.Total != 1001 || len(batchResponse.Facets) != 5 {
+	if batchResponse.Total != 1001 || len(batchResponse.Facets) != 4 {
 		t.Fatalf("unexpected batch facets response: total=%d facets=%d", batchResponse.Total, len(batchResponse.Facets))
 	}
 	if batchFacetQueries != 1 || batchTotalQueries != 0 {
@@ -969,8 +935,7 @@ func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 	if batchCounts["status"]["todo"] != 501 || batchCounts["status"]["done"] != 500 ||
 		batchCounts["priority"]["none"] != 1001 ||
 		batchCounts["assignee"]["__none__"] != 1001 ||
-		batchCounts["creator"]["member:"+testUserID] != 1001 ||
-		batchCounts["project"][projectID] != 1001 {
+		batchCounts["creator"]["member:"+testUserID] != 1001 {
 		t.Fatalf("unexpected batched facet counts: %#v", batchCounts)
 	}
 
@@ -1006,18 +971,7 @@ func TestIssueTableStatusGroupingOverOneThousandRows(t *testing.T) {
 
 func TestIssueTableAssigneeNamesResolveAfterGrouping(t *testing.T) {
 	ctx := context.Background()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, 'Server table assignee grouping')
-		RETURNING id
-	`, testWorkspaceID).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, "Server table assignee grouping")
 
 	var finalNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -1032,14 +986,18 @@ func TestIssueTableAssigneeNamesResolveAfterGrouping(t *testing.T) {
 		t.Fatalf("reserve issue numbers: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, assignee_type, assignee_id,
-			creator_type, creator_id, position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, assignee_type, assignee_id,
+				creator_type, creator_id, position, number
+			)
+			VALUES
+				($1, 'Assigned row', 'todo', 'none', 'member', $2, 'member', $2, 1, $3),
+				($1, 'Unassigned row', 'todo', 'none', NULL, NULL, 'member', $2, 2, $3 + 1)
+			RETURNING id
 		)
-		VALUES
-			($1, 'Assigned row', 'todo', 'none', 'member', $2, 'member', $2, 1, $3, $4),
-			($1, 'Unassigned row', 'todo', 'none', NULL, NULL, 'member', $2, 2, $3 + 1, $4)
-	`, testWorkspaceID, testUserID, finalNumber-1, projectID); err != nil {
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
+	`, testWorkspaceID, testUserID, finalNumber-1, labelID); err != nil {
 		t.Fatalf("seed issues: %v", err)
 	}
 
@@ -1052,8 +1010,9 @@ func TestIssueTableAssigneeNamesResolveAfterGrouping(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	handler.ListIssueTableGroups(recorder, newRequest("POST", "/api/issues/table/groups", issueTableGroupsRequest{
 		Query: issueTableQuerySpec{
-			Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-			Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+			Scope:   issueTableScope{Kind: "workspace"},
+			Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+			Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 		},
 		Group: issueTableGroupSpec{Kind: "assignee"},
 		Page:  issueTablePageRequest{Limit: 10},
@@ -1086,18 +1045,7 @@ func TestIssueTableAssigneeNamesResolveAfterGrouping(t *testing.T) {
 func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Compound parent grouping %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, fmt.Sprintf("Compound parent grouping %d", suffix))
 
 	var finalNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -1113,33 +1061,43 @@ func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 	}
 	var parentID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			VALUES ($1, 'Parent context', 'done', 'none', 'member', $2, 1, $3)
+			RETURNING id
+		), labeled AS (
+			INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
 		)
-		VALUES ($1, 'Parent context', 'done', 'none', 'member', $2, 1, $3, $4)
-		RETURNING id
-	`, testWorkspaceID, testUserID, finalNumber-3, projectID).Scan(&parentID); err != nil {
+		SELECT id FROM seeded
+	`, testWorkspaceID, testUserID, finalNumber-3, labelID).Scan(&parentID); err != nil {
 		t.Fatalf("create parent: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			parent_issue_id, position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				parent_issue_id, position, number
+			)
+			VALUES
+				($1, 'Child todo', 'todo', 'none', 'member', $2, $3, 2, $4),
+				($1, 'Child review', 'in_review', 'none', 'member', $2, $3, 3, $4 + 1),
+				($1, 'No parent', 'todo', 'none', 'member', $2, NULL, 4, $4 + 2)
+			RETURNING id
 		)
-		VALUES
-			($1, 'Child todo', 'todo', 'none', 'member', $2, $3, 2, $4, $5),
-			($1, 'Child review', 'in_review', 'none', 'member', $2, $3, 3, $4 + 1, $5),
-			($1, 'No parent', 'todo', 'none', 'member', $2, NULL, 4, $4 + 2, $5)
-	`, testWorkspaceID, testUserID, parentID, finalNumber-2, projectID); err != nil {
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $5 FROM seeded
+	`, testWorkspaceID, testUserID, parentID, finalNumber-2, labelID); err != nil {
 		t.Fatalf("seed grouped issues: %v", err)
 	}
 
 	recorder := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(recorder, newRequest("POST", "/api/issues/table/groups", issueTableGroupsRequest{
 		Query: issueTableQuerySpec{
-			Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-			Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+			Scope:   issueTableScope{Kind: "workspace"},
+			Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+			Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 		},
 		Group: issueTableGroupSpec{Kind: "compound", Primary: "parent", Secondary: "status"},
 		Page:  issueTablePageRequest{Limit: 10},
@@ -1194,22 +1152,31 @@ func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 	}
 	var hiddenParentID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			VALUES ($1, 'Visible parent card', 'todo', 'none', 'member', $2, 5, $3)
+			RETURNING id
+		), labeled AS (
+			INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
 		)
-		VALUES ($1, 'Visible parent card', 'todo', 'none', 'member', $2, 5, $3, $4)
-		RETURNING id
-	`, testWorkspaceID, testUserID, hiddenParentNumber-1, projectID).Scan(&hiddenParentID); err != nil {
+		SELECT id FROM seeded
+	`, testWorkspaceID, testUserID, hiddenParentNumber-1, labelID).Scan(&hiddenParentID); err != nil {
 		t.Fatalf("create hidden-only parent: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			parent_issue_id, position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				parent_issue_id, position, number
+			)
+			VALUES ($1, 'Hidden child', 'done', 'none', 'member', $2, $3, 6, $4)
+			RETURNING id
 		)
-		VALUES ($1, 'Hidden child', 'done', 'none', 'member', $2, $3, 6, $4, $5)
-	`, testWorkspaceID, testUserID, hiddenParentID, hiddenParentNumber, projectID); err != nil {
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $5 FROM seeded
+	`, testWorkspaceID, testUserID, hiddenParentID, hiddenParentNumber, labelID); err != nil {
 		t.Fatalf("create hidden child: %v", err)
 	}
 
@@ -1222,8 +1189,9 @@ func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 	filteredRecorder := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(filteredRecorder, newRequest("POST", "/api/issues/table/groups", issueTableGroupsRequest{
 		Query: issueTableQuerySpec{
-			Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-			Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+			Scope:   issueTableScope{Kind: "workspace"},
+			Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+			Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 		},
 		Group: filteredGroup,
 		Page:  issueTablePageRequest{Limit: 10},
@@ -1266,8 +1234,9 @@ func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 		rowsRecorder := httptest.NewRecorder()
 		testHandler.ListIssueTableRows(rowsRecorder, newRequest("POST", "/api/issues/table/rows", issueTableRowsRequest{
 			Query: issueTableQuerySpec{
-				Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-				Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+				Scope:   issueTableScope{Kind: "workspace"},
+				Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+				Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 			},
 			Group:     filteredGroup,
 			GroupKey:  &key,
@@ -1302,18 +1271,7 @@ func TestIssueTableCompoundParentGroupsReturnExactStatusCells(t *testing.T) {
 
 func TestIssueTableHierarchyDoesNotCrossGroups(t *testing.T) {
 	ctx := context.Background()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, 'Server table cross-group hierarchy')
-		RETURNING id
-	`, testWorkspaceID).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, "Server table cross-group hierarchy")
 
 	var finalNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -1329,30 +1287,40 @@ func TestIssueTableHierarchyDoesNotCrossGroups(t *testing.T) {
 	}
 	var parentID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			VALUES ($1, 'Todo parent', 'todo', 'none', 'member', $2, 1, $3)
+			RETURNING id
+		), labeled AS (
+			INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
 		)
-		VALUES ($1, 'Todo parent', 'todo', 'none', 'member', $2, 1, $3, $4)
-		RETURNING id
-	`, testWorkspaceID, testUserID, finalNumber-1, projectID).Scan(&parentID); err != nil {
+		SELECT id FROM seeded
+	`, testWorkspaceID, testUserID, finalNumber-1, labelID).Scan(&parentID); err != nil {
 		t.Fatalf("create parent: %v", err)
 	}
 	var childID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			parent_issue_id, position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				parent_issue_id, position, number
+			)
+			VALUES ($1, 'Done child', 'done', 'none', 'member', $2, $3, 2, $4)
+			RETURNING id
+		), labeled AS (
+			INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $5 FROM seeded
 		)
-		VALUES ($1, 'Done child', 'done', 'none', 'member', $2, $3, 2, $4, $5)
-		RETURNING id
-	`, testWorkspaceID, testUserID, parentID, finalNumber, projectID).Scan(&childID); err != nil {
+		SELECT id FROM seeded
+	`, testWorkspaceID, testUserID, parentID, finalNumber, labelID).Scan(&childID); err != nil {
 		t.Fatalf("create child: %v", err)
 	}
 
 	query := issueTableQuerySpec{
-		Scope:   issueTableScope{Kind: "project", ProjectID: projectID},
-		Filters: issueTableFiltersRequest{},
+		Scope:   issueTableScope{Kind: "workspace"},
+		Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
 		Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 	}
 	rowQuerySQL := ""
@@ -1403,18 +1371,7 @@ func TestIssueTableHierarchyDoesNotCrossGroups(t *testing.T) {
 
 func TestIssueTableHierarchyRootKeysetPagination(t *testing.T) {
 	ctx := context.Background()
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, 'Server table hierarchy pagination')
-		RETURNING id
-	`, testWorkspaceID).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
-	})
+	labelID := seedIssueTableLabel(t, "Server table hierarchy pagination")
 
 	var finalNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -1429,16 +1386,21 @@ func TestIssueTableHierarchyRootKeysetPagination(t *testing.T) {
 		t.Fatalf("reserve issue numbers: %v", err)
 	}
 	rows, err := testPool.Query(ctx, `
-		INSERT INTO issue (
-			workspace_id, title, status, priority, creator_type, creator_id,
-			position, number, project_id
+		WITH seeded AS (
+			INSERT INTO issue (
+				workspace_id, title, status, priority, creator_type, creator_id,
+				position, number
+			)
+			SELECT $1, 'Hierarchy root ' || n::text, 'todo', 'none', 'member', $2,
+			       n::double precision, $3 + n - 1
+			FROM generate_series(1, 3) AS n
+			ORDER BY n
+			RETURNING id
+		), labeled AS (
+			INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
 		)
-		SELECT $1, 'Hierarchy root ' || n::text, 'todo', 'none', 'member', $2,
-		       n::double precision, $3 + n - 1, $4
-		FROM generate_series(1, 3) AS n
-		ORDER BY n
-		RETURNING id
-	`, testWorkspaceID, testUserID, finalNumber-2, projectID)
+		SELECT id FROM seeded
+	`, testWorkspaceID, testUserID, finalNumber-2, labelID)
 	if err != nil {
 		t.Fatalf("seed hierarchy roots: %v", err)
 	}
@@ -1458,8 +1420,9 @@ func TestIssueTableHierarchyRootKeysetPagination(t *testing.T) {
 	rows.Close()
 
 	query := issueTableQuerySpec{
-		Scope: issueTableScope{Kind: "project", ProjectID: projectID},
-		Sort:  issueTableSortRequest{Field: "position", Direction: "asc"},
+		Scope:   issueTableScope{Kind: "workspace"},
+		Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
+		Sort:    issueTableSortRequest{Field: "position", Direction: "asc"},
 	}
 	fetchPage := func(cursor *string) issueTableRowsResponse {
 		t.Helper()

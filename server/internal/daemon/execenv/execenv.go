@@ -23,12 +23,12 @@ type RepoContextForEnv struct {
 	Ref         string // optional default checkout ref for this task
 }
 
-// ProjectResourceForEnv describes a single resource attached to the issue's
-// project. The resource_ref payload is type-specific JSON; the agent reads
+// WorkspaceResourceForEnv describes a single resource attached to the
+// workspace. The resource_ref payload is type-specific JSON; the agent reads
 // resources.json on disk for the full structure. This struct only carries
 // fields the meta-skill template needs to render a human-readable summary
 // (URL for github_repo, generic label otherwise).
-type ProjectResourceForEnv struct {
+type WorkspaceResourceForEnv struct {
 	ID           string          `json:"id"`              // server-assigned UUID
 	ResourceType string          `json:"resource_type"`   // e.g. "github_repo"
 	ResourceRef  json.RawMessage `json:"resource_ref"`    // raw JSONB payload from the API
@@ -76,7 +76,7 @@ type PrepareParams struct {
 	// workdir. The path is NOT copied or mounted — the agent operates on
 	// the user's directory in place. The daemon still creates envRoot for
 	// output/, logs/, and .gc_meta.json; only the workdir slot is
-	// substituted. Used by the local_directory project_resource flow
+	// substituted. Used by the local_directory workspace_resource flow
 	// (ENA-2663). When set, the envRoot/workdir directory is not created.
 	LocalWorkDir string
 	// LocalWorktree, when non-nil, is the worktree-mode counterpart of
@@ -154,12 +154,9 @@ type TaskContextForEnv struct {
 	AgentInstructions             string // agent identity/persona instructions, injected into CLAUDE.md
 	AgentSkills                   []SkillContextForEnv
 	DisabledRuntimeSkills         []RuntimeSkillRefForEnv
-	Repos                         []RepoContextForEnv     // workspace repos available for checkout
-	ProjectID                     string                  // active project for this task, when present
-	ProjectTitle                  string                  // human-readable project title
-	ProjectDescription            string                  // durable project-level context, rendered into the brief's Project Context section
-	ProjectResources              []ProjectResourceForEnv // resources attached to the project
-	ChatSessionID                 string                  // non-empty for chat tasks
+	Repos                         []RepoContextForEnv       // workspace repos available for checkout
+	WorkspaceResources            []WorkspaceResourceForEnv // resources attached to the workspace
+	ChatSessionID                 string                    // non-empty for chat tasks
 	// ChatChannelType is the IM platform behind a chat session ("slack",
 	// "feishu", "wecom"); empty for a web/mobile chat. It names the surface in
 	// the brief's copy; what that surface can DELIVER is the separate field
@@ -269,7 +266,7 @@ type Environment struct {
 	RootDir string
 	// WorkDir is the directory to pass as Cwd to the agent. Normally
 	// ({RootDir}/workdir/); when the task is bound to a local_directory
-	// project_resource, it is the user's path instead. See LocalDirectory.
+	// workspace_resource, it is the user's path instead. See LocalDirectory.
 	WorkDir string
 	// LocalDirectory is true when WorkDir points at a user-supplied path
 	// outside RootDir (the local_directory flow). Callers that key behavior
@@ -496,13 +493,13 @@ func Prepare(params PrepareParams, logger *slog.Logger) (*Environment, error) {
 	}
 
 	env := &Environment{
-		RootDir:           envRoot,
-		WorkDir:           workDir,
-		LocalDirectory:    params.LocalWorkDir != "",
-		LocalWorktree:     localWorktree,
+		RootDir:         envRoot,
+		WorkDir:         workDir,
+		LocalDirectory:  params.LocalWorkDir != "",
+		LocalWorktree:   localWorktree,
 		EnactConfigRoot: enactConfigRoot,
-		logger:            logger,
-		lockFile:          lockFile,
+		logger:          logger,
+		lockFile:        lockFile,
 	}
 
 	// Write context files into workdir (skills go to provider-native paths).
@@ -517,7 +514,7 @@ func Prepare(params PrepareParams, logger *slog.Logger) (*Environment, error) {
 	// Arm the rollback BEFORE the first write, not after writeContextFiles
 	// returns. writeContextFiles puts the daemon task marker down as its very
 	// first act and can then fail on any later step — .agent_context, skill
-	// files, project resources — so a defer registered after it returns would
+	// files, workspace resources — so a defer registered after it returns would
 	// miss exactly the failures that strand a marker with nothing else around
 	// it. Rolling back an empty manifest is a no-op, which is what makes it
 	// safe to arm this early.
@@ -812,7 +809,7 @@ func Reuse(params ReuseParams, logger *slog.Logger) *Environment {
 	//      which would otherwise keep the canonical slug occupied and push the
 	//      refresh back to issue-review-enact.
 	//   2. CleanupSidecars rolls back the remaining sidecar files
-	//      (issue_context.md, project resources) and the manifest itself.
+	//      (issue_context.md, workspace resources) and the manifest itself.
 	//
 	// No-op when RootDir is empty (legacy local_directory reuse, which the
 	// daemon skips anyway) or when no prior manifest exists (older build).

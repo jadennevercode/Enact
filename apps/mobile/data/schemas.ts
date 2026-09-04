@@ -23,15 +23,10 @@ import type {
   IssueLabelsResponse,
   Label,
   ListLabelsResponse,
-  ListProjectResourcesResponse,
-  ListProjectsResponse,
   MemberWithUser,
   PinnedItem,
-  Project,
-  ProjectResource,
   RuntimeDevice,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   SendChatMessageResponse,
   Squad,
   TaskMessagePayload,
@@ -151,88 +146,6 @@ export const IssueLabelsResponseSchema = z.object({
 
 export const EMPTY_ISSUE_LABELS_RESPONSE: IssueLabelsResponse = {
   labels: [],
-};
-
-export const ProjectSchema = z.object({
-  id: z.string(),
-  workspace_id: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  icon: z.string().nullable(),
-  status: z.string(),
-  priority: z.string(),
-  lead_type: z.string().nullable(),
-  lead_id: z.string().nullable(),
-  // .default(null) so a project from an older backend that omits these keys
-  // parses to null instead of degrading the batch to the empty fallback.
-  start_date: z.string().nullable().default(null),
-  due_date: z.string().nullable().default(null),
-  created_at: z.string(),
-  updated_at: z.string(),
-  issue_count: z.number().default(0),
-  done_count: z.number().default(0),
-  resource_count: z.number().default(0),
-}).loose();
-
-export const ListProjectsResponseSchema = z.object({
-  projects: z.array(ProjectSchema).default([]),
-  total: z.number().default(0),
-}).loose();
-
-export const EMPTY_LIST_PROJECTS_RESPONSE: ListProjectsResponse = {
-  projects: [],
-  total: 0,
-};
-
-// Fallback for `GET /api/projects/{id}` when the response shape drifts.
-// `id` defaults to empty — caller can detect "not found / drift" by checking
-// `data.id === ""` and rendering an error state instead of pretending the
-// data is valid. Status / priority cast to the enum literals so TS callers
-// downstream still flow correctly; runtime values came from the schema
-// (`z.string()`), which would have already passed.
-export const EMPTY_PROJECT: Project = {
-  id: "",
-  workspace_id: "",
-  title: "",
-  description: null,
-  icon: null,
-  status: "planned",
-  priority: "none",
-  lead_type: null,
-  lead_id: null,
-  start_date: null,
-  due_date: null,
-  created_at: "",
-  updated_at: "",
-  issue_count: 0,
-  done_count: 0,
-  resource_count: 0,
-};
-
-// Project resources are typed pointers to external resources (today: GitHub
-// repos). resource_ref shape varies per resource_type; lenient on both
-// `resource_type` (so a future type doesn't crash the list) and
-// `resource_ref` (passes through unchanged for the renderer to dispatch on).
-const ProjectResourceSchema = z.object({
-  id: z.string(),
-  project_id: z.string(),
-  workspace_id: z.string(),
-  resource_type: z.string(),
-  resource_ref: z.unknown(),
-  label: z.string().nullable(),
-  position: z.number().default(0),
-  created_at: z.string(),
-  created_by: z.string().nullable(),
-}).loose();
-
-export const ListProjectResourcesResponseSchema = z.object({
-  resources: z.array(ProjectResourceSchema).default([]),
-  total: z.number().default(0),
-}).loose();
-
-export const EMPTY_LIST_PROJECT_RESOURCES_RESPONSE: ListProjectResourcesResponse = {
-  resources: [],
-  total: 0,
 };
 
 // =====================================================
@@ -357,9 +270,9 @@ export const TaskMessageListSchema = z.array(TaskMessagePayloadSchema).default([
 export const EMPTY_TASK_MESSAGE_LIST: TaskMessagePayload[] = [];
 
 // =====================================================
-// Search (issues + projects)
+// Search (issues)
 // =====================================================
-// Mirrors SearchIssueResult / SearchProjectResult in packages/core/types/api.ts.
+// Mirrors SearchIssueResult in packages/core/types/api.ts.
 // Web does not currently route search responses through parseWithFallback, so
 // the schemas live mobile-side. Promote to core when web adopts the same
 // defense.
@@ -380,21 +293,6 @@ export const SearchIssuesResponseSchema = z.object({
 
 export const EMPTY_SEARCH_ISSUES_RESPONSE: SearchIssuesResponse = {
   issues: [],
-  total: 0,
-};
-
-const SearchProjectResultSchema = ProjectSchema.safeExtend({
-  match_source: z.enum(["title", "description"]).catch("title"),
-  matched_snippet: z.string().optional(),
-});
-
-export const SearchProjectsResponseSchema = z.object({
-  projects: z.array(SearchProjectResultSchema).default([]),
-  total: z.number().default(0),
-}).loose();
-
-export const EMPTY_SEARCH_PROJECTS_RESPONSE: SearchProjectsResponse = {
-  projects: [],
   total: 0,
 };
 
@@ -528,13 +426,17 @@ export const WorkspaceListSchema = z.array(WorkspaceSchema).default([]);
 export const EMPTY_WORKSPACE_LIST: Workspace[] = [];
 
 /** Pin metadata only — display fields (title / status / icon) are NOT here,
- *  consumers derive them from `issueDetailOptions` / `projectDetailOptions`.
- *  Matches the design in packages/core/types/pin.ts. */
+ *  consumers derive them from `issueDetailOptions`.
+ *  Matches the design in packages/core/types/pin.ts.
+ *
+ *  Mobile only renders issue pins, so any other `item_type` the server sends
+ *  is folded into "issue" — more/pins.tsx then shows the unpin placeholder
+ *  when the issue lookup comes back empty. */
 export const PinnedItemSchema: z.ZodType<PinnedItem> = z.object({
   id: z.string(),
   workspace_id: z.string().default(""),
   user_id: z.string().default(""),
-  item_type: z.enum(["issue", "project"]).catch("issue"),
+  item_type: z.literal("issue").catch("issue"),
   item_id: z.string(),
   position: z.number().default(0),
   created_at: z.string().default(""),
@@ -726,7 +628,6 @@ export const EMPTY_ISSUE_FALLBACK: import("@enact/core/types").Issue = {
   creator_type: "member",
   creator_id: "",
   parent_issue_id: null,
-  project_id: null,
   position: 0,
   stage: null,
   start_date: null,
@@ -738,4 +639,4 @@ export const EMPTY_ISSUE_FALLBACK: import("@enact/core/types").Issue = {
 };
 
 // Helpers re-exported for ergonomic single-import at the call site.
-export type { Label, Project, ProjectResource };
+export type { Label };

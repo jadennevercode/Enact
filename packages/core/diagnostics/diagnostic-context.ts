@@ -41,7 +41,7 @@ export function resetDiagnosticContext(): void {
 // or a percent-encoded string.
 //
 // Guessing from the shape of a segment instead would leak every id that does
-// not look like an id — project, skill, agent, runtime and attachment ids are
+// not look like an id — skill, agent, runtime and attachment ids are
 // all arbitrary strings. `paths.ts` also URL-encodes them, so an id containing
 // a slash arrives as one already-escaped segment and must not be mistaken for
 // two path segments.
@@ -55,9 +55,7 @@ type RoutePattern = readonly string[];
 const WORKSPACE_ROUTES: readonly RoutePattern[] = [
   ["issues"],
   ["issues", ":id"],
-  ["projects"],
-  ["projects", ":id"],
-  ["projects", ":id", "artifacts"],
+  ["artifacts"],
   ["autopilots"],
   ["autopilots", ":id"],
   ["agents"],
@@ -83,6 +81,7 @@ const WORKSPACE_ROUTES: readonly RoutePattern[] = [
   ["lessons"],
   ["lessons", ":id"],
   ["settings"],
+  ["settings", "resources"],
   ["attachments", ":id", "preview"],
 ];
 

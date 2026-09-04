@@ -422,8 +422,8 @@ deleted_squad_members AS (
     DELETE FROM squad_member
     WHERE squad_id IN (SELECT id FROM ws_squads)
 ),
-deleted_project_resources AS (
-    DELETE FROM project_resource WHERE workspace_id = $1
+deleted_workspace_resources AS (
+    DELETE FROM workspace_resource WHERE workspace_id = $1
 ),
 deleted_autopilot_collaborators AS (
     DELETE FROM autopilot_collaborator
@@ -650,7 +650,7 @@ DELETE FROM plugin_installation WHERE id IN (SELECT id FROM installations);
 -- name: DeleteWorkspaceAgents :exec
 DELETE FROM agent WHERE agent.workspace_id = $1;
 
--- name: DeleteWorkspaceRuntimesAndProjects :exec
+-- name: DeleteWorkspaceRuntimes :exec
 -- Runtime profiles and machines outlive the workspace that used them
 -- (migration 412/416), so this withdraws rather than deletes, and only
 -- collects what nothing else holds.
@@ -696,20 +696,17 @@ deleted_profiles AS (
           WHERE rpw.profile_id = runtime_profile.id
             AND rpw.workspace_id <> $1
       )
-),
-deleted_machines AS (
-    -- A host that served only this workspace. One that is still registered
-    -- elsewhere keeps its row, its name and its identity — that is the whole
-    -- point of the machine being cross-workspace.
-    DELETE FROM machine
-    WHERE machine.id IN (SELECT machine_id FROM deleted_runtimes WHERE machine_id IS NOT NULL)
-      AND NOT EXISTS (
-          SELECT 1 FROM agent_runtime ar
-          WHERE ar.machine_id = machine.id
-            AND ar.workspace_id <> $1
-      )
 )
-DELETE FROM project WHERE project.workspace_id = $1;
+-- A host that served only this workspace. One that is still registered
+-- elsewhere keeps its row, its name and its identity — that is the whole
+-- point of the machine being cross-workspace.
+DELETE FROM machine
+WHERE machine.id IN (SELECT machine_id FROM deleted_runtimes WHERE machine_id IS NOT NULL)
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime ar
+      WHERE ar.machine_id = machine.id
+        AND ar.workspace_id <> $1
+  );
 
 -- name: DeleteWorkspaceAdministration :exec
 WITH

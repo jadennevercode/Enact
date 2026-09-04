@@ -2,44 +2,40 @@
  * Row model for the workspace search screen's single FlatList.
  *
  * Extracted from app/(app)/[workspace]/search.tsx so the ordering rules — in
- * particular the cross-type cancelled demotion (ENA-5824) — are unit-testable
- * without mounting the screen.
+ * particular the cancelled demotion (ENA-5824) — are unit-testable without
+ * mounting the screen.
  */
-import type {
-  Issue,
-  SearchIssueResult,
-  SearchProjectResult,
-} from "@enact/core/types";
-import { partitionAggregatedSearchResults } from "@enact/core/search/cancelled-rank";
+import type { Issue, SearchIssueResult } from "@enact/core/types";
+import {
+  isIssueDirectHit,
+  partitionStable,
+} from "@enact/core/search/cancelled-rank";
+import { issueBehavesAs } from "@/lib/issue-status";
 
 export type RowItem =
   | { kind: "header"; key: string; title: string }
   | { kind: "issue"; key: string; issue: SearchIssueResult; query: string }
-  | { kind: "project"; key: string; project: SearchProjectResult; query: string }
   | { kind: "recent"; key: string; issue: Issue };
 
 /**
  * Builds the flat row list. Empty query → the Recent section; otherwise the
  * search results in cancelled-partition order:
  *
- *   Projects (live) → Issues (live) → Cancelled (projects then issues)
+ *   Issues (live) → Cancelled
  *
- * Projects and issues come from two independently ranked responses, and this
- * screen renders every project before every issue — so per-type ranking alone
- * let a single cancelled project be the first row of the list. One trailing
- * Cancelled section is the only arrangement in which no cancelled row of either
- * type can precede a live row of the other. Direct hits (exact identifier,
- * number, or title) stay in their live section.
+ * Search returns one ranked issue list, and cancelled work sinks below live
+ * work into a trailing section. Direct hits (exact identifier, number, or
+ * title) stay in the live section. Demotion is by status CATEGORY so a custom
+ * cancelled-category status sinks the same way (ENA-6243) — same rule web
+ * applies via `partitionAggregatedSearchResults`.
  */
 export function buildSearchRows({
   query,
   issues,
-  projects,
   recentIssues,
 }: {
   query: string;
   issues: SearchIssueResult[];
-  projects: SearchProjectResult[];
   recentIssues: Issue[];
 }): RowItem[] {
   const trimmedQuery = query.trim();
@@ -56,32 +52,34 @@ export function buildSearchRows({
     ];
   }
 
-  const parts = partitionAggregatedSearchResults({
+  const parts = partitionStable(
     issues,
-    projects,
-    query: trimmedQuery,
-  });
+    (issue) =>
+      issueBehavesAs(issue, "cancelled") &&
+      !isIssueDirectHit(issue, trimmedQuery),
+  );
 
   const rows: RowItem[] = [];
-  if (parts.liveProjects.length > 0) {
-    rows.push({ kind: "header", key: "h-projects", title: "Projects" });
-    for (const project of parts.liveProjects) {
-      rows.push({ kind: "project", key: `p-${project.id}`, project, query: trimmedQuery });
-    }
-  }
-  if (parts.liveIssues.length > 0) {
+  if (parts.live.length > 0) {
     rows.push({ kind: "header", key: "h-issues", title: "Issues" });
-    for (const issue of parts.liveIssues) {
-      rows.push({ kind: "issue", key: `i-${issue.id}`, issue, query: trimmedQuery });
+    for (const issue of parts.live) {
+      rows.push({
+        kind: "issue",
+        key: `i-${issue.id}`,
+        issue,
+        query: trimmedQuery,
+      });
     }
   }
-  if (parts.hasCancelled) {
+  if (parts.cancelled.length > 0) {
     rows.push({ kind: "header", key: "h-cancelled", title: "Cancelled" });
-    for (const project of parts.cancelledProjects) {
-      rows.push({ kind: "project", key: `p-${project.id}`, project, query: trimmedQuery });
-    }
-    for (const issue of parts.cancelledIssues) {
-      rows.push({ kind: "issue", key: `i-${issue.id}`, issue, query: trimmedQuery });
+    for (const issue of parts.cancelled) {
+      rows.push({
+        kind: "issue",
+        key: `i-${issue.id}`,
+        issue,
+        query: trimmedQuery,
+      });
     }
   }
   return rows;

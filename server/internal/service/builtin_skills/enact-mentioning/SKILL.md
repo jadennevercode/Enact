@@ -32,14 +32,9 @@ So the link target is a real entity UUID (or `all`), never a display name. The
 label between the brackets is free text — that is where the human-readable name
 goes.
 
-One `mention://` form deliberately sits OUTSIDE this parser:
-`[Label](mention://project/<uuid>)`. `project` is absent from the type group
-above, so the backend never parses it and it can enqueue nothing — it is a
-render-only link every client makes navigable (a chip on web and desktop, an
-ordinary link that opens the project on tap on mobile). That is the whole point:
-a project reference should never be able to start a run. Use it freely to point
-at a project (see the enact-projects-and-resources skill); everything else in
-this document is about the four types (plus `all`) the parser does recognize.
+The four types above (plus `all`) are the whole vocabulary. Any other
+`mention://` target is not recognized by the parser, enqueues nothing, and is
+not guaranteed to render as anything — do not invent one.
 
 ## Step 1 — look up the UUID with `--output json`
 

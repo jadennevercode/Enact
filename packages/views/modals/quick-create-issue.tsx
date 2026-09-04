@@ -6,7 +6,6 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
-  FolderKanban,
   Maximize2,
   Minimize2,
   MoreHorizontal,
@@ -31,7 +30,6 @@ import { useWorkspaceId } from "@enact/core/hooks";
 import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
 import { AppLink, resolveClickIntent } from "../navigation";
 import { agentListOptions, squadListOptions } from "@enact/core/workspace/queries";
-import { projectListOptions } from "@enact/core/projects/queries";
 import {
   useQuickCreateStore,
   type QuickCreateActorType,
@@ -57,8 +55,7 @@ import {
   type Squad,
 } from "@enact/core/types";
 import { ActorAvatar } from "../common/actor-avatar";
-import { ClearablePillButton, PillButton } from "../common/pill-button";
-import { ProjectPicker } from "../projects/components/project-picker";
+import { PillButton } from "../common/pill-button";
 import { DueDatePicker, PriorityIcon, PriorityPicker } from "../issues/components";
 import { canAssignAgent } from "../issues/components/pickers/assignee-picker";
 import { isAgentRuntimeBound } from "@enact/core/agents";
@@ -95,10 +92,8 @@ type ActorSelection =
 // remounted, even inside a still-open Dialog Root.
 //
 // `onSwitchMode` is wired by the shell — the panel calls it with an optional
-// carry payload (currently `project_id`). The shared draft store carries the
-// description + agent across the agent→manual flip; project_id rides through
-// the same carry channel manual→agent uses, so the manual panel reads it
-// from `data?.project_id` without a parallel store.
+// carry payload. The shared draft store carries the description + agent across
+// the agent→manual flip.
 export function AgentCreatePanel({
   onClose,
   onSwitchMode,
@@ -116,7 +111,6 @@ export function AgentCreatePanel({
   setIsExpanded: (v: boolean) => void;
 }) {
   const { t } = useT("modals");
-  const { t: tProjects } = useT("projects");
   const sendShortcut = useShortcut("send");
   const workspaceName = useCurrentWorkspace()?.name;
   const workspacePaths = useWorkspacePaths();
@@ -125,12 +119,6 @@ export function AgentCreatePanel({
   const { data: members = [] } = useQuery(memberListOptions(wsId));
   const { data: agents = [] } = useQuery(agentListOptions(wsId));
   const { data: squads = [] } = useQuery(squadListOptions(wsId));
-  // Pull `isSuccess` so the stale-id sweep below can distinguish "still
-  // loading" from "loaded as empty". Reading length alone treats both as
-  // empty and incorrectly clears a valid persisted preference on every open.
-  const { data: projects = [], isSuccess: projectsLoaded } = useQuery(
-    projectListOptions(wsId),
-  );
 
   const memberRole = useMemo(
     () => members.find((m) => m.user_id === userId)?.role,
@@ -170,8 +158,8 @@ export function AgentCreatePanel({
   const keepOpen = useQuickCreateStore((s) => s.keepOpen);
   const setKeepOpen = useQuickCreateStore((s) => s.setKeepOpen);
   const setLastMode = useCreateModeStore((s) => s.setLastMode);
-  // The agent draft (prompt + actor) and the shared fields (project, priority,
-  // due date, attachments) live in the unified issue-create draft, so a switch
+  // The agent draft (prompt + actor) and the shared fields (priority, due
+  // date, attachments) live in the unified issue-create draft, so a switch
   // to/from the manual form preserves them.
   const draft = useIssueDraftStore((s) => s.draft);
   const setShared = useIssueDraftStore((s) => s.setShared);
@@ -251,15 +239,6 @@ export function AgentCreatePanel({
   // Unfinished selections live in the shared issue-create draft. The
   // last-successful actor remains a separate fallback, so closing a draft
   // never overwrites the default established by an actual create.
-  //
-  // Project has exactly two seeds, both carrying explicit user intent: the
-  // project page (or manual panel) the modal was opened from, and the user's
-  // own unfinished draft. It is deliberately NOT seeded from the last create
-  // — see quick-create-store (ENA-5862).
-  const [projectId, setProjectId] = useState<string | null>(() => {
-    const seed = (data?.project_id as string | undefined) ?? draft.shared.projectId;
-    return seed ?? null;
-  });
   const [priority, setPriority] = useState<IssuePriority>(
     (data?.priority as IssuePriority | undefined) ?? draft.shared.priority,
   );
@@ -267,13 +246,6 @@ export function AgentCreatePanel({
     (data?.due_date as string | undefined) ?? draft.shared.dueDate,
   );
   const [fieldPickerOpen, setFieldPickerOpen] = useState<QuickCreateField | null>(null);
-  // Local state + shared draft always move together, so both the picker rows
-  // and the pill's quick-clear go through here.
-  const commitProject = (next: string | null) => {
-    setProjectId(next);
-    setShared({ projectId: next ?? undefined });
-  };
-
   // Parent-issue context — seeded by `openCreateSubIssue` when the modal is
   // opened from the "Add sub issue" entry on an existing issue. We carry it
   // through (not as an editable form field) so a manual→agent flip preserves
@@ -283,21 +255,6 @@ export function AgentCreatePanel({
   const parentIssueId = (data?.parent_issue_id as string | undefined) ?? undefined;
   const parentIssueIdentifier =
     (data?.parent_issue_identifier as string | undefined) ?? undefined;
-
-  // Stale-id sweep. Once the project list query has actually resolved
-  // (`isSuccess` — distinct from "data is the empty default during loading"),
-  // a `projectId` that isn't in the list means the project was deleted in
-  // another session. Clear local state AND the unfinished draft — the draft
-  // is the only persisted copy left, and leaving it would make the next open
-  // re-seed and submit the same dead value.
-  useEffect(() => {
-    if (!projectsLoaded || projectId === null) return;
-    if (projects.some((p) => p.id === projectId)) return;
-    setProjectId(null);
-    if (draft.shared.projectId === projectId) {
-      setShared({ projectId: undefined });
-    }
-  }, [projectsLoaded, projects, projectId, draft.shared.projectId, setShared]);
 
   // Mark the persisted draft's active mode so a later reopen and any reader of
   // the unified draft know which form is being edited.
@@ -410,7 +367,6 @@ export function AgentCreatePanel({
             ? { agent_id: actor.id }
             : { squad_id: actor.id }),
           prompt: md,
-          project_id: projectId ?? undefined,
           ...(priority !== "none" ? { priority } : {}),
           ...(dueDate ? { due_date: dueDate } : {}),
           parent_issue_id: parentIssueId,
@@ -469,7 +425,7 @@ export function AgentCreatePanel({
     onAccepted: () => {
       refocusAfterAcceptRef.current = false;
       // A successful create ends this whole draft (shared + manual + agent);
-      // last-successful actor/project preferences were saved in onSubmit.
+      // last-successful actor preference was saved in onSubmit.
       // Success may only consume the draft it submitted: flush the editor's
       // pending debounce first, then clear only an untouched draft — edits
       // made mid-flight or by a reopened dialog survive.
@@ -501,7 +457,7 @@ export function AgentCreatePanel({
 
   // Switch to the manual form WITHOUT destroying the agent draft. The agent
   // slot (prompt + actor) is left untouched so a later manual→agent flip
-  // restores it verbatim. Project / priority / due date already live in the
+  // restores it verbatim. Priority / due date already live in the
   // shared slot and carry across for free. Two one-time assist-inits run only
   // when the manual slot is still empty: seed the description from the prompt
   // and the assignee from the picked actor. The parent-issue context is not
@@ -513,7 +469,7 @@ export function AgentCreatePanel({
     // Commit the shared fields to the draft so the manual panel reads them from
     // there — local state can hold a value seeded from `data` that was never
     // written through a picker.
-    setShared({ projectId: projectId ?? undefined, priority, dueDate });
+    setShared({ priority, dueDate });
     if (!draft.manual.description.trim()) {
       const md = editorRef.current?.getMarkdown() ?? "";
       if (md) setManual({ description: md });
@@ -642,9 +598,9 @@ export function AgentCreatePanel({
           <div className="px-5 pb-2 text-caption text-destructive">{error}</div>
         )}
 
-        {/* Property toolbar — the project is visible by default; priority and
-            due date live behind the overflow until exposed in settings or
-            given a value. Unfinished picks remain workspace-persistent.
+        {/* Property toolbar — priority and due date live behind the overflow
+            until exposed in settings or given a value. Unfinished picks
+            remain workspace-persistent.
             When the modal was opened from "Add sub issue" on an existing
             issue, a read-only chip on the same row tells the user that the
             new issue will be filed as a sub-issue of that parent — the agent
@@ -653,23 +609,6 @@ export function AgentCreatePanel({
             it non-editable: changing the parent is a `Set parent` action on
             the parent itself, not a knob in the quick-create flow. */}
         <div className="flex items-center gap-1.5 px-4 pb-2 shrink-0 flex-wrap">
-          {(visibleFields.includes("project") ||
-            projectId !== null ||
-            fieldPickerOpen === "project") && (
-            <ProjectPicker
-              projectId={projectId}
-              onUpdate={(u) => commitProject(u.project_id ?? null)}
-              triggerRender={
-                <ClearablePillButton
-                  onClear={projectId !== null ? () => commitProject(null) : undefined}
-                  clearLabel={tProjects(($) => $.picker.clear_aria)}
-                />
-              }
-              align="start"
-              open={fieldPickerOpen === "project" ? true : undefined}
-              onOpenChange={(open) => setFieldPickerOpen(open ? "project" : null)}
-            />
-          )}
           {(visibleFields.includes("priority") ||
             priority !== "none" ||
             fieldPickerOpen === "priority") && (
@@ -715,12 +654,6 @@ export function AgentCreatePanel({
               }
             />
             <DropdownMenuContent align="start" className="w-52">
-              {!visibleFields.includes("project") && projectId === null && (
-                <DropdownMenuItem onClick={() => setFieldPickerOpen("project")}>
-                  <FolderKanban className="size-3.5 text-muted-foreground" />
-                  {t(($) => $.create_issue.agent.set_project)}
-                </DropdownMenuItem>
-              )}
               {!visibleFields.includes("priority") && priority === "none" && (
                 <DropdownMenuItem onClick={() => setFieldPickerOpen("priority")}>
                   <PriorityIcon priority="none" className="size-3.5" />

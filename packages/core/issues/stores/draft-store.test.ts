@@ -30,7 +30,6 @@ beforeAll(() => {
 const RESET_STATE = {
   draft: {
     shared: {
-      projectId: undefined,
       priority: "none" as const,
       dueDate: null,
       attachments: [],
@@ -131,13 +130,13 @@ describe("issue draft store — last assignee", () => {
     expect(useIssueDraftStore.getState().draft.manual.propertyValues).toEqual({});
   });
 
-  it("clearDraft removes the persisted project selection", () => {
+  it("clearDraft removes the persisted due date", () => {
     const { setShared, clearDraft } = useIssueDraftStore.getState();
 
-    setShared({ projectId: "project-1" });
+    setShared({ dueDate: "2026-08-01" });
     clearDraft();
 
-    expect(useIssueDraftStore.getState().draft.shared.projectId).toBeUndefined();
+    expect(useIssueDraftStore.getState().draft.shared.dueDate).toBeNull();
   });
 
   it("clearDraft removes the persisted agent prompt", () => {
@@ -172,7 +171,7 @@ describe("issue draft store — mode switch preserves both sides", () => {
     const { setManual, setAgent, setShared } = useIssueDraftStore.getState();
 
     setManual({ title: "Manual title", description: "Manual body" });
-    setShared({ projectId: "project-1", priority: "high" });
+    setShared({ priority: "high" });
     // Switching to agent seeds the agent slot but must not clear manual.
     setAgent({ prompt: "Agent prompt", actorType: "agent", actorId: "agent-1" });
 
@@ -182,7 +181,6 @@ describe("issue draft store — mode switch preserves both sides", () => {
     expect(draft.agent.prompt).toBe("Agent prompt");
     expect(draft.agent.actorId).toBe("agent-1");
     // Shared fields are visible to both sides.
-    expect(draft.shared.projectId).toBe("project-1");
     expect(draft.shared.priority).toBe("high");
   });
 });
@@ -231,7 +229,8 @@ describe("issue draft store — legacy rehydrate", () => {
     expect(draft.manual.labelIds).toEqual(["label-1"]);
     expect(draft.manual.propertyValues).toEqual({ "property-1": "option-1" });
     // Shared fields land in the shared slot, with attachments backfilled.
-    expect(draft.shared.projectId).toBe("project-1");
+    // The legacy payload's `projectId` is dropped: the Project entity is gone.
+    expect(draft.shared).not.toHaveProperty("projectId");
     expect(draft.shared.priority).toBe("high");
     expect(draft.shared.dueDate).toBe("2026-08-01");
     expect(draft.shared.attachments).toEqual([]);
@@ -262,7 +261,9 @@ describe("issue draft store — legacy rehydrate", () => {
     await flush();
 
     const { draft } = useIssueDraftStore.getState();
-    expect(draft.shared.projectId).toBe("project-2");
+    // A nested payload written before the Project entity was removed still
+    // names it; the load must not carry it back into the shared slot.
+    expect(draft.shared).not.toHaveProperty("projectId");
     expect(draft.shared.priority).toBe("urgent");
     expect(draft.shared.dueDate).toBeNull();
     expect(draft.shared.attachments).toEqual([]);

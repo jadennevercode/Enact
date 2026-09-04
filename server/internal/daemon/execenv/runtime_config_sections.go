@@ -260,8 +260,8 @@ func writeAvailableCommands(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("### Core\n")
 	b.WriteString("- `enact issue get <id> --output json` — full issue.\n")
 	b.WriteString("- `enact issue comment list <issue-id> [--roots-only] [--summary] [--thread <comment-id> [--tail N] | --recent N] [--since <RFC3339>] --output json` — thread-aware comment reads. Bound a wide read with `--roots-only --summary` (roots plus `reply_count` / `last_activity_at`, clipped bodies); bound a deep one with `--thread <id> --tail N`; add `--compact` to any JSON read to drop echoed/null/bookkeeping fields. Careful with `--recent N`: it caps THREADS, not comments, and can return the whole history on a small issue. Resolved-thread folding, paging cursors, and full flag semantics: `--help`.\n")
-	b.WriteString("- `enact issue create --title \"...\" [--description-file <path>] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--project <project-id>] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — create an issue. For agent-authored long descriptions prefer `--description-file <path>` (heredoc stdin can swallow trailing flags, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths — same workdir rule as `## Comment Formatting`.\n")
-	b.WriteString("- `enact issue update <id> [--title X] [--description-file <path>] [--priority X] [--status X] [--assignee X] [--parent <issue-id>] [--stage N] [--project <project-id>] [--due-date <YYYY-MM-DD>] [--no-start]` — update fields; pass `--parent \"\"` to clear parent.\n")
+	b.WriteString("- `enact issue create --title \"...\" [--description-file <path>] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — create an issue. For agent-authored long descriptions prefer `--description-file <path>` (heredoc stdin can swallow trailing flags, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths — same workdir rule as `## Comment Formatting`.\n")
+	b.WriteString("- `enact issue update <id> [--title X] [--description-file <path>] [--priority X] [--status X] [--assignee X] [--parent <issue-id>] [--stage N] [--due-date <YYYY-MM-DD>] [--no-start]` — update fields; pass `--parent \"\"` to clear parent.\n")
 	// Assign deliberately stays in the core brief: it is the action that can
 	// create an unaware cross-issue run, and agents cannot discover the safe
 	// ownership-only --no-start path if the command is hidden behind --help.
@@ -364,7 +364,7 @@ func writeAvailableCommandsQuickCreate(b *strings.Builder) {
 	b.WriteString("**Use `--output json` for structured data.** For anything beyond `issue create`, run `enact --help` or `enact <command> --help`.\n\n")
 	b.WriteString("`--output json` writes JSON to stdout; confirmations and warnings go to stderr. Do not merge them (`2>&1`) into anything that parses the output — that makes a write that SUCCEEDED look like it failed and invites a duplicate retry.\n\n")
 	b.WriteString("### Core\n")
-	b.WriteString("- `enact issue create --title \"...\" [--description \"...\" | --description-file <path> | --description-stdin] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--project <project-id>] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — Create a new issue; `--attachment` may be repeated. For agent-authored long descriptions, prefer `--description-file <path>` over `--description-stdin` (flags after a HEREDOC terminator can be silently swallowed, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths, and treat a failed write as fatal — the CLI rejects a path outside the workdir so a stale file from another run can't leak in (ENA-4252).\n\n")
+	b.WriteString("- `enact issue create --title \"...\" [--description \"...\" | --description-file <path> | --description-stdin] [--priority X] [--status X] [--assignee X | --assignee-id <uuid>] [--parent <issue-id>] [--stage N] [--due-date <YYYY-MM-DD>] [--attachment <path>]` — Create a new issue; `--attachment` may be repeated. For agent-authored long descriptions, prefer `--description-file <path>` over `--description-stdin` (flags after a HEREDOC terminator can be silently swallowed, #4182). Write that file inside your working directory (e.g. `./description.md`), never `/tmp` or shared paths, and treat a failed write as fatal — the CLI rejects a path outside the workdir so a stale file from another run can't leak in (ENA-4252).\n\n")
 }
 
 // writeIssueBodyFormatting emits the default Markdown hierarchy for issue
@@ -410,33 +410,21 @@ func writeRepositories(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("\n")
 }
 
-// writeProjectContext emits the Project Context section when the task carries
-// an active project. Project context is independent of the task surface: an
-// issue inherits it from its project, while a chat receives it from the
-// project selected on the chat session.
-func writeProjectContext(b *strings.Builder, ctx TaskContextForEnv) {
-	if ctx.ProjectID == "" && len(ctx.ProjectResources) == 0 {
+// writeWorkspaceResources emits the Workspace Resources section when the
+// workspace has any attached. The workspace itself is already introduced by
+// writeWorkspaceContext, so this section is only the resource list and the
+// checkout guidance that goes with it.
+func writeWorkspaceResources(b *strings.Builder, ctx TaskContextForEnv) {
+	if len(ctx.WorkspaceResources) == 0 {
 		return
 	}
-	b.WriteString("## Project Context\n\n")
-	if ctx.ProjectTitle != "" {
-		fmt.Fprintf(b, "The active project for this task is **%s**.\n\n", ctx.ProjectTitle)
+	b.WriteString("## Workspace Resources\n\n")
+	b.WriteString("Resources attached to this workspace (also written to `.enact/project/resources.json`):\n\n")
+	for _, r := range ctx.WorkspaceResources {
+		fmt.Fprintf(b, "- %s\n", formatWorkspaceResource(r))
 	}
-	if desc := strings.TrimSpace(ctx.ProjectDescription); desc != "" {
-		b.WriteString("Project description — durable context the project owner set for work in this project:\n\n")
-		b.WriteString(desc)
-		b.WriteString("\n\n")
-	}
-	if len(ctx.ProjectResources) > 0 {
-		b.WriteString("Project resources (also written to `.enact/project/resources.json`):\n\n")
-		for _, r := range ctx.ProjectResources {
-			fmt.Fprintf(b, "- %s\n", formatProjectResource(r))
-		}
-		b.WriteString("\nResources are pointers — open them only when relevant to the task. ")
-		b.WriteString("For `github_repo` resources, use `enact repo checkout <url>` to fetch the code. Add `--ref <branch-or-sha>` when a task or handoff names an exact revision.\n\n")
-	} else {
-		b.WriteString("This project has no resources attached yet.\n\n")
-	}
+	b.WriteString("\nResources are pointers — open them only when relevant to the task. ")
+	b.WriteString("For `github_repo` resources, use `enact repo checkout <url>` to fetch the code. Add `--ref <branch-or-sha>` when a task or handoff names an exact revision.\n\n")
 }
 
 // writeIssueMetadata emits the Issue Metadata discipline section
@@ -763,10 +751,6 @@ func writeMentions(b *strings.Builder) {
 	b.WriteString("## Mentions\n\n")
 	b.WriteString("Mention links are **side-effecting actions**:\n\n")
 	b.WriteString("- `[ENA-123](mention://issue/<issue-id>)` — clickable link (no side effect)\n")
-	// Projects have no `ENA-123`-style identifier to autolink, so unless the
-	// agent writes this form (or pastes the project URL, which the reader's
-	// client unfurls into the same chip) a project reference stays dead text.
-	b.WriteString("- `[Project Name](mention://project/<project-id>)` — clickable link (no side effect)\n")
 	b.WriteString("- `[@Name](mention://member/<user-id>)` — **notifies a human**\n")
 	b.WriteString("- `[@Name](mention://agent/<agent-id>)` — **enqueues a new run for that agent**\n\n")
 	// No prescriptive default here (ENA-6417): the mention syntax hides its
@@ -892,7 +876,7 @@ func writeOutput(b *strings.Builder, kind taskKind, ctx TaskContextForEnv) {
 //	Issue Body Formatting |    ✓    |   ✓    |     ✓     |      ✓       |  ✓
 //	Comment Formatting    |    ✓    |   ✓    |     —     |      —       |  —
 //	Repositories          |    △    |   △    |     △     |      —       |  △
-//	Project Context       |    △    |   △    |     △     |      △       |  △
+//	Workspace Resources   |    △    |   △    |     △     |      △       |  △
 //	Issue Metadata        |    ✓    |   ✓    |     —     |      —       |  —
 //	Instruction Precedence|    —    |   ✓    |     —     |      —       |  —
 //	Sub-issue Creation    |    ✓    |   ✓    |     —     |      —       |  —
@@ -934,7 +918,7 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 		writeRepositories(&b, ctx)
 	}
 
-	writeProjectContext(&b, ctx)
+	writeWorkspaceResources(&b, ctx)
 
 	if kind.hasIssueContext() {
 		writeIssueMetadata(&b)

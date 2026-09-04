@@ -6,27 +6,24 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
 
-// Backs the Project Gantt view: only issues with at least one of
+// Backs the Gantt view: only issues with at least one of
 // start_date / due_date should come back when scheduled=true, regardless of
 // status or assignee. The unfiltered call must keep returning everything.
 func TestListIssues_ScheduledFilter(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	// Seed three issues in a fresh project — one with start_date only, one
-	// with due_date only, and one with neither. Using a dedicated project so
-	// the assertion isn't polluted by other issues seeded by parallel tests.
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Gantt Scheduled %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID) })
+	// Seed four issues — one with start_date only, one with due_date only,
+	// one with both and one with neither. A per-run metadata tag scopes the
+	// listing so the assertion isn't polluted by issues other tests seeded
+	// into the shared fixture workspace.
+	scope := fmt.Sprintf("gantt-scheduled-%d", suffix)
+	scopeFilter := "&metadata=" + url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope))
 
 	insertIssue := func(title string, startDate, dueDate *time.Time) string {
 		var number int
@@ -39,9 +36,9 @@ func TestListIssues_ScheduledFilter(t *testing.T) {
 		}
 		var id string
 		if err := testPool.QueryRow(ctx, `
-			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id, start_date, due_date)
-			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, $5, $6, $7) RETURNING id
-		`, testWorkspaceID, title, testUserID, number, projectID, startDate, dueDate).Scan(&id); err != nil {
+			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, metadata, start_date, due_date)
+			VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, jsonb_build_object('scope', $5::text), $6, $7) RETURNING id
+		`, testWorkspaceID, title, testUserID, number, scope, startDate, dueDate).Scan(&id); err != nil {
 			t.Fatalf("create issue %q: %v", title, err)
 		}
 		t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, id) })
@@ -56,8 +53,8 @@ func TestListIssues_ScheduledFilter(t *testing.T) {
 	noDates := insertIssue(fmt.Sprintf("no-dates-%d", suffix), nil, nil)
 
 	list := func(query string) (ids []string, total int64) {
-		path := fmt.Sprintf("/api/issues?workspace_id=%s&project_id=%s&limit=500%s",
-			testWorkspaceID, projectID, query)
+		path := fmt.Sprintf("/api/issues?workspace_id=%s&limit=500%s%s",
+			testWorkspaceID, scopeFilter, query)
 		w := httptest.NewRecorder()
 		testHandler.ListIssues(w, newRequest("GET", path, nil))
 		if w.Code != http.StatusOK {
@@ -76,7 +73,7 @@ func TestListIssues_ScheduledFilter(t *testing.T) {
 		return ids, resp.Total
 	}
 
-	// Without the filter every project issue comes back.
+	// Without the filter every issue in this run comes back.
 	allIDs, allTotal := list("")
 	for _, want := range []string{withStart, withDue, withBoth, noDates} {
 		if !containsIssueID(allIDs, want) {
@@ -107,13 +104,7 @@ func TestListIssuesReturnsStage(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Stage List %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID) })
+	scope := fmt.Sprintf("stage-list-%d", suffix)
 
 	var number int
 	if err := testPool.QueryRow(ctx, `
@@ -126,15 +117,16 @@ func TestListIssuesReturnsStage(t *testing.T) {
 
 	var issueID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id, stage)
-		VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, $5, 2)
+		INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, metadata, stage)
+		VALUES ($1, $2, 'todo', 'none', 'member', $3, 0, $4, jsonb_build_object('scope', $5::text), 2)
 		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("stage-list-%d", suffix), testUserID, number, projectID).Scan(&issueID); err != nil {
+	`, testWorkspaceID, scope, testUserID, number, scope).Scan(&issueID); err != nil {
 		t.Fatalf("create issue: %v", err)
 	}
 	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, issueID) })
 
-	path := fmt.Sprintf("/api/issues?workspace_id=%s&project_id=%s&limit=500", testWorkspaceID, projectID)
+	path := fmt.Sprintf("/api/issues?workspace_id=%s&limit=500&metadata=%s",
+		testWorkspaceID, url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope)))
 	w := httptest.NewRecorder()
 	testHandler.ListIssues(w, newRequest("GET", path, nil))
 	if w.Code != http.StatusOK {

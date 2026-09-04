@@ -7,7 +7,6 @@ import type {
   GroupedIssuesResponse,
   ListIssuesResponse,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   UpdateMeRequest,
   CreateMemberRequest,
   UpdateMemberRequest,
@@ -109,15 +108,11 @@ import type {
   SendChatMessageResponse,
   StartMikaOnboardingResponse,
   CancelTaskResponse,
-  Project,
-  CreateProjectRequest,
-  UpdateProjectRequest,
-  ListProjectsResponse,
-  ProjectResource,
-  CreateProjectResourceRequest,
-  UpdateProjectResourceRequest,
-  ListProjectArtifactsResponse,
-  ListProjectResourcesResponse,
+  WorkspaceResource,
+  CreateWorkspaceResourceRequest,
+  UpdateWorkspaceResourceRequest,
+  ListArtifactsResponse,
+  ListWorkspaceResourcesResponse,
   Label,
   IssueProperty,
   IssuePropertyValue,
@@ -290,10 +285,11 @@ import {
   EMPTY_ISSUE_TABLE_GROUPS_RESPONSE,
   EMPTY_ISSUE_TABLE_ROWS_RESPONSE,
   EMPTY_LIST_ISSUES_RESPONSE,
-  EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
+  EMPTY_LIST_ARTIFACTS_RESPONSE,
+  EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
+  EMPTY_WORKSPACE_RESOURCE,
   EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
-  EMPTY_SEARCH_PROJECTS_RESPONSE,
   EMPTY_SQUAD,
   EMPTY_SQUAD_LIST,
   EMPTY_SQUAD_MEMBER_STATUS_LIST,
@@ -315,7 +311,9 @@ import {
   CronPreviewResponseSchema,
   UNREADABLE_CRON_PREVIEW_RESPONSE,
   ListIssuesResponseSchema,
-  ListProjectArtifactsResponseSchema,
+  ListArtifactsResponseSchema,
+  ListWorkspaceResourcesResponseSchema,
+  WorkspaceResourceResponseSchema,
   OntologyDetailSchema,
   OntologyListSchema,
   CreateIssueResponseSchema,
@@ -326,7 +324,6 @@ import {
   RuntimeUsageByHourListSchema,
   RuntimeUsageListSchema,
   SearchIssuesResponseSchema,
-  SearchProjectsResponseSchema,
   SquadSchema,
   SquadListSchema,
   SquadMemberStatusListResponseSchema,
@@ -873,7 +870,6 @@ export class ApiClient {
     if (params?.assignee_ids?.length) search.set("assignee_ids", params.assignee_ids.join(","));
     if (params?.assignee_types?.length) search.set("assignee_types", params.assignee_types.join(","));
     if (params?.creator_id) search.set("creator_id", params.creator_id);
-    if (params?.project_id) search.set("project_id", params.project_id);
     if (params?.assignee_filters?.length) {
       search.set("assignee_filters", params.assignee_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
@@ -881,8 +877,6 @@ export class ApiClient {
     if (params?.creator_filters?.length) {
       search.set("creator_filters", params.creator_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
-    if (params?.project_ids?.length) search.set("project_ids", params.project_ids.join(","));
-    if (params?.include_no_project) search.set("include_no_project", "true");
     if (params?.label_ids?.length) search.set("label_ids", params.label_ids.join(","));
     if (params?.top_level_only) search.set("top_level_only", "true");
     // No `.length` guard on purpose: an empty ids array must still send
@@ -934,7 +928,6 @@ export class ApiClient {
     if (params.assignee_id) search.set("assignee_id", params.assignee_id);
     if (params.assignee_ids?.length) search.set("assignee_ids", params.assignee_ids.join(","));
     if (params.creator_id) search.set("creator_id", params.creator_id);
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.involves_user_id) search.set("involves_user_id", params.involves_user_id);
     if (params.metadata && Object.keys(params.metadata).length > 0) {
       search.set("metadata", JSON.stringify(params.metadata));
@@ -949,8 +942,6 @@ export class ApiClient {
     if (params.creator_filters?.length) {
       search.set("creator_filters", params.creator_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
-    if (params.project_ids?.length) search.set("project_ids", params.project_ids.join(","));
-    if (params.include_no_project) search.set("include_no_project", "true");
     if (params.label_ids?.length) search.set("label_ids", params.label_ids.join(","));
     if (params.group_assignee_type) search.set("group_assignee_type", params.group_assignee_type);
     if (params.group_assignee_id) search.set("group_assignee_id", params.group_assignee_id);
@@ -1018,20 +1009,6 @@ export class ApiClient {
     });
   }
 
-  async searchProjects(params: { q: string; limit?: number; offset?: number; include_closed?: boolean; signal?: AbortSignal }): Promise<SearchProjectsResponse> {
-    const search = new URLSearchParams({ q: params.q });
-    if (params.limit !== undefined) search.set("limit", String(params.limit));
-    if (params.offset !== undefined) search.set("offset", String(params.offset));
-    if (params.include_closed) search.set("include_closed", "true");
-    const raw = await this.fetch<unknown>(
-      `/api/projects/search?${search}`,
-      params.signal ? { signal: params.signal } : undefined,
-    );
-    return parseWithFallback(raw, SearchProjectsResponseSchema, EMPTY_SEARCH_PROJECTS_RESPONSE, {
-      endpoint: "GET /api/projects/search",
-    });
-  }
-
   /**
    * Fetch one issue by UUID **or** by bare identifier ("ENA-123"): the server
    * resolves `PREFIX-NUMBER` against the workspace's own prefix through the
@@ -1093,7 +1070,6 @@ export class ApiClient {
     prompt: string;
     priority?: IssuePriority;
     due_date?: string;
-    project_id?: string | null;
     parent_issue_id?: string | null;
     attachment_ids?: string[];
   }): Promise<{ task_id: string }> {
@@ -2144,17 +2120,15 @@ export class ApiClient {
 
   // ---------------------------------------------------------------------------
   // Workspace dashboard — three independent rollups for `/{slug}/dashboard`.
-  // Each accepts an optional `project_id` to narrow the scope to one project.
   // Cost is computed client-side from the model pricing table (same contract
   // as the per-runtime endpoints above).
   // ---------------------------------------------------------------------------
 
   async getDashboardUsageDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardUsageDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/usage/daily?${search}`);
     return parseWithFallback<DashboardUsageDaily[]>(
@@ -2166,11 +2140,10 @@ export class ApiClient {
   }
 
   async getDashboardUsageByAgent(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardUsageByAgent[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/usage/by-agent?${search}`);
     return parseWithFallback<DashboardUsageByAgent[]>(
@@ -2182,11 +2155,10 @@ export class ApiClient {
   }
 
   async getDashboardAgentRunTime(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardAgentRunTime[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` aligns the "last N days" cutoff with the viewer's calendar,
     // matching the per-agent token card.
     if (params.tz) search.set("tz", params.tz);
@@ -2200,11 +2172,10 @@ export class ApiClient {
   }
 
   async getDashboardRunTimeDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardRunTimeDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` cuts the day buckets in the viewer's calendar so Time / Tasks
     // align with the Cost / Tokens charts.
     if (params.tz) search.set("tz", params.tz);
@@ -2218,11 +2189,10 @@ export class ApiClient {
   }
 
   async getDashboardFailuresDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardFailureDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` cuts the day buckets in the viewer's calendar so the Errors chart
     // shares an x-axis with the other four metrics.
     if (params.tz) search.set("tz", params.tz);
@@ -2236,11 +2206,10 @@ export class ApiClient {
   }
 
   async getDashboardFailuresByAgent(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardFailureByAgent[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/failures/by-agent?${search}`);
     return parseWithFallback<DashboardFailureByAgent[]>(
@@ -3352,7 +3321,6 @@ export class ApiClient {
     data: {
       agent_id: string;
       title?: string;
-      project_id?: string | null;
     },
     workspaceSlug?: string,
   ): Promise<ChatSession> {
@@ -3389,7 +3357,7 @@ export class ApiClient {
 
   async updateChatSession(
     id: string,
-    data: { title: string } | { project_id: string | null },
+    data: { title: string },
   ): Promise<ChatSession> {
     return this.fetch(`/api/chat/sessions/${id}`, {
       method: "PATCH",
@@ -3686,90 +3654,65 @@ export class ApiClient {
     return res.blob();
   }
 
-  // Projects
-  async listProjects(params?: { status?: string }): Promise<ListProjectsResponse> {
-    const search = new URLSearchParams();
-    if (params?.status) search.set("status", params.status);
-    return this.fetch(`/api/projects?${search}`);
-  }
-
-  async getProject(id: string): Promise<Project> {
-    return this.fetch(`/api/projects/${id}`);
-  }
-
-  async createProject(data: CreateProjectRequest): Promise<Project> {
-    return this.fetch("/api/projects", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateProject(id: string, data: UpdateProjectRequest): Promise<Project> {
-    return this.fetch(`/api/projects/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteProject(id: string): Promise<void> {
-    await this.fetch(`/api/projects/${id}`, { method: "DELETE" });
-  }
-
-  // Project artifacts — every file produced under a project, resolved through
-  // the issues in it. Schema-parsed rather than cast: the artifacts browser
+  // Artifacts — every file the workspace produced, resolved through the issue
+  // each one came from. Schema-parsed rather than cast: the artifacts browser
   // builds its whole tree from this response, and a drifted field must degrade
   // to an empty tree rather than throw inside the render.
-  async listProjectArtifacts(
-    projectId: string,
-    limit?: number,
-  ): Promise<ListProjectArtifactsResponse> {
+  async listArtifacts(limit?: number): Promise<ListArtifactsResponse> {
     const query = limit === undefined ? "" : `?limit=${limit}`;
-    const raw = await this.fetch<unknown>(
-      `/api/projects/${projectId}/artifacts${query}`,
-    );
+    const raw = await this.fetch<unknown>(`/api/artifacts${query}`);
     return parseWithFallback(
       raw,
-      ListProjectArtifactsResponseSchema,
-      EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
-      { endpoint: "GET /api/projects/{id}/artifacts" },
+      ListArtifactsResponseSchema,
+      EMPTY_LIST_ARTIFACTS_RESPONSE,
+      { endpoint: "GET /api/artifacts" },
     );
   }
 
-  // Project resources
-  async listProjectResources(
-    projectId: string,
-  ): Promise<ListProjectResourcesResponse> {
-    return this.fetch(`/api/projects/${projectId}/resources`);
+  // Workspace resources — the repos and local directories agents work in.
+  async listWorkspaceResources(): Promise<ListWorkspaceResourcesResponse> {
+    const raw = await this.fetch<unknown>("/api/resources");
+    return parseWithFallback(
+      raw,
+      ListWorkspaceResourcesResponseSchema,
+      EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
+      { endpoint: "GET /api/resources" },
+    );
   }
 
-  async createProjectResource(
-    projectId: string,
-    data: CreateProjectResourceRequest,
-  ): Promise<ProjectResource> {
-    return this.fetch(`/api/projects/${projectId}/resources`, {
+  async createWorkspaceResource(
+    data: CreateWorkspaceResourceRequest,
+  ): Promise<WorkspaceResource> {
+    const raw = await this.fetch<unknown>("/api/resources", {
       method: "POST",
       body: JSON.stringify(data),
     });
+    return parseWithFallback(
+      raw,
+      WorkspaceResourceResponseSchema,
+      EMPTY_WORKSPACE_RESOURCE,
+      { endpoint: "POST /api/resources" },
+    );
   }
 
-  async updateProjectResource(
-    projectId: string,
+  async updateWorkspaceResource(
     resourceId: string,
-    data: UpdateProjectResourceRequest,
-  ): Promise<ProjectResource> {
-    return this.fetch(`/api/projects/${projectId}/resources/${resourceId}`, {
+    data: UpdateWorkspaceResourceRequest,
+  ): Promise<WorkspaceResource> {
+    const raw = await this.fetch<unknown>(`/api/resources/${resourceId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
+    return parseWithFallback(
+      raw,
+      WorkspaceResourceResponseSchema,
+      EMPTY_WORKSPACE_RESOURCE,
+      { endpoint: "PUT /api/resources/{id}" },
+    );
   }
 
-  async deleteProjectResource(
-    projectId: string,
-    resourceId: string,
-  ): Promise<void> {
-    await this.fetch(`/api/projects/${projectId}/resources/${resourceId}`, {
-      method: "DELETE",
-    });
+  async deleteWorkspaceResource(resourceId: string): Promise<void> {
+    await this.fetch(`/api/resources/${resourceId}`, { method: "DELETE" });
   }
 
   // Labels

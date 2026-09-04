@@ -65,8 +65,8 @@ func init() {
 	retrospectiveGetCmd.Flags().String("output", "json", "Output format: table or json")
 
 	// retrospective start
-	retrospectiveStartCmd.Flags().String("scope", "workspace", "What to review: issue, project or workspace")
-	retrospectiveStartCmd.Flags().String("scope-id", "", "Issue or project id. Required unless --scope is workspace.")
+	retrospectiveStartCmd.Flags().String("scope", "workspace", "What to review: issue or workspace")
+	retrospectiveStartCmd.Flags().String("scope-id", "", "Issue id. Required unless --scope is workspace.")
 	retrospectiveStartCmd.Flags().Int("since-days", 0, "How far back to look. Ignored for an issue-scoped retrospective.")
 	retrospectiveStartCmd.Flags().String("output", "table", "Output format: table or json")
 

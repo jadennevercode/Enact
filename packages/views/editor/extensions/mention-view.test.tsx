@@ -1,14 +1,13 @@
 /**
  * Editor mention modifier-click (ENA-5456).
  *
- * Both mention chips render a real `<a href>`, so on web the correct move is
- * to leave a modifier-click alone and let the browser do it — that keeps
+ * The issue mention chip renders a real `<a href>`, so on web the correct move
+ * is to leave a modifier-click alone and let the browser do it — that keeps
  * cmd+click (background tab), shift+click (new window) and cmd+shift+click
  * (foreground tab) distinct, which `window.open` would flatten into one.
  *
- * The project mention used to `preventDefault()` at the top of the handler and
- * then return without an adapter, producing a dead click on web. These tests
- * pin the no-adapter path for both chips.
+ * Also pinned here: a mention type this build no longer knows degrades to
+ * plain text rather than throwing or rendering a dead chip.
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -23,7 +22,6 @@ vi.mock("@tiptap/react", () => ({
 vi.mock("@enact/core/paths", () => ({
   useWorkspacePaths: () => ({
     issueDetail: (id: string) => `/acme/issues/${id}`,
-    projectDetail: (id: string) => `/acme/projects/${id}`,
   }),
 }));
 
@@ -33,16 +31,7 @@ vi.mock("../../issues/components/issue-chip", () => ({
   ),
 }));
 
-vi.mock("../../projects/components/project-chip", () => ({
-  ProjectChip: ({ fallbackLabel }: { fallbackLabel?: string }) => (
-    <span data-testid="project-chip">{fallbackLabel}</span>
-  ),
-}));
-
 import { MentionView } from "./mention-view";
-
-const PROJECT_ID = "8f14e45f-ceea-4d0e-a1a2-9b1c0d3e4f5a";
-const PROJECT_PATH = `/acme/projects/${PROJECT_ID}`;
 
 function makeAdapter(overrides: Partial<NavigationAdapter> = {}): NavigationAdapter {
   return {
@@ -67,63 +56,33 @@ function renderMention(
   );
 }
 
-function renderProjectMention(adapter: NavigationAdapter) {
-  return renderMention({ type: "project", id: PROJECT_ID, label: "Roadmap" }, adapter);
-}
+// A `mention://project/<uuid>` written before projects were removed is still
+// in stored rich text, and the markdown tokenizer accepts any `\w+` type, so
+// the node still reaches this view. It must read as what the author wrote.
+describe("MentionView stale mention type", () => {
+  const STALE_PROJECT_ID = "8f14e45f-ceea-4d0e-a1a2-9b1c0d3e4f5a";
 
-describe("MentionView project mention", () => {
-  it("renders an anchor carrying the project path", () => {
-    renderProjectMention(makeAdapter());
-
-    expect(screen.getByTestId("project-chip").closest("a")).toHaveAttribute(
-      "href",
-      PROJECT_PATH,
+  it("renders a stale project mention as plain text", () => {
+    const { container } = renderMention(
+      { type: "project", id: STALE_PROJECT_ID, label: "Roadmap" },
+      makeAdapter(),
     );
+
+    expect(screen.getByText("Roadmap")).toBeInTheDocument();
+    // No chip, no link, and no "@" that would misread it as an actor mention.
+    expect(screen.queryByTestId("issue-chip")).not.toBeInTheDocument();
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector(".mention")).toBeNull();
+    expect(container.textContent).toBe("Roadmap");
   });
 
-  it("pushes on plain click and prevents the anchor's default navigation", () => {
-    const push = vi.fn();
-    renderProjectMention(makeAdapter({ push }));
+  it("falls back to the id when a stale mention carries no label", () => {
+    const { container } = renderMention(
+      { type: "project", id: STALE_PROJECT_ID },
+      makeAdapter(),
+    );
 
-    // fireEvent returns false when preventDefault was called.
-    const defaultNotPrevented = fireEvent.click(screen.getByTestId("project-chip"));
-
-    expect(defaultNotPrevented).toBe(false);
-    expect(push).toHaveBeenCalledWith(PROJECT_PATH);
-  });
-
-  it("uses openInNewTab for cmd/ctrl click when available (desktop)", () => {
-    const push = vi.fn();
-    const openInNewTab = vi.fn();
-    renderProjectMention(makeAdapter({ push, openInNewTab }));
-
-    const defaultNotPrevented = fireEvent.click(screen.getByTestId("project-chip"), {
-      metaKey: true,
-    });
-
-    expect(defaultNotPrevented).toBe(false);
-    expect(openInNewTab).toHaveBeenCalledWith(PROJECT_PATH, "Roadmap");
-    expect(push).not.toHaveBeenCalled();
-  });
-
-  it("leaves modifier-click to the browser when openInNewTab is absent (web)", () => {
-    const push = vi.fn();
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
-    renderProjectMention(makeAdapter({ push }));
-
-    for (const modifier of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }]) {
-      const defaultNotPrevented = fireEvent.click(
-        screen.getByTestId("project-chip"),
-        modifier,
-      );
-      expect(defaultNotPrevented).toBe(true);
-    }
-
-    expect(push).not.toHaveBeenCalled();
-    // Native anchor behaviour, not window.open — the latter would collapse
-    // background tab / new window / foreground tab into one outcome.
-    expect(open).not.toHaveBeenCalled();
-    open.mockRestore();
+    expect(container.textContent).toBe(STALE_PROJECT_ID);
   });
 });
 
@@ -144,8 +103,6 @@ describe("MentionView issue mention", () => {
     expect(openInNewTab).not.toHaveBeenCalled();
   });
 
-  // The reference implementation the project mention was aligned to — guard it
-  // so the two chips can't drift apart again.
   it("leaves modifier-click to the browser when openInNewTab is absent (web)", () => {
     const push = vi.fn();
     renderMention({ type: "issue", id: ISSUE_ID, label: "ENA-7" }, makeAdapter({ push }));

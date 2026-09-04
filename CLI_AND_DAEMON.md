@@ -497,7 +497,7 @@ enact issue list --status todo --sort position       # board order (the default)
 enact issue list --sort created_at --direction desc  # newest first
 ```
 
-Table output shows a routable issue `KEY` such as `ENA-123`; copy that key into follow-up commands like `issue get`, `issue comment list`, `issue status`, or `--parent`. Add `--full-id` when you need canonical UUIDs. Available filters: `--status`, `--priority`, `--assignee` / `--assignee-id`, `--project`, `--metadata`, `--limit`. Use `--assignee-id <uuid>` for unambiguous filtering when names overlap.
+Table output shows a routable issue `KEY` such as `ENA-123`; copy that key into follow-up commands like `issue get`, `issue comment list`, `issue status`, or `--parent`. Add `--full-id` when you need canonical UUIDs. Available filters: `--status`, `--priority`, `--assignee` / `--assignee-id`, `--metadata`, `--limit`. Use `--assignee-id <uuid>` for unambiguous filtering when names overlap.
 
 Results come back in board order (`position`, ascending) by default. Pass `--sort` to change the column (`position`, `title`, `created_at`, `start_date`, `due_date`, `priority`) and `--direction asc|desc` to flip the order. `position` is always ascending (it is the manual drag order), so `--direction` is rejected when `--sort` is `position` or omitted — use it only with `title`, `created_at`, `start_date`, `due_date`, or `priority`.
 
@@ -522,7 +522,7 @@ enact issue create --title "Fix login bug" --description "..." --priority high -
 enact issue create --title "Fix login bug" --assignee-id 5fb87ac7-23b5-4a7a-81fa-ed295a54545d
 ```
 
-Flags: `--title` (required), `--description`, `--status`, `--priority`, `--assignee` / `--assignee-id`, `--parent`, `--project`, `--due-date`. Pass `--assignee-id <uuid>` (mutually exclusive with `--assignee`) when scripting against the IDs returned by `enact workspace member list --output json` / `enact agent list --output json`.
+Flags: `--title` (required), `--description`, `--status`, `--priority`, `--assignee` / `--assignee-id`, `--parent`, `--due-date`. Pass `--assignee-id <uuid>` (mutually exclusive with `--assignee`) when scripting against the IDs returned by `enact workspace member list --output json` / `enact agent list --output json`.
 
 ### Update Issue
 
@@ -711,70 +711,66 @@ The `usage` command returns the aggregated token usage for an issue, summed acro
 
 The `runs` command shows all past and current executions for an issue, including running tasks. Table output uses short task UUID prefixes by default; pass `--full-id` to print canonical task UUIDs. The `run-messages` command accepts full task UUIDs directly; copied short task prefixes must be scoped with `--issue <issue-id>` so the CLI only checks that issue's runs. It shows the detailed message log (tool calls, thinking, text, errors) for a single run. Use `--since` for efficient polling of in-progress runs.
 
-## Projects
+## Resources
 
-Projects group related issues (e.g. a sprint, an epic, a workstream). Every project
-belongs to a workspace and can optionally have a lead (member or agent).
+Resources are the GitHub repositories and local directories the workspace's agents
+run against. They belong to the workspace, and every run receives them as context.
 
-### List Projects
-
-```bash
-enact project list
-enact project list --status in_progress
-enact project list --output json
-```
-
-Available filters: `--status`.
-
-### Get Project
+### List Resources
 
 ```bash
-enact project get <id>
-enact project get <id> --output json
+enact resource list
+enact resource list --output json
 ```
 
-### Create Project
+### Add a Resource
 
 ```bash
-enact project create --title "2026 Week 16 Sprint" --icon "🏃" --lead "Lambda"
+# A repository the runtime checks out
+enact resource add \
+  --type github_repo \
+  --url https://github.com/enact-ai/enact \
+  --ref main
+
+# A local directory on one specific daemon
+enact resource add \
+  --type local_directory \
+  --local-path /absolute/path/to/repo \
+  --daemon-id <daemon-id>
+
+# A local git repo whose tasks each get their own worktree
+enact resource add \
+  --type local_directory \
+  --local-path /absolute/path/to/repo \
+  --daemon-id <daemon-id> \
+  --execution-mode worktree
 ```
 
-Flags: `--title` (required), `--description`, `--status`, `--icon`, `--lead`, `--start-date`, `--due-date`. Dates are calendar days (`YYYY-MM-DD`).
+Flags: `--type` (`github_repo` or `local_directory`), `--url` and `--ref` for a
+repository, `--local-path` and `--daemon-id` for a local directory, and
+`--execution-mode` (`in_place` or `worktree`) for a local directory.
 
-### Update Project
+A local directory applies only to the daemon it is bound to, and the workspace can
+link at most one local directory per daemon. `in_place` is the default and runs one
+task at a time in your working copy; `worktree` gives each task its own git worktree
+and hands the result back as a branch. The runtime on that machine must declare
+worktree support, otherwise the resource is refused.
+
+### Update a Resource
 
 ```bash
-enact project update <id> --title "New title" --status in_progress
-enact project update <id> --lead "Lambda"
-enact project update <id> --due-date 2026-04-15
+enact resource update <resource-id> --execution-mode worktree
+enact resource update <resource-id> --execution-mode in_place
 ```
 
-Flags: `--title`, `--description`, `--status`, `--icon`, `--lead`, `--start-date`, `--due-date`. For the date flags, pass an empty string (e.g. `--start-date ""`) to clear the date.
-
-### Change Status
+### Remove a Resource
 
 ```bash
-enact project status <id> in_progress
+enact resource remove <resource-id>
 ```
 
-Valid statuses: `planned`, `in_progress`, `paused`, `completed`, `cancelled`.
-
-### Delete Project
-
-```bash
-enact project delete <id>
-```
-
-### Associating Issues with Projects
-
-Use the `--project` flag on `issue create` / `issue update` to attach an issue to a
-project, or on `issue list` to filter issues by project:
-
-```bash
-enact issue create --title "Login bug" --project <project-id>
-enact issue update <issue-id> --project <project-id>
-enact issue list --project <project-id>
-```
+Resource changes affect tasks created afterwards; they do not rewrite records of
+runs that already ended.
 
 ## Setup
 

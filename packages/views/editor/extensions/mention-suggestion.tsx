@@ -19,10 +19,7 @@ import { useAuthStore } from "@enact/core/auth";
 import { canAssignAgentToIssue } from "@enact/core/permissions";
 import { isAgentRuntimeBound } from "@enact/core/agents";
 import { api } from "@enact/core/api";
-import {
-  isIssueDirectHit,
-  isProjectDirectHit,
-} from "@enact/core/search/cancelled-rank";
+import { isIssueDirectHit } from "@enact/core/search/cancelled-rank";
 import { isImeComposing } from "@enact/core/utils";
 import type {
   Issue,
@@ -34,7 +31,6 @@ import type {
 import { ListTodo } from "lucide-react";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { StatusIcon } from "../../issues/components/status-icon";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { useT } from "../../i18n";
 import { Badge } from "@enact/ui/components/ui/badge";
 import {
@@ -43,8 +39,7 @@ import {
   TooltipTrigger,
 } from "@enact/ui/components/ui/tooltip";
 import { cn } from "@enact/ui/lib/utils";
-import type { IssueStatus, IssueStatusCategory, ProjectStatus } from "@enact/core/types";
-import { PROJECT_STATUS_CONFIG } from "@enact/core/projects/config";
+import type { IssueStatus, IssueStatusCategory } from "@enact/core/types";
 import type { SuggestionOptions } from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
 import {
@@ -70,7 +65,7 @@ import { blockedReasonLabel } from "../../issues/blocked-trigger-copy";
 export interface MentionItem {
   id: string;
   label: string;
-  type: "member" | "agent" | "squad" | "issue" | "project" | "all";
+  type: "member" | "agent" | "squad" | "issue" | "all";
   /** Optional grouping hint for injected context items. */
   group?: "current" | "recent" | "search";
   /** Secondary text shown beside the label (e.g. issue title) */
@@ -84,10 +79,6 @@ export interface MentionItem {
    * done status looking and ranking like active work. (ENA-6243)
    */
   statusCategory?: IssueStatusCategory;
-  /** Project emoji/icon snapshot for ProjectIcon rendering */
-  icon?: string | null;
-  /** Project status snapshot for recent/current project rendering */
-  projectStatus?: ProjectStatus;
   /** Present when the target should remain discoverable but cannot be selected. */
   disabledReason?: "agent_runtime_required";
 }
@@ -96,7 +87,11 @@ interface MentionListProps {
   items: MentionItem[];
   query: string;
   command: (item: MentionItem) => void;
-  includeProjectSearch?: boolean;
+  /**
+   * Chat's `@` mode: the popup searches with the smaller context limit and
+   * tags results as the "Search" group.
+   */
+  contextSearch?: boolean;
 }
 
 export interface MentionListRef {
@@ -129,7 +124,7 @@ function groupItems(items: MentionItem[], query: string): MentionGroup[] {
       recent.push(item);
     } else if (item.group === "search") {
       search.push(item);
-    } else if (item.type === "issue" || item.type === "project") {
+    } else if (item.type === "issue") {
       issues.push(item);
     } else {
       users.push(item);
@@ -186,16 +181,15 @@ function mergeMentionItems(
  * 1. Cached rows are merged BEFORE the server rows and the list is only then
  *    truncated to MAX_ITEMS, so a locally cached cancelled issue outranks every
  *    backend-ranked result and can push active work out of the window.
- * 2. Context mentions aggregate two independently ranked responses — issues
- *    then projects, both tagged `search` — so a cancelled project still lands
- *    above a live issue. Per-type ranking cannot fix a cross-type list.
+ * 2. Cached and server rows are merged into one list, so per-response ranking
+ *    cannot by itself keep a cancelled row behind every live one.
  *
  * Exempt, matching the server and the other search surfaces:
  *
  * - Direct hits. An exact identifier, a bare number, or a full title means the
  *   user is targeting that one record; demoting it hides exactly what they
- *   asked for. Shared with the backend rule via isIssueDirectHit /
- *   isProjectDirectHit so the three surfaces cannot drift.
+ *   asked for. Shared with the backend rule via isIssueDirectHit so the
+ *   surfaces cannot drift.
  * - The curated `current` / `recent` groups. They are explicit context rather
  *   than relevance hits, and "Current" has to survive the truncation even when
  *   the issue being viewed is itself cancelled.
@@ -203,7 +197,6 @@ function mergeMentionItems(
 function isDemotedCancelled(item: MentionItem, query: string): boolean {
   if (isPinnedAboveTruncation(item, query)) return false;
   if (item.type === "issue") return item.statusCategory === "cancelled";
-  if (item.type === "project") return item.projectStatus === "cancelled";
   return false;
 }
 
@@ -216,7 +209,7 @@ function isDemotedCancelled(item: MentionItem, query: string): boolean {
  * server, which already ranks direct hits first.
  *
  * Issue mention rows carry the identifier in `label` and the title in
- * `description`; project rows carry the title in `label`.
+ * `description`.
  */
 function isPinnedAboveTruncation(item: MentionItem, query: string): boolean {
   if (item.group === "current" || item.group === "recent") return true;
@@ -226,9 +219,6 @@ function isPinnedAboveTruncation(item: MentionItem, query: string): boolean {
       { identifier: item.label, title: item.description },
       query,
     );
-  }
-  if (item.type === "project") {
-    return isProjectDirectHit({ title: item.label }, query);
   }
   return false;
 }
@@ -260,7 +250,7 @@ function demoteCancelledItems(items: MentionItem[], query: string): MentionItem[
 }
 
 export const MentionList = forwardRef<MentionListRef, MentionListProps>(
-  function MentionList({ items, query, command, includeProjectSearch = false }, ref) {
+  function MentionList({ items, query, command, contextSearch = false }, ref) {
     const { t } = useT("editor");
     // Selection is tracked by item identity, NOT by a positional index. The
     // list is re-bucketed by groupItems() and grows asynchronously (server
@@ -300,26 +290,20 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
       const timer = setTimeout(() => {
         void (async () => {
           try {
-            if (includeProjectSearch) {
-              const [issues, projects] = await Promise.all([
-                api.searchIssues({
-                  q,
-                  limit: SERVER_CONTEXT_SEARCH_LIMIT,
-                  include_closed: true,
-                  signal: controller.signal,
-                }),
-                api.searchProjects({
-                  q,
-                  limit: SERVER_CONTEXT_SEARCH_LIMIT,
-                  include_closed: true,
-                  signal: controller.signal,
-                }),
-              ]);
+            if (contextSearch) {
+              const issues = await api.searchIssues({
+                q,
+                limit: SERVER_CONTEXT_SEARCH_LIMIT,
+                include_closed: true,
+                signal: controller.signal,
+              });
               if (!cancelled && !controller.signal.aborted) {
-                setServerItems([
-                  ...issues.issues.map((issue) => ({ ...issueToMention(issue), group: "search" as const })),
-                  ...projects.projects.map((project) => ({ ...projectToMention(project), group: "search" as const })),
-                ]);
+                setServerItems(
+                  issues.issues.map((issue) => ({
+                    ...issueToMention(issue),
+                    group: "search" as const,
+                  })),
+                );
               }
             } else {
               const res = await api.searchIssues({
@@ -348,7 +332,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
         clearTimeout(timer);
         controller.abort();
       };
-    }, [includeProjectSearch, normalizedQuery]);
+    }, [contextSearch, normalizedQuery]);
 
     const displayItems = useMemo(() => {
       const currentServerItems = searchedQuery === normalizedQuery ? serverItems : [];
@@ -569,35 +553,6 @@ function MentionRow({
     );
   }
 
-  if (item.type === "project") {
-    const projectStatusCfg = item.projectStatus ? PROJECT_STATUS_CONFIG[item.projectStatus] : null;
-    return (
-      <button
-        type="button"
-        ref={buttonRef}
-        className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-caption transition-colors ${
-          selected ? "bg-accent" : "hover:bg-accent/50"
-        }`}
-        onClick={onSelect}
-      >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center">
-          <ProjectIcon project={{ icon: item.icon ?? null }} size="sm" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-foreground">{item.label}</span>
-          {item.description && (
-            <span className="block truncate text-muted-foreground">
-              {item.description}
-            </span>
-          )}
-        </span>
-        {projectStatusCfg && (
-          <span className={`${projectStatusCfg.dotColor} ml-auto size-1.5 shrink-0 rounded-full`} />
-        )}
-      </button>
-    );
-  }
-
   const disabledMessage = item.disabledReason
     ? blockedReasonLabel(item.disabledReason, issuesT)
     : null;
@@ -662,17 +617,6 @@ function issueToMention(
     description: i.title,
     status: i.status as IssueStatus,
     statusCategory: issueStatusCategory(i) ?? undefined,
-  };
-}
-
-function projectToMention(p: { id: string; title: string; description?: string | null; icon?: string | null; status?: ProjectStatus }): MentionItem {
-  return {
-    id: p.id,
-    label: p.title,
-    type: "project" as const,
-    description: p.description ?? undefined,
-    icon: p.icon ?? null,
-    projectStatus: p.status,
   };
 }
 
@@ -824,7 +768,7 @@ export function createMentionSuggestion(
         items: props.items,
         query: props.query,
         command: props.command,
-        includeProjectSearch: options.mode === "context",
+        contextSearch: options.mode === "context",
       }),
       onKeyDown: (ref, props) => ref?.onKeyDown(props) ?? false,
     }),

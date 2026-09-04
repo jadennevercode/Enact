@@ -3,13 +3,13 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultStorage } from "../platform/storage";
-import type { IssueStatus, ProjectStatus } from "../types";
+import type { IssueStatus } from "../types";
 
 const MAX_RECENT_CONTEXTS = 20;
 const MAX_WORKSPACES = 50;
 const EMPTY: RecentContextEntry[] = [];
 
-export type RecentContextType = "issue" | "project";
+export type RecentContextType = "issue";
 
 export interface RecentContextEntry {
   type: RecentContextType;
@@ -17,14 +17,13 @@ export interface RecentContextEntry {
   label?: string;
   subtitle?: string;
   status?: IssueStatus;
-  projectStatus?: ProjectStatus;
   icon?: string | null;
   visitedAt: number;
 }
 
 interface RecentContextState {
   byWorkspace: Record<string, RecentContextEntry[]>;
-  recordVisit: (wsId: string, entry: Pick<RecentContextEntry, "type" | "id"> & Partial<Pick<RecentContextEntry, "label" | "subtitle" | "status" | "projectStatus" | "icon">>) => void;
+  recordVisit: (wsId: string, entry: Pick<RecentContextEntry, "type" | "id"> & Partial<Pick<RecentContextEntry, "label" | "subtitle" | "status" | "icon">>) => void;
   forgetContext: (wsId: string, entry: Pick<RecentContextEntry, "type" | "id">) => void;
   pruneWorkspaces: (activeWsIds: string[]) => void;
 }
@@ -48,7 +47,6 @@ export const useRecentContextStore = create<RecentContextState>()(
             label: entry.label,
             subtitle: entry.subtitle,
             status: entry.status,
-            projectStatus: entry.projectStatus,
             icon: entry.icon,
             visitedAt: Date.now(),
           };
@@ -103,8 +101,28 @@ export const useRecentContextStore = create<RecentContextState>()(
       name: "enact_recent_contexts",
       storage: createJSONStorage(() => defaultStorage),
       partialize: (state) => ({ byWorkspace: state.byWorkspace }),
-      version: 1,
-      migrate: () => ({ byWorkspace: {} }),
+      version: 2,
+      // v2 dropped the "project" context type. Only project entries are
+      // discarded — an issue someone visited before the bump is still a
+      // reachable context, so dropping the whole bucket would cost real
+      // history for no reason.
+      migrate: (persisted, version) => {
+        if (version < 1) return { byWorkspace: {} };
+        const byWorkspace = (persisted as RecentContextState | undefined)?.byWorkspace;
+        if (!byWorkspace || typeof byWorkspace !== "object") {
+          return { byWorkspace: {} };
+        }
+        const next: Record<string, RecentContextEntry[]> = {};
+        for (const [wsId, items] of Object.entries(byWorkspace)) {
+          if (!Array.isArray(items)) continue;
+          const kept = items.filter(
+            (item): item is RecentContextEntry =>
+              !!item && typeof item === "object" && item.type === "issue",
+          );
+          if (kept.length > 0) next[wsId] = kept;
+        }
+        return { byWorkspace: next };
+      },
     },
   ),
 );

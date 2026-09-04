@@ -114,7 +114,7 @@ describe("WorkspaceDocumentTitle", () => {
   });
 
   it("restores the site title when the dashboard unmounts", () => {
-    open("/acme/projects/p1");
+    open("/acme/issues/ENA-1");
     presentation.title = "Website redesign";
 
     const view = render(<WorkspaceDocumentTitle />);

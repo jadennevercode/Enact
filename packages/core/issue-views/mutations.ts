@@ -18,7 +18,7 @@ export function useCreateIssueView(wsId: string) {
       if (created) {
         queryClient.setQueryData<IssueView[]>(
           issueViewKeys.list(wsId, {
-            scope_type: created.scope_type as "workspace" | "my" | "project",
+            scope_type: created.scope_type as "workspace" | "my",
             scope_id: created.scope_id,
           }),
           (old) =>

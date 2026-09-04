@@ -75,7 +75,7 @@ var errClientRejected = errors.New("client rejected")
 // form: lowercased, spaces collapsed to underscores — so "Due Date", "due
 // date", and "due_date" are all rejected.
 var reservedPropertyNames = map[string]struct{}{
-	"status": {}, "priority": {}, "assignee": {}, "project": {}, "parent": {},
+	"status": {}, "priority": {}, "assignee": {}, "parent": {},
 	"stage": {}, "label": {}, "labels": {}, "start_date": {}, "due_date": {},
 	"title": {}, "description": {}, "creator": {}, "created_at": {}, "updated_at": {},
 	"metadata": {}, "properties": {},

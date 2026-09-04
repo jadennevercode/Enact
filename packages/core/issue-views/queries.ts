@@ -3,7 +3,7 @@ import { api } from "../api";
 
 /** The (scope_type, scope_id) container a surface's views live in. */
 export interface IssueViewScope {
-  scope_type: "workspace" | "my" | "project";
+  scope_type: "workspace" | "my";
   scope_id?: string | null;
 }
 

@@ -398,8 +398,8 @@ deleted_squad_members AS (
     DELETE FROM squad_member
     WHERE squad_id IN (SELECT id FROM ws_squads)
 ),
-deleted_project_resources AS (
-    DELETE FROM project_resource WHERE workspace_id = $1
+deleted_workspace_resources AS (
+    DELETE FROM workspace_resource WHERE workspace_id = $1
 ),
 deleted_autopilot_collaborators AS (
     DELETE FROM autopilot_collaborator
@@ -570,7 +570,7 @@ func (q *Queries) DeleteWorkspacePullRequests(ctx context.Context, workspaceID p
 	return err
 }
 
-const deleteWorkspaceRuntimesAndProjects = `-- name: DeleteWorkspaceRuntimesAndProjects :exec
+const deleteWorkspaceRuntimes = `-- name: DeleteWorkspaceRuntimes :exec
 WITH
 deleted_runtimes AS (
     DELETE FROM agent_runtime
@@ -601,20 +601,14 @@ deleted_profiles AS (
           WHERE rpw.profile_id = runtime_profile.id
             AND rpw.workspace_id <> $1
       )
-),
-deleted_machines AS (
-    -- A host that served only this workspace. One that is still registered
-    -- elsewhere keeps its row, its name and its identity — that is the whole
-    -- point of the machine being cross-workspace.
-    DELETE FROM machine
-    WHERE machine.id IN (SELECT machine_id FROM deleted_runtimes WHERE machine_id IS NOT NULL)
-      AND NOT EXISTS (
-          SELECT 1 FROM agent_runtime ar
-          WHERE ar.machine_id = machine.id
-            AND ar.workspace_id <> $1
-      )
 )
-DELETE FROM project WHERE project.workspace_id = $1
+DELETE FROM machine
+WHERE machine.id IN (SELECT machine_id FROM deleted_runtimes WHERE machine_id IS NOT NULL)
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime ar
+      WHERE ar.machine_id = machine.id
+        AND ar.workspace_id <> $1
+  )
 `
 
 // Runtime profiles and machines outlive the workspace that used them
@@ -632,8 +626,11 @@ DELETE FROM project WHERE project.workspace_id = $1
 // touched, even if it happens to be unreferenced — collecting that is not this
 // operation's business, and doing it here would make deleting one workspace
 // able to delete another workspace's freshly created rows.
-func (q *Queries) DeleteWorkspaceRuntimesAndProjects(ctx context.Context, workspaceID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteWorkspaceRuntimesAndProjects, workspaceID)
+// A host that served only this workspace. One that is still registered
+// elsewhere keeps its row, its name and its identity — that is the whole
+// point of the machine being cross-workspace.
+func (q *Queries) DeleteWorkspaceRuntimes(ctx context.Context, workspaceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteWorkspaceRuntimes, workspaceID)
 	return err
 }
 

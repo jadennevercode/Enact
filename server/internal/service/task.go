@@ -1449,11 +1449,6 @@ func (s *TaskService) EnqueueDeferredAssigneeFallback(ctx context.Context, issue
 // and switches to the quick-create prompt template; the completion path
 // uses RequesterID + WorkspaceID to write the inbox notification.
 //
-// ProjectID is the optional project the user picked in the modal. When
-// non-empty the daemon claim handler resolves the project's title +
-// resources, and the prompt template instructs the agent to pass
-// `--project <uuid>` so the new issue lands in that project.
-//
 // SquadID is non-empty when the user picked a squad (rather than an agent)
 // in the modal. The task is still enqueued against the squad's leader
 // agent (Queries.CreateQuickCreateTask is agent-scoped); SquadID is the
@@ -1467,7 +1462,6 @@ type QuickCreateContext struct {
 	WorkspaceID   string   `json:"workspace_id"`
 	Priority      string   `json:"priority,omitempty"`
 	DueDate       string   `json:"due_date,omitempty"`
-	ProjectID     string   `json:"project_id,omitempty"`
 	SquadID       string   `json:"squad_id,omitempty"`
 	AttachmentIDs []string `json:"attachment_ids,omitempty"`
 	// ParentIssueID is the optional UUID of the parent issue the new issue
@@ -1489,10 +1483,6 @@ const QuickCreateContextType = "quick_create"
 // (not archived, has a runtime) so the API can reject up-front rather than
 // queue a task no one will ever claim.
 //
-// projectID is optional (zero-valued pgtype.UUID when the user didn't pick
-// one). The handler is responsible for validating it belongs to the same
-// workspace before passing it in.
-//
 // squadID is non-empty (Valid) when the user picked a squad as the actor.
 // The handler has already resolved it to the squad's leader agent for
 // agentID; the squadID hint is stamped into the task context so the daemon
@@ -1501,7 +1491,7 @@ const QuickCreateContextType = "quick_create"
 // parentIssueID is optional (zero-valued pgtype.UUID when the user didn't
 // open the modal from "Add sub issue"). The handler is responsible for
 // validating it belongs to the same workspace before passing it in.
-func (s *TaskService) EnqueueQuickCreateTask(ctx context.Context, workspaceID, requesterID pgtype.UUID, agentID, squadID pgtype.UUID, prompt, priority, dueDate string, projectID, parentIssueID pgtype.UUID, attachmentIDs []pgtype.UUID) (db.AgentTaskQueue, error) {
+func (s *TaskService) EnqueueQuickCreateTask(ctx context.Context, workspaceID, requesterID pgtype.UUID, agentID, squadID pgtype.UUID, prompt, priority, dueDate string, parentIssueID pgtype.UUID, attachmentIDs []pgtype.UUID) (db.AgentTaskQueue, error) {
 	agent, err := s.Queries.GetAgent(ctx, agentID)
 	if err != nil {
 		return db.AgentTaskQueue{}, fmt.Errorf("load agent: %w", err)
@@ -1520,9 +1510,6 @@ func (s *TaskService) EnqueueQuickCreateTask(ctx context.Context, workspaceID, r
 		WorkspaceID: util.UUIDToString(workspaceID),
 		Priority:    priority,
 		DueDate:     dueDate,
-	}
-	if projectID.Valid {
-		payload.ProjectID = util.UUIDToString(projectID)
 	}
 	if squadID.Valid {
 		payload.SquadID = util.UUIDToString(squadID)
@@ -1584,7 +1571,6 @@ func (s *TaskService) EnqueueQuickCreateTask(ctx context.Context, workspaceID, r
 		"squad_id", payload.SquadID,
 		"requester_id", util.UUIDToString(requesterID),
 		"workspace_id", util.UUIDToString(workspaceID),
-		"project_id", payload.ProjectID,
 		"parent_issue_id", payload.ParentIssueID,
 	)
 	// Match every other Enqueue* path: kick the daemon WS so the task
@@ -3760,7 +3746,7 @@ func (s *TaskService) ExtendTaskPrepareLease(ctx context.Context, taskID, runtim
 
 // MarkTaskWaitingLocalDirectory parks a dispatched task in the
 // waiting_local_directory state while the daemon waits for another in-flight
-// task to release the project_resource path lock. reason carries a short
+// task to release the workspace_resource path lock. reason carries a short
 // human-readable hint (typically the contested path) that the UI surfaces
 // next to the status. Returns the updated row so the daemon can confirm the
 // transition and so the broadcast carries the up-to-date snapshot.
@@ -6526,7 +6512,6 @@ func IssueToMap(issue db.Issue, issuePrefix string) map[string]any {
 		"creator_type":     issue.CreatorType,
 		"creator_id":       util.UUIDToString(issue.CreatorID),
 		"parent_issue_id":  util.UUIDToPtr(issue.ParentIssueID),
-		"project_id":       util.UUIDToPtr(issue.ProjectID),
 		"position":         issue.Position,
 		"stage":            util.Int4ToPtr(issue.Stage),
 		"start_date":       util.DateToPtr(issue.StartDate),

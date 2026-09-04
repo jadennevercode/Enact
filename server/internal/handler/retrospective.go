@@ -39,7 +39,6 @@ const (
 
 const (
 	retrospectiveScopeIssue     = "issue"
-	retrospectiveScopeProject   = "project"
 	retrospectiveScopeWorkspace = "workspace"
 )
 
@@ -55,7 +54,7 @@ const (
 // retrospective endpoint looking for an agent nothing creates.
 const LessonLearnerSystemKey = service.LessonsLearnerSystemKey
 
-// defaultRetrospectiveWindowDays bounds a project or workspace scan that did
+// defaultRetrospectiveWindowDays bounds a workspace scan that did
 // not name a window. Long enough to catch a pattern repeating, short enough
 // that the Learner is reading work people still remember.
 const defaultRetrospectiveWindowDays = 14
@@ -221,8 +220,8 @@ func (h *Handler) CreateRetrospective(w http.ResponseWriter, r *http.Request) {
 	if scope == "" {
 		scope = retrospectiveScopeWorkspace
 	}
-	if scope != retrospectiveScopeIssue && scope != retrospectiveScopeProject && scope != retrospectiveScopeWorkspace {
-		writeError(w, http.StatusBadRequest, "scope must be issue, project or workspace")
+	if scope != retrospectiveScopeIssue && scope != retrospectiveScopeWorkspace {
+		writeError(w, http.StatusBadRequest, "scope must be issue or workspace")
 		return
 	}
 
@@ -491,14 +490,6 @@ func (h *Handler) retrospectiveBrief(ctx context.Context, retro db.Retrospective
 		} else {
 			title = "Retrospective: one issue"
 			what = "one issue"
-		}
-	case retrospectiveScopeProject:
-		if project, err := h.Queries.GetProject(ctx, retro.ScopeID); err == nil {
-			title = fmt.Sprintf("Retrospective: %s", project.Title)
-			what = fmt.Sprintf("the project %q", project.Title)
-		} else {
-			title = "Retrospective: one project"
-			what = "one project"
 		}
 	}
 

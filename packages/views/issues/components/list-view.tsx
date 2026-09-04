@@ -17,7 +17,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { Virtuoso } from "react-virtuoso";
 import { Button } from "@enact/ui/components/ui/button";
-import type { Issue, IssueStatusCategory, Project } from "@enact/core/types";
+import type { Issue, IssueStatusCategory } from "@enact/core/types";
 import { useViewStore } from "@enact/core/issues/stores/view-store-context";
 import { StatusHeading } from "./status-heading";
 import { ListRow, DraggableListRow, type ChildProgress } from "./list-row";
@@ -70,18 +70,14 @@ function ListViewImpl({
   issues,
   visibleStatuses,
   childProgressMap = EMPTY_PROGRESS_MAP,
-  projectMap,
   statusPagination,
-  projectId,
   onMoveIssue,
   onCreateIssue,
 }: {
   issues: Issue[];
   visibleStatuses: IssueStatusCategory[];
   childProgressMap?: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   statusPagination: IssueStatusPagination;
-  projectId?: string;
   onMoveIssue?: (issueId: string, updates: DragMoveUpdates, onSettled?: () => void) => void;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
 }) {
@@ -371,9 +367,7 @@ function ListViewImpl({
             issueIds={columns[statusGroupId(status)] ?? EMPTY_IDS}
             issueMap={issueMapRef.current}
             childProgressMap={childProgressMap}
-            projectMap={projectMap}
             page={statusPagination[status]}
-            projectId={projectId}
             onCreateIssue={onCreateIssue}
             dragEnabled={dragEnabled}
             isExpanded={isExpanded}
@@ -423,9 +417,7 @@ function StatusAccordionItem({
   issueIds,
   issueMap,
   childProgressMap,
-  projectMap,
   page,
-  projectId,
   onCreateIssue,
   dragEnabled,
   isExpanded,
@@ -436,9 +428,7 @@ function StatusAccordionItem({
   issueIds: string[];
   issueMap: Map<string, Issue>;
   childProgressMap: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   page: IssueStatusPageState;
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   dragEnabled: boolean;
   isExpanded: boolean;
@@ -497,19 +487,10 @@ function StatusAccordionItem({
       <DraggableListRow
         issue={issue}
         childProgress={childProgressMap.get(issue.id)}
-        project={
-          issue.project_id ? projectMap?.get(issue.project_id) : undefined
-        }
         disableSorting={disableSorting}
       />
     ) : (
-      <ListRow
-        issue={issue}
-        childProgress={childProgressMap.get(issue.id)}
-        project={
-          issue.project_id ? projectMap?.get(issue.project_id) : undefined
-        }
-      />
+      <ListRow issue={issue} childProgress={childProgressMap.get(issue.id)} />
     );
 
   // Rows virtualize into the page's shared scroll parent. Only render when the
@@ -584,13 +565,7 @@ function StatusAccordionItem({
                   variant="ghost"
                   size="icon-sm"
                   className="rounded-full text-muted-foreground opacity-0 group-hover/header:opacity-100 transition-opacity"
-                  onClick={() => {
-                    const defaults = {
-                      status,
-                      ...(projectId ? { project_id: projectId } : {}),
-                    };
-                    onCreateIssue(defaults);
-                  }}
+                  onClick={() => onCreateIssue({ status })}
                 >
                   <Plus className="size-3.5" />
                 </Button>

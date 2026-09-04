@@ -435,7 +435,6 @@ func newIssueCreateTestCmd() *cobra.Command {
 	cmd.Flags().String("assignee", "", "")
 	cmd.Flags().String("assignee-id", "", "")
 	cmd.Flags().String("parent", "", "")
-	cmd.Flags().String("project", "", "")
 	cmd.Flags().String("due-date", "", "")
 	cmd.Flags().Bool("allow-duplicate", false, "")
 	cmd.Flags().String("output", "json", "")
@@ -1440,8 +1439,7 @@ func TestNormalizeAssigneeLookupInput(t *testing.T) {
 }
 
 // TestResolveAssigneeRespectsKinds covers the ENA-2165 follow-up: callers
-// whose target schema is member-or-agent-only (project.lead_type DB CHECK
-// at server/migrations/034_projects.up.sql:10, and the subscriber handler's
+// whose target schema is member-or-agent-only (the subscriber handler's
 // isWorkspaceEntity switch at server/internal/handler/handler.go:414) must
 // be able to opt out of squad resolution. Without this, "--lead <SquadName>"
 // would return (squad, ...) and the request would 500/403 server-side
@@ -1942,12 +1940,11 @@ func TestPickAssigneeFromFlags(t *testing.T) {
 }
 
 // TestPickAssigneeFromFlagsMemberOrAgentKinds is the call-site regression
-// for the ENA-2165 follow-up. Subscriber add/remove and project lead pass
+// for the ENA-2165 follow-up. Subscriber add/remove passes
 // memberOrAgentKinds because their target schema rejects squads
-// (subscriber: server/internal/handler/handler.go:414;
-// project: server/migrations/034_projects.up.sql:10). Without this gating,
-// `enact issue subscriber add --user "<SquadName>"` or
-// `enact project create --lead "<SquadName>"` would resolve to
+// (subscriber: server/internal/handler/handler.go:414).
+// Without this gating, `enact issue subscriber add --user "<SquadName>"`
+// would resolve to
 // (squad, ...) and surface as a 500/403 server-side instead of a clean
 // CLI-side resolution error.
 func TestPickAssigneeFromFlagsMemberOrAgentKinds(t *testing.T) {
@@ -2015,7 +2012,7 @@ func TestPickAssigneeFromFlagsMemberOrAgentKinds(t *testing.T) {
 		}
 	})
 
-	t.Run("project --lead with a member name still resolves cleanly", func(t *testing.T) {
+	t.Run("--lead with a member name still resolves cleanly", func(t *testing.T) {
 		c := newCmd("lead", "lead-id")
 		_ = c.Flags().Set("lead", "Alice")
 		typ, id, has, err := pickAssigneeFromFlags(ctx, client, c, "lead", "lead-id", memberOrAgentKinds)
@@ -2024,7 +2021,7 @@ func TestPickAssigneeFromFlagsMemberOrAgentKinds(t *testing.T) {
 		}
 	})
 
-	t.Run("project --lead with an agent name still resolves cleanly", func(t *testing.T) {
+	t.Run("--lead with an agent name still resolves cleanly", func(t *testing.T) {
 		c := newCmd("lead", "lead-id")
 		_ = c.Flags().Set("lead", "J")
 		typ, id, has, err := pickAssigneeFromFlags(ctx, client, c, "lead", "lead-id", memberOrAgentKinds)
@@ -2903,7 +2900,6 @@ func newIssueUpdateTestCmd() *cobra.Command {
 	cmd.Flags().String("priority", "", "")
 	cmd.Flags().String("assignee", "", "")
 	cmd.Flags().String("assignee-id", "", "")
-	cmd.Flags().String("project", "", "")
 	cmd.Flags().String("start-date", "", "")
 	cmd.Flags().String("due-date", "", "")
 	cmd.Flags().String("parent", "", "")
@@ -2939,7 +2935,6 @@ func newIssueListTestCmd() *cobra.Command {
 	cmd.Flags().String("priority", "", "")
 	cmd.Flags().String("assignee", "", "")
 	cmd.Flags().String("assignee-id", "", "")
-	cmd.Flags().String("project", "", "")
 	cmd.Flags().StringSlice("metadata", nil, "")
 	cmd.Flags().Int("limit", 50, "")
 	cmd.Flags().Int("offset", 0, "")
@@ -3516,14 +3511,12 @@ func TestFetchIssueColumnPaginates(t *testing.T) {
 		mkIssue("i3", "ENA-3", "todo", 3),
 	}
 	var pageRequests int
-	var sawProject string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/issues" {
 			http.NotFound(w, r)
 			return
 		}
 		pageRequests++
-		sawProject = r.URL.Query().Get("project_id")
 		offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 		// Force pagination by serving two issues at a time regardless of the
 		// requested limit, so the loop's offset/total termination is exercised.
@@ -3543,7 +3536,7 @@ func TestFetchIssueColumnPaginates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("newAPIClient: %v", err)
 	}
-	got, err := fetchIssueColumn(context.Background(), client, "ws-1", "proj-1", "todo")
+	got, err := fetchIssueColumn(context.Background(), client, "ws-1", "todo")
 	if err != nil {
 		t.Fatalf("fetchIssueColumn: %v", err)
 	}
@@ -3552,9 +3545,6 @@ func TestFetchIssueColumnPaginates(t *testing.T) {
 	}
 	if pageRequests < 2 {
 		t.Fatalf("page requests = %d, want >= 2 (loop should paginate)", pageRequests)
-	}
-	if sawProject != "proj-1" {
-		t.Fatalf("project_id query = %q, want proj-1 (column should be project-scoped)", sawProject)
 	}
 	for i, want := range []string{"i1", "i2", "i3"} {
 		if got := strVal(got[i], "id"); got != want {

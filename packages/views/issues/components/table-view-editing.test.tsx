@@ -172,7 +172,6 @@ function makeIssue(id: string, title: string, status: Issue["status"]): Issue {
     creator_type: "member",
     creator_id: "member-1",
     parent_issue_id: null,
-    project_id: null,
     position: 1,
     stage: null,
     start_date: null,
@@ -223,7 +222,6 @@ function Harness({
           exportIssues={() => Promise.resolve(serverIssues)}
           resolveExportLookups={() =>
             Promise.resolve({
-              projectMap: new Map(),
               childProgressMap: new Map(),
             })
           }
@@ -400,12 +398,11 @@ describe("TableView cell editors under data refresh", () => {
     expect(identifiers()).toEqual(["ENA-b", "ENA-a"]);
   }, 60_000);
 
-  it("opens creation with the row as parent and inherits its project", async () => {
+  it("opens creation with the row as parent", async () => {
     const user = userEvent.setup({ delay: null, pointerEventsCheck: 0 });
     const onCreateIssue = vi.fn();
     const issue = {
       ...makeIssue("a", "Alpha task", "todo"),
-      project_id: "project-1",
     };
     serverIssues = [issue];
 
@@ -427,7 +424,6 @@ describe("TableView cell editors under data refresh", () => {
     expect(onCreateIssue).toHaveBeenCalledWith({
       parent_issue_id: "a",
       parent_issue_identifier: "ENA-a",
-      project_id: "project-1",
     });
   });
 

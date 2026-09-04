@@ -10,7 +10,7 @@ describe("parseTabSubject", () => {
     // Collection / tool pages
     ["/acme/issues", { kind: "page", page: "issues" }],
     ["/acme/my-issues", { kind: "page", page: "myIssues" }],
-    ["/acme/projects", { kind: "page", page: "projects" }],
+    ["/acme/artifacts", { kind: "page", page: "artifacts" }],
     ["/acme/autopilots", { kind: "page", page: "autopilots" }],
     ["/acme/agents", { kind: "page", page: "agents" }],
     ["/acme/squads", { kind: "page", page: "squads" }],
@@ -21,7 +21,6 @@ describe("parseTabSubject", () => {
     ["/acme/settings", { kind: "page", page: "settings" }],
     // Resource details
     ["/acme/issues/bug-1", { kind: "issue", id: "bug-1" }],
-    ["/acme/projects/p1", { kind: "project", id: "p1" }],
     ["/acme/autopilots/a1", { kind: "autopilot", id: "a1" }],
     ["/acme/skills/s1", { kind: "skill", id: "s1" }],
     ["/acme/attachments/att1/preview", { kind: "attachment", id: "att1", filename: null }],

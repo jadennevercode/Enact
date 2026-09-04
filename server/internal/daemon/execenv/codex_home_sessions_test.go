@@ -388,7 +388,7 @@ func TestPrepareCodexSessionsDir_LocalDirectoryNoKeyFallsBackToEmptyDir(t *testi
 	}
 }
 
-// Two consecutive local_directory tasks share one project dir but get a fresh
+// Two consecutive local_directory tasks share one working dir but get a fresh
 // codex-home each (the daemon never reuses their workdir). The second run must
 // still see the first run's rollout via the per-issue store — this is the
 // regression Elon's review flagged.

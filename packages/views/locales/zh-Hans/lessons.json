@@ -41,7 +41,6 @@
   "retrospectives": {
     "scope": {
       "issue": "单个任务",
-      "project": "单个项目",
       "workspace": "整个工作区"
     },
     "trigger": {

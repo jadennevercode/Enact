@@ -18,7 +18,7 @@ function makeAdapter(
   };
 }
 
-function Probe({ href = "/acme/projects/p1" }: { href?: string }) {
+function Probe({ href = "/acme/issues/i1" }: { href?: string }) {
   const rowLink = useRowLink();
   return (
     <div role="row" {...rowLink(href)}>
@@ -47,7 +47,7 @@ describe("useRowLink", () => {
     renderProbe(adapter);
     fireEvent.click(screen.getByRole("row"));
 
-    expect(push).toHaveBeenCalledWith("/acme/projects/p1");
+    expect(push).toHaveBeenCalledWith("/acme/issues/i1");
     expect(push).toHaveBeenCalledTimes(1);
   });
 
@@ -61,8 +61,8 @@ describe("useRowLink", () => {
     fireEvent.click(screen.getByRole("row"), { ctrlKey: true });
 
     expect(openInNewTab).toHaveBeenCalledTimes(2);
-    expect(openInNewTab).toHaveBeenNthCalledWith(1, "/acme/projects/p1", undefined);
-    expect(openInNewTab).toHaveBeenNthCalledWith(2, "/acme/projects/p1", undefined);
+    expect(openInNewTab).toHaveBeenNthCalledWith(1, "/acme/issues/i1", undefined);
+    expect(openInNewTab).toHaveBeenNthCalledWith(2, "/acme/issues/i1", undefined);
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -74,7 +74,7 @@ describe("useRowLink", () => {
     renderProbe(adapter);
     fireEvent.click(screen.getByRole("row"), { metaKey: true, shiftKey: true });
 
-    expect(openInNewTab).toHaveBeenCalledWith("/acme/projects/p1", undefined, {
+    expect(openInNewTab).toHaveBeenCalledWith("/acme/issues/i1", undefined, {
       activate: true,
     });
     expect(push).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("useRowLink", () => {
     function TitledProbe() {
       const rowLink = useRowLink();
       return (
-        <div role="row" {...rowLink("/acme/projects/p1", "Roadmap")}>
+        <div role="row" {...rowLink("/acme/issues/i1", "Roadmap")}>
           row
         </div>
       );
@@ -99,7 +99,7 @@ describe("useRowLink", () => {
     );
     fireEvent.click(screen.getByRole("row"), { metaKey: true });
 
-    expect(openInNewTab).toHaveBeenCalledWith("/acme/projects/p1", "Roadmap");
+    expect(openInNewTab).toHaveBeenCalledWith("/acme/issues/i1", "Roadmap");
   });
 
   // Web has no adapter, and the row is a <div> — there is no native
@@ -120,13 +120,13 @@ describe("useRowLink", () => {
     expect(open).toHaveBeenCalledTimes(2);
     expect(open).toHaveBeenNthCalledWith(
       1,
-      "https://app.example/acme/projects/p1",
+      "https://app.example/acme/issues/i1",
       "_blank",
       "noopener,noreferrer",
     );
     expect(open).toHaveBeenNthCalledWith(
       2,
-      "https://app.example/acme/projects/p1",
+      "https://app.example/acme/issues/i1",
       "_blank",
       "noopener,noreferrer",
     );
@@ -147,7 +147,7 @@ describe("useRowLink", () => {
     screen.getByRole("row").dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(openInNewTab).toHaveBeenCalledWith("/acme/projects/p1", undefined);
+    expect(openInNewTab).toHaveBeenCalledWith("/acme/issues/i1", undefined);
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -169,7 +169,7 @@ describe("useRowLink", () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(open).toHaveBeenCalledWith(
-      "https://app.example/acme/projects/p1",
+      "https://app.example/acme/issues/i1",
       "_blank",
       "noopener,noreferrer",
     );
@@ -188,7 +188,7 @@ describe("useRowLink", () => {
     function NestedProbe() {
       const rowLink = useRowLink();
       return (
-        <div role="row" {...rowLink("/acme/projects/p1")}>
+        <div role="row" {...rowLink("/acme/issues/i1")}>
           <a
             href="https://example.com"
             target="_blank"

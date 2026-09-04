@@ -145,7 +145,7 @@ func activeThreadID(triggerThreadID, triggerCommentID string) string {
 //     `?` before the bytes reach `enact.exe` (#2198 Chinese, #2236
 //     Chinese, #2376 Cyrillic).
 //     2. On any host, when the model emits a multi-flag command (e.g.
-//     `enact issue create --title ... --assignee-id ... --project ...`)
+//     `enact issue create --title ... --assignee-id ... --priority ...`)
 //     the bash heredoc/flag boundary is fragile: a `BODY \` "terminator
 //     with trailing token" is not recognised as the heredoc end, so flag
 //     lines after it are swallowed into the description; or a clean

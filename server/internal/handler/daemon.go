@@ -2226,11 +2226,10 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 
 	// Include workspace ID and repos so the daemon can set up worktrees.
 	//
-	// Repo precedence: project-bound github_repo resources override workspace
+	// Repo precedence: attached github_repo resources override the workspace
 	// repos when present. Mixing both would just confuse the agent — if a
-	// project explicitly attached its repos, those are the authoritative set
-	// for issues inside that project. When the project has no github_repo
-	// resources (or no project at all), we fall back to the workspace repos.
+	// workspace explicitly attached its repos, those are the authoritative
+	// set for its work. With none attached we fall back to workspace.repos.
 	if task.IssueID.Valid {
 		if issue, err := h.Queries.GetIssue(r.Context(), task.IssueID); err == nil {
 			resp.WorkspaceID = uuidToString(issue.WorkspaceID)
@@ -2323,55 +2322,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 				}
 			}
 
-			var projectRepos []RepoData
-			if issue.ProjectID.Valid {
-				resp.ProjectID = uuidToString(issue.ProjectID)
-				if proj, err := h.Queries.GetProject(r.Context(), issue.ProjectID); err == nil {
-					resp.ProjectTitle = proj.Title
-					resp.ProjectDescription = proj.Description.String
-				}
-				if rows := h.listProjectResourcesForProject(r.Context(), issue.ProjectID); len(rows) > 0 {
-					out := make([]ProjectResourceData, 0, len(rows))
-					for _, row := range rows {
-						label := ""
-						if row.Label.Valid {
-							label = row.Label.String
-						}
-						ref := json.RawMessage(row.ResourceRef)
-						if len(ref) == 0 {
-							ref = json.RawMessage("{}")
-						}
-						out = append(out, ProjectResourceData{
-							ID:           uuidToString(row.ID),
-							ResourceType: row.ResourceType,
-							ResourceRef:  ref,
-							Label:        label,
-						})
-						// Lift github_repo resources into the daemon's repo list
-						// so `enact repo checkout` and the meta-skill render
-						// them as the issue's repos.
-						if row.ResourceType == "github_repo" {
-							var payload struct {
-								URL string `json:"url"`
-								Ref string `json:"ref,omitempty"`
-							}
-							if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-								projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-							}
-						}
-					}
-					resp.ProjectResources = out
-				}
-			}
-
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), issue.WorkspaceID); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, issue.WorkspaceID)
 		}
 
 		// Load every planned input as one chronological, de-duplicated set.
@@ -2674,58 +2625,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 						binding.LastThreadID.String != binding.LastMessageID.String
 				}
 			}
-			// A web chat can opt into the same durable project context as an
-			// issue-bound task. Revalidate the soft reference in this workspace at
-			// claim time: a deleted/stale project degrades to workspace context and
-			// can never leak a project from another tenant.
-			var projectRepos []RepoData
-			if cs.ProjectID.Valid {
-				if project, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-					ID:          cs.ProjectID,
-					WorkspaceID: cs.WorkspaceID,
-				}); err == nil {
-					resp.ProjectID = uuidToString(project.ID)
-					resp.ProjectTitle = project.Title
-					resp.ProjectDescription = project.Description.String
-					if rows := h.listProjectResourcesForProject(r.Context(), project.ID); len(rows) > 0 {
-						resources := make([]ProjectResourceData, 0, len(rows))
-						for _, row := range rows {
-							label := ""
-							if row.Label.Valid {
-								label = row.Label.String
-							}
-							ref := json.RawMessage(row.ResourceRef)
-							if len(ref) == 0 {
-								ref = json.RawMessage("{}")
-							}
-							resources = append(resources, ProjectResourceData{
-								ID:           uuidToString(row.ID),
-								ResourceType: row.ResourceType,
-								ResourceRef:  ref,
-								Label:        label,
-							})
-							if row.ResourceType == "github_repo" {
-								var payload struct {
-									URL string `json:"url"`
-									Ref string `json:"ref,omitempty"`
-								}
-								if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-									projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-								}
-							}
-						}
-						resp.ProjectResources = resources
-					}
-				}
-			}
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), cs.WorkspaceID); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, cs.WorkspaceID)
 			if !task.ForceFreshSession {
 				// Resume chat sessions only when the stored pointer was produced
 				// by the same runtime as the claiming task. When the chat_session
@@ -2923,60 +2823,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			resp.ThreadName = qc.Prompt
 			resp.WorkspaceID = qc.WorkspaceID
 
-			// When the user picked a project in the modal, surface its title
-			// and resources to the daemon so the agent has the same context
-			// it would for an issue-bound task: the prompt template can name
-			// the project, and `enact repo checkout` sees the project's
-			// github_repo resources instead of the workspace fallback.
-			var projectRepos []RepoData
-			if qc.ProjectID != "" {
-				projectUUID, err := util.ParseUUID(qc.ProjectID)
-				if err == nil {
-					resp.ProjectID = qc.ProjectID
-					if proj, err := h.Queries.GetProject(r.Context(), projectUUID); err == nil {
-						resp.ProjectTitle = proj.Title
-						resp.ProjectDescription = proj.Description.String
-					}
-					if rows := h.listProjectResourcesForProject(r.Context(), projectUUID); len(rows) > 0 {
-						out := make([]ProjectResourceData, 0, len(rows))
-						for _, row := range rows {
-							label := ""
-							if row.Label.Valid {
-								label = row.Label.String
-							}
-							ref := json.RawMessage(row.ResourceRef)
-							if len(ref) == 0 {
-								ref = json.RawMessage("{}")
-							}
-							out = append(out, ProjectResourceData{
-								ID:           uuidToString(row.ID),
-								ResourceType: row.ResourceType,
-								ResourceRef:  ref,
-								Label:        label,
-							})
-							if row.ResourceType == "github_repo" {
-								var payload struct {
-									URL string `json:"url"`
-									Ref string `json:"ref,omitempty"`
-								}
-								if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-									projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-								}
-							}
-						}
-						resp.ProjectResources = out
-					}
-				}
-			}
-
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), parseUUID(qc.WorkspaceID)); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, parseUUID(qc.WorkspaceID))
 
 			// Parent-issue resolution for quick-create tasks opened from
 			// "Add sub issue". The handler already verified workspace
@@ -3160,7 +3007,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	// Last gate before dispatch: refuse to hand a worktree-mode local_directory
 	// task to a daemon that cannot implement the mode.
 	//
-	// The save-time gate in project_resource.go cannot cover this. It checks the
+	// The save-time gate in workspace_resource.go cannot cover this. It checks the
 	// version at the moment the resource is written; a machine downgraded
 	// afterwards still claims tasks, and an old daemon json-skips execution_mode
 	// entirely — it would run the task IN PLACE, editing the working copy the
@@ -3168,7 +3015,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	// prevent, so it fails closed here, against the version of the runtime that
 	// is actually claiming.
 	if reason := worktreeClaimBlockReason(
-		resp.ProjectResources,
+		resp.WorkspaceResources,
 		runtime,
 		requestHasClientCapability(r, protocol.DaemonCapabilityLocalWorktreeV1),
 	); reason != "" {
@@ -3234,9 +3081,9 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 // two tasks silently ran in the user's own directory (ENA-5707).
 //
 // Only resources bound to the claiming runtime's own daemon are considered: a
-// project may carry one local_directory per machine, and another machine's
+// workspace may carry one local_directory per machine, and another machine's
 // worktree resource says nothing about this one's ability to run the task.
-func worktreeClaimBlockReason(resources []ProjectResourceData, runtime db.AgentRuntime, hasWorktreeCapability bool) string {
+func worktreeClaimBlockReason(resources []WorkspaceResourceData, runtime db.AgentRuntime, hasWorktreeCapability bool) string {
 	if !runtime.DaemonID.Valid || runtime.DaemonID.String == "" {
 		return ""
 	}
@@ -3627,7 +3474,7 @@ type TaskWaitLocalDirectoryRequest struct {
 
 // MarkTaskWaitingLocalDirectory transitions a dispatched task to
 // waiting_local_directory. Called by the daemon when, after claiming a task
-// whose project carries a local_directory resource, it discovers another
+// whose workspace carries a local_directory resource, it discovers another
 // in-flight task already holds the path's mutex.
 func (h *Handler) MarkTaskWaitingLocalDirectory(w http.ResponseWriter, r *http.Request) {
 	taskID := chi.URLParam(r, "taskId")
@@ -3694,7 +3541,7 @@ type TaskCompleteRequest struct {
 	Output    string `json:"output"`
 	SessionID string `json:"session_id"` // Claude session ID for future resumption
 	WorkDir   string `json:"work_dir"`   // working directory used during execution
-	// DurableWorkDir is the configured project directory that replaces a
+	// DurableWorkDir is the configured workspace directory that replaces a
 	// disposable task worktree after the daemon confirms the worktree is gone.
 	DurableWorkDir string `json:"durable_work_dir,omitempty"`
 	// BranchName is the branch this run delivered its work on. Worktree-mode
@@ -4684,7 +4531,7 @@ type TaskCancelAckRequest struct {
 	// this is the only channel that can report where the work went.
 	BranchName string `json:"branch_name,omitempty"`
 	// DurableWorkDir is present only when Finalize confirmed the disposable
-	// worktree was removed and the configured project directory is authoritative.
+	// worktree was removed and the configured workspace directory is authoritative.
 	DurableWorkDir string `json:"durable_work_dir,omitempty"`
 	// ErrorMessage / FailureReason: set when the cancelled run's worktree
 	// Finalize ABORTED — there is no branch, and the error text naming the

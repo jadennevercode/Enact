@@ -1692,7 +1692,7 @@ func TestMultiThreadReplyInstructionsFanOut(t *testing.T) {
 	for _, banned := range []string{
 		"For EACH thread above",                // old cookbook opener
 		"UTF-8 file with your file-write tool", // restated mechanism
-		"enact issue comment add",            // embedded example commands
+		"enact issue comment add",              // embedded example commands
 		"--content-file",                       // restated posting flag (#6517 review)
 		"inline `--content`",                   // restated inline ban (#6517 review)
 		"--content-stdin",                      // restated HEREDOC ban

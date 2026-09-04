@@ -29,7 +29,6 @@ const mockClearDraft = vi.hoisted(() => vi.fn());
 
 const emptyIssueDraft = () => ({
   shared: {
-    projectId: undefined as string | undefined,
     priority: "none" as "none" | "low" | "medium" | "high" | "urgent",
     dueDate: null as string | null,
     attachments: [] as Array<{ id: string }>,
@@ -67,24 +66,12 @@ const mockQuickCreateStore = {
   setLastActor: mockSetLastActor,
   keepOpen: false,
   setKeepOpen: mockSetKeepOpen,
-  // Not part of the store's interface any more (ENA-5862), but an older
-  // build persisted it and localStorage still hands it back on rehydrate.
-  // Kept here so the tests can prove the panel ignores it.
-  lastProjectId: null as string | null,
 };
 
 const mockCreateSettingsStore = {
-  quickCreateFields: ["project"] as Array<"project" | "priority" | "due_date">,
+  quickCreateFields: ["priority"] as Array<"priority" | "due_date">,
   setQuickCreateFieldVisible: mockSetQuickCreateFieldVisible,
 };
-
-// Per-test override for the projects query, so tests can swap between
-// "loaded as empty" (the deleted-project case) and "still loading" without
-// re-mocking the whole module.
-const mockProjectsQuery = vi.hoisted(() => ({
-  data: [] as Array<{ id: string; title: string; icon: string | null }>,
-  isSuccess: true,
-}));
 
 // Per-test override for the squads list so we can flip between "squads
 // exist and one's leader is reachable" and "no squads" cases without
@@ -114,8 +101,6 @@ vi.mock("@tanstack/react-query", () => ({
         };
       case "runtimes":
         return { data: [{ id: "runtime-1", metadata: { cli_version: "1.2.3" } }] };
-      case "projects":
-        return mockProjectsQuery;
       default:
         return { data: [] };
     }
@@ -155,10 +140,6 @@ vi.mock("@enact/core/workspace/queries", () => ({
   squadListOptions: (wsId: string) => ({
     queryKey: ["workspaces", wsId, "squads"],
   }),
-}));
-
-vi.mock("@enact/core/projects/queries", () => ({
-  projectListOptions: () => ({ queryKey: ["projects"] }),
 }));
 
 vi.mock("@enact/core/issues/stores/quick-create-store", () => ({
@@ -218,19 +199,6 @@ vi.mock("../issues/components", () => ({
     <button type="button" data-testid="due-date-picker" onClick={() => onUpdate({ due_date: "2026-08-01" })}>
       Due date {dueDate ?? "none"}
     </button>
-  ),
-}));
-
-vi.mock("../projects/components/project-picker", () => ({
-  ProjectPicker: ({ projectId, onUpdate, triggerRender }: any) => (
-    <>
-      <button type="button" data-testid="project-picker" onClick={() => onUpdate({ project_id: "proj-1" })}>
-        Project {projectId ?? "none"}
-      </button>
-      {/* The caller's own trigger renders too — the pill carries the
-          quick-clear ×, which belongs to this panel, not to the picker. */}
-      {triggerRender}
-    </>
   ),
 }));
 
@@ -428,11 +396,10 @@ import { I18nProvider } from "@enact/core/i18n/react";
 import enCommon from "../locales/en/common.json";
 import enModals from "../locales/en/modals.json";
 import enEditor from "../locales/en/editor.json";
-import enProjects from "../locales/en/projects.json";
 import { AgentCreatePanel } from "./quick-create-issue";
 
 const TEST_RESOURCES = {
-  en: { common: enCommon, modals: enModals, editor: enEditor, projects: enProjects },
+  en: { common: enCommon, modals: enModals, editor: enEditor },
 };
 
 function renderPanel(props: React.ComponentProps<typeof AgentCreatePanel>) {
@@ -448,8 +415,7 @@ describe("AgentCreatePanel", () => {
     vi.clearAllMocks();
     mockQuickCreateStore.lastActorType = null;
     mockQuickCreateStore.lastActorId = null;
-    mockQuickCreateStore.lastProjectId = null;
-    mockCreateSettingsStore.quickCreateFields = ["project"];
+    mockCreateSettingsStore.quickCreateFields = ["priority"];
     mockQuickCreateStore.keepOpen = false;
     mockIssueDraftStore.draft = emptyIssueDraft();
     // The prompt now lives in the unified draft's agent slot.
@@ -466,8 +432,6 @@ describe("AgentCreatePanel", () => {
     mockClearDraft.mockImplementation(() => {
       mockIssueDraftStore.draft = emptyIssueDraft();
     });
-    mockProjectsQuery.data = [];
-    mockProjectsQuery.isSuccess = true;
     mockSquadsData.list = [];
     mockQuickCreateIssue.mockResolvedValue(undefined);
     mockApiUploadFile.mockResolvedValue({
@@ -502,12 +466,11 @@ describe("AgentCreatePanel", () => {
     ).toHaveValue("Persisted draft prompt");
   });
 
-  it("restores unfinished actor, project, priority, and due-date selections after remount", async () => {
+  it("restores unfinished actor, priority, and due-date selections after remount", async () => {
     mockSquadsData.list = [
       { id: "squad-1", name: "Frontend Squad", leader_id: "agent-1", archived_at: null },
     ];
-    mockProjectsQuery.data = [{ id: "proj-1", title: "Web", icon: null }];
-    mockCreateSettingsStore.quickCreateFields = ["project", "priority", "due_date"];
+    mockCreateSettingsStore.quickCreateFields = ["priority", "due_date"];
     const user = userEvent.setup();
 
     const firstOpen = renderPanel({
@@ -517,7 +480,6 @@ describe("AgentCreatePanel", () => {
     });
 
     await user.click(screen.getByRole("button", { name: /Frontend Squad/ }));
-    await user.click(screen.getByTestId("project-picker"));
     await user.click(screen.getByTestId("priority-picker"));
     await user.click(screen.getByTestId("due-date-picker"));
 
@@ -526,7 +488,6 @@ describe("AgentCreatePanel", () => {
     );
     expect(mockIssueDraftStore.draft.shared).toEqual(
       expect.objectContaining({
-        projectId: "proj-1",
         priority: "high",
         dueDate: "2026-08-01",
       }),
@@ -539,7 +500,6 @@ describe("AgentCreatePanel", () => {
       "data-selected",
       "true",
     );
-    expect(screen.getByTestId("project-picker")).toHaveTextContent("Project proj-1");
     expect(screen.getByTestId("priority-picker")).toHaveTextContent("Priority high");
     expect(screen.getByTestId("due-date-picker")).toHaveTextContent("Due date 2026-08-01");
   });
@@ -564,7 +524,6 @@ describe("AgentCreatePanel", () => {
       expect(mockQuickCreateIssue).toHaveBeenCalledWith({
         agent_id: "agent-1",
         prompt: "New agent prompt",
-        project_id: undefined,
       });
     });
 
@@ -580,16 +539,17 @@ describe("AgentCreatePanel", () => {
 
     renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
 
-    expect(screen.queryByTestId("priority-picker")).not.toBeInTheDocument();
-    await user.click(screen.getByText("Set priority..."));
-    await user.click(screen.getByTestId("priority-picker"));
+    // Priority is on the toolbar by default; due date is the one behind the ⋯.
+    expect(screen.queryByTestId("due-date-picker")).not.toBeInTheDocument();
+    await user.click(screen.getByText("Set due date..."));
+    await user.click(screen.getByTestId("due-date-picker"));
     await user.click(screen.getByRole("button", { name: /^Create$/i }));
 
     await waitFor(() => {
       expect(mockQuickCreateIssue).toHaveBeenCalledWith(
         expect.objectContaining({
           agent_id: "agent-1",
-          priority: "high",
+          due_date: "2026-08-01",
         }),
       );
     });
@@ -613,11 +573,10 @@ describe("AgentCreatePanel", () => {
   });
 
   it("respects fields enabled in Settings → Issue by rendering them inline", () => {
-    mockCreateSettingsStore.quickCreateFields = ["project", "priority", "due_date"];
+    mockCreateSettingsStore.quickCreateFields = ["priority", "due_date"];
 
     renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
 
-    expect(screen.getByTestId("project-picker")).toBeInTheDocument();
     expect(screen.getByTestId("priority-picker")).toBeInTheDocument();
     expect(screen.getByTestId("due-date-picker")).toBeInTheDocument();
   });
@@ -753,7 +712,6 @@ describe("AgentCreatePanel", () => {
       expect(mockQuickCreateIssue).toHaveBeenCalledWith({
         agent_id: "agent-1",
         prompt: "Create issue with ![image](/api/attachments/019ec09d-6222-722b-bdfa-427b105d80be/download)",
-        project_id: undefined,
         parent_issue_id: undefined,
         attachment_ids: ["019ec09d-6222-722b-bdfa-427b105d80be"],
       });
@@ -789,7 +747,6 @@ describe("AgentCreatePanel", () => {
       expect(mockQuickCreateIssue).toHaveBeenCalledWith({
         squad_id: "squad-1",
         prompt: "Investigate the regression",
-        project_id: undefined,
       });
     });
     expect(mockSetLastActor).toHaveBeenCalledWith("squad", "squad-1");
@@ -806,118 +763,6 @@ describe("AgentCreatePanel", () => {
     renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
 
     expect(screen.queryByRole("button", { name: /Orphan Squad/ })).toBeNull();
-  });
-
-  // A successful create used to persist its project, so the NEXT open
-  // re-seeded the pill with it and quietly filed the following issue into the
-  // same place. The target project belongs to the issue being filed, not to
-  // the user as a standing preference — the actor is the only thing that
-  // carries over now (ENA-5862).
-  describe("project is not remembered across creates", () => {
-    it("ignores a lastProjectId left behind by an older build", () => {
-      mockQuickCreateStore.lastProjectId = "proj-1";
-      mockProjectsQuery.data = [{ id: "proj-1", title: "Web", icon: null }];
-      mockProjectsQuery.isSuccess = true;
-
-      renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-
-      // Seeding from it is exactly the removed behavior — the pill must be
-      // empty, and with no value there is nothing to clear.
-      expect(screen.getByTestId("project-picker")).toHaveTextContent("Project none");
-      expect(screen.queryByRole("button", { name: "Clear project" })).not.toBeInTheDocument();
-    });
-
-    it("still submits the project picked in this session", async () => {
-      // Guard against over-removal: dropping the memory must not drop the
-      // field from the outgoing request.
-      const user = userEvent.setup();
-      mockProjectsQuery.data = [{ id: "proj-1", title: "Web", icon: null }];
-      mockProjectsQuery.isSuccess = true;
-
-      renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-
-      await user.click(screen.getByRole("button", { name: /Bohan/ }));
-      await user.click(screen.getByTestId("project-picker"));
-      await user.type(
-        screen.getByPlaceholderText(
-          'Tell the agent what to do, e.g. "let Bohan fix the inbox loading slowness in the Web project"',
-        ),
-        "Ship it",
-      );
-      await user.click(screen.getByRole("button", { name: /^Create$/i }));
-
-      await waitFor(() => {
-        expect(mockQuickCreateIssue).toHaveBeenCalledWith(
-          expect.objectContaining({ project_id: "proj-1" }),
-        );
-      });
-      // The actor is still remembered — only the project memory is gone.
-      expect(mockSetLastActor).toHaveBeenCalledWith("agent", "agent-1");
-    });
-  });
-
-  // If the unfinished draft points at a project that has been deleted (or
-  // moved to another workspace), the modal must not keep submitting that dead
-  // UUID. Once the projects query resolves and the id is missing, we clear
-  // BOTH local state and the draft; dropping only local state would leave the
-  // next open re-seeding the same dead value and trigger the server's
-  // `project not found` rejection. The draft is now the only persisted copy —
-  // the last-create memory is gone (ENA-5862).
-  it("clears a stale drafted project once the projects list resolves without it", async () => {
-    mockIssueDraftStore.draft.shared.projectId = "deleted-proj";
-    mockProjectsQuery.data = [];
-    mockProjectsQuery.isSuccess = true;
-
-    renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-
-    await waitFor(() => {
-      expect(mockSetShared).toHaveBeenCalledWith({ projectId: undefined });
-    });
-    expect(screen.getByTestId("project-picker")).toHaveTextContent("Project none");
-  });
-
-  // Dropping a project used to cost two clicks — open the popover, hit
-  // "No project" — because the pill had no clear affordance of its own
-  // (ENA-5862). The × is part of the pill, so it only exists once the field
-  // has a value to drop.
-  describe("project pill quick-clear", () => {
-    it("has no × while no project is selected", () => {
-      renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-
-      expect(screen.getByTestId("project-picker")).toHaveTextContent("Project none");
-      expect(screen.queryByRole("button", { name: "Clear project" })).not.toBeInTheDocument();
-    });
-
-    it("clears local state and the shared draft in one click", async () => {
-      const user = userEvent.setup();
-      mockIssueDraftStore.draft.shared.projectId = "proj-1";
-      mockProjectsQuery.data = [{ id: "proj-1", title: "Web", icon: null }];
-      mockProjectsQuery.isSuccess = true;
-
-      renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-      expect(screen.getByTestId("project-picker")).toHaveTextContent("Project proj-1");
-
-      await user.click(screen.getByRole("button", { name: "Clear project" }));
-
-      expect(screen.getByTestId("project-picker")).toHaveTextContent("Project none");
-      expect(mockSetShared).toHaveBeenCalledWith({ projectId: undefined });
-      // The × retires with the value it cleared.
-      expect(screen.queryByRole("button", { name: "Clear project" })).not.toBeInTheDocument();
-    });
-  });
-
-  // Mirror case: while the query is still loading, we must NOT preemptively
-  // clear the drafted project — that would wipe a perfectly valid selection
-  // on every open before the list ever renders.
-  it("keeps the drafted project while the projects list is still loading", () => {
-    mockIssueDraftStore.draft.shared.projectId = "proj-1";
-    mockProjectsQuery.data = [];
-    mockProjectsQuery.isSuccess = false;
-
-    renderPanel({ onClose: vi.fn(), isExpanded: false, setIsExpanded: vi.fn() });
-
-    expect(mockSetShared).not.toHaveBeenCalled();
-    expect(screen.getByTestId("project-picker")).toHaveTextContent("Project proj-1");
   });
 
   // When the modal was opened from "Add sub issue" on an existing issue,
@@ -955,7 +800,6 @@ describe("AgentCreatePanel", () => {
       expect(mockQuickCreateIssue).toHaveBeenCalledWith({
         agent_id: "agent-1",
         prompt: "Investigate the regression",
-        project_id: undefined,
         parent_issue_id: "parent-uuid-1",
       });
     });

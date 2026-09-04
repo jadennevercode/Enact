@@ -12,19 +12,18 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/logger"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type issueTableGroupValueResponse struct {
 	Kind       string               `json:"kind"`
 	Status     string               `json:"status,omitempty"`
 	Actor      *issueTableActorRef  `json:"actor"`
-	ProjectID  *string              `json:"project_id,omitempty"`
 	ParentID   *string              `json:"parent_id,omitempty"`
 	Parent     *issueTableParentRef `json:"parent,omitempty"`
 	PropertyID string               `json:"property_id,omitempty"`
@@ -196,15 +195,6 @@ func (h *Handler) resolveIssueTableGroup(w http.ResponseWriter, r *http.Request,
   WHEN 'squad' THEN (SELECT s.name FROM squad s WHERE s.workspace_id = $1 AND s.id = split_part(group_value, ':', 2)::uuid)
 END, ''))`,
 		}, true
-	case "project":
-		return resolvedIssueTableGroup{
-			kind:      "project",
-			groupExpr: "COALESCE(i.project_id::text, '__no_project__')",
-			groupSortExpr: `CASE WHEN group_value = '__no_project__' THEN '' ELSE LOWER(COALESCE(
-  (SELECT p.title FROM project p WHERE p.workspace_id = $1 AND p.id = group_value::uuid),
-  ''
-)) END`,
-		}, true
 	case "parent":
 		return resolvedIssueTableGroup{
 			kind:      "parent",
@@ -220,7 +210,7 @@ END, ''))`,
 			return resolvedIssueTableGroup{}, false
 		}
 		secondaryCategory := group.Secondary == "status_category"
-		if group.Primary != "assignee" && group.Primary != "project" && group.Primary != "parent" {
+		if group.Primary != "assignee" && group.Primary != "parent" {
 			writeIssueTableUnsupportedGroup(w, "primary_group_unsupported", "This primary group is not supported.")
 			return resolvedIssueTableGroup{}, false
 		}
@@ -364,8 +354,6 @@ func (group resolvedIssueTableGroup) orderExpression(addArg func(any) string) st
 		return "CASE group_value WHEN 'backlog' THEN 0 WHEN 'todo' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'in_review' THEN 3 WHEN 'done' THEN 4 WHEN 'blocked' THEN 5 WHEN 'cancelled' THEN 6 ELSE 7 END"
 	case "assignee":
 		return "CASE split_part(group_value, ':', 1) WHEN 'member' THEN 0 WHEN 'agent' THEN 1 WHEN 'squad' THEN 2 ELSE 3 END"
-	case "project":
-		return "CASE WHEN group_value = '__no_project__' THEN 0 ELSE 1 END"
 	case "parent":
 		return "CASE WHEN group_value = '__no_parent__' THEN 0 ELSE 1 END"
 	case "property":
@@ -493,17 +481,6 @@ func (group resolvedIssueTableGroup) descriptor(raw string, count int64, context
 		}
 		descriptor.Key = "assignee:" + raw
 		descriptor.Value.Actor = &issueTableActorRef{Type: parts[0], ID: parts[1]}
-	case "project":
-		descriptor.Value.Kind = "project"
-		if raw == "__no_project__" {
-			descriptor.Key = "project:none"
-			return descriptor, nil
-		}
-		if _, err := util.ParseUUID(raw); err != nil {
-			return descriptor, fmt.Errorf("unexpected project group value %q", raw)
-		}
-		descriptor.Key = "project:" + raw
-		descriptor.Value.ProjectID = &raw
 	case "parent":
 		descriptor.Value.Kind = "parent"
 		if raw == "__no_parent__" {
@@ -641,22 +618,6 @@ func (group resolvedIssueTableGroup) predicate(w http.ResponseWriter, key string
 			return "", false
 		}
 		return fmt.Sprintf("i.assignee_type = %s::text AND i.assignee_id = %s::uuid", addArg(parts[0]), addArg(id)), true
-	case "project":
-		const prefix = "project:"
-		if !strings.HasPrefix(key, prefix) {
-			writeError(w, http.StatusBadRequest, "invalid group_key")
-			return "", false
-		}
-		raw := strings.TrimPrefix(key, prefix)
-		if raw == "none" {
-			return "i.project_id IS NULL", true
-		}
-		id, err := util.ParseUUID(raw)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid group_key")
-			return "", false
-		}
-		return fmt.Sprintf("i.project_id = %s::uuid", addArg(id)), true
 	case "parent":
 		const prefix = "parent:"
 		if !strings.HasPrefix(key, prefix) {

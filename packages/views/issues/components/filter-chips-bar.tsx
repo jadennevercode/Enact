@@ -7,7 +7,6 @@ import { useMemo, type ReactNode } from "react";
 import {
   CalendarDays,
   CircleDot,
-  FolderKanban,
   SignalHigh,
   Tag,
   User,
@@ -18,7 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@enact/ui/components/ui/button";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { memberListOptions, agentListOptions, squadListOptions } from "@enact/core/workspace/queries";
-import { projectListOptions } from "@enact/core/projects/queries";
 import { labelListOptions } from "@enact/core/labels/queries";
 import { propertyListOptions } from "@enact/core/properties";
 import { isActorPropertyType, parseActorRef } from "@enact/core/types";
@@ -189,8 +187,6 @@ function useFilterChips(
   const assigneeFilters = useViewStore((s) => s.assigneeFilters);
   const includeNoAssignee = useViewStore((s) => s.includeNoAssignee);
   const creatorFilters = useViewStore((s) => s.creatorFilters);
-  const projectFilters = useViewStore((s) => s.projectFilters);
-  const includeNoProject = useViewStore((s) => s.includeNoProject);
   const labelFilters = useViewStore((s) => s.labelFilters);
   const propertyFilters = useViewStore((s) => s.propertyFilters);
   const store = useViewStoreApi();
@@ -201,8 +197,6 @@ function useFilterChips(
     assigneeFilters.length > 0 ||
     includeNoAssignee ||
     creatorFilters.length > 0 ||
-    projectFilters.length > 0 ||
-    includeNoProject ||
     labelFilters.length > 0 ||
     Object.values(propertyFilters).some((selected) => selected.length > 0);
   const showDateChip = !!onDateFilterChange && !!dateFilter;
@@ -233,10 +227,6 @@ function useFilterChips(
     ...squadListOptions(wsId),
     enabled: enabled && assigneeFilters.some((f) => f.type === "squad"),
   });
-  const { data: projects = [] } = useQuery({
-    ...projectListOptions(wsId),
-    enabled: enabled && projectFilters.length > 0,
-  });
   const { data: labels = [] } = useQuery({
     ...labelListOptions(wsId),
     enabled: enabled && labelFilters.length > 0,
@@ -262,8 +252,6 @@ function useFilterChips(
       assigneeFilters: s.assigneeFilters,
       includeNoAssignee: s.includeNoAssignee,
       creatorFilters: s.creatorFilters,
-      projectFilters: s.projectFilters,
-      includeNoProject: s.includeNoProject,
       labelFilters: s.labelFilters,
       propertyFilters: s.propertyFilters,
     };
@@ -283,13 +271,6 @@ function useFilterChips(
         break;
       case "creator":
         s.resetFiltersTo({ ...current, creatorFilters: raw.creatorFilters });
-        break;
-      case "project":
-        s.resetFiltersTo({
-          ...current,
-          projectFilters: raw.projectFilters,
-          includeNoProject: raw.includeNoProject,
-        });
         break;
       case "label":
         s.resetFiltersTo({ ...current, labelFilters: raw.labelFilters });
@@ -321,12 +302,6 @@ function useFilterChips(
   const deltaCreators = baseline
     ? creatorFilters.filter((a) => !baseline.creator.has(actorFilterKey(a)))
     : creatorFilters;
-  const deltaProjects = baseline
-    ? projectFilters.filter((id) => !baseline.project.has(id))
-    : projectFilters;
-  const deltaNoProject = baseline
-    ? includeNoProject && !baseline.includeNoProject
-    : includeNoProject;
   const deltaLabels = baseline
     ? labelFilters.filter((id) => !baseline.label.has(id))
     : labelFilters;
@@ -405,29 +380,6 @@ function useFilterChips(
       valueIcons: <AvatarStack actors={deltaCreators} />,
       value: summarize(deltaCreators.map(actorName)),
       onRemove: () => clearDimension("creator"),
-    });
-  }
-  if (deltaProjects.length > 0 || deltaNoProject) {
-    const projectById = new Map(projects.map((p) => [p.id, p]));
-    const names = deltaProjects.map((id) => projectById.get(id)?.title);
-    if (deltaNoProject) names.push(t(($) => $.filters.no_project));
-    const emojis = deltaProjects
-      .map((id) => projectById.get(id)?.icon)
-      .filter((icon): icon is string => !!icon);
-    chips.push({
-      key: "project",
-      icon: <FolderKanban className={CHIP_ICON_CLASS} />,
-      label: t(($) => $.filters.section_project),
-      valueIcons:
-        emojis.length > 0 ? (
-          <IconStack>
-            {emojis.slice(0, 3).map((emoji, i) => (
-              <span key={i} className="text-micro leading-none">{emoji}</span>
-            ))}
-          </IconStack>
-        ) : undefined,
-      value: summarize(names),
-      onRemove: () => clearDimension("project"),
     });
   }
   if (deltaLabels.length > 0) {

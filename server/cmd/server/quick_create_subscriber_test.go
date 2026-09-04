@@ -53,7 +53,6 @@ func TestQuickCreateFailure_DoesNotSubscribeRequester(t *testing.T) {
 		"",
 		"",
 		pgtype.UUID{},
-		pgtype.UUID{},
 		nil,
 	)
 	if err != nil {
@@ -121,7 +120,6 @@ func TestQuickCreateFailure_SurfacesAgentOutput(t *testing.T) {
 		"file that same bug again",
 		"",
 		"",
-		pgtype.UUID{},
 		pgtype.UUID{},
 		nil,
 	)
@@ -193,7 +191,6 @@ func TestQuickCreateLookupFault_WritesUnconfirmedInbox(t *testing.T) {
 		"file a bug while the db is flaky",
 		"",
 		"",
-		pgtype.UUID{},
 		pgtype.UUID{},
 		nil,
 	)
@@ -275,7 +272,6 @@ func TestQuickCreateFailure_RedactsAgentOutput(t *testing.T) {
 		"",
 		"",
 		pgtype.UUID{},
-		pgtype.UUID{},
 		nil,
 	)
 	if err != nil {
@@ -343,7 +339,6 @@ func TestQuickCreateLookupCancelled_StillWritesUnconfirmedInbox(t *testing.T) {
 		"file a bug while the request is cancelled",
 		"",
 		"",
-		pgtype.UUID{},
 		pgtype.UUID{},
 		nil,
 	)

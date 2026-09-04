@@ -271,6 +271,8 @@ var concurrentIndexCleanups = map[string]string{
 	"428_retrospective_workspace_status_index":      "idx_retrospective_workspace_status",
 	"429_retrospective_issue_unique_index":          "idx_retrospective_issue_scope",
 	"430_retrospective_task_index":                  "idx_retrospective_task",
+	"433_workspace_resource_unique_index":           "uq_workspace_resource_key",
+	"434_workspace_resource_position_index":         "idx_workspace_resource_workspace",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction
@@ -292,6 +294,7 @@ var concurrentDownIndexCleanups = map[string]string{
 	"371_comment_content_search_index_strategy":             "idx_comment_content_trgm",
 	"375_drop_issue_last_activity_index":                    "idx_issue_workspace_last_activity",
 	"391_drop_agent_task_queue_dispatched_prepare_index":    "idx_agent_task_queue_dispatched_prepare",
+	"436_drop_task_usage_project_index":                     "idx_task_usage_hourly_workspace_project_time",
 }
 
 var preMigrationHooks = func() map[string]preMigrationHook {

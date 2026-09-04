@@ -115,7 +115,6 @@ WHERE a.workspace_id = $1
   AND atq.started_at IS NOT NULL
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= $2::timestamptz
-  AND ($3::uuid IS NULL OR i.project_id = $3)
 GROUP BY atq.agent_id
 ORDER BY total_seconds DESC
 `
@@ -123,7 +122,6 @@ ORDER BY total_seconds DESC
 type ListDashboardAgentRunTimeParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardAgentRunTimeRow struct {
@@ -134,8 +132,7 @@ type ListDashboardAgentRunTimeRow struct {
 	CancelledCount int32       `json:"cancelled_count"`
 }
 
-// Per-agent total task run time and task count for the workspace, optionally
-// scoped to a single project. Counts only terminal runs (completed, failed,
+// Per-agent total task run time and task count for the workspace. Counts only terminal runs (completed, failed,
 // or cancelled) with both started_at and completed_at populated — queued/
 // running tasks have no finite duration. Anchored on completed_at so the
 // window matches the token cost window (which is anchored on tu.created_at,
@@ -149,7 +146,7 @@ type ListDashboardAgentRunTimeRow struct {
 // charts the client trims to the same span; passed straight through without
 // re-truncation.
 func (q *Queries) ListDashboardAgentRunTime(ctx context.Context, arg ListDashboardAgentRunTimeParams) ([]ListDashboardAgentRunTimeRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardAgentRunTime, arg.WorkspaceID, arg.Since, arg.ProjectID)
+	rows, err := q.db.Query(ctx, listDashboardAgentRunTime, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +187,6 @@ WHERE a.workspace_id = $1
   AND atq.status IN ('completed', 'failed')
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= $2::timestamptz
-  AND ($3::uuid IS NULL OR i.project_id = $3)
 GROUP BY atq.agent_id, 2
 ORDER BY atq.agent_id, 2
 `
@@ -198,7 +194,6 @@ ORDER BY atq.agent_id, 2
 type ListDashboardFailuresByAgentParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardFailuresByAgentRow struct {
@@ -215,7 +210,7 @@ type ListDashboardFailuresByAgentRow struct {
 // No date bucketing, so no @tz — @since is the viewer's local
 // start-of-day-(N) so the window lines up with the per-agent run-time card.
 func (q *Queries) ListDashboardFailuresByAgent(ctx context.Context, arg ListDashboardFailuresByAgentParams) ([]ListDashboardFailuresByAgentRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardFailuresByAgent, arg.WorkspaceID, arg.Since, arg.ProjectID)
+	rows, err := q.db.Query(ctx, listDashboardFailuresByAgent, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +245,6 @@ WHERE a.workspace_id = $1
   AND atq.status IN ('completed', 'failed')
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= $3::timestamptz
-  AND ($4::uuid IS NULL OR i.project_id = $4)
 GROUP BY 1, 2
 ORDER BY 1 DESC, 2
 `
@@ -259,7 +253,6 @@ type ListDashboardFailuresDailyParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Tz          string             `json:"tz"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardFailuresDailyRow struct {
@@ -268,8 +261,7 @@ type ListDashboardFailuresDailyRow struct {
 	TaskCount     int32       `json:"task_count"`
 }
 
-// Daily per-(date, failure_reason) terminal-task counts for the workspace,
-// optionally scoped to a single project. Powers the workspace dashboard's
+// Daily per-(date, failure_reason) terminal-task counts for the workspace. Powers the workspace dashboard's
 // "Errors" trend and the errors-by-class breakdown.
 //
 // Shape note: this returns EVERY terminal task, not just the failures. The
@@ -290,12 +282,7 @@ type ListDashboardFailuresDailyRow struct {
 // @since is already the viewer's local start-of-day-(N) (parseSinceParamInTZ)
 // — passed straight through, NOT re-truncated; see ListDashboardUsageDaily.
 func (q *Queries) ListDashboardFailuresDaily(ctx context.Context, arg ListDashboardFailuresDailyParams) ([]ListDashboardFailuresDailyRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardFailuresDaily,
-		arg.WorkspaceID,
-		arg.Tz,
-		arg.Since,
-		arg.ProjectID,
-	)
+	rows, err := q.db.Query(ctx, listDashboardFailuresDaily, arg.WorkspaceID, arg.Tz, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +319,6 @@ WHERE a.workspace_id = $1
   AND atq.started_at IS NOT NULL
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= $3::timestamptz
-  AND ($4::uuid IS NULL OR i.project_id = $4)
 GROUP BY DATE(atq.completed_at AT TIME ZONE $2::text)
 ORDER BY DATE(atq.completed_at AT TIME ZONE $2::text) DESC
 `
@@ -341,7 +327,6 @@ type ListDashboardRunTimeDailyParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Tz          string             `json:"tz"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardRunTimeDailyRow struct {
@@ -352,8 +337,7 @@ type ListDashboardRunTimeDailyRow struct {
 	CancelledCount int32       `json:"cancelled_count"`
 }
 
-// Daily per-date run time + task counts for the workspace, optionally
-// scoped to a single project. Powers the workspace dashboard's "Time"
+// Daily per-date run time + task counts for the workspace. Powers the workspace dashboard's "Time"
 // and "Tasks" metrics on the same toggle as Tokens / Cost. Bucketed by
 // completed_at (terminal time) sliced into calendar days under the
 // caller-supplied @tz — same Viewing-tz treatment as ListDashboardUsageDaily
@@ -373,12 +357,7 @@ type ListDashboardRunTimeDailyRow struct {
 // @since is already the viewer's local start-of-day-(N) (parseSinceParamInTZ)
 // — passed straight through, NOT re-truncated; see ListDashboardUsageDaily.
 func (q *Queries) ListDashboardRunTimeDaily(ctx context.Context, arg ListDashboardRunTimeDailyParams) ([]ListDashboardRunTimeDailyRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardRunTimeDaily,
-		arg.WorkspaceID,
-		arg.Tz,
-		arg.Since,
-		arg.ProjectID,
-	)
+	rows, err := q.db.Query(ctx, listDashboardRunTimeDaily, arg.WorkspaceID, arg.Tz, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +400,6 @@ SELECT
 FROM task_usage_hourly
 WHERE workspace_id = $1
   AND bucket_hour >= $2::timestamptz
-  AND ($3::uuid IS NULL OR project_id = $3)
 GROUP BY agent_id, LOWER(provider), model
 ORDER BY agent_id, LOWER(provider), model
 `
@@ -429,7 +407,6 @@ ORDER BY agent_id, LOWER(provider), model
 type ListDashboardUsageByAgentParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardUsageByAgentRow struct {
@@ -463,7 +440,7 @@ type ListDashboardUsageByAgentRow struct {
 // provider is LOWER()-normalized so mixed-case historical rows merge with
 // new rows (see ListDashboardUsageDaily).
 func (q *Queries) ListDashboardUsageByAgent(ctx context.Context, arg ListDashboardUsageByAgentParams) ([]ListDashboardUsageByAgentRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardUsageByAgent, arg.WorkspaceID, arg.Since, arg.ProjectID)
+	rows, err := q.db.Query(ctx, listDashboardUsageByAgent, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -514,7 +491,6 @@ SELECT
 FROM task_usage_hourly
 WHERE workspace_id = $1
   AND bucket_hour >= $3::timestamptz
-  AND ($4::uuid IS NULL OR project_id = $4)
 GROUP BY DATE(bucket_hour AT TIME ZONE $2::text), LOWER(provider), model
 ORDER BY DATE(bucket_hour AT TIME ZONE $2::text) DESC, LOWER(provider), model
 `
@@ -523,7 +499,6 @@ type ListDashboardUsageDailyParams struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	Tz          string             `json:"tz"`
 	Since       pgtype.Timestamptz `json:"since"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
 }
 
 type ListDashboardUsageDailyRow struct {
@@ -543,10 +518,9 @@ type ListDashboardUsageDailyRow struct {
 }
 
 // Daily per-(date, provider, model) token aggregates for the workspace, served
-// from the UTC-bucketed `task_usage_hourly` table and
-// sliced to calendar days under the caller-supplied @tz. Optionally
-// scoped to a single project via sqlc.narg('project_id'). Powers the
-// workspace dashboard's daily cost chart.
+// from the UTC-bucketed `task_usage_hourly` table and sliced to calendar
+// days under the caller-supplied @tz. Powers the workspace dashboard's
+// daily cost chart.
 // The viewer's tz is applied here at query time, so a viewer in
 // Asia/Shanghai gets their "today" cut at +08 and one in
 // America/Los_Angeles gets theirs at -08 against the same UTC rows.
@@ -560,12 +534,7 @@ type ListDashboardUsageDailyRow struct {
 // before the handler lowercased provider on write) merge with new rows
 // instead of forming a separate case-variant bucket.
 func (q *Queries) ListDashboardUsageDaily(ctx context.Context, arg ListDashboardUsageDailyParams) ([]ListDashboardUsageDailyRow, error) {
-	rows, err := q.db.Query(ctx, listDashboardUsageDaily,
-		arg.WorkspaceID,
-		arg.Tz,
-		arg.Since,
-		arg.ProjectID,
-	)
+	rows, err := q.db.Query(ctx, listDashboardUsageDaily, arg.WorkspaceID, arg.Tz, arg.Since)
 	if err != nil {
 		return nil, err
 	}

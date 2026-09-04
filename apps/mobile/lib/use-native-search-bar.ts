@@ -2,7 +2,7 @@
  * Hook for wiring an iOS native `UISearchController` (via react-native-screens
  * `headerSearchBarOptions`) into a route. Returns the current query string.
  *
- * Used by every search-enabled picker route on mobile (issue/project/label/
+ * Used by every search-enabled picker route on mobile (issue/label/
  * lead). Pair with `useScrollToTopOnChange` in the body to reset the list
  * scroll position when the filter changes.
  *
@@ -36,7 +36,7 @@ export function useNativeSearchBar(
         autoCapitalize: "none",
         hideWhenScrolling: false,
         // Opt-in: pickers whose primary action is typing (assignee, label,
-        // project, lead) set this so the keyboard appears on mount. Apple
+        // lead) set this so the keyboard appears on mount. Apple
         // HIG cautions against auto-keyboard for browse-first lists; pass
         // `autoFocus: true` only when the picker is search-first.
         autoFocus,

@@ -1,12 +1,11 @@
 {
   "title": "Search",
-  "description": "Search pages, issues, projects, and members",
+  "description": "Search pages, issues, and members",
   "placeholder": "Type a command or search...",
   "groups": {
     "pages": "Pages",
     "commands": "Commands",
     "members": "Members",
-    "projects": "Projects",
     "issues": "Issues",
     "cancelled": "Cancelled",
     "recent": "Recent"
@@ -14,7 +13,6 @@
   "commands": {
     "current_theme_aria": "Current theme",
     "new_issue": "New Issue",
-    "new_project": "New Project",
     "copy_issue_link": "Copy Issue Link",
     "copy_identifier": "Copy Identifier ({{identifier}})",
     "fold_all_comments": "Fold All Comments",
@@ -29,7 +27,7 @@
   },
   "empty": {
     "no_results": "No results found.",
-    "type_to_search": "Type to search issues and projects"
+    "type_to_search": "Type to search issues and members"
   },
   "trigger": {
     "label": "Search..."

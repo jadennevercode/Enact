@@ -150,19 +150,19 @@ func taskScopedAuthToken(task Task) (string, error) {
 
 func taskEnactEnvironment(task Task, agentName, token, configRoot, workspacesRoot, serverURL string, healthPort, slot int, tempDir string) map[string]string {
 	return map[string]string{
-		"ENACT_TOKEN":        token,
-		cli.TaskConfigRootEnv:  configRoot,
-		TaskWorkspacesRootEnv:  workspacesRoot,
-		"ENACT_SERVER_URL":   serverURL,
-		"ENACT_DAEMON_PORT":  strconv.Itoa(healthPort),
-		"ENACT_WORKSPACE_ID": task.WorkspaceID,
-		"ENACT_AGENT_NAME":   agentName,
-		"ENACT_AGENT_ID":     task.AgentID,
-		"ENACT_TASK_ID":      task.ID,
-		"ENACT_TASK_SLOT":    strconv.Itoa(slot),
-		"TMPDIR":               tempDir,
-		"TMP":                  tempDir,
-		"TEMP":                 tempDir,
+		"ENACT_TOKEN":         token,
+		cli.TaskConfigRootEnv: configRoot,
+		TaskWorkspacesRootEnv: workspacesRoot,
+		"ENACT_SERVER_URL":    serverURL,
+		"ENACT_DAEMON_PORT":   strconv.Itoa(healthPort),
+		"ENACT_WORKSPACE_ID":  task.WorkspaceID,
+		"ENACT_AGENT_NAME":    agentName,
+		"ENACT_AGENT_ID":      task.AgentID,
+		"ENACT_TASK_ID":       task.ID,
+		"ENACT_TASK_SLOT":     strconv.Itoa(slot),
+		"TMPDIR":              tempDir,
+		"TMP":                 tempDir,
+		"TEMP":                tempDir,
 	}
 }
 
@@ -273,11 +273,11 @@ var (
 //
 // allowedRepoURLs covers the workspace-level repo bindings; it gets rebuilt on
 // every refresh from the server. taskRepoURLs covers repos that the server
-// surfaced through a per-task claim (project github_repo resources today,
+// surfaced through a per-task claim (workspace github_repo resources today,
 // possibly other typed sources later) — those don't show up in
 // GetWorkspaceRepos, so they would be wiped on refresh if we shared one map.
 // taskRepoRefs tracks optional checkout refs for the specific task that
-// surfaced each project repo so two projects using the same URL don't leak refs
+// surfaced each workspace repo so two workspaces using the same URL don't leak refs
 // into each other.
 type workspaceState struct {
 	workspaceID     string
@@ -574,7 +574,7 @@ type Daemon struct {
 	repoCheckoutTasksMu sync.RWMutex
 	repoCheckoutTasks   map[string]activeRepoCheckoutTask
 
-	// localPathLocks serialises agent tasks whose project resource is a
+	// localPathLocks serialises agent tasks whose workspace resource is a
 	// local_directory pinned to this daemon. Two tasks targeting the same
 	// on-disk path run sequentially; the second blocks on the lock and is
 	// surfaced via the server-side waiting_local_directory status while it
@@ -2938,7 +2938,7 @@ func (d *Daemon) workspaceRepoAllowed(workspaceID, repoURL string) bool {
 // which is exactly the window in which a workspace can re-attach one.
 //
 // It mirrors workspaceRepoAllowed by unioning both sources: allowedRepoURLs
-// (workspace-level bindings) and taskRepoURLs (project repos the server
+// (workspace-level bindings) and taskRepoURLs (workspace resource repos the server
 // surfaced through a task claim, which never appear in GetWorkspaceRepos).
 // Missing the second set would make the GC evict repos that tasks actively
 // check out.
@@ -3009,14 +3009,14 @@ func (d *Daemon) workspaceCoAuthoredByEnabled(workspaceID string) bool {
 	return *s.CoAuthoredByEnabled
 }
 
-// registerTaskRepos merges task-scoped repos (e.g. project github_repo
+// registerTaskRepos merges task-scoped repos (e.g. workspace github_repo
 // resources lifted into resp.Repos by the claim handler) into the workspace's
 // allowlist and kicks off a cache sync for any URLs that aren't yet cached.
 //
 // It's safe to call with the workspace's own repos — duplicates are
 // idempotent. Called from runTask before the agent spawns so
-// `enact repo checkout` accepts project-only URLs without an extra round
-// trip back to GetWorkspaceRepos (which doesn't carry project resources).
+// `enact repo checkout` accepts resource-only URLs without an extra round
+// trip back to GetWorkspaceRepos (which doesn't carry workspace resources).
 func (d *Daemon) registerTaskRepos(workspaceID, taskID string, repos []RepoData) {
 	if len(repos) == 0 {
 		return
@@ -5029,14 +5029,14 @@ func (d *Daemon) handleTask(ctx context.Context, task Task, slot int) {
 		"runtime_id", task.RuntimeID,
 		"agent_id", task.AgentID,
 		"repos", len(task.Repos),
-		"project_id", task.ProjectID,
+		"workspace_resources", len(task.WorkspaceResources),
 		"autopilot_run_id", task.AutopilotRunID,
 		"trigger_comment_id", task.TriggerCommentID,
 		"resume_session", task.PriorSessionID != "",
 		"reuse_workdir", task.PriorWorkDir != "",
 	)
 
-	// If the task targets a project_resource of type local_directory that
+	// If the task targets a workspace_resource of type local_directory that
 	// is pinned to this daemon, acquire the path mutex before runner.run
 	// so the server-side state machine is dispatched →
 	// waiting_local_directory → running rather than backwards-transitioning
@@ -5196,7 +5196,7 @@ func (d *Daemon) handleTask(ctx context.Context, task Task, slot int) {
 	// crash leaves the directory as an orphan (cleaned up by GCOrphanTTL).
 	if result.EnvRoot != "" {
 		if meta, ok := gcMetaForTask(task); ok {
-			// A local_directory project_resource matched this daemon
+			// A local_directory workspace_resource matched this daemon
 			// means the agent ran in the user's own tree. Stamp the
 			// meta so the GC loop never tries to RemoveAll envRoot's
 			// sibling workdir (which is the user's path) or the envRoot
@@ -5257,7 +5257,7 @@ func taskRunFailureReason(err error) string {
 	return taskfailure.Classify(err.Error()).String()
 }
 
-// acquireLocalDirectoryLockIfNeeded inspects the task's project resources for
+// acquireLocalDirectoryLockIfNeeded inspects the task's workspace resources for
 // a local_directory pinned to this daemon, validates the path, and takes the
 // path mutex. Returns a release callback (nil when no local_directory
 // resource applies) and abort=true when the caller must bail without
@@ -5266,7 +5266,7 @@ func taskRunFailureReason(err error) string {
 //
 // The helper covers four distinct failure modes:
 //
-//  1. The project_resource JSON is structurally broken — fail the task fast.
+//  1. The workspace_resource JSON is structurally broken — fail the task fast.
 //  2. The path fails validation (missing, not a directory, no R/W, system
 //     blacklist) — fail the task fast with a user-facing reason.
 //  3. The mutex is held by another task — call MarkTaskWaitingLocalDirectory
@@ -5275,7 +5275,7 @@ func taskRunFailureReason(err error) string {
 //  4. The blocking wait is cancelled (daemon shutdown, server-side cancel)
 //     — fail the task with the ctx error.
 func (d *Daemon) acquireLocalDirectoryLockIfNeeded(ctx context.Context, task Task, taskLog *slog.Logger) (release func(), abort bool) {
-	if len(task.ProjectResources) == 0 || d.cfg.DaemonID == "" {
+	if len(task.WorkspaceResources) == 0 || d.cfg.DaemonID == "" {
 		return nil, false
 	}
 	assignment, err := localDirectoryAssignmentForTask(task, d.cfg.DaemonID)
@@ -6509,10 +6509,10 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	}()
 
 	// task.Repos is the authoritative repo list for this task — when the
-	// claimed task belongs to a project with github_repo resources the server
-	// has already narrowed it to project repos only. Make sure those URLs are
+	// claimed task belongs to a workspace with github_repo resources the server
+	// has already narrowed it to workspace resource repos only. Make sure those URLs are
 	// in the per-workspace allowlist and the local cache, otherwise
-	// `enact repo checkout` would reject project-only URLs that aren't also
+	// `enact repo checkout` would reject resource-only URLs that aren't also
 	// bound at the workspace level.
 	d.registerTaskRepos(task.WorkspaceID, task.ID, task.Repos)
 	defer d.clearTaskRepoRefs(task.WorkspaceID, task.ID)
@@ -6600,10 +6600,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		AgentSkills:                      convertSkillsForEnv(skills),
 		DisabledRuntimeSkills:            convertDisabledRuntimeSkillsForEnv(task.Agent, task.RuntimeID, provider),
 		Repos:                            convertReposForEnv(task.Repos),
-		ProjectID:                        task.ProjectID,
-		ProjectTitle:                     task.ProjectTitle,
-		ProjectDescription:               task.ProjectDescription,
-		ProjectResources:                 convertProjectResourcesForEnv(task.ProjectResources),
+		WorkspaceResources:               convertWorkspaceResourcesForEnv(task.WorkspaceResources),
 		ChatSessionID:                    task.ChatSessionID,
 		ChatChannelType:                  task.ChatChannelType,
 		ChatChannelDeliversFiles:         task.ChatChannelDeliversFiles,
@@ -6966,8 +6963,8 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			//
 			// A worktree task skips this lock for its execution, but the
 			// snapshot is the one moment it READS the user's directory, and the
-			// same real path can be attached to another project as an in_place
-			// resource (each project may attach it once, so several can).
+			// same real path can be attached to another workspace as an in_place
+			// resource (each workspace may attach it once, so several can).
 			// Snapshotting underneath a running in_place task would capture a
 			// half-written tree plus that task's in-flight sidecars.
 			//
@@ -7074,7 +7071,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 			// Finalize could not complete its delivery contract, so the task
 			// worktree remains authoritative. This covers both an uncommitted
 			// change set and a committed branch whose worktree removal could not
-			// be confirmed. Fail the task: reporting success or a durable project
+			// be confirmed. Fail the task: reporting success or a durable workspace
 			// directory here would hide the path that still needs attention.
 			//
 			// Wrapped in worktreePreservedError so the cancel path can
@@ -7479,7 +7476,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	//   - kimi is wrapped through its own CLI whose cwd handling is opaque
 	//     enough that we can't trust the file-based path either.
 	// Pass the full runtime brief inline (CLI catalog + workflow steps + agent
-	// identity/persona + skills + project context) so the backend prepends the
+	// identity/persona + skills + workspace context) so the backend prepends the
 	// same payload that file-based runtimes pick up from disk. Without this,
 	// these providers silently miss the workflow section and never call
 	// `enact issue status` / `enact issue comment add`, leaving issues
@@ -8533,13 +8530,13 @@ func convertReposForEnv(repos []RepoData) []execenv.RepoContextForEnv {
 	return result
 }
 
-func convertProjectResourcesForEnv(resources []ProjectResourceData) []execenv.ProjectResourceForEnv {
+func convertWorkspaceResourcesForEnv(resources []WorkspaceResourceData) []execenv.WorkspaceResourceForEnv {
 	if len(resources) == 0 {
 		return nil
 	}
-	result := make([]execenv.ProjectResourceForEnv, len(resources))
+	result := make([]execenv.WorkspaceResourceForEnv, len(resources))
 	for i, r := range resources {
-		result[i] = execenv.ProjectResourceForEnv{
+		result[i] = execenv.WorkspaceResourceForEnv{
 			ID:           r.ID,
 			ResourceType: r.ResourceType,
 			ResourceRef:  r.ResourceRef,

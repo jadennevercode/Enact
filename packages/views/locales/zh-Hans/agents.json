@@ -341,7 +341,7 @@
       "empty_description": "描述它的角色、工作流程、输出或约束，右侧会生成第一版草稿。",
       "prompt_review": "审查前端 Pull Request",
       "prompt_research": "研究竞品并整理结论",
-      "prompt_assistant": "帮助团队规划和撰写项目",
+      "prompt_assistant": "帮我们团队规划和撰写方案",
       "thinking": "正在更新草稿…",
       "placeholder": "描述你需要的智能体…",
       "send": "发送消息"

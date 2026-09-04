@@ -96,25 +96,16 @@ export const issueKeys = {
     scope: string,
     filter: AssigneeGroupedIssuesFilter,
   ) => [...issueKeys.myAssigneeGroupsAll(wsId), scope, filter] as const,
-  /** All Project Gantt queries — prefix-match key for cross-project invalidation. */
-  projectGanttAll: (wsId: string) =>
-    [...issueKeys.all(wsId), "project-gantt"] as const,
+  /** All Gantt queries — prefix-match key for invalidation. */
+  scheduledAll: (wsId: string) =>
+    [...issueKeys.all(wsId), "scheduled"] as const,
   /**
-   * Per-project Gantt issue list (scheduled-only). Uses its own cache key
-   * rather than reusing the bucketed `myList` cache so WS handlers and
-   * cache helpers don't have to special-case a non-bucketed shape under
-   * the `my` prefix.
+   * Every scheduled issue in the workspace, for the Gantt view. Uses its own
+   * cache key rather than reusing the bucketed list cache so WS handlers and
+   * cache helpers don't have to special-case a non-bucketed shape.
    */
-  projectGantt: (
-    wsId: string,
-    projectId: string,
-    assigneeTypes?: IssueAssigneeType[],
-  ) =>
-    [
-      ...issueKeys.projectGanttAll(wsId),
-      projectId,
-      assigneeTypes ?? null,
-    ] as const,
+  scheduled: (wsId: string, assigneeTypes?: IssueAssigneeType[]) =>
+    [...issueKeys.scheduledAll(wsId), assigneeTypes ?? null] as const,
   detail: (wsId: string, id: string) =>
     [...issueKeys.all(wsId), "detail", id] as const,
   /** Resolve a bare issue identifier (e.g. "ENA-123") to an issue. */
@@ -185,7 +176,6 @@ export type MyIssuesFilter = Pick<
   | "assignee_ids"
   | "assignee_types"
   | "creator_id"
-  | "project_id"
   | "involves_user_id"
 >;
 
@@ -201,8 +191,6 @@ export type IssueFlatFilter = MyIssuesFilter &
     | "assignee_filters"
     | "include_no_assignee"
     | "creator_filters"
-    | "project_ids"
-    | "include_no_project"
     | "label_ids"
     | "top_level_only"
     | "ids"
@@ -346,66 +334,55 @@ export function issueListOptions(wsId: string, sort?: IssueSortParam) {
   });
 }
 
-/**
- * Page size for the scheduled-issue fetch. The Gantt view always pulls every
- * scheduled issue (no client pagination), so this is just the chunk size we
- * use to walk the server's `(limit, offset)` window until we hit `total`.
- */
-export const PROJECT_GANTT_PAGE_LIMIT = 500;
+export const GANTT_PAGE_LIMIT = 500;
 
 /**
- * Paranoia cap on the loop in {@link fetchProjectGanttIssues}. Real projects
- * shouldn't come close to this — a single project carrying 50k scheduled
- * issues is already a product problem, not a Gantt-rendering one — but the
- * guard prevents a buggy server `total` from spinning the loop forever.
+ * Paranoia cap on the loop in {@link fetchScheduledIssues}. A workspace
+ * carrying 50k scheduled issues is already a product problem, not a
+ * Gantt-rendering one, but the guard prevents a buggy server `total` from
+ * spinning the loop forever.
  */
-export const PROJECT_GANTT_MAX_ISSUES = 10_000;
+export const GANTT_MAX_ISSUES = 10_000;
 
-async function fetchProjectGanttIssues(
-  projectId: string,
-  assigneeTypes?: IssueAssigneeType[],
-) {
+async function fetchScheduledIssues(assigneeTypes?: IssueAssigneeType[]) {
   const issues = [];
   let offset = 0;
-  while (offset < PROJECT_GANTT_MAX_ISSUES) {
+  while (offset < GANTT_MAX_ISSUES) {
     const res = await api.listIssues({
-      project_id: projectId,
       scheduled: true,
       ...(assigneeTypes?.length ? { assignee_types: assigneeTypes } : {}),
-      limit: PROJECT_GANTT_PAGE_LIMIT,
+      limit: GANTT_PAGE_LIMIT,
       offset,
     });
     issues.push(...res.issues);
-    if (res.issues.length < PROJECT_GANTT_PAGE_LIMIT) break;
+    if (res.issues.length < GANTT_PAGE_LIMIT) break;
     if (issues.length >= res.total) break;
-    offset += PROJECT_GANTT_PAGE_LIMIT;
+    offset += GANTT_PAGE_LIMIT;
   }
   return issues;
 }
 
 /**
- * One-shot fetch of every scheduled issue (`start_date` or `due_date` set)
- * for a project. The Project Gantt view consumes this directly — no status
- * bucketing, no client-side pagination, no Load-all affordance — because
- * the scheduled subset is bounded enough to come back in a small handful of
- * requests.
+ * One-shot fetch of every scheduled issue (`start_date` or `due_date` set) in
+ * the workspace. The Gantt view consumes this directly — no status bucketing,
+ * no client-side pagination — because the scheduled subset is bounded enough
+ * to come back in a small handful of requests.
  *
- * Backed by `GET /api/issues?scheduled=true&project_id=…`; the SQL filter
- * mirrors the same `(start_date IS NOT NULL OR due_date IS NOT NULL)`
- * predicate the Gantt view applies on the client. Pages are walked until
- * `total` is reached so an oversized project can't silently lose bars past
- * the first page.
+ * Backed by `GET /api/issues?scheduled=true`; the SQL filter mirrors the same
+ * `(start_date IS NOT NULL OR due_date IS NOT NULL)` predicate the Gantt view
+ * applies on the client. Pages are walked until `total` is reached, so a
+ * workspace with many unscheduled issues cannot push its scheduled ones past
+ * the first page and silently lose bars.
  */
-export function projectGanttIssuesOptions(
+export function scheduledIssueListOptions(
   wsId: string,
-  projectId: string,
-  // The page's assignee-type tab narrows the Gantt exactly like every
-  // other mode — same scope, same single mapping upstream.
+  // The page's assignee-type tab narrows the Gantt exactly like every other
+  // mode — same scope, same single mapping upstream.
   assigneeTypes?: IssueAssigneeType[],
 ) {
   return queryOptions({
-    queryKey: issueKeys.projectGantt(wsId, projectId, assigneeTypes),
-    queryFn: () => fetchProjectGanttIssues(projectId, assigneeTypes),
+    queryKey: issueKeys.scheduled(wsId, assigneeTypes),
+    queryFn: () => fetchScheduledIssues(assigneeTypes),
   });
 }
 

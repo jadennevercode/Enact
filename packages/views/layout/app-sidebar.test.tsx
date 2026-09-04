@@ -99,7 +99,6 @@ vi.mock("../navigation", () => ({
   AppLink: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
   useNavigation: () => ({ pathname: navigation.current.pathname, push: vi.fn() }),
 }));
-vi.mock("../projects/components/project-icon", () => ({ ProjectIcon: () => <span /> }));
 vi.mock("../workspace/workspace-avatar", () => ({ WorkspaceAvatar: () => <span /> }));
 vi.mock("@enact/ui/components/common/actor-avatar", () => ({ ActorAvatar: () => <span /> }));
 
@@ -126,7 +125,7 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     chat: () => "/acme/chat",
     myIssues: () => "/acme/my-issues",
     issues: () => "/acme/issues",
-    projects: () => "/acme/projects",
+    artifacts: () => "/acme/artifacts",
     autopilots: () => "/acme/autopilots",
     agents: () => "/acme/agents",
     squads: () => "/acme/squads",
@@ -137,7 +136,6 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     lessons: () => "/acme/lessons",
     settings: () => "/acme/settings",
     issueDetail: (id: string) => `/acme/issues/${id}`,
-    projectDetail: (id: string) => `/acme/projects/${id}`,
   }),
 }));
 vi.mock("@enact/core/api", async (importOriginal) => {
@@ -170,7 +168,6 @@ vi.mock("@enact/core/issues/stores/draft-store", () => ({ useIssueDraftStore: ()
 vi.mock("@enact/core/modals", () => ({ useModalStore: { getState: () => ({ modal: null, open: vi.fn() }) } }));
 vi.mock("@enact/core/pins/mutations", () => ({ useDeletePin: () => ({ mutate: deletePin }), useReorderPins: () => ({ mutate: vi.fn() }) }));
 vi.mock("@enact/core/pins/queries", () => ({ pinListOptions: () => ({ queryKey: ["pins"] }) }));
-vi.mock("@enact/core/projects/queries", () => ({ projectDetailOptions: () => ({ queryKey: ["project"] }) }));
 vi.mock("@enact/core/workspace/queries", () => ({
   myInvitationListOptions: () => ({ queryKey: ["invitations"] }),
   workspaceKeys: { myInvitations: () => ["invitations"] },

@@ -887,7 +887,7 @@
       "empty_description": "역할, 작업 흐름, 출력 또는 제약 사항을 설명하세요. 오른쪽에 첫 초안이 표시됩니다.",
       "prompt_review": "프런트엔드 Pull Request 검토",
       "prompt_research": "경쟁사를 조사하고 결과 요약",
-      "prompt_assistant": "팀의 프로젝트 계획과 작성 지원",
+      "prompt_assistant": "우리 팀의 기획과 문서 작성을 도와주세요",
       "thinking": "초안 업데이트 중…",
       "placeholder": "필요한 에이전트를 설명하세요…",
       "send": "메시지 보내기"

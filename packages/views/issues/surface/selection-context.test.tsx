@@ -9,7 +9,7 @@ describe("useCreateIssueSurfaceSelection", () => {
   it("keeps selection local to a surface key and clears on surface change", () => {
     const { result, rerender } = renderHook(
       ({ surfaceKey }) => useCreateIssueSurfaceSelection(surfaceKey),
-      { initialProps: { surfaceKey: "project:p1" } },
+      { initialProps: { surfaceKey: "workspace:a" } },
     );
 
     act(() => {
@@ -23,7 +23,7 @@ describe("useCreateIssueSurfaceSelection", () => {
     });
     expect(result.current.selectedIds).toEqual(new Set(["i-1", "i-3"]));
 
-    rerender({ surfaceKey: "project:p2" });
+    rerender({ surfaceKey: "workspace:b" });
     expect(result.current.selectedIds).toEqual(new Set());
   });
 

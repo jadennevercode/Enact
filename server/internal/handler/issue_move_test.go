@@ -96,15 +96,6 @@ func TestMoveIssueRejectsUnsafeInputs(t *testing.T) {
 		t.Fatalf("insert foreign anchor: %v", err)
 	}
 
-	var foreignProjectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, foreignWorkspaceID, "Foreign move project "+suffix).Scan(&foreignProjectID); err != nil {
-		t.Fatalf("insert foreign project: %v", err)
-	}
-
 	tests := []struct {
 		name      string
 		body      map[string]any
@@ -117,15 +108,6 @@ func TestMoveIssueRejectsUnsafeInputs(t *testing.T) {
 				"after_id":  nil,
 			},
 			wantError: "move anchor not found in this workspace",
-		},
-		{
-			name: "cross-workspace project",
-			body: map[string]any{
-				"project_id": foreignProjectID,
-				"before_id":  nil,
-				"after_id":   nil,
-			},
-			wantError: "project not found in this workspace",
 		},
 		{
 			name: "canonical position bypass",
@@ -168,18 +150,14 @@ func TestMoveIssueRejectsUnsafeInputs(t *testing.T) {
 
 	var title string
 	var position float64
-	var projectID *string
 	if err := testPool.QueryRow(ctx, `
-		SELECT title, position, project_id::text
+		SELECT title, position
 		FROM issue
 		WHERE id = $1
-	`, movedIssueID).Scan(&title, &position, &projectID); err != nil {
+	`, movedIssueID).Scan(&title, &position); err != nil {
 		t.Fatalf("reload moved issue: %v", err)
 	}
-	if title != "Move boundary test "+suffix || position != 100 || projectID != nil {
-		t.Fatalf(
-			"rejected moves changed issue: title=%q position=%v project_id=%v",
-			title, position, projectID,
-		)
+	if title != "Move boundary test "+suffix || position != 100 {
+		t.Fatalf("rejected moves changed issue: title=%q position=%v", title, position)
 	}
 }

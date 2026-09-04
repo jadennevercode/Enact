@@ -4,7 +4,7 @@
     "chat": "チャット",
     "my_issues": "マイタスク",
     "issues": "タスク",
-    "projects": "プロジェクト",
+    "artifacts": "成果物",
     "autopilots": "オートパイロット",
     "agents": "エージェント",
     "squads": "エージェントファミリー",
@@ -17,7 +17,6 @@
   },
   "tab": {
     "issue": "タスク",
-    "project": "プロジェクト",
     "autopilot": "オートパイロット",
     "agent": "エージェント",
     "member": "メンバー",

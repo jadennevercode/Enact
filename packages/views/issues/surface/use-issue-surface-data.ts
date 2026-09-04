@@ -2,12 +2,12 @@
 
 import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Issue, Project } from "@enact/core/types";
+import type { Issue } from "@enact/core/types";
 import { ALL_STATUSES } from "@enact/core/issues/config";
-import { projectListOptions } from "@enact/core/projects/queries";
-import { childIssueProgressOptions } from "@enact/core/issues/queries";
-import { issueSurfaceGanttOptions } from "@enact/core/issues/surface/repository";
-import type { IssueSurfaceQueryPlan } from "@enact/core/issues/surface/query-plan";
+import {
+  childIssueProgressOptions,
+  scheduledIssueListOptions,
+} from "@enact/core/issues/queries";
 import type { IssueStatus, IssueStatusCategory } from "@enact/core/types";
 import { useIssueStatuses } from "@enact/core/issue-statuses/hooks";
 import { issueBehavesAsAny, statusFilterColumns } from "@enact/core/issues";
@@ -25,7 +25,6 @@ import type { IssueGroupBranches } from "./use-issue-group-branches";
 
 const EMPTY_ISSUES: Issue[] = [];
 const EMPTY_CHILD_PROGRESS = new Map<string, ChildProgress>();
-const EMPTY_PROJECTS: Project[] = [];
 
 /**
  * The rows the gantt canvas actually draws, on top of the shared filters.
@@ -53,7 +52,6 @@ function ganttCanvasRows(issues: Issue[], showCompleted: boolean): Issue[] {
 
 export interface IssueSurfaceData {
   surfaceIssues: Issue[];
-  projectIssues: Issue[];
   issues: Issue[];
   swimlaneIssues: Issue[];
   /** Gantt only: the canvas rows the agents-working filter would leave on
@@ -67,12 +65,9 @@ export interface IssueSurfaceData {
   statusPagination: IssueStatusPagination;
   activeFilters: Omit<IssueFilters, "statusFilters">;
   childProgressMap: Map<string, ChildProgress>;
-  projectMap: Map<string, Project>;
   resolveTableExportLookups: (needs: {
-    projects: boolean;
     childProgress: boolean;
   }) => Promise<{
-    projectMap: Map<string, Project>;
     childProgressMap: Map<string, ChildProgress>;
   }>;
   isLoading: boolean;
@@ -92,8 +87,6 @@ export interface IssueSurfaceData {
 
 export function useIssueSurfaceData({
   wsId,
-  queryPlan,
-  projectId,
   usesGantt,
   usesTable,
   serverStatusBranches,
@@ -108,17 +101,12 @@ export function useIssueSurfaceData({
   includeNoAssignee,
   agentRunningFilter,
   creatorFilters,
-  projectFilters,
-  includeNoProject,
   labelFilters,
   propertyFilters,
   workingIssueIDs,
   showSubIssues,
-  loadProjects,
 }: {
   wsId: string;
-  queryPlan: IssueSurfaceQueryPlan;
-  projectId?: string;
   usesGantt: boolean;
   usesTable: boolean;
   serverStatusBranches: IssueStatusBranches;
@@ -137,17 +125,22 @@ export function useIssueSurfaceData({
   includeNoAssignee: boolean;
   agentRunningFilter: boolean;
   creatorFilters: IssueFilterState["creatorFilters"];
-  projectFilters: string[];
-  includeNoProject: boolean;
   labelFilters: string[];
   propertyFilters: Record<string, string[]>;
   /** Distinct running-task issue ids projected by `/api/working-agents`. */
   workingIssueIDs: ReadonlySet<string>;
   showSubIssues: boolean;
-  loadProjects: boolean;
 }): IssueSurfaceData {
+  // Gantt is the one mode the server-owned Table channel does not serve, so it
+  // still fetches its own rows — now workspace-wide, since there is no project
+  // left to scope them to. It asks the server for the scheduled subset rather
+  // than reusing the bucketed list cache: that cache holds only the first page
+  // of each status, so a workspace with many undated issues would push its
+  // dated ones past the page boundary and silently lose bars. The canvas still
+  // narrows to not-yet-completed rows itself (see `ganttRows`), and the shared
+  // filters run over it like any other mode.
   const ganttIssuesQuery = useQuery({
-    ...issueSurfaceGanttOptions(wsId, projectId ?? "", queryPlan),
+    ...scheduledIssueListOptions(wsId),
     enabled: usesGantt,
   });
   const workingFilterContext = useMemo(
@@ -179,8 +172,6 @@ export function useIssueSurfaceData({
       assigneeFilters,
       includeNoAssignee,
       creatorFilters,
-      projectFilters,
-      includeNoProject,
       labelFilters,
       propertyFilters,
       workingOnly: agentRunningFilter,
@@ -191,10 +182,8 @@ export function useIssueSurfaceData({
       agentRunningFilter,
       creatorFilters,
       includeNoAssignee,
-      includeNoProject,
       labelFilters,
       priorityFilters,
-      projectFilters,
       propertyFilters,
       showSubIssues,
       statusFilters,
@@ -290,48 +279,20 @@ export function useIssueSurfaceData({
     refetch: refetchChildProgress,
   } = useQuery(childIssueProgressOptions(wsId));
   const childProgressMap = childProgressData ?? EMPTY_CHILD_PROGRESS;
-  const {
-    data: projectData,
-    refetch: refetchProjects,
-  } = useQuery({
-    ...projectListOptions(wsId),
-    enabled: loadProjects,
-  });
-  const projects = projectData ?? EMPTY_PROJECTS;
-  const projectMap = useMemo(
-    () => new Map(projects.map((project) => [project.id, project])),
-    [projects],
-  );
   const resolveTableExportLookups = useCallback(
-    async (needs: { projects: boolean; childProgress: boolean }) => {
-      const [projectResult, progressResult] = await Promise.all([
-        needs.projects ? refetchProjects() : Promise.resolve(null),
-        needs.childProgress
-          ? refetchChildProgress()
-          : Promise.resolve(null),
-      ]);
-      if (projectResult?.error) throw projectResult.error;
+    async (needs: { childProgress: boolean }) => {
+      const progressResult = needs.childProgress
+        ? await refetchChildProgress()
+        : null;
       if (progressResult?.error) throw progressResult.error;
-      if (needs.projects && !projectResult?.data) {
-        throw new Error("Failed to load project data for export");
-      }
       if (needs.childProgress && !progressResult?.data) {
         throw new Error("Failed to load child progress for export");
       }
-      const resolvedProjects = projectResult?.data ?? projects;
       return {
-        projectMap: new Map(
-          resolvedProjects.map((project) => [project.id, project]),
-        ),
         childProgressMap: progressResult?.data ?? childProgressMap,
       };
     },
-    [
-      childProgressMap,
-      projects,
-      refetchChildProgress,
-      refetchProjects,
-    ],
+    [childProgressMap, refetchChildProgress],
   );
 
   const catalog = useIssueStatuses(wsId);
@@ -372,8 +333,6 @@ export function useIssueSurfaceData({
       agentRunningFilter,
       runningIssueIds: workingIssueIDs,
       creatorFilters,
-      projectFilters,
-      includeNoProject,
       labelFilters,
       propertyFilters,
       showSubIssues,
@@ -383,11 +342,9 @@ export function useIssueSurfaceData({
       agentRunningFilter,
       creatorFilters,
       includeNoAssignee,
-      includeNoProject,
       labelFilters,
       propertyFilters,
       priorityFilters,
-      projectFilters,
       showSubIssues,
       workingIssueIDs,
     ],
@@ -418,7 +375,6 @@ export function useIssueSurfaceData({
 
   return {
     surfaceIssues,
-    projectIssues: surfaceIssues,
     issues,
     swimlaneIssues,
     ganttWorkingScopeIssues,
@@ -429,13 +385,12 @@ export function useIssueSurfaceData({
     statusPagination: serverStatusBranches.pagination,
     activeFilters,
     childProgressMap,
-    projectMap,
     resolveTableExportLookups,
     isLoading,
     isRefreshing,
     // isEmpty asserts "this window has no issues". The board/list/swimlane
     // data IS the full window, so an empty result proves it. The gantt query
-    // is a scheduled-only PROJECTION — an empty subset cannot prove the
+    // is a DATED-ROWS projection — an empty subset cannot prove the
     // window is empty, so never claim it (same "uncertain → don't assert"
     // rule as surface membership). GanttView renders its own accurate
     // "no scheduled issues" empty state instead of the generic create-issue

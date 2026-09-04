@@ -303,14 +303,12 @@ const mockViewState = {
   assigneeFilters: [] as { type: string; id: string }[],
   includeNoAssignee: false,
   creatorFilters: [] as { type: string; id: string }[],
-  projectFilters: [] as string[],
-  includeNoProject: false,
   labelFilters: [] as string[],
   propertyFilters: {} as Record<string, string[]>,
   cardPropertyIds: [] as string[],
   sortBy: "position" as const,
   sortDirection: "asc" as const,
-  cardProperties: { priority: true, description: true, assignee: true, dueDate: true, project: true, childProgress: true, labels: true },
+  cardProperties: { priority: true, description: true, assignee: true, dueDate: true, childProgress: true, labels: true },
   tableColumns: [
     { key: "title", width: 360 },
     { key: "status", width: 150 },
@@ -328,8 +326,6 @@ const mockViewState = {
   toggleAssigneeFilter: vi.fn(),
   toggleNoAssignee: vi.fn(),
   toggleCreatorFilter: vi.fn(),
-  toggleProjectFilter: vi.fn(),
-  toggleNoProject: vi.fn(),
   toggleLabelFilter: vi.fn(),
   togglePropertyFilter: vi.fn(),
   toggleCardPropertyId: vi.fn(),
@@ -343,6 +339,7 @@ const mockViewState = {
 };
 
 vi.mock("@enact/core/issues/stores/view-store", () => ({
+  ISSUE_VIEW_STORE_VERSION: 1,
   useClearFiltersOnWorkspaceChange: () => {},
   PROPERTY_VIEW_PREFIX: "property:",
   propertyIdFromViewKey: (key: string) =>
@@ -375,7 +372,6 @@ vi.mock("@enact/core/issues/stores/view-store", () => ({
     { key: "description", label: "Description" },
     { key: "assignee", label: "Assignee" },
     { key: "dueDate", label: "Due date" },
-    { key: "project", label: "Project" },
     { key: "labels", label: "Labels" },
     { key: "childProgress", label: "Sub-issue progress" },
   ],
@@ -515,7 +511,6 @@ vi.mock("react-virtuoso", () => ({
 
 const issueDefaults = {
   parent_issue_id: null,
-  project_id: null,
   position: 0,
   stage: null,
   metadata: {},

@@ -20,7 +20,6 @@ export type ShortcutActionId =
   | "goChat"
   | "goMyIssues"
   | "goIssues"
-  | "goProjects"
   | "goAutopilots"
   | "goAgents"
   | "goSquads"
@@ -121,7 +120,6 @@ export const SHORTCUT_ACTIONS: readonly ShortcutActionDefinition[] = [
   { id: "goChat", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goMyIssues", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goIssues", category: "navigation", defaultShortcut: null, allowInEditable: false },
-  { id: "goProjects", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goAutopilots", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goAgents", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goSquads", category: "navigation", defaultShortcut: null, allowInEditable: false },

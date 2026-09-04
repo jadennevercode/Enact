@@ -18,8 +18,6 @@ export interface IssueViewBaseline {
   assignee: Set<string>;
   includeNoAssignee: boolean;
   creator: Set<string>;
-  project: Set<string>;
-  includeNoProject: boolean;
   label: Set<string>;
   /** Property definition id → fixed option ids. */
   property: Map<string, Set<string>>;
@@ -60,10 +58,8 @@ export function baselineFromQuery(query: Record<string, unknown>): IssueViewBase
   );
   const assigneeFilters = actorArray(query.assigneeFilters);
   const creatorFilters = actorArray(query.creatorFilters);
-  const projectFilters = stringArray(query.projectFilters);
   const labelFilters = stringArray(query.labelFilters);
   const includeNoAssignee = query.includeNoAssignee === true;
-  const includeNoProject = query.includeNoProject === true;
 
   const propertyFilters: Record<string, string[]> = {};
   const property = new Map<string, Set<string>>();
@@ -85,8 +81,6 @@ export function baselineFromQuery(query: Record<string, unknown>): IssueViewBase
     assignee: new Set(assigneeFilters.map(actorFilterKey)),
     includeNoAssignee,
     creator: new Set(creatorFilters.map(actorFilterKey)),
-    project: new Set(projectFilters),
-    includeNoProject,
     label: new Set(labelFilters),
     property,
     raw: {
@@ -95,8 +89,6 @@ export function baselineFromQuery(query: Record<string, unknown>): IssueViewBase
       assigneeFilters,
       includeNoAssignee,
       creatorFilters,
-      projectFilters,
-      includeNoProject,
       labelFilters,
       propertyFilters,
     },

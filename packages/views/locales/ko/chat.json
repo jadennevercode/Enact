@@ -25,12 +25,7 @@
     "runtime_required_toast": "메시지가 전송되지 않았습니다 — 먼저 이 에이전트에 런타임을 연결하세요",
     "attachment_bind_failed_toast": "메시지는 보냈지만 파일이 첨부되지 않았습니다. 잠시 후 다시 시도해 주세요.",
     "add_tooltip": "추가",
-    "upload_file": "이미지 또는 파일",
-    "project_context": "프로젝트 컨텍스트",
-    "change_project_context": "프로젝트 컨텍스트 변경",
-    "remove_project_context": "프로젝트 컨텍스트 제거",
-    "no_projects": "아직 프로젝트가 없습니다",
-    "project_context_unsupported": "프로젝트 설명이 적용되지 않습니다 — 이 에이전트의 데몬 업그레이드가 필요합니다"
+    "upload_file": "이미지 또는 파일"
   },
   "queue": {
     "title_other": "대기 중인 메시지 {{count}}개",
@@ -138,7 +133,7 @@
   "empty_state": {
     "first_time_title": "에이전트와 채팅하기",
     "first_time_intro": "✨ 에이전트는 내 워크스페이스를 알고 있습니다 —",
-    "first_time_pillars": "태스크, 프로젝트, 스킬",
+    "first_time_pillars": "태스크, 에이전트, 스킬",
     "first_time_pillars_suffix": ".",
     "first_time_actions": "요약을 요청하거나, 오늘 할 일을 계획하거나, 간단한 작업을 맡겨보세요.",
     "returning_title_named": "안녕하세요, 저는 {{name}}입니다",
@@ -156,8 +151,8 @@
     "cta": "시작",
     "board": {
       "title": "몇 분 만에 태스크 보드 완성",
-      "desc": "목표를 한 줄로 알려주세요. 프로젝트를 만들고 태스크로 나눠 우선순위까지 정리합니다.",
-      "prompt": "지금 목표를 프로젝트 보드로 정리해 줘"
+      "desc": "목표를 알려주세요. 태스크로 나누고 우선순위를 정해 드릴게요.",
+      "prompt": "지금 목표를 태스크 보드로 만들어 주세요"
     },
     "delegate": {
       "title": "먼저 하나 맡겨 보기",
@@ -223,7 +218,6 @@
     "unarchive": "보관 해제",
     "archived_title": "보관됨",
     "pinned_segment": "고정됨",
-    "no_project_segment": "프로젝트 없음",
     "row_actions_aria": "채팅 작업"
   },
   "header": {

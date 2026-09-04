@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -14,14 +15,11 @@ func TestListIssuesSortsByStatusAndUpdatedAt(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 
-	var projectID string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Issue table sort %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
-	}
+	scope := fmt.Sprintf("issue-table-sort-%d", suffix)
+	scopeFilter := "&metadata=" + url.QueryEscape(fmt.Sprintf(`{"scope":%q}`, scope))
 	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		_, _ = testPool.Exec(context.Background(),
+			`DELETE FROM issue WHERE workspace_id = $1 AND metadata->>'scope' = $2`, testWorkspaceID, scope)
 	})
 
 	type fixture struct {
@@ -47,10 +45,10 @@ func TestListIssuesSortsByStatusAndUpdatedAt(t *testing.T) {
 		if _, err := testPool.Exec(ctx, `
 			INSERT INTO issue (
 				workspace_id, title, status, priority, creator_type, creator_id,
-				position, number, project_id, created_at, updated_at, last_activity_at
+				position, number, metadata, created_at, updated_at, last_activity_at
 			)
-			VALUES ($1, $2, $3, 'none', 'member', $4, $5, $6, $7, $8, $8, $9)
-		`, testWorkspaceID, item.title, item.status, testUserID, index, number, projectID, item.updatedAt, item.activityAt); err != nil {
+			VALUES ($1, $2, $3, 'none', 'member', $4, $5, $6, jsonb_build_object('scope', $7::text), $8, $8, $9)
+		`, testWorkspaceID, item.title, item.status, testUserID, index, number, scope, item.updatedAt, item.activityAt); err != nil {
 			t.Fatalf("create issue %q: %v", item.title, err)
 		}
 	}
@@ -58,9 +56,9 @@ func TestListIssuesSortsByStatusAndUpdatedAt(t *testing.T) {
 	listTitles := func(sort, direction string) []string {
 		t.Helper()
 		path := fmt.Sprintf(
-			"/api/issues?workspace_id=%s&project_id=%s&limit=50&sort=%s",
+			"/api/issues?workspace_id=%s%s&limit=50&sort=%s",
 			testWorkspaceID,
-			projectID,
+			scopeFilter,
 			sort,
 		)
 		if direction != "" {
@@ -86,9 +84,9 @@ func TestListIssuesSortsByStatusAndUpdatedAt(t *testing.T) {
 	groupedTitles := func(sort, direction string) []string {
 		t.Helper()
 		path := fmt.Sprintf(
-			"/api/issues/grouped?workspace_id=%s&project_id=%s&limit=50&sort=%s",
+			"/api/issues/grouped?workspace_id=%s%s&limit=50&sort=%s",
 			testWorkspaceID,
-			projectID,
+			scopeFilter,
 			sort,
 		)
 		if direction != "" {

@@ -58,7 +58,8 @@ import type {
   IssueTableGroupsResponse,
   IssueTableRowsResponse,
   ListIssuesResponse,
-  ListProjectArtifactsResponse,
+  ListArtifactsResponse,
+  ListWorkspaceResourcesResponse,
   OntologyDetail,
   OntologySummary,
   ListGitHubInstallationsResponse,
@@ -77,7 +78,6 @@ import type {
   ResourceLabelsResponse,
   RuntimeModelListRequest,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   ShareLink,
   ShareLinkInfo,
   Skill,
@@ -86,6 +86,7 @@ import type {
   User,
   WebhookDelivery,
   WorkspaceMcpServer,
+  WorkspaceResource,
   Lesson,
   LessonDetail,
   ListLessonsResponse,
@@ -569,7 +570,7 @@ export const EMPTY_ISSUE_VIEW_PREFERENCE: IssueViewPreference = {
 
 export interface CreateIssueViewRequest {
   name: string;
-  scope_type: "workspace" | "my" | "project";
+  scope_type: "workspace" | "my";
   scope_id?: string | null;
   scope_variant?: "assigned" | "created" | "involved" | "any" | "members" | "agents" | null;
   visibility: "private" | "workspace";
@@ -1091,7 +1092,6 @@ export const IssueSchema = z.object({
   creator_type: z.string(),
   creator_id: z.string(),
   parent_issue_id: z.string().nullable(),
-  project_id: z.string().nullable(),
   position: z.number(),
   // Older backends predate `stage`; default to null so a missing field parses
   // cleanly into the non-optional Issue.stage (number | null).
@@ -1158,43 +1158,6 @@ export const EMPTY_SEARCH_ISSUES_RESPONSE: SearchIssuesResponse = {
   total: 0,
 };
 
-const ProjectSchema = z.object({
-  id: z.string(),
-  workspace_id: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  icon: z.string().nullable(),
-  status: z.string(),
-  priority: z.string(),
-  lead_type: z.string().nullable(),
-  lead_id: z.string().nullable(),
-  // .default(null) so a project from an older backend (frontend deploys before
-  // backend) that omits these keys parses to null instead of failing the whole
-  // object — which would degrade a search/list batch to the empty fallback.
-  start_date: z.string().nullable().default(null),
-  due_date: z.string().nullable().default(null),
-  created_at: z.string(),
-  updated_at: z.string(),
-  issue_count: z.number().default(0),
-  done_count: z.number().default(0),
-  resource_count: z.number().default(0),
-}).loose();
-
-const SearchProjectResultSchema = ProjectSchema.extend({
-  match_source: z.string(),
-  matched_snippet: z.string().optional(),
-}).loose();
-
-export const SearchProjectsResponseSchema = z.object({
-  projects: z.array(SearchProjectResultSchema).default([]),
-  total: z.number().default(0),
-}).loose();
-
-export const EMPTY_SEARCH_PROJECTS_RESPONSE: SearchProjectsResponse = {
-  projects: [],
-  total: 0,
-};
-
 const IssueAssigneeGroupSchema = z.object({
   id: z.string(),
   assignee_type: z.string().nullable(),
@@ -1234,10 +1197,6 @@ const IssueTableGroupValueSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("assignee"),
     actor: IssueTableActorRefSchema.nullable(),
-  }).loose(),
-  z.object({
-    kind: z.literal("project"),
-    project_id: z.string().nullable().optional().default(null),
   }).loose(),
   z.object({
     kind: z.literal("parent"),
@@ -1305,7 +1264,7 @@ const IssueTableFacetValueSchema = z.object({
 }).loose();
 
 const IssueTableFacetSchema = z.object({
-  kind: z.enum(["status", "priority", "assignee", "creator", "project", "label", "property", "working_agents"]),
+  kind: z.enum(["status", "priority", "assignee", "creator", "label", "property", "working_agents"]),
   property_id: z.string().optional(),
   values: z.array(IssueTableFacetValueSchema).default([]),
 }).loose();
@@ -2012,7 +1971,6 @@ const AutopilotListItemSchema = z.object({
   workspace_id: z.string(),
   title: z.string(),
   description: z.string().nullable().optional(),
-  project_id: z.string().nullable().optional(),
   // Older servers (pre-ENA-2429) omit assignee_type; "agent" is the
   // documented default.
   assignee_type: z.string().default("agent"),
@@ -3136,11 +3094,12 @@ export const EMPTY_JOIN_SHARE_LINK_RESPONSE: {
   workspace_slug: "",
 };
 
-// A file in a project's artifact listing. The owner-issue fields are what the
-// artifacts browser builds its folder tree from, so they carry defaults rather
-// than being required: a server that predates them still yields a usable —
-// if unfoldered — listing instead of collapsing the whole response to empty.
-const ProjectArtifactSchema = z.object({
+// A file in the workspace's artifact listing. The owner-issue fields are what
+// the artifacts browser builds its folder tree from. They are nullable AND
+// defaulted: a chat upload has no owning issue, so the server omits all four,
+// and those files must land in the unfiled folder rather than collapse the
+// whole response to the empty fallback.
+const ArtifactSchema = z.object({
   id: z.string(),
   workspace_id: z.string().default(""),
   issue_id: z.string().nullable().default(null),
@@ -3157,22 +3116,63 @@ const ProjectArtifactSchema = z.object({
   content_type: z.string().default(""),
   size_bytes: z.number().default(0),
   created_at: z.string().default(""),
-  owner_issue_id: z.string().default(""),
-  owner_issue_number: z.number().default(0),
-  owner_issue_identifier: z.string().default(""),
-  owner_issue_title: z.string().default(""),
+  owner_issue_id: z.string().nullable().optional().default(null),
+  owner_issue_number: z.number().nullable().optional().default(null),
+  owner_issue_identifier: z.string().nullable().optional().default(null),
+  owner_issue_title: z.string().nullable().optional().default(null),
 }).loose();
 
-export const ListProjectArtifactsResponseSchema = z.object({
-  artifacts: z.array(ProjectArtifactSchema).default([]),
+export const ListArtifactsResponseSchema = z.object({
+  artifacts: z.array(ArtifactSchema).default([]),
   total: z.number().default(0),
   truncated: z.boolean().default(false),
 }).loose();
 
-export const EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE: ListProjectArtifactsResponse = {
+export const EMPTY_LIST_ARTIFACTS_RESPONSE: ListArtifactsResponse = {
   artifacts: [],
   total: 0,
   truncated: false,
+};
+
+// Workspace resources — repos and local directories the workspace's agents
+// work in. `resource_ref` is a per-type payload the UI renders by
+// `resource_type`, so it stays an open record rather than a union: a server
+// that adds a type must not blank the list in an installed desktop build.
+const WorkspaceResourceSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().default(""),
+  resource_type: z.string().default(""),
+  resource_ref: z.record(z.string(), z.unknown()).default({}),
+  label: z.string().nullable().default(null),
+  position: z.number().default(0),
+  created_at: z.string().default(""),
+  created_by: z.string().nullable().default(null),
+}).loose();
+
+export const ListWorkspaceResourcesResponseSchema = z.object({
+  resources: z.array(WorkspaceResourceSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE: ListWorkspaceResourcesResponse = {
+  resources: [],
+  total: 0,
+};
+
+/** Single-resource responses (create / update). Same lenience as the listing:
+ *  a row the client cannot fully parse is still usable, because every field
+ *  the UI reads has a default. */
+export const WorkspaceResourceResponseSchema = WorkspaceResourceSchema;
+
+export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
+  id: "",
+  workspace_id: "",
+  resource_type: "github_repo",
+  resource_ref: {},
+  label: null,
+  position: 0,
+  created_at: "",
+  created_by: null,
 };
 
 // --- Lessons, skill versions, retrospectives ---

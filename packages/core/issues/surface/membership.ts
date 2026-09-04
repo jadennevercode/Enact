@@ -15,12 +15,11 @@ export type IssueMembership = true | false | "unknown";
 
 /**
  * The field groups a write can touch that move an issue in or out of a
- * filtered list (assignee / project) or shift per-status bucket totals
- * (status). Creator is not here: it is immutable after create.
+ * filtered list (assignee) or shift per-status bucket totals (status).
+ * Creator is not here: it is immutable after create.
  */
 export interface IssueChangedDims {
   assignee: boolean;
-  project: boolean;
   status: boolean;
 }
 
@@ -42,7 +41,6 @@ export function issueChangedDims(
     assignee:
       (has("assignee_id") && (!base || base.assignee_id !== p.assignee_id)) ||
       (has("assignee_type") && (!base || base.assignee_type !== p.assignee_type)),
-    project: has("project_id") && (!base || base.project_id !== p.project_id),
     status: has("status") && p.status !== undefined && (!base || base.status !== p.status),
   };
 }
@@ -71,7 +69,6 @@ export function listFilterDependsOn(
   ) {
     return true;
   }
-  if (changed.project && filter.project_id !== undefined) return true;
   // creator_id filters never react to updates — creator is immutable.
   return false;
 }
@@ -118,10 +115,6 @@ export function issueMatchesListFilter(
   if (filter.creator_id !== undefined) {
     if (issue.creator_id === undefined) unknown = true;
     else if (issue.creator_id !== filter.creator_id) return false;
-  }
-  if (filter.project_id !== undefined) {
-    if (issue.project_id === undefined) unknown = true;
-    else if (issue.project_id !== filter.project_id) return false;
   }
   if (filter.involves_user_id !== undefined) {
     // Indirect-assignee predicate (owned agents / squads) — server-only.

@@ -212,7 +212,6 @@ type Autopilot struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	AssigneeType       string             `json:"assignee_type"`
-	ProjectID          pgtype.UUID        `json:"project_id"`
 	PauseReason        pgtype.Text        `json:"pause_reason"`
 }
 
@@ -458,7 +457,6 @@ type ChatSession struct {
 	LastReadAt   pgtype.Timestamptz `json:"last_read_at"`
 	IsAgentIntro bool               `json:"is_agent_intro"`
 	PinnedAt     pgtype.Timestamptz `json:"pinned_at"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
 }
 
 type ClientUsageDaily struct {
@@ -717,7 +715,6 @@ type Issue struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	Number             int32              `json:"number"`
-	ProjectID          pgtype.UUID        `json:"project_id"`
 	OriginType         pgtype.Text        `json:"origin_type"`
 	OriginID           pgtype.UUID        `json:"origin_id"`
 	FirstExecutedAt    pgtype.Timestamptz `json:"first_executed_at"`
@@ -1118,34 +1115,6 @@ type PluginStorage struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
-type Project struct {
-	ID          pgtype.UUID        `json:"id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
-	Title       string             `json:"title"`
-	Description pgtype.Text        `json:"description"`
-	Icon        pgtype.Text        `json:"icon"`
-	Status      string             `json:"status"`
-	LeadType    pgtype.Text        `json:"lead_type"`
-	LeadID      pgtype.UUID        `json:"lead_id"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Priority    string             `json:"priority"`
-	StartDate   pgtype.Date        `json:"start_date"`
-	DueDate     pgtype.Date        `json:"due_date"`
-}
-
-type ProjectResource struct {
-	ID           pgtype.UUID        `json:"id"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
-	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
-	ResourceType string             `json:"resource_type"`
-	ResourceRef  []byte             `json:"resource_ref"`
-	Label        pgtype.Text        `json:"label"`
-	Position     int32              `json:"position"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	CreatedBy    pgtype.UUID        `json:"created_by"`
-}
-
 type QuickAction struct {
 	ID            pgtype.UUID        `json:"id"`
 	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
@@ -1356,10 +1325,11 @@ type TaskUsage struct {
 }
 
 type TaskUsageHourly struct {
-	BucketHour       pgtype.Timestamptz `json:"bucket_hour"`
-	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
-	RuntimeID        pgtype.UUID        `json:"runtime_id"`
-	AgentID          pgtype.UUID        `json:"agent_id"`
+	BucketHour  pgtype.Timestamptz `json:"bucket_hour"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	RuntimeID   pgtype.UUID        `json:"runtime_id"`
+	AgentID     pgtype.UUID        `json:"agent_id"`
+	// Vestigial. Always NULL since migration 435 removed the project dimension; kept only because dropping it would drop uq_task_usage_hourly_key, which the rollup needs as an ON CONFLICT target.
 	ProjectID        pgtype.UUID        `json:"project_id"`
 	Provider         string             `json:"provider"`
 	Model            string             `json:"model"`
@@ -1384,10 +1354,11 @@ type TaskUsageHourlyDirty struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	RuntimeID   pgtype.UUID        `json:"runtime_id"`
 	AgentID     pgtype.UUID        `json:"agent_id"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
-	Provider    string             `json:"provider"`
-	Model       string             `json:"model"`
-	EnqueuedAt  pgtype.Timestamptz `json:"enqueued_at"`
+	// Vestigial. Always NULL since migration 435; see task_usage_hourly.project_id.
+	ProjectID  pgtype.UUID        `json:"project_id"`
+	Provider   string             `json:"provider"`
+	Model      string             `json:"model"`
+	EnqueuedAt pgtype.Timestamptz `json:"enqueued_at"`
 }
 
 type TaskUsageHourlyRollupState struct {
@@ -1555,6 +1526,18 @@ type WorkspaceMcpServer struct {
 	CreatedBy   pgtype.UUID        `json:"created_by"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+// Repos and local directories a workspace's agents work in. Injected into every agent run as context.
+type WorkspaceResource struct {
+	ID           pgtype.UUID        `json:"id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	ResourceType string             `json:"resource_type"`
+	ResourceRef  []byte             `json:"resource_ref"`
+	Label        pgtype.Text        `json:"label"`
+	Position     int32              `json:"position"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
 }
 
 type WorkspaceShareLink struct {

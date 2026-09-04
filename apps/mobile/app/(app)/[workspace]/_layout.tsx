@@ -9,13 +9,11 @@ import { useInboxRealtime } from "@/data/realtime/use-inbox-realtime";
 import { useIssuesRealtime } from "@/data/realtime/use-issues-realtime";
 import { useMyIssuesRealtime } from "@/data/realtime/use-my-issues-realtime";
 import { useChatSessionsRealtime } from "@/data/realtime/use-chat-sessions-realtime";
-import { useProjectsRealtime } from "@/data/realtime/use-projects-realtime";
 import { usePinsRealtime } from "@/data/realtime/use-pins-realtime";
 import { usePresenceRealtime } from "@/data/realtime/use-presence-realtime";
 import { useWorkspacePresencePrefetch } from "@/lib/use-workspace-presence-prefetch";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { useNewIssueDraftResetOnWorkspaceChange } from "@/data/stores/new-issue-draft-store";
-import { useNewProjectDraftResetOnWorkspaceChange } from "@/data/stores/new-project-draft-store";
 import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-session-picker-store";
 
 /**
@@ -30,7 +28,7 @@ import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-s
  *     (expo/expo#42904 padding inconsistency, expo/expo#42965 zero-size).
  *     Predictable two-snap presentation across every picker-row sheet >
  *     shrink-wrap; this is the right default for sheets that sit next to
- *     other sheets in the same chip row (issue / project AttributeRow) so
+ *     other sheets in the same chip row (the issue AttributeRow) so
  *     the user gets the same gesture regardless of which chip they tap.
  *     Isolated sheets that have no neighbour to be consistent with (e.g.
  *     the workspace `menu` sheet) override this with `"fitToContents"`
@@ -77,7 +75,6 @@ function RealtimeSubscriptions() {
   useIssuesRealtime();
   useMyIssuesRealtime();
   useChatSessionsRealtime();
-  useProjectsRealtime();
   usePinsRealtime();
   // Presence: warm the three queries up front so avatars don't flash a
   // dotless first render, and listen for daemon/agent/task events to keep
@@ -116,7 +113,6 @@ export default function WorkspaceLayout() {
   // changes — a draft picked under workspace A (assignee id, draft
   // session id, etc.) is invalid in workspace B and must not leak.
   useNewIssueDraftResetOnWorkspaceChange(matched?.id ?? null);
-  useNewProjectDraftResetOnWorkspaceChange(matched?.id ?? null);
   useChatSessionPickerResetOnWorkspaceChange(matched?.id ?? null);
 
   // Wait for the workspaces list before deciding membership — otherwise a
@@ -140,32 +136,9 @@ export default function WorkspaceLayout() {
           }}
         />
         <Stack.Screen
-          name="project/[id]"
-          options={{
-            title: "Project",
-            headerBackTitle: "Back",
-          }}
-        />
-        <Stack.Screen
-          name="project/[id]/edit"
-          options={{
-            title: "Edit Project",
-            presentation: "modal",
-            headerLeft: () => <ModalCloseButton />,
-          }}
-        />
-        <Stack.Screen
           name="issue/[id]/edit"
           options={{
             title: "Edit Issue",
-            presentation: "modal",
-            headerLeft: () => <ModalCloseButton />,
-          }}
-        />
-        <Stack.Screen
-          name="project/new"
-          options={{
-            title: "New Project",
             presentation: "modal",
             headerLeft: () => <ModalCloseButton />,
           }}
@@ -188,7 +161,7 @@ export default function WorkspaceLayout() {
             Eliminates the #3634 overlap class of bugs and the focus-loss
             footgun of a custom TextInput inside ListHeaderComponent. The
             route file wires `headerSearchBarOptions` via setOptions. If this
-            proves out, propagate to label / project / other search pickers
+            proves out, propagate to the label and other search pickers
             and update CLAUDE.md Lesson 6 with a carve-out. */}
         <Stack.Screen
           name="issue/[id]/picker/assignee"
@@ -211,10 +184,6 @@ export default function WorkspaceLayout() {
           }}
         />
         <Stack.Screen
-          name="issue/[id]/picker/project"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
           name="issue/[id]/picker/due-date"
           options={SHEET_OPTIONS}
         />
@@ -224,23 +193,6 @@ export default function WorkspaceLayout() {
             components/issue/comment-context-menu.tsx. */}
         <Stack.Screen
           name="issue/[id]/comment/[commentId]/emoji-picker"
-          options={SHEET_OPTIONS}
-        />
-        {/* Project-detail formSheet pickers. */}
-        <Stack.Screen
-          name="project/[id]/picker/status"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
-          name="project/[id]/picker/priority"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
-          name="project/[id]/picker/lead"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
-          name="project/[id]/add-resource"
           options={SHEET_OPTIONS}
         />
         {/* New-issue draft formSheet pickers — stacked on top of the
@@ -264,21 +216,7 @@ export default function WorkspaceLayout() {
           }}
         />
         <Stack.Screen
-          name="new-issue-picker/project"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
           name="new-issue-picker/due-date"
-          options={SHEET_OPTIONS}
-        />
-        {/* New-project draft formSheet pickers — same pattern as
-            new-issue-picker/*. Stacked on top of `project/new` (a modal). */}
-        <Stack.Screen
-          name="new-project-picker/status"
-          options={SHEET_OPTIONS}
-        />
-        <Stack.Screen
-          name="new-project-picker/priority"
           options={SHEET_OPTIONS}
         />
         {/* Shared filter sheet for My Issues and the workspace Issues page —
@@ -292,10 +230,6 @@ export default function WorkspaceLayout() {
         <Stack.Screen
           name="more/issues"
           options={{ title: "Issues", headerBackTitle: "Back" }}
-        />
-        <Stack.Screen
-          name="more/projects"
-          options={{ title: "Projects", headerBackTitle: "Back" }}
         />
         <Stack.Screen
           name="more/agents"

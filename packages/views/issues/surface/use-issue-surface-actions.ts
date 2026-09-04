@@ -24,7 +24,6 @@ export type MoveIssueUpdates = Pick<
   | "assignee_id"
   | "position"
   | "parent_issue_id"
-  | "project_id"
 > & {
   before_id: string | null;
   after_id: string | null;
@@ -45,7 +44,6 @@ export function useIssueSurfaceActions({
 }: {
   createDefaults: IssueCreateDefaults;
 }): IssueSurfaceActionController {
-  const { t } = useT("projects");
   const { t: tIssues } = useT("issues");
   const updateIssueMutation = useUpdateIssue();
   const batchUpdateMutation = useBatchUpdateIssues();
@@ -68,7 +66,7 @@ export function useIssueSurfaceActions({
                 : err instanceof Error && err.message
                 ? err.message
                 : (options?.errorMessage ??
-                    t(($) => $.detail.toast_move_issue_failed)),
+                    tIssues(($) => $.detail.move_issue_failed)),
             );
             options?.onError?.(err);
           },
@@ -76,7 +74,7 @@ export function useIssueSurfaceActions({
         },
       );
     },
-    [t, tIssues, updateIssueMutation],
+    [tIssues, updateIssueMutation],
   );
 
   const moveIssue = useCallback(
@@ -99,14 +97,14 @@ export function useIssueSurfaceActions({
                 ? tIssues(($) => $.revision.conflict)
                 : err instanceof Error && err.message
                 ? err.message
-                : t(($) => $.detail.toast_move_issue_failed),
+                : tIssues(($) => $.detail.move_issue_failed),
             );
           },
           onSettled,
         },
       );
     },
-    [t, tIssues, updateIssueMutation],
+    [tIssues, updateIssueMutation],
   );
 
   const openCreateIssue = useCallback(
@@ -128,7 +126,7 @@ export function useIssueSurfaceActions({
       updateIssue,
       moveIssue: (issueId, updates, options) =>
         updateIssue(issueId, updates, {
-          errorMessage: t(($) => $.detail.toast_move_issue_failed),
+          errorMessage: tIssues(($) => $.detail.move_issue_failed),
           ...options,
         }),
       batchUpdate: async (issueIds, updates) => {
@@ -142,7 +140,7 @@ export function useIssueSurfaceActions({
       batchDeleteMutation,
       batchUpdateMutation,
       openCreateIssue,
-      t,
+      tIssues,
       updateIssue,
       updateIssueMutation.isPending,
     ],

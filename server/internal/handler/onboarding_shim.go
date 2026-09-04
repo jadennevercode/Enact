@@ -74,7 +74,7 @@ const onboardingAssistantInstructions = `You are Enact Helper, the built-in AI a
 
 Enact is an open-source, AI-native team workspace (source: https://github.com/enact-ai/enact). The core idea: AI agents are treated as real teammates — they get assigned issues on a kanban-style board, comment in threads, change status, and run code, exactly like human members. You can also chat directly with agents (chat), group them into squads, and run scheduled or triggered automation (autopilot).
 
-For concept details (workspace / issue / project / agent / runtime / skill / squad / autopilot / inbox / chat session): fetch https://enact.ai/docs via WebFetch — that's authoritative. For the "why" or implementation, fetch the GitHub repo above. Never paraphrase concepts from memory.
+For concept details (workspace / issue / agent / runtime / skill / squad / autopilot / inbox / chat session): fetch https://enact.ai/docs via WebFetch — that's authoritative. For the "why" or implementation, fetch the GitHub repo above. Never paraphrase concepts from memory.
 
 For ANY product-usage problem the user runs into (bug, unclear behavior, missing feature, improvement idea), suggest they file an issue at https://github.com/enact-ai/enact/issues — that's the official feedback channel.
 
@@ -87,7 +87,7 @@ Your full capability surface = whatever ` + "`enact --help`" + ` shows. Run ` + 
 A few things you can actually do (non-exhaustive — ` + "`--help`" + ` is the source of truth):
 - Create issues, post comments
 - Create or iterate on agents
-- Manage projects, squads, autopilots, skills, runtimes, etc.
+- Manage squads, autopilots, skills, runtimes, etc.
 
 ## Tone
 
@@ -237,7 +237,7 @@ func (h *Handler) BootstrapOnboardingRuntime(w http.ResponseWriter, r *http.Requ
 
 	var emptyUUID pgtype.UUID
 	issue, foundIssue, err := issueguard.LockAndFindActiveDuplicate(
-		r.Context(), qtx, wsUUID, emptyUUID, emptyUUID, onboardingIssueTitle, false,
+		r.Context(), qtx, wsUUID, emptyUUID, onboardingIssueTitle, false,
 	)
 	if err != nil {
 		slog.Warn("bootstrap onboarding (shim): duplicate issue check failed", append(logger.RequestAttrs(r), "error", err, "workspace_id", req.WorkspaceID)...)
@@ -269,7 +269,6 @@ func (h *Handler) BootstrapOnboardingRuntime(w http.ResponseWriter, r *http.Requ
 			ParentIssueID: emptyUUID,
 			Position:      0,
 			Number:        issueNumber,
-			ProjectID:     emptyUUID,
 		})
 		if err != nil {
 			slog.Warn("bootstrap onboarding (shim): create issue failed", append(logger.RequestAttrs(r), "error", err, "workspace_id", req.WorkspaceID)...)
@@ -397,7 +396,7 @@ func (h *Handler) BootstrapOnboardingNoRuntime(w http.ResponseWriter, r *http.Re
 
 	var emptyUUID pgtype.UUID
 	existing, foundIssue, err := issueguard.LockAndFindActiveDuplicate(
-		r.Context(), qtx, wsUUID, emptyUUID, emptyUUID, noRuntimeIssueTitle, false,
+		r.Context(), qtx, wsUUID, emptyUUID, noRuntimeIssueTitle, false,
 	)
 	if err != nil {
 		slog.Warn("bootstrap no-runtime onboarding (shim): duplicate issue check failed", append(logger.RequestAttrs(r), "error", err, "workspace_id", req.WorkspaceID)...)
@@ -429,7 +428,6 @@ func (h *Handler) BootstrapOnboardingNoRuntime(w http.ResponseWriter, r *http.Re
 			ParentIssueID: emptyUUID,
 			Position:      0,
 			Number:        issueNumber,
-			ProjectID:     emptyUUID,
 		})
 		if err != nil {
 			slog.Warn("bootstrap no-runtime onboarding (shim): create issue failed", append(logger.RequestAttrs(r), "error", err, "workspace_id", req.WorkspaceID)...)
@@ -498,18 +496,18 @@ func enNoRuntimeIssueDescription() string {
 	return strings.Join([]string{
 		"Welcome to Enact.",
 		"",
-		"Agents need a runtime before they can execute work. You can still use Enact as a lightweight project-management workspace while you install one.",
+		"Agents need a runtime before they can execute work. You can still use Enact as a lightweight issue-tracking workspace while you install one.",
 		"",
 		"## Try Enact first",
 		"",
 		"Before the runtime is ready, you can:",
 		"",
-		"1. Create a project for your current work.",
+		"1. Create an issue for your current work.",
 		"2. Create a few issues and move them across backlog, todo, in_progress, and done.",
 		"3. Add priorities, labels, comments, and subscriptions.",
 		"4. Use Inbox to track assignments and mentions.",
 		"",
-		"That gives you the project-management layer first. Once a runtime is connected, agents can start working from the same issues.",
+		"That gives you the issue-tracking layer first. Once a runtime is connected, agents can start working from the same issues.",
 		"",
 		"## Install your first agent runtime",
 		"",

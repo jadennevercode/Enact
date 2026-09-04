@@ -3,9 +3,6 @@
  * `[workspace]/_layout.tsx`. Save runs the optimistic `useUpdateIssue`
  * mutation; modal dismisses on success.
  *
- * Mirrors `project/[id]/edit.tsx` so users get the same gesture on both
- * record types (cancel/save in header, dirty Alert on dismiss-while-dirty).
- *
  * Description uses `useMentionInput` + `<DescriptionField>` so the @-mention
  * pipeline matches `new-issue.tsx`. v1 note: existing mentions in the
  * server-side description render as raw markdown text while editing because
@@ -14,7 +11,7 @@
  * pass through unchanged. New @-mentions added during the edit get serialized
  * normally via the marker pipeline.
  *
- * Properties (status / priority / assignee / labels / project / due_date)
+ * Properties (status / priority / assignee / labels / due_date)
  * are NOT edited here — they have dedicated chip pickers on the detail page.
  * This screen only owns the two free-text fields.
  */

@@ -111,7 +111,7 @@ Conventional 格式：`feat(scope)`、`fix(scope)`、`refactor(scope)`、`docs`�
 
 Enact 的产品名词分两类：
 
-- **日常词** —— 用户会直接说出口的词。**完整翻译成中文**，是不是数据库实体都一样：`issue` → 任务、`workspace` → 工作区、`project` → 项目。
+- **日常词** —— 用户会直接说出口的词。**完整翻译成中文**，是不是数据库实体都一样：`issue` → 任务、`workspace` → 工作区、`resource` → 资源。
 - **Enact 专有词** —— 中文里没有对应词的概念（`skill`），或用户可能要照着敲、照着比对的 schema 标识符（`todo`、`in_progress`、`task_id`）。**用小写英文**呈现，读起来像类型名。
 
 其余规则以 `apps/docs/content/docs/*.zh.mdx` 为准 —— docs 是已经实战 20+ 篇的 CN voice 标准。但 docs 正文里的 `issue` 还没换成「任务」，正在单独清理；这个词以下面的表格为准，不要参考那些页面。
@@ -138,7 +138,6 @@ Enact 的产品名词分两类：
 
 其它产品名词同样按「有没有稳定的本地日常词」来判断：
 
-- **`project` 翻成"项目"**：中文里早就稳定的日常词。飞书 / Tower / Teambition / PingCode / GitHub Projects 中文版 0 例外都翻译成"项目"，没有产品保留 `project`。
 - **`autopilot` 翻成"自动化"**：autopilot 在中文里联想到特斯拉的"自动驾驶"，跟产品功能（按周期跑 task）对应不上。Notion / 飞书都用"自动化"，是行业共识。
 
 ### 完整翻译 —— 概念词
@@ -147,7 +146,8 @@ Enact 的产品名词分两类：
 | --- | --- |
 | Workspace | **工作区** |
 | Agent | **智能体** |
-| Project | **项目** |
+| Resource | **资源** |
+| Artifact | **产物** |
 | Autopilot | **自动化** |
 | Daemon | **守护进程** |
 | Runtime | **运行时** |

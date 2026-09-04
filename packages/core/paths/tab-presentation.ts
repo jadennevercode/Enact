@@ -33,15 +33,12 @@ export type TabVisual =
    *  `category` is what selects the glyph — carried here so the tab strip
    *  never has to resolve a custom status key on its own. (ENA-6243) */
   | { kind: "issue-status"; status: IssueStatus | null; category?: IssueStatusCategory }
-  /** A project's own icon. `null` falls back to the default project glyph. */
-  | { kind: "project-icon"; icon: string | null }
   /** An actor's avatar, resolved by the view layer from `actorType`+`id`. */
   | { kind: "actor"; actorType: TabActorType; id: string };
 
 /** Localization keys under the `layout.tab` namespace for tab type labels. */
 export type TabLabelKey =
   | "issue"
-  | "project"
   | "autopilot"
   | "agent"
   | "member"
@@ -80,7 +77,6 @@ export type InboxSelectionData =
  */
 export interface TabEntityData {
   issue?: { identifier: string; title: string; status: IssueStatus };
-  project?: { icon: string | null; title: string };
   autopilot?: { title: string };
   /** Resolved display name for an actor subject. */
   actorName?: string;
@@ -167,11 +163,6 @@ export function resolveTabPresentation(
         title: data.issue
           ? { kind: "text", text: `${data.issue.identifier}: ${data.issue.title}` }
           : { kind: "tab", tabKey: "issue" },
-      };
-    case "project":
-      return {
-        visual: { kind: "project-icon", icon: data.project?.icon ?? null },
-        title: textOr(data.project?.title, "project"),
       };
     case "autopilot":
       return {

@@ -355,7 +355,7 @@ func (c *Client) StartTask(ctx context.Context, taskID string) error {
 
 // MarkTaskWaitingLocalDirectory parks a freshly-dispatched task in the
 // waiting_local_directory state on the server. The daemon calls this after
-// it has claimed a task whose project carries a local_directory resource
+// it has claimed a task whose workspace carries a local_directory resource
 // but the path mutex is held by another in-flight task. reason is a short
 // human-readable hint (e.g. "<path>") surfaced by the UI alongside the
 // status. Idempotent on the daemon's side — calling twice with the same

@@ -5,8 +5,8 @@ import type { InboxItem } from "./inbox";
 import type { Comment, Reaction } from "./comment";
 import type { TimelineEntry } from "./activity";
 import type { Workspace, MemberWithUser, Invitation } from "./workspace";
-import type { Project } from "./project";
 import type { Label } from "./label";
+import type { WorkspaceResource } from "./resources";
 
 // WebSocket event types (matching Go server protocol/events.go)
 export type WSEventType =
@@ -63,9 +63,9 @@ export type WSEventType =
   | "chat:session_read"
   | "chat:session_deleted"
   | "chat:session_updated"
-  | "project:created"
-  | "project:updated"
-  | "project:deleted"
+  | "workspace_resource:created"
+  | "workspace_resource:updated"
+  | "workspace_resource:deleted"
   | "squad:created"
   | "squad:updated"
   | "squad:deleted"
@@ -109,13 +109,10 @@ export interface IssueUpdatedPayload {
   // realtime layer keep filtered myList caches in place on a non-membership
   // change instead of refetching; status_changed lets it reconcile board column
   // counts when a status change lands on an off-screen (unloaded) issue;
-  // project_changed lets it drop a moved issue from the old project's filtered
-  // list (the client-side cache diff is unreliable after an optimistic local
-  // move — ENA-3669 / #4548). Other change flags are present on the wire too and
-  // can be surfaced here when needed.
+  // Other change flags are present on the wire too and can be surfaced here
+  // when needed.
   assignee_changed?: boolean;
   status_changed?: boolean;
-  project_changed?: boolean;
 }
 
 export interface IssueDeletedPayload {
@@ -490,16 +487,16 @@ export interface ChatSessionDeletedPayload {
   chat_session_id: string;
 }
 
-export interface ProjectCreatedPayload {
-  project: Project;
+export interface WorkspaceResourceCreatedPayload {
+  resource: WorkspaceResource;
 }
 
-export interface ProjectUpdatedPayload {
-  project: Project;
+export interface WorkspaceResourceUpdatedPayload {
+  resource: WorkspaceResource;
 }
 
-export interface ProjectDeletedPayload {
-  project_id: string;
+export interface WorkspaceResourceDeletedPayload {
+  resource_id: string;
 }
 
 export interface InvitationCreatedPayload {
@@ -589,9 +586,9 @@ export interface WSEventPayloadMap {
   "chat:session_read": ChatSessionReadPayload;
   "chat:session_deleted": ChatSessionDeletedPayload;
   "chat:session_updated": unknown;
-  "project:created": ProjectCreatedPayload;
-  "project:updated": ProjectUpdatedPayload;
-  "project:deleted": ProjectDeletedPayload;
+  "workspace_resource:created": WorkspaceResourceCreatedPayload;
+  "workspace_resource:updated": WorkspaceResourceUpdatedPayload;
+  "workspace_resource:deleted": WorkspaceResourceDeletedPayload;
   "invitation:created": InvitationCreatedPayload;
   "invitation:accepted": InvitationAcceptedPayload;
   "invitation:declined": InvitationDeclinedPayload;

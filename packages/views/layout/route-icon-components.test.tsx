@@ -17,7 +17,7 @@ describe("routeIconForPath", () => {
   // render two different icons.
   it("gives a route the same component wherever it is rendered", () => {
     const p = paths.workspace("acme");
-    for (const href of [p.projects(), p.autopilots(), p.chat(), p.squads(), p.usage()]) {
+    for (const href of [p.artifacts(), p.autopilots(), p.chat(), p.squads(), p.usage()]) {
       // Sidebar passes the bare nav href; a tab passes its own url, which for
       // a sub-route carries extra segments.
       expect(routeIconForPath(`${href}/some-id`)).toBe(routeIconForPath(href));
@@ -26,7 +26,7 @@ describe("routeIconForPath", () => {
 
   it("resolves distinct components for distinct routes", () => {
     const p = paths.workspace("acme");
-    expect(routeIconForPath(p.projects())).not.toBe(routeIconForPath(p.issues()));
+    expect(routeIconForPath(p.artifacts())).not.toBe(routeIconForPath(p.issues()));
     expect(routeIconForPath(p.autopilots())).not.toBe(routeIconForPath(p.issues()));
   });
 

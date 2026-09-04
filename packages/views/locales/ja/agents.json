@@ -887,7 +887,7 @@
       "empty_description": "役割、ワークフロー、出力、制約を説明してください。右側に最初の下書きが表示されます。",
       "prompt_review": "フロントエンドの Pull Request をレビュー",
       "prompt_research": "競合を調査して結果を要約",
-      "prompt_assistant": "チームのプロジェクト計画と文章作成を支援",
+      "prompt_assistant": "チームの計画づくりと仕様の執筆を手伝ってください",
       "thinking": "下書きを更新中…",
       "placeholder": "必要なエージェントを説明…",
       "send": "メッセージを送信"
