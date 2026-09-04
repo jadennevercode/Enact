@@ -254,6 +254,8 @@
     "current_issue": "当前任务",
     "sub_issues_label": "子任务",
     "sub_issue_of": "属于父任务",
+    "retrospect_origin_label": "复盘",
+    "retrospect_origin_tooltip": "这条任务是这项工作完成后，由复盘智能体自动创建的。",
     "add_sub_issues": "添加子任务",
     "add_sub_issue_tooltip": "添加子任务",
     "add_sub_issue_aria": "添加子任务",

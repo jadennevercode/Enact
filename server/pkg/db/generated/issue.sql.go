@@ -918,7 +918,7 @@ func (q *Queries) ListIssueGCStatuses(ctx context.Context, arg ListIssueGCStatus
 const listIssues = `-- name: ListIssues :many
 SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
        i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
-       i.parent_issue_id, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.metadata, i.stage, i.properties,
+       i.parent_issue_id, i.origin_type, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.metadata, i.stage, i.properties,
        i.revision
 FROM issue i
 WHERE i.workspace_id = $1
@@ -999,6 +999,7 @@ type ListIssuesRow struct {
 	CreatorType    string             `json:"creator_type"`
 	CreatorID      pgtype.UUID        `json:"creator_id"`
 	ParentIssueID  pgtype.UUID        `json:"parent_issue_id"`
+	OriginType     pgtype.Text        `json:"origin_type"`
 	Position       float64            `json:"position"`
 	StartDate      pgtype.Date        `json:"start_date"`
 	DueDate        pgtype.Date        `json:"due_date"`
@@ -1051,6 +1052,7 @@ func (q *Queries) ListIssues(ctx context.Context, arg ListIssuesParams) ([]ListI
 			&i.CreatorType,
 			&i.CreatorID,
 			&i.ParentIssueID,
+			&i.OriginType,
 			&i.Position,
 			&i.StartDate,
 			&i.DueDate,
@@ -1076,7 +1078,7 @@ func (q *Queries) ListIssues(ctx context.Context, arg ListIssuesParams) ([]ListI
 const listOpenIssues = `-- name: ListOpenIssues :many
 SELECT i.id, i.workspace_id, i.title, i.description, i.status, i.priority,
        i.assignee_type, i.assignee_id, i.creator_type, i.creator_id,
-       i.parent_issue_id, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.metadata, i.stage, i.properties,
+       i.parent_issue_id, i.origin_type, i.position, i.start_date, i.due_date, i.created_at, i.updated_at, i.last_activity_at, i.number, i.metadata, i.stage, i.properties,
        i.revision
 FROM issue i
 WHERE i.workspace_id = $1
@@ -1164,6 +1166,7 @@ type ListOpenIssuesRow struct {
 	CreatorType    string             `json:"creator_type"`
 	CreatorID      pgtype.UUID        `json:"creator_id"`
 	ParentIssueID  pgtype.UUID        `json:"parent_issue_id"`
+	OriginType     pgtype.Text        `json:"origin_type"`
 	Position       float64            `json:"position"`
 	StartDate      pgtype.Date        `json:"start_date"`
 	DueDate        pgtype.Date        `json:"due_date"`
@@ -1209,6 +1212,7 @@ func (q *Queries) ListOpenIssues(ctx context.Context, arg ListOpenIssuesParams) 
 			&i.CreatorType,
 			&i.CreatorID,
 			&i.ParentIssueID,
+			&i.OriginType,
 			&i.Position,
 			&i.StartDate,
 			&i.DueDate,

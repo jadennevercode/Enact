@@ -1971,6 +1971,21 @@ describe("ApiClient explicit workspace targeting", () => {
     expect(slugHeaderOf(fetchMock)).toBe("proxima-centauri");
   });
 
+  it("sends the given slug on Retrospect Agent creation", async () => {
+    // Same reason as Mika's: on desktop the tab system also writes the ambient
+    // workspace, so a flow acting on a named workspace must say which one
+    // rather than trusting whichever tab happens to be active.
+    const fetchMock = stubOk({ id: "agent-1" });
+    await new ApiClient("https://api.example.test").createRetrospectAgent(
+      { runtime_id: "runtime-1", language: "en" },
+      "proxima-centauri",
+    );
+    expect(slugHeaderOf(fetchMock)).toBe("proxima-centauri");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/agents/retrospect",
+    );
+  });
+
   it("sends the given slug when listing another workspace's runtimes", async () => {
     const fetchMock = stubOk([]);
     await new ApiClient("https://api.example.test").listRuntimes(

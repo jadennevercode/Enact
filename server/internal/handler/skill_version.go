@@ -32,7 +32,6 @@ type SkillVersionResponse struct {
 	Config      any     `json:"config"`
 	ContentHash string  `json:"content_hash"`
 	Source      string  `json:"source"`
-	LessonID    *string `json:"lesson_id"`
 	CreatedBy   *string `json:"created_by"`
 	Summary     string  `json:"summary"`
 	CreatedAt   string  `json:"created_at"`
@@ -64,7 +63,6 @@ func skillVersionToResponse(v db.SkillVersion, currentID pgtype.UUID) SkillVersi
 		Config:      decodeSkillConfig(v.Config),
 		ContentHash: v.ContentHash,
 		Source:      v.Source,
-		LessonID:    uuidToPtr(v.LessonID),
 		CreatedBy:   uuidToPtr(v.CreatedBy),
 		Summary:     v.Summary,
 		CreatedAt:   timestampToString(v.CreatedAt),
@@ -83,7 +81,6 @@ func skillVersionSummaryToResponse(v db.ListSkillVersionSummariesRow, currentID 
 		Config:      decodeSkillConfig(v.Config),
 		ContentHash: v.ContentHash,
 		Source:      v.Source,
-		LessonID:    uuidToPtr(v.LessonID),
 		CreatedBy:   uuidToPtr(v.CreatedBy),
 		Summary:     v.Summary,
 		CreatedAt:   timestampToString(v.CreatedAt),
@@ -131,11 +128,11 @@ func snapshotFromVersion(v db.SkillVersion) skillSnapshot {
 // applySkillSnapshotInTx writes a complete skill state and records the version
 // it produced, in the caller's transaction.
 //
-// Every content change that is not a plain PATCH goes through here — publishing
-// a lesson, restoring an older version, withdrawing a published lesson — so
-// there is exactly one place where "the skill changed" and "a version was
-// recorded" are decided together. Splitting them, even across two adjacent
-// statements in the same function, is how a history grows holes.
+// Every content change that is not a plain PATCH goes through here — restoring
+// an older version, and a Retrospect Agent rewriting one — so there is exactly
+// one place where "the skill changed" and "a version was recorded" are decided
+// together. Splitting them, even across two adjacent statements in the same
+// function, is how a history grows holes.
 func applySkillSnapshotInTx(
 	ctx context.Context,
 	qtx *db.Queries,
@@ -143,7 +140,6 @@ func applySkillSnapshotInTx(
 	snap skillSnapshot,
 	source string,
 	actorID pgtype.UUID,
-	lessonID pgtype.UUID,
 	summary string,
 ) (db.Skill, db.SkillVersion, error) {
 	params := db.UpdateSkillParams{ID: skill.ID}
@@ -183,12 +179,11 @@ func applySkillSnapshotInTx(
 	}
 
 	version, _, err := skillversion.Record(ctx, qtx, skillversion.Input{
-		Skill:    updated,
-		Files:    stored,
-		Source:   source,
-		LessonID: lessonID,
-		ActorID:  actorID,
-		Summary:  summary,
+		Skill:   updated,
+		Files:   stored,
+		Source:  source,
+		ActorID: actorID,
+		Summary: summary,
 	})
 	if err != nil {
 		return db.Skill{}, db.SkillVersion{}, err
@@ -273,8 +268,8 @@ type RestoreSkillVersionRequest struct {
 // what happened that the rows cannot support.
 //
 // Restoring is an edit, not a decision, and is gated by canManageSkill like any
-// other edit. Requiring an approved lesson to undo one would mean the fastest
-// way out of a bad rule is slower than the way in.
+// other edit. Putting a review in front of undoing a bad rule would mean the
+// fastest way out is slower than the way in.
 func (h *Handler) RestoreSkillVersion(w http.ResponseWriter, r *http.Request) {
 	skill, ok := h.loadSkillForUser(w, r, chi.URLParam(r, "id"))
 	if !ok {
@@ -319,7 +314,7 @@ func (h *Handler) RestoreSkillVersion(w http.ResponseWriter, r *http.Request) {
 
 	updated, _, err := applySkillSnapshotInTx(
 		r.Context(), qtx, skill, snapshotFromVersion(target),
-		skillversion.SourceRollback, parseUUID(userID), pgtype.UUID{}, summary,
+		skillversion.SourceRollback, parseUUID(userID), summary,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

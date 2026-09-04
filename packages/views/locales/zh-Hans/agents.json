@@ -293,7 +293,18 @@
       "ai": {
         "title": "通过 AI 创建",
         "description": "描述你想要的结果。Agent Builder 会提出关键问题并实时生成草稿。"
+      },
+      "retrospect": {
+        "title": "复盘智能体",
+        "description": "Enact 内置的复盘者。它会阅读已完成的工作，提出对 skill、智能体和智能体家族的修改建议，并把团队学到的东西写下来。"
       }
+    },
+    "retrospect": {
+      "dialog_title": "让复盘智能体在哪个运行时上运行？",
+      "dialog_description": "选择它用来复盘的运行时。配置之后，有智能体参与的任务一旦完成，就会在它下面自动生成一条复盘任务。它对配置的修改建议始终以评论形式提出，等人同意后才执行。",
+      "cancel": "取消",
+      "confirm": "配置智能体",
+      "failed": "无法配置复盘智能体。"
     },
     "sections": {
       "identity": "身份",

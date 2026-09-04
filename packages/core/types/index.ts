@@ -323,33 +323,12 @@ export type {
 } from "./billing";
 
 export type {
-  LessonStatus,
-  LessonTargetKind,
-  LessonEvidence,
-  LessonSkillFile,
-  LessonSkillState,
-  LessonAffectedAgent,
-  LessonEvent,
-  Lesson,
-  LessonDetail,
-  ListLessonsResponse,
-  ListLessonsParams,
-  CreateLessonRequest,
-  UpdateLessonRequest,
-  LessonDecisionRequest,
   SkillVersionSource,
+  SkillVersionFile,
   SkillVersion,
   SkillVersionDetail,
   ListSkillVersionsResponse,
-  RetrospectiveStatus,
-  RetrospectiveScope,
-  RetrospectiveTrigger,
-  Retrospective,
-  ListRetrospectivesResponse,
-  GetRetrospectiveResponse,
-  IssueRetrospectiveResponse,
-  CreateRetrospectiveRequest,
-} from "./lesson";
+} from "./skill";
 
 export type {
   MarketplaceKind,

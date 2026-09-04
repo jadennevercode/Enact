@@ -69,8 +69,8 @@ func createSkillWithFilesInTx(ctx context.Context, qtx *db.Queries, input skillC
 		fileResps = append(fileResps, skillFileToResponse(sf))
 	}
 
-	// v1. A skill with no recorded version is a skill a lesson cannot be
-	// written against, so the snapshot is taken here rather than on first edit.
+	// v1. A skill with no recorded version is a skill nothing can be rolled
+	// back to, so the snapshot is taken here rather than on first edit.
 	version, err := recordSkillVersionInTx(ctx, qtx, skill, input.Source, input.CreatorID, "Created")
 	if err != nil {
 		return SkillWithFilesResponse{}, err

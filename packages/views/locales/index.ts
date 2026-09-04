@@ -17,7 +17,6 @@ import enArtifacts from "./en/artifacts.json";
 import enResources from "./en/resources.json";
 import enAutopilots from "./en/autopilots.json";
 import enSkills from "./en/skills.json";
-import enLessons from "./en/lessons.json";
 import enMarketplace from "./en/marketplace.json";
 import enChat from "./en/chat.json";
 import enModals from "./en/modals.json";
@@ -45,7 +44,6 @@ import zhHansArtifacts from "./zh-Hans/artifacts.json";
 import zhHansResources from "./zh-Hans/resources.json";
 import zhHansAutopilots from "./zh-Hans/autopilots.json";
 import zhHansSkills from "./zh-Hans/skills.json";
-import zhHansLessons from "./zh-Hans/lessons.json";
 import zhHansMarketplace from "./zh-Hans/marketplace.json";
 import zhHansChat from "./zh-Hans/chat.json";
 import zhHansModals from "./zh-Hans/modals.json";
@@ -73,7 +71,6 @@ import koArtifacts from "./ko/artifacts.json";
 import koResources from "./ko/resources.json";
 import koAutopilots from "./ko/autopilots.json";
 import koSkills from "./ko/skills.json";
-import koLessons from "./ko/lessons.json";
 import koMarketplace from "./ko/marketplace.json";
 import koChat from "./ko/chat.json";
 import koModals from "./ko/modals.json";
@@ -101,7 +98,6 @@ import jaArtifacts from "./ja/artifacts.json";
 import jaResources from "./ja/resources.json";
 import jaAutopilots from "./ja/autopilots.json";
 import jaSkills from "./ja/skills.json";
-import jaLessons from "./ja/lessons.json";
 import jaMarketplace from "./ja/marketplace.json";
 import jaChat from "./ja/chat.json";
 import jaModals from "./ja/modals.json";
@@ -135,7 +131,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     resources: enResources,
     autopilots: enAutopilots,
     skills: enSkills,
-    lessons: enLessons,
     marketplace: enMarketplace,
     chat: enChat,
     modals: enModals,
@@ -165,7 +160,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     resources: zhHansResources,
     autopilots: zhHansAutopilots,
     skills: zhHansSkills,
-    lessons: zhHansLessons,
     marketplace: zhHansMarketplace,
     chat: zhHansChat,
     modals: zhHansModals,
@@ -195,7 +189,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     resources: koResources,
     autopilots: koAutopilots,
     skills: koSkills,
-    lessons: koLessons,
     marketplace: koMarketplace,
     chat: koChat,
     modals: koModals,
@@ -225,7 +218,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     resources: jaResources,
     autopilots: jaAutopilots,
     skills: jaSkills,
-    lessons: jaLessons,
     marketplace: jaMarketplace,
     chat: jaChat,
     modals: jaModals,

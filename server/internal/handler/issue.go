@@ -53,7 +53,17 @@ type IssueResponse struct {
 	CreatorType    string  `json:"creator_type"`
 	CreatorID      string  `json:"creator_id"`
 	ParentIssueID  *string `json:"parent_issue_id"`
-	Position       float64 `json:"position"`
+	// OriginType names what produced this issue when it was not typed by a
+	// person: "autopilot", "quick_create", "retrospect" and the channel
+	// origins. Null for the ordinary case, so a client that does not know a
+	// value renders the issue with no badge.
+	//
+	// Not omitempty: service.IssueToMap always emits the key, and
+	// TestIssueToMap_KeysMatchIssueResponse holds the two renderings to the
+	// same shape so a field cannot read back undefined depending on which entry
+	// point created the issue.
+	OriginType *string `json:"origin_type"`
+	Position   float64 `json:"position"`
 	// Stage groups sub-issues under the same parent into ordered barrier
 	// groups (null = unstaged). See issue_child_done.go for how a closed
 	// stage gates the child-done -> parent wake.
@@ -290,6 +300,7 @@ func issueToResponse(i db.Issue, issuePrefix string) IssueResponse {
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
+		OriginType:     textToPtr(i.OriginType),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -326,6 +337,7 @@ func issueListRowToResponse(i db.ListIssuesRow, issuePrefix string) IssueRespons
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
+		OriginType:     textToPtr(i.OriginType),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -394,6 +406,7 @@ func openIssueRowToResponse(i db.ListOpenIssuesRow, issuePrefix string) IssueRes
 		CreatorType:    i.CreatorType,
 		CreatorID:      uuidToString(i.CreatorID),
 		ParentIssueID:  uuidToPtr(i.ParentIssueID),
+		OriginType:     textToPtr(i.OriginType),
 		Position:       i.Position,
 		Stage:          int4ToPtr(i.Stage),
 		StartDate:      dateToPtr(i.StartDate),
@@ -3579,10 +3592,11 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	// fails best-effort.
 	if statusChanged {
 		h.notifyParentOfChildDone(r.Context(), prevIssue, issue)
-		// Work that agents did just finished: offer to learn from it. Narrow
-		// conditions and best-effort — see maybeSuggestRetrospective.
-		h.maybeSuggestRetrospective(r.Context(), prevIssue, issue, actorType, actorID)
 	}
+	// Learning from finished work is NOT called from here. It hangs off the
+	// EventIssueUpdated publish above, in registerRetrospectListeners, so that
+	// the batch update path and the GitHub webhook path — which publish the
+	// same event and never reached this line — file a retrospect too.
 
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -4123,11 +4137,17 @@ func (h *Handler) BatchUpdateIssues(w http.ResponseWriter, r *http.Request) {
 		statusChanged := req.Updates.Status != nil && prevIssue.Status != issue.Status
 		priorityChanged := req.Updates.Priority != nil && prevIssue.Priority != issue.Priority
 
+		// prev_status travels with status_changed, matching UpdateIssue's
+		// payload. A listener that has to know which direction the status moved
+		// — the retrospect filing does, because it fires on the transition into
+		// done and not on every touch of an issue already there — cannot answer
+		// that from the flag alone.
 		h.publish(protocol.EventIssueUpdated, workspaceID, actorType, actorID, map[string]any{
 			"issue":            resp,
 			"assignee_changed": assigneeChanged,
 			"status_changed":   statusChanged,
 			"priority_changed": priorityChanged,
+			"prev_status":      prevIssue.Status,
 		})
 
 		// Reassignment does not cancel existing tasks (#4963 / ENA-4113) —

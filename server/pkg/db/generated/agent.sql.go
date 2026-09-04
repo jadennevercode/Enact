@@ -4001,6 +4001,62 @@ func (q *Queries) GetAgentBySystemKey(ctx context.Context, arg GetAgentBySystemK
 	return i, err
 }
 
+const getAgentBySystemKeyIncludingArchived = `-- name: GetAgentBySystemKeyIncludingArchived :one
+SELECT id, workspace_id, name, avatar_url, runtime_mode, runtime_config, visibility, status, max_concurrent_tasks, owner_id, created_at, updated_at, description, runtime_id, instructions, archived_at, archived_by, custom_env, custom_args, mcp_config, model, thinking_level, composio_toolkit_allowlist, permission_mode, kind, system_key, disabled_runtime_skills, service_tier FROM agent
+WHERE workspace_id = $1 AND system_key = $2
+ORDER BY archived_at NULLS FIRST, created_at ASC, id ASC
+LIMIT 1
+`
+
+type GetAgentBySystemKeyIncludingArchivedParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	SystemKey   pgtype.Text `json:"system_key"`
+}
+
+// The same identity lookup, but not blind to an archived row.
+//
+// Needed by any provisioning path that must not create a second agent when an
+// archived one already holds the slot: agent_system_identity_unique (migration
+// 172) covers (workspace_id, owner_id, runtime_id, system_key) with no archived
+// predicate, so inserting alongside an archived row fails on the index rather
+// than producing the duplicate. Callers that only want an agent they can assign
+// work to should use GetAgentBySystemKey instead.
+func (q *Queries) GetAgentBySystemKeyIncludingArchived(ctx context.Context, arg GetAgentBySystemKeyIncludingArchivedParams) (Agent, error) {
+	row := q.db.QueryRow(ctx, getAgentBySystemKeyIncludingArchived, arg.WorkspaceID, arg.SystemKey)
+	var i Agent
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.AvatarUrl,
+		&i.RuntimeMode,
+		&i.RuntimeConfig,
+		&i.Visibility,
+		&i.Status,
+		&i.MaxConcurrentTasks,
+		&i.OwnerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Description,
+		&i.RuntimeID,
+		&i.Instructions,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.CustomEnv,
+		&i.CustomArgs,
+		&i.McpConfig,
+		&i.Model,
+		&i.ThinkingLevel,
+		&i.ComposioToolkitAllowlist,
+		&i.PermissionMode,
+		&i.Kind,
+		&i.SystemKey,
+		&i.DisabledRuntimeSkills,
+		&i.ServiceTier,
+	)
+	return i, err
+}
+
 const getAgentForClaimUpdate = `-- name: GetAgentForClaimUpdate :one
 SELECT id, workspace_id, name, avatar_url, runtime_mode, runtime_config, visibility, status, max_concurrent_tasks, owner_id, created_at, updated_at, description, runtime_id, instructions, archived_at, archived_by, custom_env, custom_args, mcp_config, model, thinking_level, composio_toolkit_allowlist, permission_mode, kind, system_key, disabled_runtime_skills, service_tier FROM agent
 WHERE id = $1
@@ -4926,6 +4982,22 @@ func (q *Queries) HasTaskCoveringDelegatedFailureComment(ctx context.Context, ar
 	var covered bool
 	err := row.Scan(&covered)
 	return covered, err
+}
+
+const issueHasAgentTask = `-- name: IssueHasAgentTask :one
+SELECT EXISTS (SELECT 1 FROM agent_task_queue WHERE issue_id = $1)
+`
+
+// Whether any agent has ever run against this issue.
+//
+// Existence, not a list: the retrospect filing asks this on every transition
+// into a done status, and ListTasksByIssue would return every column of every
+// task — including the prompt and result blobs — to answer a yes/no.
+func (q *Queries) IssueHasAgentTask(ctx context.Context, issueID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, issueHasAgentTask, issueID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const linkTaskToIssue = `-- name: LinkTaskToIssue :exec

@@ -12,7 +12,6 @@
     "runtimes": "运行时",
     "ontologies": "Ontology",
     "skills": "Skills",
-    "lessons": "经验沉淀",
     "marketplace": "市场",
     "settings": "设置"
   },
@@ -23,7 +22,6 @@
     "member": "成员",
     "squad": "智能体小组",
     "skill": "Skill",
-    "lesson": "经验沉淀",
     "machine": "机器",
     "runtime": "运行时",
     "attachment": "附件",

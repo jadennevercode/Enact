@@ -645,7 +645,7 @@ func runSkillSearch(cmd *cobra.Command, args []string) error {
 
 // runSkillVersions lists the snapshots a skill has had. The version bodies are
 // deliberately not in this response — a version list is read to pick a version,
-// then `enact lesson propose --base-version` names the one that was read.
+// then `enact skill get` reads the one that was picked.
 func runSkillVersions(cmd *cobra.Command, args []string) error {
 	client, err := newAPIClient(cmd)
 	if err != nil {
@@ -773,4 +773,18 @@ func runSkillFilesDelete(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Skill file deleted: %s\n", args[1])
 	return nil
+}
+
+// nestedList reads a JSON array of objects out of a decoded response body,
+// skipping anything that is not an object. A response that drifts is rendered
+// short rather than crashing the command.
+func nestedList(m map[string]any, key string) []map[string]any {
+	raw, _ := m[key].([]any)
+	out := make([]map[string]any, 0, len(raw))
+	for _, item := range raw {
+		if obj, ok := item.(map[string]any); ok {
+			out = append(out, obj)
+		}
+	}
+	return out
 }

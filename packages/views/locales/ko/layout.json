@@ -12,7 +12,6 @@
     "runtimes": "런타임",
     "ontologies": "온톨로지",
     "skills": "스킬",
-    "lessons": "배운 점",
     "marketplace": "마켓플레이스",
     "settings": "설정"
   },
@@ -23,7 +22,6 @@
     "member": "멤버",
     "squad": "에이전트 패밀리",
     "skill": "스킬",
-    "lesson": "배운 점",
     "machine": "머신",
     "runtime": "런타임",
     "attachment": "첨부파일",

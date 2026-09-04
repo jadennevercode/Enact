@@ -300,13 +300,11 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to seed SDLC defaults: "+err.Error())
 		return
 	}
-	// The Lesson Learner, on the same terms and for the same reason: a
-	// workspace whose agents can do work but cannot learn from it is missing
-	// half of what it was provisioned for.
-	if err := service.EnsureLessonsDefaultsInTx(r.Context(), qtx, ws.ID, parseUUID(userID), pgtype.UUID{}); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to seed lesson defaults: "+err.Error())
-		return
-	}
+	// The Retrospect Agent is deliberately NOT seeded here. It is opt-in: a
+	// workspace gets one when someone configures it (POST /api/agents/retrospect),
+	// and having one is what turns the retrospect loop on. Seeding it would
+	// bind a runtime nobody chose and start filing sub-issues under work in
+	// every workspace, including the ones that only ever wanted a tracker.
 
 	// NOTE: CreateWorkspace deliberately does NOT mark the user as
 	// onboarded. The `onboarded_at` flag is owned by CompleteOnboarding

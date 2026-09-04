@@ -355,5 +355,22 @@
     "markdown_placeholder": "Markdown 내용 작성...",
     "raw_placeholder": "파일 내용...",
     "raw_aria": "{{path}}의 일반 텍스트 내용"
+  },
+  "versions": {
+    "title": "버전",
+    "current": "현재",
+    "restore": "복원",
+    "restore_confirm": "이 버전으로 되돌릴까요? 현재 내용은 기록에 남으므로 되돌릴 수 있습니다.",
+    "empty": "아직 버전 기록이 없습니다.",
+    "source": {
+      "backfill": "기록이 시작될 때 저장됨",
+      "manual": "여기서 편집",
+      "import": "가져오기",
+      "refresh": "소스에서 업데이트",
+      "retrospect": "회고에서 채택",
+      "rollback": "복원됨",
+      "seed": "Enact 기본 제공"
+    },
+    "number": "v{{version}}"
   }
 }

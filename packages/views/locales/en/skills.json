@@ -371,5 +371,22 @@
     "markdown_placeholder": "Write markdown content...",
     "raw_placeholder": "File content...",
     "raw_aria": "Plain text content of {{path}}"
+  },
+  "versions": {
+    "title": "Versions",
+    "current": "Current",
+    "restore": "Restore",
+    "restore_confirm": "Restore this version? The current text is kept in the history, so this can be undone.",
+    "empty": "No version history yet.",
+    "source": {
+      "backfill": "Recorded when history began",
+      "manual": "Edited here",
+      "import": "Imported",
+      "refresh": "Refreshed from source",
+      "retrospect": "Applied by a retrospect",
+      "rollback": "Restored",
+      "seed": "Provisioned by Enact"
+    },
+    "number": "v{{version}}"
   }
 }

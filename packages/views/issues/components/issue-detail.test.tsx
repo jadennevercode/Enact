@@ -1980,6 +1980,38 @@ describe("IssueDetail (shared)", () => {
       ...overrides,
     });
 
+    it("marks only the sub-issue the retrospect loop filed", async () => {
+      // Provenance the member cannot otherwise see: a review filed under a
+      // finished issue looks exactly like work someone typed. The negative
+      // half is the point — the marker must not leak onto ordinary rows.
+      mockApiObj.listChildIssues.mockResolvedValue({
+        issues: [
+          subIssue({
+            id: "child-1",
+            number: 11,
+            identifier: "TES-11",
+            title: "Review what we learned",
+            origin_type: "retrospect",
+          }),
+          subIssue({
+            id: "child-2",
+            number: 12,
+            identifier: "TES-12",
+            title: "Ship dashboards",
+          }),
+        ],
+      });
+
+      renderIssueDetail();
+
+      await screen.findByText("Review what we learned");
+      const marker = screen.getByLabelText("Retrospect");
+      expect(
+        marker.closest("a")?.textContent,
+      ).toContain("Review what we learned");
+      expect(screen.getAllByLabelText("Retrospect")).toHaveLength(1);
+    });
+
     it("renders priority, labels, due date and nested progress on rows", async () => {
       mockApiObj.listChildIssues.mockResolvedValue({
         issues: [

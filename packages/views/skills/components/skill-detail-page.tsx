@@ -69,7 +69,7 @@ import { cn } from "@enact/ui/lib/utils";
 import { AppLink, useNavigation } from "../../navigation";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { useCanEditSkill } from "../hooks/use-can-edit-skill";
-import { SkillVersionsPanel } from "../../lessons";
+import { SkillVersionsPanel } from "./skill-versions-panel";
 import { useSkillPermissions } from "@enact/core/permissions";
 import { CapabilityBanner } from "@enact/ui/components/common/capability-banner";
 import {
@@ -466,9 +466,6 @@ function OverviewTab({
   onAddToAgents: () => void;
 }) {
   const { t } = useT("skills");
-  // The versions panel is a lessons-namespace surface embedded here; its
-  // heading comes from that namespace so the two stay worded the same.
-  const { t: versionsT } = useT("lessons");
 
   return (
     <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 md:p-8">
@@ -544,7 +541,7 @@ function OverviewTab({
 
       <section className="mt-10">
         <h2 className="min-w-0 text-title-sm font-medium">
-          {versionsT(($) => $.versions.title)}
+          {t(($) => $.versions.title)}
         </h2>
         {/* Everyone can read the history; only someone who may edit the skill
             sees the way back. A skill that changed under you is a thing you
