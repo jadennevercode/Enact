@@ -75,111 +75,94 @@ func init() {
 	repoCmd.AddCommand(repoCheckoutCmd)
 }
 
-type workspaceRepo struct {
-	URL         string `json:"url"`
-	Description string `json:"description,omitempty"`
+// `enact repo` is the repository-shaped view of workspace resources. There is
+// one storage — the workspace_resource table — and `enact resource` is its
+// general typed surface; this command exists because "add a repo" is the thing
+// people actually do, and `--type github_repo --url …` is a lot of ceremony for
+// it. It used to write `workspace.repos`, a separate list that migration 438
+// folded into resources.
+
+type repoResource struct {
+	ID          string
+	URL         string
+	Ref         string
+	Description string
 }
 
-type repoWorkspaceResponse struct {
-	ID    string          `json:"id"`
-	Name  string          `json:"name"`
-	Slug  string          `json:"slug"`
-	Repos []workspaceRepo `json:"repos"`
-}
-
-type repoMutationResult struct {
-	WorkspaceID string          `json:"workspace_id"`
-	Added       []workspaceRepo `json:"added,omitempty"`
-	Updated     []workspaceRepo `json:"updated,omitempty"`
-	Removed     []workspaceRepo `json:"removed,omitempty"`
-	Repos       []workspaceRepo `json:"repos"`
+// listRepoResources returns the workspace's github_repo resources, skipping
+// every other resource type. A malformed row is skipped rather than failing the
+// listing: one bad ref should not hide the repositories around it.
+func listRepoResources(ctx context.Context, client *cli.APIClient) ([]repoResource, error) {
+	raw, err := fetchWorkspaceResources(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+	repos := make([]repoResource, 0, len(raw))
+	for _, item := range raw {
+		row, ok := item.(map[string]any)
+		if !ok || strVal(row, "resource_type") != "github_repo" {
+			continue
+		}
+		ref, _ := row["resource_ref"].(map[string]any)
+		url := strings.TrimSpace(strVal(ref, "url"))
+		if url == "" {
+			continue
+		}
+		repos = append(repos, repoResource{
+			ID:          strVal(row, "id"),
+			URL:         url,
+			Ref:         strings.TrimSpace(strVal(ref, "ref")),
+			Description: strings.TrimSpace(strVal(row, "label")),
+		})
+	}
+	return repos, nil
 }
 
 func repoURLsFromArgsAndFlags(cmd *cobra.Command, args []string) ([]string, error) {
-	flagURLs, _ := cmd.Flags().GetStringArray("url")
-	raw := append([]string{}, flagURLs...)
-	raw = append(raw, args...)
-	if len(raw) == 0 {
-		return nil, fmt.Errorf("at least one repository URL is required")
+	urls := append([]string{}, args...)
+	if flagURLs, err := cmd.Flags().GetStringArray("url"); err == nil {
+		urls = append(urls, flagURLs...)
 	}
-
-	urls := make([]string, 0, len(raw))
-	seen := make(map[string]struct{}, len(raw))
-	for _, u := range raw {
-		u = strings.TrimSpace(u)
-		if u == "" {
-			return nil, fmt.Errorf("repository URL cannot be empty")
-		}
-		if _, ok := seen[u]; ok {
+	seen := make(map[string]struct{}, len(urls))
+	out := make([]string, 0, len(urls))
+	for _, raw := range urls {
+		url := strings.TrimSpace(raw)
+		if url == "" {
 			continue
 		}
-		seen[u] = struct{}{}
-		urls = append(urls, u)
+		if _, dup := seen[url]; dup {
+			continue
+		}
+		seen[url] = struct{}{}
+		out = append(out, url)
 	}
-	return urls, nil
-}
-
-func fetchRepoWorkspace(ctx context.Context, client *cli.APIClient, workspaceID string) (repoWorkspaceResponse, error) {
-	var ws repoWorkspaceResponse
-	if err := client.GetJSON(ctx, "/api/workspaces/"+workspaceID, &ws); err != nil {
-		return repoWorkspaceResponse{}, fmt.Errorf("get workspace: %w", err)
+	if len(out) == 0 {
+		return nil, fmt.Errorf("at least one repository URL is required")
 	}
-	if ws.Repos == nil {
-		ws.Repos = []workspaceRepo{}
-	}
-	return ws, nil
-}
-
-func patchWorkspaceRepos(ctx context.Context, client *cli.APIClient, workspaceID string, repos []workspaceRepo) (repoWorkspaceResponse, error) {
-	var ws repoWorkspaceResponse
-	if err := client.PatchJSON(ctx, "/api/workspaces/"+workspaceID, map[string]any{"repos": repos}, &ws); err != nil {
-		return repoWorkspaceResponse{}, fmt.Errorf("update workspace repos: %w", err)
-	}
-	if ws.Repos == nil {
-		ws.Repos = []workspaceRepo{}
-	}
-	return ws, nil
-}
-
-func repoCommandClient(cmd *cobra.Command) (*cli.APIClient, string, error) {
-	workspaceID, err := requireWorkspaceID(cmd)
-	if err != nil {
-		return nil, "", err
-	}
-	client, err := newAPIClient(cmd)
-	if err != nil {
-		return nil, "", err
-	}
-	return client, workspaceID, nil
+	return out, nil
 }
 
 func runRepoList(cmd *cobra.Command, _ []string) error {
-	client, workspaceID, err := repoCommandClient(cmd)
+	client, err := newAPIClient(cmd)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := cli.APIContext(context.Background())
-	defer cancel()
-
-	ws, err := fetchRepoWorkspace(ctx, client, workspaceID)
+	repos, err := listRepoResources(cmd.Context(), client)
 	if err != nil {
 		return err
 	}
-
-	output, _ := cmd.Flags().GetString("output")
-	if output == "json" {
-		return cli.PrintJSON(os.Stdout, ws.Repos)
+	if output, _ := cmd.Flags().GetString("output"); output == "json" {
+		return cli.PrintJSON(os.Stdout, repos)
 	}
-	if len(ws.Repos) == 0 {
-		fmt.Fprintln(os.Stderr, "No repositories found.")
+	if len(repos) == 0 {
+		fmt.Fprintln(os.Stdout, "No repositories attached to this workspace.")
 		return nil
 	}
-	rows := make([][]string, 0, len(ws.Repos))
-	for _, repo := range ws.Repos {
-		rows = append(rows, []string{repo.URL, repo.Description})
+	rows := make([][]string, 0, len(repos))
+	for _, repo := range repos {
+		rows = append(rows, []string{repo.URL, repo.Ref, repo.Description})
 	}
-	cli.PrintTable(os.Stdout, []string{"URL", "DESCRIPTION"}, rows)
+	cli.PrintTable(os.Stdout, []string{"URL", "REF", "DESCRIPTION"}, rows)
 	return nil
 }
 
@@ -188,81 +171,68 @@ func runRepoAdd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	description, _ := cmd.Flags().GetString("description")
-	descriptionChanged := cmd.Flags().Changed("description")
-	if descriptionChanged && len(urls) > 1 {
-		return fmt.Errorf("--description can only be used when adding one repository URL")
+	description := strings.TrimSpace(mustString(cmd, "description"))
+	// One description cannot describe several repositories, and silently
+	// applying it to all of them would be worse than refusing.
+	if description != "" && len(urls) > 1 {
+		return fmt.Errorf("--description applies to a single repository; got %d", len(urls))
 	}
 
-	client, workspaceID, err := repoCommandClient(cmd)
+	client, err := newAPIClient(cmd)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := cli.APIContext(context.Background())
-	defer cancel()
-
-	ws, err := fetchRepoWorkspace(ctx, client, workspaceID)
+	existing, err := listRepoResources(cmd.Context(), client)
 	if err != nil {
 		return err
 	}
-
-	indexByURL := make(map[string]int, len(ws.Repos))
-	for i, repo := range ws.Repos {
-		indexByURL[repo.URL] = i
+	byURL := make(map[string]repoResource, len(existing))
+	for _, repo := range existing {
+		byURL[repo.URL] = repo
 	}
 
-	added := []workspaceRepo{}
-	updated := []workspaceRepo{}
-	repos := append([]workspaceRepo{}, ws.Repos...)
-	for _, u := range urls {
-		if idx, ok := indexByURL[u]; ok {
-			if descriptionChanged && repos[idx].Description != description {
-				repos[idx].Description = description
-				updated = append(updated, repos[idx])
+	added := make([]string, 0, len(urls))
+	updated := make([]string, 0, 1)
+	for _, url := range urls {
+		if repo, dup := byURL[url]; dup {
+			// Re-adding an attached repository is how you set or change its
+			// description; without one it is a no-op rather than an error.
+			if description == "" || repo.Description == description {
+				continue
 			}
+			body := map[string]any{"label": description}
+			var result map[string]any
+			if err := client.PutJSON(cmd.Context(), "/api/resources/"+repo.ID, body, &result); err != nil {
+				return fmt.Errorf("update repository %s: %w", url, err)
+			}
+			updated = append(updated, url)
 			continue
 		}
-		repo := workspaceRepo{URL: u}
-		if descriptionChanged {
-			repo.Description = description
+		body := map[string]any{
+			"resource_type": "github_repo",
+			"resource_ref":  map[string]any{"url": url},
 		}
-		indexByURL[u] = len(repos)
-		repos = append(repos, repo)
-		added = append(added, repo)
+		if description != "" {
+			body["label"] = description
+		}
+		var result map[string]any
+		if err := client.PostJSON(cmd.Context(), "/api/resources", body, &result); err != nil {
+			return fmt.Errorf("add repository %s: %w", url, err)
+		}
+		byURL[url] = repoResource{URL: url}
+		added = append(added, url)
 	}
 
-	if len(added) > 0 || len(updated) > 0 {
-		ws, err = patchWorkspaceRepos(ctx, client, workspaceID, repos)
-		if err != nil {
-			return err
-		}
-	} else {
-		ws.Repos = repos
-	}
-
-	result := repoMutationResult{
-		WorkspaceID: ws.ID,
-		Added:       added,
-		Updated:     updated,
-		Repos:       ws.Repos,
-	}
-	output, _ := cmd.Flags().GetString("output")
-	if output == "json" {
-		return cli.PrintJSON(os.Stdout, result)
-	}
 	if len(added) == 0 && len(updated) == 0 {
-		fmt.Fprintln(os.Stdout, "No repository changes.")
+		fmt.Fprintln(os.Stdout, "Already attached; nothing to do.")
 		return nil
 	}
-	rows := make([][]string, 0, len(added)+len(updated))
-	for _, repo := range added {
-		rows = append(rows, []string{"added", repo.URL, repo.Description})
+	for _, url := range added {
+		fmt.Fprintf(os.Stdout, "Attached %s\n", url)
 	}
-	for _, repo := range updated {
-		rows = append(rows, []string{"updated", repo.URL, repo.Description})
+	for _, url := range updated {
+		fmt.Fprintf(os.Stdout, "Updated %s\n", url)
 	}
-	cli.PrintTable(os.Stdout, []string{"ACTION", "URL", "DESCRIPTION"}, rows)
 	return nil
 }
 
@@ -271,64 +241,38 @@ func runRepoRemove(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	client, workspaceID, err := repoCommandClient(cmd)
+	client, err := newAPIClient(cmd)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := cli.APIContext(context.Background())
-	defer cancel()
-
-	ws, err := fetchRepoWorkspace(ctx, client, workspaceID)
+	existing, err := listRepoResources(cmd.Context(), client)
 	if err != nil {
 		return err
 	}
-
-	removeSet := make(map[string]struct{}, len(urls))
-	for _, u := range urls {
-		removeSet[u] = struct{}{}
+	byURL := make(map[string]repoResource, len(existing))
+	for _, repo := range existing {
+		byURL[repo.URL] = repo
 	}
-	removedSet := make(map[string]struct{}, len(urls))
-	removed := []workspaceRepo{}
-	repos := make([]workspaceRepo, 0, len(ws.Repos))
-	for _, repo := range ws.Repos {
-		if _, ok := removeSet[repo.URL]; ok {
-			removed = append(removed, repo)
-			removedSet[repo.URL] = struct{}{}
+
+	removed := make([]string, 0, len(urls))
+	missing := make([]string, 0)
+	for _, url := range urls {
+		repo, ok := byURL[url]
+		if !ok {
+			missing = append(missing, url)
 			continue
 		}
-		repos = append(repos, repo)
-	}
-	missing := []string{}
-	for _, u := range urls {
-		if _, ok := removedSet[u]; !ok {
-			missing = append(missing, u)
+		if err := client.DeleteJSON(cmd.Context(), "/api/resources/"+repo.ID); err != nil {
+			return fmt.Errorf("remove repository %s: %w", url, err)
 		}
+		removed = append(removed, url)
+	}
+	for _, url := range removed {
+		fmt.Fprintf(os.Stdout, "Removed %s\n", url)
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("repository not found in workspace registry: %s", strings.Join(missing, ", "))
+		return fmt.Errorf("not attached to this workspace: %s", strings.Join(missing, ", "))
 	}
-
-	ws, err = patchWorkspaceRepos(ctx, client, workspaceID, repos)
-	if err != nil {
-		return err
-	}
-
-	result := repoMutationResult{
-		WorkspaceID: ws.ID,
-		Removed:     removed,
-		Repos:       ws.Repos,
-	}
-	output, _ := cmd.Flags().GetString("output")
-	if output == "json" {
-		return cli.PrintJSON(os.Stdout, result)
-	}
-	rows := make([][]string, 0, len(removed))
-	for _, repo := range removed {
-		rows = append(rows, []string{repo.URL, repo.Description})
-	}
-	cli.PrintTable(os.Stdout, []string{"REMOVED URL", "DESCRIPTION"}, rows)
 	return nil
 }
 

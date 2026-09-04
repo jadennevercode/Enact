@@ -256,8 +256,8 @@ func parseWorkspaceRepos(raw []byte) []RepoData {
 	return normalizeWorkspaceRepos(repos)
 }
 
-func workspaceReposResponse(workspaceID string, raw []byte, settingsRaw []byte) daemonWorkspaceReposResponse {
-	repos := parseWorkspaceRepos(raw)
+func workspaceReposResponse(workspaceID string, repos []RepoData, settingsRaw []byte) daemonWorkspaceReposResponse {
+	repos = normalizeWorkspaceRepos(repos)
 	resp := daemonWorkspaceReposResponse{
 		WorkspaceID:  workspaceID,
 		Repos:        repos,
@@ -808,7 +808,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		"runtimes": resp,
 	})
 
-	repoResp := workspaceReposResponse(req.WorkspaceID, ws.Repos, ws.Settings)
+	repoResp := workspaceReposResponse(req.WorkspaceID, h.workspaceRepos(r.Context(), parseUUID(req.WorkspaceID)), ws.Settings)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"runtimes":      resp,
@@ -991,7 +991,7 @@ func (h *Handler) GetDaemonWorkspaceRepos(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJSON(w, http.StatusOK, workspaceReposResponse(workspaceID, ws.Repos, ws.Settings))
+	writeJSON(w, http.StatusOK, workspaceReposResponse(workspaceID, h.workspaceRepos(r.Context(), parseUUID(workspaceID)), ws.Settings))
 }
 
 // setRuntimeOffline flips a runtime offline, recording the daemon's reason when
@@ -2793,11 +2793,8 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					resp.WorkspaceID = uuidToString(ap.WorkspaceID)
 				}
 				if len(resp.Repos) == 0 {
-					if ws, err := h.Queries.GetWorkspace(r.Context(), ap.WorkspaceID); err == nil && ws.Repos != nil {
-						var repos []RepoData
-						if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-							resp.Repos = repos
-						}
+					if repos := h.workspaceRepos(r.Context(), ap.WorkspaceID); len(repos) > 0 {
+						resp.Repos = repos
 					}
 				}
 			}

@@ -11,7 +11,6 @@ function makeWs(slug: string): Workspace {
     description: null,
     context: null,
     settings: {},
-    repos: [],
     issue_prefix: slug.toUpperCase(),
     avatar_url: null,
     created_at: "",

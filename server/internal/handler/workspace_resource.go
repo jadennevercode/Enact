@@ -852,54 +852,87 @@ func (h *Handler) listWorkspaceResourcesForClaim(ctx context.Context, workspaceI
 	return rows
 }
 
-// applyWorkspaceResourcesToClaim fills a claim response's resource list and
-// its repo list from the workspace's resources.
+// workspaceRepos returns the workspace's github_repo resources as the daemon's
+// repo list.
 //
-// Precedence is the one project resources had: an attached github_repo
-// resource wins over the workspace's default `repos` list, and the fallback
-// applies only when nothing is attached.
-func (h *Handler) applyWorkspaceResourcesToClaim(ctx context.Context, resp *AgentTaskResponse, workspaceID pgtype.UUID) {
-	var repos []RepoData
-	if rows := h.listWorkspaceResourcesForClaim(ctx, workspaceID); len(rows) > 0 {
-		out := make([]WorkspaceResourceData, 0, len(rows))
-		for _, row := range rows {
-			label := ""
-			if row.Label.Valid {
-				label = row.Label.String
-			}
-			ref := json.RawMessage(row.ResourceRef)
-			if len(ref) == 0 {
-				ref = json.RawMessage("{}")
-			}
-			out = append(out, WorkspaceResourceData{
-				ID:           uuidToString(row.ID),
-				ResourceType: row.ResourceType,
-				ResourceRef:  ref,
-				Label:        label,
-			})
-			// Lift github_repo resources into the daemon's repo list so
-			// `enact repo checkout` and the meta-skill render them as the
-			// task's repos.
-			if row.ResourceType == "github_repo" {
-				var payload struct {
-					URL string `json:"url"`
-					Ref string `json:"ref,omitempty"`
-				}
-				if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-					repos = append(repos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-				}
-			}
+// This is the only place repositories come from. `workspace.repos` used to be a
+// second, parallel list edited in its own settings tab; migration 438 folded it
+// into these rows because the two could not be reconciled at one level — the
+// claim handler replaced the whole list rather than merging, so attaching one
+// resource silently dropped every repository configured in the other surface.
+//
+// The resource's `label` carries what the old list called `description`: a
+// human note rendered beside the URL in the agent's brief.
+func (h *Handler) workspaceRepos(ctx context.Context, workspaceID pgtype.UUID) []RepoData {
+	rows := h.listWorkspaceResourcesForClaim(ctx, workspaceID)
+	repos := make([]RepoData, 0, len(rows))
+	for _, row := range rows {
+		if row.ResourceType != "github_repo" {
+			continue
 		}
-		resp.WorkspaceResources = out
+		var payload struct {
+			URL string `json:"url"`
+			Ref string `json:"ref,omitempty"`
+		}
+		if json.Unmarshal(row.ResourceRef, &payload) != nil || strings.TrimSpace(payload.URL) == "" {
+			continue
+		}
+		description := ""
+		if row.Label.Valid {
+			description = row.Label.String
+		}
+		repos = append(repos, RepoData{
+			URL:         strings.TrimSpace(payload.URL),
+			Ref:         strings.TrimSpace(payload.Ref),
+			Description: description,
+		})
 	}
-	if len(repos) > 0 {
-		resp.Repos = repos
+	return repos
+}
+
+// applyWorkspaceResourcesToClaim fills a claim response's resource list and its
+// repo list from the workspace's resources.
+func (h *Handler) applyWorkspaceResourcesToClaim(ctx context.Context, resp *AgentTaskResponse, workspaceID pgtype.UUID) {
+	rows := h.listWorkspaceResourcesForClaim(ctx, workspaceID)
+	if len(rows) == 0 {
 		return
 	}
-	if ws, err := h.Queries.GetWorkspace(ctx, workspaceID); err == nil && ws.Repos != nil {
-		var fallback []RepoData
-		if json.Unmarshal(ws.Repos, &fallback) == nil && len(fallback) > 0 {
-			resp.Repos = fallback
+	out := make([]WorkspaceResourceData, 0, len(rows))
+	repos := make([]RepoData, 0, len(rows))
+	for _, row := range rows {
+		label := ""
+		if row.Label.Valid {
+			label = row.Label.String
 		}
+		ref := json.RawMessage(row.ResourceRef)
+		if len(ref) == 0 {
+			ref = json.RawMessage("{}")
+		}
+		out = append(out, WorkspaceResourceData{
+			ID:           uuidToString(row.ID),
+			ResourceType: row.ResourceType,
+			ResourceRef:  ref,
+			Label:        label,
+		})
+		// Lift github_repo resources into the daemon's repo list so
+		// `enact repo checkout` and the meta-skill render them as the
+		// task's repos.
+		if row.ResourceType == "github_repo" {
+			var payload struct {
+				URL string `json:"url"`
+				Ref string `json:"ref,omitempty"`
+			}
+			if json.Unmarshal(row.ResourceRef, &payload) == nil && strings.TrimSpace(payload.URL) != "" {
+				repos = append(repos, RepoData{
+					URL:         strings.TrimSpace(payload.URL),
+					Ref:         strings.TrimSpace(payload.Ref),
+					Description: label,
+				})
+			}
+		}
+	}
+	resp.WorkspaceResources = out
+	if len(repos) > 0 {
+		resp.Repos = repos
 	}
 }

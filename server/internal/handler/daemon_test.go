@@ -93,15 +93,29 @@ func (s *popRecordingLocalSkillImportStore) PopPending(ctx context.Context, runt
 	return s.LocalSkillImportStore.PopPending(ctx, runtimeID)
 }
 
-func setHandlerTestWorkspaceRepos(t *testing.T, repos []map[string]string) {
+// setHandlerTestWorkspaceRepoResources attaches repositories to the fixture
+// workspace. They live in workspace_resource as github_repo rows — migration
+// 438 folded the old `workspace.repos` column into that table so one workspace
+// names its repositories in exactly one place. What the column called
+// `description` is the resource's `label`.
+func setHandlerTestWorkspaceRepoResources(t *testing.T, repos []map[string]string) {
 	t.Helper()
-	data, err := json.Marshal(repos)
-	if err != nil {
-		t.Fatalf("marshal repos: %v", err)
+	for i, repo := range repos {
+		ref, err := json.Marshal(map[string]string{"url": strings.TrimSpace(repo["url"])})
+		if err != nil {
+			t.Fatalf("marshal repo ref: %v", err)
+		}
+		var label any
+		if desc := strings.TrimSpace(repo["description"]); desc != "" {
+			label = desc
+		}
+		dbfx.Exec(t,
+			`INSERT INTO workspace_resource (workspace_id, resource_type, resource_ref, label, position)
+			 VALUES ($1, 'github_repo', $2, $3, $4)`,
+			testWorkspaceID, ref, label, i)
 	}
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, data, testWorkspaceID)
 	t.Cleanup(func() {
-		dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte("[]"), testWorkspaceID)
+		dbfx.Exec(t, `DELETE FROM workspace_resource WHERE workspace_id = $1 AND resource_type = 'github_repo'`, testWorkspaceID)
 	})
 }
 
@@ -1484,7 +1498,7 @@ func TestGetDaemonWorkspaceRepos_WithDaemonToken(t *testing.T) {
 		t.Skip("database not available")
 	}
 
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
+	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
 		{"url": "git@example.com:team/api.git", "description": "API"},
 		{"url": "  git@example.com:team/web.git  ", "description": " Web "},
 	})
@@ -1529,7 +1543,7 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 		t.Skip("database not available")
 	}
 
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
+	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
 		{"url": "git@example.com:team/api.git", "description": "API"},
 		{"url": "git@example.com:team/web.git", "description": "Web"},
 	})
@@ -1548,13 +1562,20 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 
 	version1 := getReposVersion()
 
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte(`[{"url":"git@example.com:team/web.git","description":"frontend"},{"url":"git@example.com:team/api.git","description":"backend"}]`), testWorkspaceID)
+	// Same two URLs, reordered and re-described. The version hashes the URL
+	// set, so neither should move it.
+	dbfx.Exec(t, `UPDATE workspace_resource SET position = 1 - position, label = 'rewritten'
+	              WHERE workspace_id = $1 AND resource_type = 'github_repo'`, testWorkspaceID)
 	version2 := getReposVersion()
 	if version1 != version2 {
 		t.Fatalf("expected repos_version to ignore order/description changes, got %s vs %s", version1, version2)
 	}
 
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte(`[{"url":"git@example.com:team/api.git","description":"backend"},{"url":"git@example.com:team/mobile.git","description":"mobile"}]`), testWorkspaceID)
+	// A different URL set must move it.
+	dbfx.Exec(t, `UPDATE workspace_resource
+	                 SET resource_ref = '{"url":"git@example.com:team/mobile.git"}'::jsonb
+	               WHERE workspace_id = $1 AND resource_type = 'github_repo'
+	                 AND resource_ref->>'url' = 'git@example.com:team/web.git'`, testWorkspaceID)
 	version3 := getReposVersion()
 	if strings.EqualFold(version2, version3) {
 		t.Fatalf("expected repos_version to change when URL set changes, got %s", version3)

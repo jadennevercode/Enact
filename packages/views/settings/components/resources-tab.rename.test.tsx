@@ -29,9 +29,18 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey?: unknown[] }) => {
     const key = options?.queryKey?.[0];
     if (key === "workspace-resources") return { data: [RESOURCE] };
-    return { data: [] };
+    return { data: undefined };
   },
+  useInfiniteQuery: () => ({
+    data: undefined,
+    isPending: true,
+    isError: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+  }),
   queryOptions: (options: unknown) => options,
+  infiniteQueryOptions: (options: unknown) => options,
 }));
 
 vi.mock("@enact/core/resources", () => ({
@@ -56,8 +65,28 @@ vi.mock("@enact/core/runtimes", () => ({
   runtimeAdvertisesLocalWorktree: () => true,
 }));
 vi.mock("@enact/core/hooks", () => ({ useWorkspaceId: () => "workspace-1" }));
-vi.mock("@enact/core/paths", () => ({
-  useCurrentWorkspace: () => ({ id: "workspace-1", slug: "ws", repos: [] }),
+vi.mock("@enact/core/github", () => ({
+  githubInstallationsOptions: () => ({
+    queryKey: ["github", "installations"],
+    queryFn: vi.fn(),
+  }),
+  githubInstallationRepositoriesOptions: () => ({
+    queryKey: ["github", "repositories"],
+    queryFn: vi.fn(),
+  }),
+}));
+vi.mock("@enact/core/api", () => ({
+  api: { getGitHubConnectURL: vi.fn() },
+}));
+vi.mock("../../navigation", () => ({
+  useNavigation: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    pathname: "/acme/settings",
+    searchParams: new URLSearchParams("tab=resources"),
+    getShareableUrl: (path: string) => `https://app.example${path}`,
+  }),
 }));
 vi.mock("../../platform/local-directory", () => ({
   isDesktopShell: () => true,

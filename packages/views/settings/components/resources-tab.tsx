@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   FolderGit,
   FolderOpen,
   GitBranch,
+  LoaderCircle,
   Pencil,
   Plus,
   Search,
@@ -19,8 +20,13 @@ import {
   workspaceResourcesOptions,
 } from "@enact/core/resources";
 import { useWorkspaceId } from "@enact/core/hooks";
-import { useCurrentWorkspace } from "@enact/core/paths";
+import {
+  githubInstallationRepositoriesOptions,
+  githubInstallationsOptions,
+} from "@enact/core/github";
+import { api } from "@enact/core/api";
 import type {
+  GitHubRepository,
   GithubRepoResourceRef,
   LocalDirectoryExecutionMode,
   LocalDirectoryResourceRef,
@@ -33,6 +39,23 @@ import {
 import { useConfigStore } from "@enact/core/config";
 import { Badge } from "@enact/ui/components/ui/badge";
 import { Button } from "@enact/ui/components/ui/button";
+import { Checkbox } from "@enact/ui/components/ui/checkbox";
+import { Input } from "@enact/ui/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@enact/ui/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@enact/ui/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -55,9 +78,11 @@ import {
   LocalDirectoryModeDialog,
   type WorktreeUnavailableReason,
 } from "../../common/local-directory";
+import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
-import { githubShortLabel } from "../../common/github-url";
+import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
 import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
+import { GitHubMark } from "./github-mark";
 
 // Workspace Resources settings tab.
 //
@@ -112,14 +137,21 @@ type ModeDialogState = {
 export function ResourcesTab() {
   const { t } = useT("resources");
   const wsId = useWorkspaceId();
-  const workspace = useCurrentWorkspace();
+  const navigation = useNavigation();
   const daemonStatus = useLocalDaemonStatus();
   const [addOpen, setAddOpen] = useState(false);
-  const [repoSearch, setRepoSearch] = useState("");
   const [picking, setPicking] = useState(false);
   const [modeDialog, setModeDialog] = useState<ModeDialogState | null>(null);
   const [modeSaving, setModeSaving] = useState(false);
   const [modeError, setModeError] = useState<string | null>(null);
+  const [connectingGitHub, setConnectingGitHub] = useState(false);
+  const [githubPickerOpen, setGitHubPickerOpen] = useState(false);
+  const [selectedInstallationID, setSelectedInstallationID] = useState("");
+  const [selectedRepositories, setSelectedRepositories] = useState<
+    Map<number, GitHubRepository>
+  >(new Map());
+  const [repositorySearch, setRepositorySearch] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const { data: resources = [] } = useQuery(workspaceResourcesOptions(wsId));
   const createResource = useCreateWorkspaceResource(wsId);
@@ -162,7 +194,18 @@ export function ResourcesTab() {
     (r) => !isGithubRef(r) && !isLocalDirectoryRef(r),
   );
 
-  const attachedUrls = new Set(githubResources.map((r) => r.resource_ref.url));
+  // Identity, not raw string: the same repository reaches us as an https clone
+  // URL from the picker and (often) as scp shorthand from the manual form, and
+  // attaching it twice would give the agent two checkouts of one repo.
+  const attachedRepositoryIdentities = useMemo(
+    () =>
+      new Set(
+        githubResources
+          .map((r) => repositoryIdentity(r.resource_ref.url))
+          .filter((identity): identity is string => !!identity),
+      ),
+    [githubResources],
+  );
   const attachedLocalPaths = new Set(
     localResources
       .filter((r) => r.resource_ref.daemon_id === localDaemonId)
@@ -178,13 +221,108 @@ export function ResourcesTab() {
   const hasLocalDirectoryForCurrentDaemon =
     localDaemonId !== null && attachedLocalPaths.size > 0;
 
-  const repoQuery = repoSearch.trim().toLowerCase();
-  const filteredRepos =
-    workspace?.repos?.filter((repo) =>
-      repo.url.toLowerCase().includes(repoQuery),
-    ) ?? [];
+  // GitHub App connection. This is the authorization flow, not storage: it is
+  // what lets the picker below list an org's repositories at all, so it lives
+  // beside the repositories it feeds rather than in the GitHub settings tab.
+  const {
+    data: githubData,
+    isPending: githubInstallationsPending,
+    isFetching: githubInstallationsFetching,
+  } = useQuery({
+    ...githubInstallationsOptions(wsId),
+    enabled: !!wsId,
+  });
+  const githubInstallations = useMemo(
+    () => githubData?.installations ?? [],
+    [githubData?.installations],
+  );
+  // From the server's own answer, never inferred from the member list, so the
+  // UI cannot offer a management action the API would reject.
+  const canManageGitHub = githubData?.can_manage === true;
+  const githubConnectConfigured = githubData?.configured === true;
+  const githubBrowseConfigured =
+    githubData?.repository_browse_configured === true;
+  const githubRepositoriesQuery = useInfiniteQuery({
+    ...githubInstallationRepositoriesOptions(wsId, selectedInstallationID),
+    enabled:
+      githubPickerOpen &&
+      canManageGitHub &&
+      githubBrowseConfigured &&
+      !!selectedInstallationID,
+  });
+  const githubRepositories = useMemo(
+    () =>
+      githubRepositoriesQuery.data?.pages.flatMap((page) => page.repositories) ??
+      [],
+    [githubRepositoriesQuery.data?.pages],
+  );
+  const filteredGitHubRepositories = useMemo(() => {
+    const search = repositorySearch.trim().toLowerCase();
+    if (!search) return githubRepositories;
+    return githubRepositories.filter((repository) =>
+      repository.full_name.toLowerCase().includes(search),
+    );
+  }, [githubRepositories, repositorySearch]);
+
+  useEffect(() => {
+    if (
+      selectedInstallationID &&
+      githubInstallations.some(
+        (installation) => installation.id === selectedInstallationID,
+      )
+    ) {
+      return;
+    }
+    setSelectedInstallationID(githubInstallations[0]?.id ?? "");
+  }, [githubInstallations, selectedInstallationID]);
+
+  // Returning from the GitHub App authorization screen. Coming back with an
+  // installation and nothing to do with it is the dead end this avoids: open
+  // the picker straight away, then scrub the callback params so a reload does
+  // not reopen it.
+  useEffect(() => {
+    const connected = navigation.searchParams.get("github_connected") === "1";
+    const githubError = navigation.searchParams.get("github_error");
+    if ((!connected && !githubError) || !canManageGitHub) return;
+    if (
+      !githubError &&
+      (githubInstallationsPending || githubInstallationsFetching)
+    ) {
+      return;
+    }
+
+    if (githubError) {
+      toast.error(t(($) => $.github_connect_failed));
+    } else if (githubInstallations.length > 0 && githubBrowseConfigured) {
+      setSelectedInstallationID(githubInstallations[0]!.id);
+      setGitHubPickerOpen(true);
+    } else if (githubInstallations.length > 0) {
+      toast.error(t(($) => $.github_browse_not_configured));
+    }
+
+    const next = new URLSearchParams(navigation.searchParams);
+    next.delete("github_connected");
+    next.delete("github_error");
+    // The server may only send us back to its own allow-listed target, which
+    // still spells this tab the old way; normalize it so the cleaned URL is
+    // the one the tab actually lives at.
+    next.set("tab", "resources");
+    navigation.replace(`${navigation.pathname}?${next.toString()}`);
+  }, [
+    canManageGitHub,
+    githubBrowseConfigured,
+    githubInstallations,
+    githubInstallationsFetching,
+    githubInstallationsPending,
+    navigation,
+    t,
+  ]);
 
   const handleAttach = async (url: string) => {
+    if (attachedRepositoryIdentities.has(repositoryIdentity(url) ?? "")) {
+      toast.error(t(($) => $.toast_already_attached));
+      return;
+    }
     try {
       await createResource.mutateAsync({
         resource_type: "github_repo",
@@ -195,6 +333,91 @@ export function ResourcesTab() {
       const msg =
         err instanceof Error ? err.message : t(($) => $.toast_attach_failed);
       toast.error(msg);
+    }
+  };
+
+  const openGitHubPicker = () => {
+    setSelectedInstallationID(
+      selectedInstallationID || githubInstallations[0]?.id || "",
+    );
+    setGitHubPickerOpen(true);
+  };
+
+  const handleGitHubAction = async () => {
+    if (githubInstallations.length > 0) {
+      openGitHubPicker();
+      return;
+    }
+    setConnectingGitHub(true);
+    try {
+      // "repositories" is the server's allow-listed return target for this
+      // surface; it redirects to ?tab=repositories, which resolves here.
+      const response = await api.getGitHubConnectURL(wsId, "repositories");
+      if (!response.configured || !response.url) {
+        toast.error(t(($) => $.github_not_configured));
+        return;
+      }
+      window.open(response.url, "_blank", "noopener");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t(($) => $.github_connect_failed),
+      );
+    } finally {
+      setConnectingGitHub(false);
+    }
+  };
+
+  const closeGitHubPicker = () => {
+    setGitHubPickerOpen(false);
+    setSelectedRepositories(new Map());
+    setRepositorySearch("");
+  };
+
+  const toggleGitHubRepository = (
+    repository: GitHubRepository,
+    checked: boolean,
+  ) => {
+    setSelectedRepositories((current) => {
+      const next = new Map(current);
+      if (checked) next.set(repository.id, repository);
+      else next.delete(repository.id);
+      return next;
+    });
+  };
+
+  const importGitHubRepositories = async () => {
+    if (importing) return;
+    setImporting(true);
+    const known = new Set(attachedRepositoryIdentities);
+    let attached = 0;
+    try {
+      for (const repository of selectedRepositories.values()) {
+        const identity = repositoryIdentity(repository.clone_url);
+        if (!identity || known.has(identity) || repository.archived) continue;
+        known.add(identity);
+        // The repo's own blurb becomes the resource label, which is what the
+        // agent claim handler reads back out as the repository description.
+        const description = repository.description?.trim();
+        await createResource.mutateAsync({
+          resource_type: "github_repo",
+          resource_ref: { url: repository.clone_url },
+          ...(description ? { label: description } : {}),
+        });
+        attached += 1;
+      }
+      if (attached > 0) toast.success(t(($) => $.toast_attached));
+      closeGitHubPicker();
+    } catch (err) {
+      // Stop at the first failure and leave the dialog open: the rows already
+      // created are in the list behind it, and the selection is still there to
+      // retry the rest.
+      toast.error(
+        err instanceof Error ? err.message : t(($) => $.toast_attach_failed),
+      );
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -385,92 +608,54 @@ export function ResourcesTab() {
         title={t(($) => $.repos_section_title)}
         description={t(($) => $.repos_section_description)}
         action={
-          <Popover
-            open={addOpen}
-            onOpenChange={(v) => {
-              setAddOpen(v);
-              if (!v) setRepoSearch("");
-            }}
-          >
-            <PopoverTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  <Plus className="size-3.5" />
-                  {t(($) => $.add_button)}
-                </Button>
-              }
-            />
-            <PopoverContent align="end" className="w-80 space-y-2 p-2">
-              <div className="text-caption font-medium text-muted-foreground">
-                {t(($) => $.popover_title)}
-              </div>
-              {workspace?.repos && workspace.repos.length > 0 && (
-                <>
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={repoSearch}
-                      onChange={(e) => setRepoSearch(e.target.value)}
-                      aria-label={t(($) => $.repos_search_placeholder)}
-                      placeholder={t(($) => $.repos_search_placeholder)}
-                      className="h-8 w-full rounded-md border bg-transparent pl-7 pr-2 text-caption outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                  </div>
-                  <div className="max-h-48 space-y-1 overflow-y-auto">
-                    {filteredRepos.length === 0 && repoQuery && (
-                      <p className="py-2 text-center text-caption text-muted-foreground">
-                        {t(($) => $.repos_search_empty)}
-                      </p>
-                    )}
-                    {filteredRepos.map((repo) => {
-                      const isAttached = attachedUrls.has(repo.url);
-                      const isDisabled = isAttached || createResource.isPending;
-                      return (
-                        // Use aria-disabled instead of the native `disabled` attribute so
-                        // hover events still reach the tooltip trigger on attached rows
-                        // (browsers suppress pointer events on disabled form controls).
-                        <button
-                          key={repo.url}
-                          type="button"
-                          aria-disabled={isDisabled}
-                          onClick={async () => {
-                            if (isDisabled) return;
-                            await handleAttach(repo.url);
-                            setAddOpen(false);
-                          }}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption transition-colors hover:bg-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
-                        >
-                          <FolderGit className="size-3.5" />
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <span className="flex-1 truncate">
-                                  {githubShortLabel(repo.url)}
-                                </span>
-                              }
-                            />
-                            <TooltipContent side="top">{repo.url}</TooltipContent>
-                          </Tooltip>
-                          {isAttached && (
-                            <span className="text-micro text-muted-foreground">
-                              {t(($) => $.attached_badge)}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-              <CustomRepoForm
-                onSubmit={async (url) => {
-                  await handleAttach(url);
-                  setAddOpen(false);
-                }}
+          <div className="flex items-center gap-2">
+            <Popover open={addOpen} onOpenChange={setAddOpen}>
+              <PopoverTrigger
+                render={
+                  <Button variant="outline" size="sm">
+                    <Plus className="size-3.5" />
+                    {t(($) => $.add_button)}
+                  </Button>
+                }
               />
-            </PopoverContent>
-          </Popover>
+              <PopoverContent align="end" className="w-80 space-y-2 p-2">
+                <div className="text-caption font-medium text-muted-foreground">
+                  {t(($) => $.popover_title)}
+                </div>
+                <CustomRepoForm
+                  onSubmit={async (url) => {
+                    await handleAttach(url);
+                    setAddOpen(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+            {canManageGitHub && (
+              <Button
+                size="sm"
+                onClick={() => void handleGitHubAction()}
+                disabled={
+                  connectingGitHub ||
+                  !githubBrowseConfigured ||
+                  (!githubConnectConfigured && githubInstallations.length === 0)
+                }
+                title={
+                  !githubBrowseConfigured
+                    ? t(($) => $.github_browse_not_configured)
+                    : undefined
+                }
+              >
+                {connectingGitHub ? (
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                ) : (
+                  <GitHubMark className="size-3.5" />
+                )}
+                {githubInstallations.length > 0
+                  ? t(($) => $.choose_from_github)
+                  : t(($) => $.connect_github)}
+              </Button>
+            )}
+          </div>
         }
       >
         <SettingsCard>
@@ -565,6 +750,170 @@ export function ResourcesTab() {
           </SettingsCard>
         </SettingsSection>
       )}
+
+      <Dialog
+        open={githubPickerOpen}
+        onOpenChange={(open) => {
+          if (!open) closeGitHubPicker();
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle>{t(($) => $.github_picker_title)}</DialogTitle>
+            <DialogDescription>
+              {t(($) => $.github_picker_description)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 px-6 py-4">
+            {githubInstallations.length > 1 ? (
+              <Select
+                items={githubInstallations.map((installation) => ({
+                  value: installation.id,
+                  label: installation.account_login,
+                }))}
+                value={selectedInstallationID}
+                onValueChange={(value) => setSelectedInstallationID(value ?? "")}
+              >
+                <SelectTrigger aria-label={t(($) => $.github_account)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {githubInstallations.map((installation) => (
+                    <SelectItem key={installation.id} value={installation.id}>
+                      {installation.account_login}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : githubInstallations[0] ? (
+              <p className="text-caption text-muted-foreground">
+                {t(($) => $.github_account)}:{" "}
+                <span className="font-medium text-foreground">
+                  {githubInstallations[0].account_login}
+                </span>
+              </p>
+            ) : null}
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={repositorySearch}
+                onChange={(event) => setRepositorySearch(event.target.value)}
+                placeholder={t(($) => $.github_search_placeholder)}
+                aria-label={t(($) => $.github_search_placeholder)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto border-y">
+            {githubRepositoriesQuery.isPending ? (
+              <div className="flex items-center justify-center gap-2 px-6 py-12 text-body text-muted-foreground">
+                <LoaderCircle className="size-4 animate-spin" />
+                {t(($) => $.github_loading)}
+              </div>
+            ) : githubRepositoriesQuery.isError ? (
+              <div className="px-6 py-12 text-center text-body text-muted-foreground">
+                {t(($) => $.github_load_failed)}
+              </div>
+            ) : filteredGitHubRepositories.length === 0 ? (
+              <div className="px-6 py-12 text-center text-body text-muted-foreground">
+                {repositorySearch
+                  ? t(($) => $.github_no_search_results)
+                  : t(($) => $.github_empty)}
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredGitHubRepositories.map((repository) => {
+                  const identity = repositoryIdentity(repository.clone_url);
+                  const alreadyAdded =
+                    !!identity && attachedRepositoryIdentities.has(identity);
+                  const disabled = alreadyAdded || repository.archived;
+                  return (
+                    <label
+                      key={repository.id}
+                      htmlFor={`github-repository-${repository.id}`}
+                      className="flex items-start gap-3 px-6 py-3.5"
+                    >
+                      <Checkbox
+                        id={`github-repository-${repository.id}`}
+                        checked={
+                          alreadyAdded || selectedRepositories.has(repository.id)
+                        }
+                        disabled={disabled}
+                        onCheckedChange={(checked) =>
+                          toggleGitHubRepository(repository, checked === true)
+                        }
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0 flex-1 space-y-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="truncate text-body font-medium">
+                            {repository.full_name}
+                          </span>
+                          {repository.private ? (
+                            <Badge variant="secondary">
+                              {t(($) => $.github_private)}
+                            </Badge>
+                          ) : null}
+                          {repository.archived ? (
+                            <Badge variant="outline">
+                              {t(($) => $.github_archived)}
+                            </Badge>
+                          ) : null}
+                          {alreadyAdded ? (
+                            <Badge variant="outline">
+                              {t(($) => $.github_added)}
+                            </Badge>
+                          ) : null}
+                        </span>
+                        {repository.description ? (
+                          <span className="block truncate text-caption text-muted-foreground">
+                            {repository.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            {githubRepositoriesQuery.hasNextPage ? (
+              <div className="flex justify-center border-t p-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => githubRepositoriesQuery.fetchNextPage()}
+                  disabled={githubRepositoriesQuery.isFetchingNextPage}
+                >
+                  {githubRepositoriesQuery.isFetchingNextPage
+                    ? t(($) => $.github_loading)
+                    : t(($) => $.github_load_more)}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="m-0 border-t bg-muted/30 px-6 py-4">
+            <p className="mr-auto text-caption text-muted-foreground">
+              {t(($) => $.github_selected_count, {
+                count: selectedRepositories.size,
+              })}
+            </p>
+            <Button variant="ghost" onClick={closeGitHubPicker}>
+              {t(($) => $.github_cancel)}
+            </Button>
+            <Button
+              onClick={() => void importGitHubRepositories()}
+              disabled={selectedRepositories.size === 0 || importing}
+            >
+              {t(($) => $.github_import)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {modeDialog && (
         <LocalDirectoryModeDialog

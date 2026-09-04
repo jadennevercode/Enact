@@ -25,7 +25,7 @@ func (q *Queries) AcquireSDLCDefaultsLock(ctx context.Context, workspaceID pgtyp
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version
 `
 
 type CreateWorkspaceParams struct {
@@ -54,7 +54,6 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
@@ -227,7 +226,7 @@ func (q *Queries) GetDaemonWorkspace(ctx context.Context, id pgtype.UUID) (GetDa
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version FROM workspace
 WHERE id = $1
 `
 
@@ -243,7 +242,6 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
@@ -270,7 +268,7 @@ func (q *Queries) GetWorkspaceAttributionFailClosed(ctx context.Context, id pgty
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version FROM workspace
 WHERE slug = $1
 `
 
@@ -286,7 +284,6 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
@@ -327,7 +324,7 @@ type ListDaemonWorkspacesRow struct {
 // Daemons only need the membership set and display name to discover which
 // workspaces should have local runtimes. Keep this projection intentionally
 // narrow so the periodic consistency check never reads UI-only JSON/text
-// columns such as settings, repos, or context.
+// columns such as settings or context.
 func (q *Queries) ListDaemonWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListDaemonWorkspacesRow, error) {
 	rows, err := q.db.Query(ctx, listDaemonWorkspaces, userID)
 	if err != nil {
@@ -350,7 +347,7 @@ func (q *Queries) ListDaemonWorkspaces(ctx context.Context, userID pgtype.UUID) 
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
-       w.created_at, w.updated_at, w.context, w.repos,
+       w.created_at, w.updated_at, w.context,
        w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
        w.sdlc_defaults_version, w.retrospective_suggestions_enabled,
        w.lessons_defaults_version
@@ -378,7 +375,6 @@ func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Wor
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Context,
-			&i.Repos,
 			&i.IssuePrefix,
 			&i.IssueCounter,
 			&i.AvatarUrl,
@@ -594,12 +590,11 @@ UPDATE workspace SET
     description = COALESCE($3, description),
     context = COALESCE($4, context),
     settings = COALESCE($5, settings),
-    repos = COALESCE($6, repos),
-    issue_prefix = COALESCE($7, issue_prefix),
-    avatar_url = COALESCE($8, avatar_url),
+    issue_prefix = COALESCE($6, issue_prefix),
+    avatar_url = COALESCE($7, avatar_url),
     updated_at = now()
 WHERE id = $1
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, retrospective_suggestions_enabled, lessons_defaults_version
 `
 
 type UpdateWorkspaceParams struct {
@@ -608,7 +603,6 @@ type UpdateWorkspaceParams struct {
 	Description pgtype.Text `json:"description"`
 	Context     pgtype.Text `json:"context"`
 	Settings    []byte      `json:"settings"`
-	Repos       []byte      `json:"repos"`
 	IssuePrefix pgtype.Text `json:"issue_prefix"`
 	AvatarUrl   pgtype.Text `json:"avatar_url"`
 }
@@ -620,7 +614,6 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		arg.Description,
 		arg.Context,
 		arg.Settings,
-		arg.Repos,
 		arg.IssuePrefix,
 		arg.AvatarUrl,
 	)
@@ -634,7 +627,6 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,

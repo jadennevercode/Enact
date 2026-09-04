@@ -1,6 +1,6 @@
 -- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
-       w.created_at, w.updated_at, w.context, w.repos,
+       w.created_at, w.updated_at, w.context,
        w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
        w.sdlc_defaults_version, w.retrospective_suggestions_enabled,
        w.lessons_defaults_version
@@ -13,7 +13,7 @@ ORDER BY w.created_at ASC;
 -- Daemons only need the membership set and display name to discover which
 -- workspaces should have local runtimes. Keep this projection intentionally
 -- narrow so the periodic consistency check never reads UI-only JSON/text
--- columns such as settings, repos, or context.
+-- columns such as settings or context.
 SELECT w.id, w.name
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
@@ -128,7 +128,6 @@ UPDATE workspace SET
     description = COALESCE(sqlc.narg('description'), description),
     context = COALESCE(sqlc.narg('context'), context),
     settings = COALESCE(sqlc.narg('settings'), settings),
-    repos = COALESCE(sqlc.narg('repos'), repos),
     issue_prefix = COALESCE(sqlc.narg('issue_prefix'), issue_prefix),
     avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
     updated_at = now()

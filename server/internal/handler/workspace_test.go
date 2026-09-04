@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -685,75 +684,6 @@ VALUES ($1, $2, 'owner')
 	if resp2.AvatarURL == nil || *resp2.AvatarURL != avatarURL {
 		t.Fatalf("avatar_url should be preserved by partial update, got %v", resp2.AvatarURL)
 	}
-}
-
-func TestUpdateWorkspace_ReposValidation(t *testing.T) {
-	ctx := context.Background()
-
-	const slug = "handler-tests-repos-validation"
-	_, _ = testPool.Exec(ctx, `DELETE FROM workspace WHERE slug = $1`, slug)
-
-	wsID := dbfx.Insert(t, "workspace", testutil.Cols{
-		"name":        "Handler Test Repos Validation",
-		"slug":        slug,
-		"description": "UpdateWorkspace repos validation test",
-	})
-
-	dbfx.Exec(t, `
-INSERT INTO member (workspace_id, user_id, role)
-VALUES ($1, $2, 'owner')
-`, wsID, testUserID)
-
-	t.Run("rejects invalid repo URLs without persisting", func(t *testing.T) {
-		req := newRequest("PATCH", "/api/workspaces/"+wsID, map[string]any{
-			"repos": []map[string]any{
-				{"url": "not-a-url"},
-			},
-		})
-		req = withURLParam(req, "id", wsID)
-		testutil.Call(t, testHandler.UpdateWorkspace, req).Want(http.StatusBadRequest)
-
-		var raw []byte
-		dbfx.QueryRow(t, `SELECT repos FROM workspace WHERE id = $1`, wsID).Scan(&raw)
-		if string(raw) != "[]" {
-			t.Fatalf("invalid repos update should not persist, got %s", raw)
-		}
-	})
-
-	t.Run("normalizes valid repos", func(t *testing.T) {
-		req := newRequest("PATCH", "/api/workspaces/"+wsID, map[string]any{
-			"repos": []map[string]any{
-				{
-					"url":         "  https://github.com/enact-ai/enact.git  ",
-					"description": "  main monorepo  ",
-				},
-				{
-					"url": "https://github.com/enact-ai/enact.git",
-				},
-				{
-					"url": "git@github.com:enact-ai/enact-cloud.git",
-				},
-			},
-		})
-		req = withURLParam(req, "id", wsID)
-		testutil.Call(t, testHandler.UpdateWorkspace, req).Want(http.StatusOK)
-
-		var raw []byte
-		dbfx.QueryRow(t, `SELECT repos FROM workspace WHERE id = $1`, wsID).Scan(&raw)
-		var repos []workspaceRepoRef
-		if err := json.Unmarshal(raw, &repos); err != nil {
-			t.Fatalf("decode repos: %v", err)
-		}
-		if len(repos) != 2 {
-			t.Fatalf("expected duplicate URL to be deduped, got %d repos: %s", len(repos), raw)
-		}
-		if repos[0].URL != "https://github.com/enact-ai/enact.git" || repos[0].Description != "main monorepo" {
-			t.Fatalf("first repo not normalized: %+v", repos[0])
-		}
-		if repos[1].URL != "git@github.com:enact-ai/enact-cloud.git" {
-			t.Fatalf("second repo not preserved: %+v", repos[1])
-		}
-	})
 }
 
 // revocationFixture is a minimal (workspace, member-to-revoke, runtime,

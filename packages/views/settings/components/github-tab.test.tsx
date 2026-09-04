@@ -20,7 +20,6 @@ const workspaceRef = vi.hoisted(() => ({
     name: "Acme",
     slug: "acme",
     settings: {} as Record<string, unknown>,
-    repos: [{ url: "https://github.com/acme/api" }] as { url: string }[],
   },
 }));
 type MemberRole = "owner" | "admin" | "member" | "guest";
@@ -134,7 +133,6 @@ function resetFixtures() {
     name: "Acme",
     slug: "acme",
     settings: {},
-    repos: [{ url: "https://github.com/acme/api" }],
   };
   membersRef.current = [{ user_id: "user-1", role: "owner" }];
   installationsRef.current = { installations: [], configured: true, can_manage: true };
@@ -277,10 +275,10 @@ describe("GitHubTab", () => {
     expect(screen.getByText(/Connected by Jiayuan/)).toBeTruthy();
   });
 
-  it("repositories shortcut navigates to the repositories tab", async () => {
+  it("repositories shortcut navigates to the resources tab", async () => {
     const user = userEvent.setup();
     render(<GitHubTab />, { wrapper: I18nWrapper });
     await user.click(screen.getByRole("button", { name: /Manage repositories/ }));
-    expect(mockNavPush).toHaveBeenCalledWith("/acme/settings?tab=repositories");
+    expect(mockNavPush).toHaveBeenCalledWith("/acme/settings?tab=resources");
   });
 });

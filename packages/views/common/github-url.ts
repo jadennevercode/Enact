@@ -33,3 +33,37 @@ export function midTruncate(s: string, maxLen = 40): string {
   const head = maxLen - 1 - tail;
   return `${s.slice(0, head)}…${s.slice(-tail)}`;
 }
+
+// Canonical "host/owner/repo" identity for a git remote, used to tell whether
+// two URLs point at the same repository. Handles both URL forms and scp-like
+// shorthand, and strips a trailing .git. The host is lowercased (DNS is
+// case-insensitive) but the path is NOT: forge paths are case-sensitive, so
+// folding them would merge two distinct repositories. Returns null for input
+// that names no repository.
+export function repositoryIdentity(rawURL: string): string | null {
+  const value = rawURL.trim();
+  if (!value) return null;
+
+  let host = "";
+  let path = "";
+  if (!value.includes("://")) {
+    const scpLike = value.match(/^(?:[^@\s/]+@)?([^:\s/]+):(.+)$/);
+    if (scpLike) {
+      host = scpLike[1] ?? "";
+      path = scpLike[2] ?? "";
+    }
+  }
+  if (!host) {
+    try {
+      const parsed = new URL(value);
+      host = parsed.hostname;
+      path = parsed.pathname;
+    } catch {
+      return null;
+    }
+  }
+
+  const normalizedPath = path.replace(/^\/+|\/+$/g, "").replace(/\.git$/i, "");
+  if (!host || !normalizedPath) return null;
+  return `${host.toLowerCase()}/${normalizedPath}`;
+}

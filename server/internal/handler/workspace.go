@@ -101,7 +101,6 @@ type WorkspaceResponse struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	Settings    any     `json:"settings"`
-	Repos       any     `json:"repos"`
 	IssuePrefix string  `json:"issue_prefix"`
 	AvatarURL   *string `json:"avatar_url"`
 	CreatedAt   string  `json:"created_at"`
@@ -116,13 +115,6 @@ func (h *Handler) workspaceToResponse(w db.Workspace) WorkspaceResponse {
 	if settings == nil {
 		settings = map[string]any{}
 	}
-	var repos any
-	if w.Repos != nil {
-		json.Unmarshal(w.Repos, &repos)
-	}
-	if repos == nil {
-		repos = []any{}
-	}
 	return WorkspaceResponse{
 		ID:          uuidToString(w.ID),
 		Name:        w.Name,
@@ -130,7 +122,6 @@ func (h *Handler) workspaceToResponse(w db.Workspace) WorkspaceResponse {
 		Description: textToPtr(w.Description),
 		Context:     textToPtr(w.Context),
 		Settings:    settings,
-		Repos:       repos,
 		IssuePrefix: w.IssuePrefix,
 		AvatarURL:   h.resolveAvatarURLPtr(textToPtr(w.AvatarUrl)),
 		CreatedAt:   timestampToString(w.CreatedAt),
@@ -339,7 +330,6 @@ type UpdateWorkspaceRequest struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	Settings    any     `json:"settings"`
-	Repos       any     `json:"repos"`
 	IssuePrefix *string `json:"issue_prefix"`
 	AvatarURL   *string `json:"avatar_url"`
 }
@@ -347,42 +337,6 @@ type UpdateWorkspaceRequest struct {
 type workspaceRepoRef struct {
 	URL         string `json:"url"`
 	Description string `json:"description,omitempty"`
-}
-
-func validateAndNormalizeWorkspaceRepos(value any) ([]byte, error) {
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	var repos []workspaceRepoRef
-	if err := json.Unmarshal(raw, &repos); err != nil {
-		return nil, fmt.Errorf("repos must be an array of repository objects: %w", err)
-	}
-
-	normalized := make([]workspaceRepoRef, 0, len(repos))
-	seen := make(map[string]struct{}, len(repos))
-	for i, repo := range repos {
-		repo.URL = strings.TrimSpace(repo.URL)
-		repo.Description = strings.TrimSpace(repo.Description)
-		if repo.URL == "" {
-			return nil, fmt.Errorf("repos[%d]: url is required", i)
-		}
-		if !isValidGitRepoURL(repo.URL) {
-			return nil, fmt.Errorf("repos[%d]: url must be a valid http(s) or ssh git URL", i)
-		}
-		if _, ok := seen[repo.URL]; ok {
-			continue
-		}
-		seen[repo.URL] = struct{}{}
-		normalized = append(normalized, repo)
-	}
-
-	out, err := json.Marshal(normalized)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (h *Handler) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -418,14 +372,6 @@ func (h *Handler) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 	if req.Settings != nil {
 		s, _ := json.Marshal(req.Settings)
 		params.Settings = s
-	}
-	if req.Repos != nil {
-		reposJSON, err := validateAndNormalizeWorkspaceRepos(req.Repos)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		params.Repos = reposJSON
 	}
 	if req.IssuePrefix != nil {
 		prefix, ok := normalizeIssuePrefix(*req.IssuePrefix)

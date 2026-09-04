@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -584,20 +583,20 @@ func TestLatestDaemonCLIVersion(t *testing.T) {
 //
 // Ported from the project-scoped version; the resources moved from the
 // issue's project to the workspace itself.
-func TestClaimTask_WorkspaceGithubReposOverrideWorkspaceRepoRegistry(t *testing.T) {
+// A claim's repo list is built from the workspace's github_repo resources —
+// the only place repositories live since migration 438 folded `workspace.repos`
+// into them. The label rides along as the repo's description, which is what the
+// agent brief prints beside the URL.
+func TestClaimTask_ReposComeFromWorkspaceResources(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
 	}
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
-		{"url": "https://github.com/example/workspace-repo-a", "description": "ws a"},
-		{"url": "https://github.com/example/workspace-repo-b", "description": "ws b"},
-	})
-
 	const resourceRepoURL = "https://github.com/example/resource-only-repo"
 	const resourceRepoRef = "release/v2"
 	created := createWorkspaceResourceForTest(t, map[string]any{
 		"resource_type": "github_repo",
 		"resource_ref":  map[string]any{"url": resourceRepoURL, "ref": resourceRepoRef},
+		"label":         "the one repo",
 	})
 
 	var agentID, runtimeID string
@@ -629,33 +628,30 @@ func TestClaimTask_WorkspaceGithubReposOverrideWorkspaceRepoRegistry(t *testing.
 		t.Fatal("expected a task in the response")
 	}
 	if len(resp.Task.Repos) != 1 || resp.Task.Repos[0].URL != resourceRepoURL {
-		t.Fatalf("expected resp.Repos to carry only the resource repo, got %+v", resp.Task.Repos)
+		t.Fatalf("expected resp.Repos to carry the resource repo, got %+v", resp.Task.Repos)
 	}
 	if resp.Task.Repos[0].Ref != resourceRepoRef {
 		t.Fatalf("resource repo ref = %q, want %q", resp.Task.Repos[0].Ref, resourceRepoRef)
 	}
-	for _, r := range resp.Task.Repos {
-		if strings.HasSuffix(r.URL, "workspace-repo-a") || strings.HasSuffix(r.URL, "workspace-repo-b") {
-			t.Errorf("registry repo %q leaked into resp.Repos despite the resource override", r.URL)
-		}
+	if resp.Task.Repos[0].Description != "the one repo" {
+		t.Errorf("repo description = %q, want the resource's label", resp.Task.Repos[0].Description)
 	}
 	if len(resp.Task.WorkspaceResources) != 1 || resp.Task.WorkspaceResources[0].ID != created.ID {
 		t.Errorf("expected the one workspace resource on the claim, got %+v", resp.Task.WorkspaceResources)
 	}
 }
 
-// With no github_repo resources attached, the claim must fall back to the
-// workspace repo registry — the behavior before any resource exists.
-func TestClaimTask_NoWorkspaceResources_FallsBackToWorkspaceRepos(t *testing.T) {
+// A workspace with no github_repo resources sends no repos. There is nowhere
+// else for them to come from: the `workspace.repos` column that used to act as
+// a fallback is gone (migration 438), and keeping it would have meant a claim
+// silently sourcing repositories from a surface the workspace no longer edits.
+func TestClaimTask_NoWorkspaceResources_MeansNoRepos(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
 	}
 	if existing := listWorkspaceResourcesForTest(t); len(existing) != 0 {
 		t.Skipf("fixture workspace already carries %d resources", len(existing))
 	}
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
-		{"url": "https://github.com/example/workspace-fallback", "description": "ws"},
-	})
 
 	var agentID, runtimeID string
 	dbfx.QueryRow(t,
@@ -682,7 +678,7 @@ func TestClaimTask_NoWorkspaceResources_FallsBackToWorkspaceRepos(t *testing.T) 
 	if resp.Task == nil {
 		t.Fatal("expected a task in the response")
 	}
-	if len(resp.Task.Repos) != 1 || !strings.HasSuffix(resp.Task.Repos[0].URL, "workspace-fallback") {
-		t.Fatalf("expected the workspace fallback repo, got %+v", resp.Task.Repos)
+	if len(resp.Task.Repos) != 0 {
+		t.Fatalf("expected no repos with nothing attached, got %+v", resp.Task.Repos)
 	}
 }

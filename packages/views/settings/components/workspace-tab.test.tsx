@@ -17,7 +17,6 @@ const workspaceRef = vi.hoisted(() => ({
     description: "",
     context: "",
     issue_prefix: "TES",
-    repos: [] as { url: string }[],
   },
 }));
 const membersRef = vi.hoisted(() => ({
@@ -111,7 +110,6 @@ describe("WorkspaceTab — automatic updates", () => {
       description: "",
       context: "",
       issue_prefix: "TES",
-      repos: [],
     };
     membersRef.current = [{ user_id: "user-1", role: "owner" }];
     mockUpdateWorkspace.mockImplementation(

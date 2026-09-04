@@ -7,7 +7,6 @@ import {
   Key,
   Settings,
   Users,
-  FolderGit2,
   FlaskConical,
   Bell,
   Plug,
@@ -39,7 +38,6 @@ import { IssueTab } from "./issue-tab";
 import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
 import { MembersTab } from "./members-tab";
-import { RepositoriesTab } from "./repositories-tab";
 import { ResourcesTab } from "./resources-tab";
 import { GitHubTab } from "./github-tab";
 import { IntegrationsTab } from "./integrations-tab";
@@ -69,7 +67,6 @@ const ACCOUNT_TAB_ICONS = {
 
 const WORKSPACE_TAB_KEYS = [
   "general",
-  "repositories",
   "resources",
   "github",
   "integrations",
@@ -85,7 +82,6 @@ const WORKSPACE_TAB_KEYS = [
 ] as const;
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
-  repositories: "repositories",
   resources: "resources",
   github: "github",
   integrations: "integrations",
@@ -101,7 +97,6 @@ const WORKSPACE_TAB_VALUES = {
 } as const;
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
-  repositories: FolderGit2,
   resources: Boxes,
   github: GitHubMark,
   integrations: Plug,
@@ -123,8 +118,12 @@ const TAB_QUERY_KEY = "tab";
 // bookmarks still land on the correct surface without us preserving a
 // dead TabsContent entry. Lark used to be its own top-level workspace
 // tab; it now lives inside Integrations.
+// Repositories used to be a second, separate list of repos that could not be
+// reconciled with Resources; the workspace now stores them once, as
+// github_repo resources, and the GitHub App callback still returns here.
 const LEGACY_WORKSPACE_TAB_REDIRECTS: Record<string, string> = {
   lark: "integrations",
+  repositories: "resources",
 };
 
 const SETTINGS_TAB_TRIGGER_CLASS =
@@ -280,7 +279,6 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
-          <TabsContent value="repositories"><RepositoriesTab /></TabsContent>
           <TabsContent value="resources"><ResourcesTab /></TabsContent>
           <TabsContent value="github"><GitHubTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
