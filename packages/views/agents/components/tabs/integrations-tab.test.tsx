@@ -340,27 +340,25 @@ describe("IntegrationsTab", () => {
     expect(screen.getByText("Release Bot")).toBeTruthy();
     const connectedLabel = screen.getByText("Connected bot:");
     expect(connectedLabel.parentElement?.parentElement?.classList).toContain(
-      "text-caption",
+      "enact-integration-connected-status",
     );
     const groupDescription = screen.getByText(
       enSettings.dingtalk.groups_description,
     );
-    expect(groupDescription.classList).toContain("text-caption");
-    expect(groupDescription.classList).not.toContain("text-micro");
+    expect(groupDescription.classList).toContain("enact-integration-help");
     const groupName = screen.getByText("Platform team");
-    expect(groupName.classList).toContain("min-w-0");
-    expect(groupName.parentElement?.classList).toContain("flex-1");
+    expect(groupName.classList).toContain("enact-integration-resource-name");
+    expect(groupName.parentElement?.classList).toContain(
+      "enact-integration-resource-main",
+    );
     const conversationId = screen.getByLabelText(
       "DingTalk group conversation ID cid-platform",
     );
     expect(conversationId.textContent).toBe("cid-platform");
-    expect(conversationId.classList).toContain("text-micro");
-    expect(conversationId.classList).toContain("text-faint-foreground");
-    expect(conversationId.classList).toContain("group-hover:text-muted-foreground");
+    expect(conversationId.classList).toContain("enact-integration-resource-id");
     const activity = screen.getByTestId("dingtalk-group-activity");
     expect(activity.textContent).toBe("Last active 2h ago·18 mentions");
-    expect(activity.classList).toContain("tabular-nums");
-    expect(activity.classList).not.toContain("whitespace-nowrap");
+    expect(activity.classList).toContain("enact-integration-resource-meta");
     expect(conversationId.parentElement?.parentElement).toBe(
       groupName.parentElement?.parentElement,
     );

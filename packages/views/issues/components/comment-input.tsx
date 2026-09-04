@@ -197,7 +197,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
   return (
     <div
       {...dropZoneProps}
-      className="relative flex flex-col rounded-lg bg-card pb-8 ring-1 ring-border"
+      className="enact-issue-composer relative flex flex-col pb-8"
     >
       {/* Lock the editor while the send is in flight. ContentEditor can't
           toggle Tiptap's `editable` post-mount (see its docstring), so the

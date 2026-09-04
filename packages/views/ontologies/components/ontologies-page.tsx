@@ -173,10 +173,7 @@ export function OntologiesPage() {
       </div>
 
       <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent
-          className="flex max-h-[85vh] flex-col overflow-hidden"
-          style={{ maxWidth: "min(64rem, calc(100vw - 2rem))" }}
-        >
+        <DialogContent className="enact-dialog-wide flex max-h-[85vh] flex-col overflow-hidden">
           <DialogHeader className="pr-8">
             <DialogTitle>
               {selected

@@ -141,9 +141,9 @@ export function PropertiesTab() {
       title={t(($) => $.properties.title)}
       description={t(($) => $.properties.description)}
     >
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-sm">
+      <div className="enact-settings-catalog-stack">
+        <div className="enact-settings-catalog-toolbar">
+          <div className="enact-settings-catalog-search">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -182,8 +182,8 @@ export function PropertiesTab() {
           </p>
         )}
 
-        <div className="overflow-hidden rounded-lg border border-surface-border bg-card">
-          <div className="hidden grid-cols-[minmax(10rem,1fr)_6rem_minmax(10rem,1.4fr)_6rem_7rem_2rem] gap-4 border-b border-surface-border bg-muted/20 px-4 py-2.5 text-caption font-medium text-muted-foreground md:grid">
+        <div className="enact-settings-catalog">
+          <div className="enact-settings-catalog-header" data-catalog="properties">
             <span>{t(($) => $.properties.columns.name)}</span>
             <span>{t(($) => $.properties.columns.type)}</span>
             <span>{t(($) => $.properties.columns.options)}</span>
@@ -193,11 +193,11 @@ export function PropertiesTab() {
           </div>
 
           {isLoading ? (
-            <div className="px-4 py-12 text-center text-body text-muted-foreground">
+            <div className="enact-settings-catalog-loading">
               {t(($) => $.properties.loading)}
             </div>
           ) : visible.length === 0 ? (
-            <div className="px-4 py-12 text-center">
+            <div className="enact-settings-catalog-empty">
               <SlidersHorizontal className="mx-auto size-6 text-faint-foreground" />
               <p className="mt-3 text-body font-medium">
                 {query
@@ -211,11 +211,12 @@ export function PropertiesTab() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-surface-border">
+            <div className="enact-settings-catalog-body">
               {visible.map((property) => (
                 <div
                   key={property.id}
-                  className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(10rem,1fr)_6rem_minmax(10rem,1.4fr)_6rem_7rem_2rem] md:items-center md:gap-4"
+                  className="enact-settings-catalog-row"
+                  data-catalog="properties"
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <PropertyIcon property={property} />
@@ -236,8 +237,8 @@ export function PropertiesTab() {
                         className="inline-flex items-center gap-1.5 rounded-full border border-surface-border px-2 py-0.5 text-caption"
                       >
                         <span
-                          className="size-2 rounded-full"
-                          style={{ backgroundColor: option.color }}
+                          className="enact-settings-color-swatch"
+                          style={{ "--enact-settings-color": option.color } as React.CSSProperties}
                         />
                         {option.name}
                       </span>
@@ -582,8 +583,8 @@ function PropertyEditorDialog({
                         <button
                           type="button"
                           aria-label={option.color}
-                          className="size-6 shrink-0 cursor-pointer rounded-full border border-surface-border transition-transform hover:scale-110"
-                          style={{ backgroundColor: option.color }}
+                          className="enact-settings-color-swatch enact-settings-color-option"
+                          style={{ "--enact-settings-color": option.color } as React.CSSProperties}
                         />
                       }
                     />

@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@enact/ui/components/ui/dialog";
-import { cn } from "@enact/ui/lib/utils";
 import type { AgentRuntime } from "@enact/core/types";
 import { runtimeDisplayLabel } from "@enact/core/runtimes";
 import {
@@ -105,16 +104,13 @@ export function StepPlatformFork({
 
   return (
     <>
-      <div className="flex flex-col gap-8 pt-2 sm:pt-6">
-        {/* The eyebrow read "Connect a computer" directly above a headline
-            that starts with the same three words. The block has no eyebrow
-            slot and the rail already names the step, so it goes. */}
+      <div className="enact-onboarding-step-stack">
         <StepHeading
           title={t(($) => $.step_platform.headline)}
           description={t(($) => $.step_platform.lede)}
         />
 
-        <div className="flex flex-col gap-2">
+        <div className="enact-onboarding-fork-list">
           <ForkPrimary onClick={pickDesktop} />
 
           <ForkAlt
@@ -131,42 +127,38 @@ export function StepPlatformFork({
             disabled
           />
         </div>
-
       </div>
 
-      {/* Advancement for the CLI path is owned by the CLI dialog's own
-          "Connect & continue" button; Skip creates the single self-serve
-          onboarding issue. */}
       <StepFooter hint={footerHint}>
         <Button
           variant="ghost"
-          className="w-full"
+          className="enact-onboarding-action"
           onClick={() => onNext(null)}
         >
           {t(($) => $.step_runtime.skip)}
         </Button>
       </StepFooter>
 
-    <CliInstallDialog
-      open={dialog === "cli"}
-      onClose={() => setDialog(null)}
-      onConnect={handleCliConnect}
-      runtimes={picker.runtimes}
-      choice={{ runtimeId: picker.selectedId ?? "", model }}
-      onChoiceChange={(next) => {
-        if (next.runtimeId !== picker.selectedId) {
-          picker.setSelectedId(next.runtimeId);
+      <CliInstallDialog
+        open={dialog === "cli"}
+        onClose={() => setDialog(null)}
+        onConnect={handleCliConnect}
+        runtimes={picker.runtimes}
+        choice={{ runtimeId: picker.selectedId ?? "", model }}
+        onChoiceChange={(next) => {
+          if (next.runtimeId !== picker.selectedId) {
+            picker.setSelectedId(next.runtimeId);
+          }
+          setModel(next.model);
+        }}
+        hasRuntimes={picker.hasRuntimes}
+        canConnect={picker.selected !== null}
+        selectedName={
+          picker.selected ? runtimeDisplayLabel(picker.selected) : null
         }
-        setModel(next.model);
-      }}
-      hasRuntimes={picker.hasRuntimes}
-      canConnect={picker.selected !== null}
-      selectedName={
-        picker.selected ? runtimeDisplayLabel(picker.selected) : null
-      }
-      connecting={connecting}
-      cliInstructions={cliInstructions}
-    />
+        connecting={connecting}
+        cliInstructions={cliInstructions}
+      />
     </>
   );
 }
@@ -181,26 +173,20 @@ function ForkPrimary({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "group flex items-center justify-between gap-4 rounded-xl bg-foreground px-6 py-5 text-left text-background transition-transform",
-        "hover:-translate-y-0.5",
-      )}
+      className="enact-onboarding-fork-primary"
     >
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 text-title font-medium tracking-tight">
-          <Download className="h-4 w-4" aria-hidden />
+      <div className="enact-onboarding-fork-copy">
+        <div className="enact-onboarding-fork-title">
+          <Download className="enact-onboarding-fork-title-icon" aria-hidden />
           {t(($) => $.step_platform.download_title)}
         </div>
-        <div className="mt-1 text-label text-background/60">
+        <div className="enact-onboarding-fork-subtitle">
           {t(($) => $.step_platform.download_subtitle)}
         </div>
       </div>
-      <span
-        aria-hidden
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-background/10 px-4 py-2 text-label font-medium transition-colors group-hover:bg-background/20"
-      >
+      <span aria-hidden className="enact-onboarding-fork-primary-action">
         {t(($) => $.step_platform.download_button)}
-        <ArrowRight className="h-3.5 w-3.5" />
+        <ArrowRight className="enact-onboarding-fork-action-icon" />
       </span>
     </button>
   );
@@ -226,27 +212,20 @@ function ForkAlt({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-4 rounded-lg border bg-card px-5 py-4",
-        disabled && "opacity-70",
-      )}
-    >
-      <div className="min-w-0">
-        <div className="text-body font-medium text-foreground">{title}</div>
-        <div className="mt-1 text-caption leading-[1.5] text-muted-foreground">
-          {subtitle}
-        </div>
+    <div className="enact-onboarding-fork-card" aria-disabled={disabled || undefined}>
+      <div className="enact-onboarding-fork-copy">
+        <div className="enact-onboarding-fork-title">{title}</div>
+        <div className="enact-onboarding-fork-subtitle">{subtitle}</div>
       </div>
       {disabled ? (
-        <span className="shrink-0 rounded-full border bg-muted px-3 py-1 text-caption font-medium text-muted-foreground">
+        <span className="enact-onboarding-coming-soon-badge">
           {actionLabel}
         </span>
       ) : (
         <Button
           variant="outline"
           size="sm"
-          className="shrink-0"
+          className="enact-onboarding-fork-action"
           onClick={onAction}
         >
           {actionLabel}
@@ -295,7 +274,7 @@ function CliInstallDialog({
   const { t } = useT("onboarding");
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[560px]">
+      <DialogContent className="enact-onboarding-cli-dialog">
         <DialogHeader>
           <DialogTitle>{t(($) => $.step_platform.cli_dialog_title)}</DialogTitle>
           <DialogDescription>
@@ -303,20 +282,17 @@ function CliInstallDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2">
+        <div className="enact-onboarding-cli-body">
           {cliInstructions}
 
           {hasRuntimes ? (
             <>
-              <div className="flex items-center gap-2 pt-1 text-body">
-                <div className="h-2 w-2 rounded-full bg-success" />
-                <span className="font-medium">
+              <div className="enact-onboarding-cli-connected">
+                <div className="enact-onboarding-status-dot" />
+                <span className="enact-onboarding-cli-emphasis">
                   {t(($) => $.step_platform.runtimes_connected, { count: runtimes.length })}
                 </span>
               </div>
-              {/* Cap the runtime list at ~4 rows visible, scroll the rest.
-                  Keeps the commands above always reachable even when
-                  a user has many machines registered. */}
               <MikaRuntimeChoice
                 layout="list"
                 runtimes={runtimes}
@@ -330,26 +306,27 @@ function CliInstallDialog({
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between gap-3 sm:justify-between">
-          {/* Hint is only useful AFTER a runtime has registered — "pick
-              one" / "selected X". While still waiting, the body's
-              CliWaitingStatus already conveys the live-listening state,
-              so an additional "Waiting..." footer line is duplication. */}
-          <span className="text-caption text-muted-foreground">
+        <DialogFooter className="enact-onboarding-cli-footer">
+          <span className="enact-onboarding-cli-hint">
             {hasRuntimes
               ? canConnect && selectedName
                 ? t(($) => $.step_runtime.hint_selected, { name: selectedName })
                 : t(($) => $.step_platform.cli_dialog_pick_hint)
               : null}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="enact-onboarding-cli-actions">
             <Button variant="ghost" onClick={onClose}>
               {t(($) => $.common.cancel)}
             </Button>
             <Button disabled={!canConnect || connecting} onClick={onConnect}>
-              {connecting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {connecting && (
+                <Loader2
+                  className="enact-onboarding-action-icon"
+                  data-spinning="true"
+                />
+              )}
               {t(($) => $.step_runtime.continue)}
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="enact-onboarding-action-icon" />
             </Button>
           </div>
         </DialogFooter>
@@ -422,52 +399,43 @@ function CliWaitingStatus({ dialogOpen }: { dialogOpen: boolean }) {
           : "stalled";
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
-      <div className="flex items-center gap-2 text-body">
-        {/* Pulsing green dot signals active WS subscription — the
-            useRuntimePicker hook is already subscribed to `daemon:register`,
-            this is the visual confirmation that "we're listening". */}
-        <span
-          aria-hidden
-          className="inline-block size-2 shrink-0 rounded-full bg-success animate-pulse"
-        />
-        <span className="font-medium text-foreground">
+    <div className="enact-onboarding-cli-waiting">
+      <div className="enact-onboarding-cli-listening">
+        <span aria-hidden className="enact-onboarding-status-dot" />
+        <span className="enact-onboarding-cli-listening-label">
           {t(($) => $.step_platform.live_listening)}
         </span>
-        <span className="ml-auto font-mono text-caption tabular-nums text-muted-foreground">
+        <span className="enact-onboarding-cli-timer">
           {formatElapsed(elapsed)}
         </span>
       </div>
 
-      <p
-        aria-live="polite"
-        className="text-caption leading-[1.55] text-muted-foreground"
-      >
+      <p aria-live="polite" className="enact-onboarding-cli-stage-copy">
         {stage === "normal" && (
           <>
             {t(($) => $.step_platform.stage_normal_prefix)}
-            <span className="font-mono">{"enact setup"}</span>
+            <span className="enact-onboarding-cli-code">{"enact setup"}</span>
             {t(($) => $.step_platform.stage_normal_suffix)}
           </>
         )}
         {stage === "midway" && (
           <>
             {t(($) => $.step_platform.stage_midway_prefix)}
-            <span className="font-mono">{"enact setup"}</span>
+            <span className="enact-onboarding-cli-code">{"enact setup"}</span>
             {t(($) => $.step_platform.stage_midway_suffix)}
           </>
         )}
         {stage === "slow" && (
           <>
             {t(($) => $.step_platform.stage_slow_prefix)}
-            <span className="font-mono">{"enact setup"}</span>
+            <span className="enact-onboarding-cli-code">{"enact setup"}</span>
             {t(($) => $.step_platform.stage_slow_suffix)}
           </>
         )}
         {stage === "stalled" && (
           <>
             {t(($) => $.step_platform.stage_stalled_prefix)}
-            <span className="font-medium text-foreground">{t(($) => $.step_platform.stage_stalled_term)}</span>
+            <span className="enact-onboarding-cli-emphasis">{t(($) => $.step_platform.stage_stalled_term)}</span>
             {t(($) => $.step_platform.stage_stalled_suffix)}
           </>
         )}

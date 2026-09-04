@@ -100,7 +100,7 @@ export function MyIssuesHeader({
 
   return (
     <>
-    <div className={cn("min-h-12 shrink-0 py-2 [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
+    <div className={cn("enact-issue-toolbar min-h-12 shrink-0 py-2 [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
       <div className="flex w-full min-w-0 items-start justify-between gap-2">
         <div className="hidden min-w-0 flex-1 md:block">
           <ViewBar

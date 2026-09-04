@@ -2,10 +2,8 @@
 
 import { Check } from "lucide-react";
 import {
-  PROJECT_STATUS_CONFIG,
   PROJECT_STATUS_ORDER,
-  PROJECT_PRIORITY_CONFIG,
-  PROJECT_PRIORITY_ORDER
+  PROJECT_PRIORITY_ORDER,
 } from "@enact/core/projects/config";
 import { cn } from "@enact/ui/lib/utils";
 import {
@@ -20,15 +18,13 @@ import { useProjectStatusLabels, useProjectPriorityLabels } from "./labels";
 
 export function ProjectStatusBadge({ project, handleUpdate, triggerClassName, align = "end" }: { project: Project; handleUpdate: (data: UpdateProjectRequest) => void; triggerClassName?: string; align?: "start" | "end" | "center" }) {
   const statusLabels = useProjectStatusLabels();
-  const statusCfg = PROJECT_STATUS_CONFIG[project.status];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <button type="button" className={cn(
-            "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-caption font-medium cursor-pointer hover:opacity-80 transition-opacity",
-            statusCfg.badgeBg, statusCfg.badgeText,
+          <button type="button" data-status={project.status} className={cn(
+            "enact-project-status-badge inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5",
             triggerClassName
           )}>
             {statusLabels[project.status]}
@@ -38,7 +34,7 @@ export function ProjectStatusBadge({ project, handleUpdate, triggerClassName, al
       <DropdownMenuContent align={align} className="w-44">
         {PROJECT_STATUS_ORDER.map((s) => (
           <DropdownMenuItem key={s} onClick={() => handleUpdate({ status: s as ProjectStatus })}>
-            <span className={cn("size-2 rounded-full", PROJECT_STATUS_CONFIG[s].dotColor)} />
+            <span className="enact-project-status-dot size-2" data-status={s} />
             <span>{statusLabels[s]}</span>
             {s === project.status && <Check className="ml-auto h-3.5 w-3.5" />}
           </DropdownMenuItem>
@@ -50,18 +46,17 @@ export function ProjectStatusBadge({ project, handleUpdate, triggerClassName, al
 
 export function ProjectPriorityBadge({ project, handleUpdate, triggerClassName, align = "end" }: { project: Project; handleUpdate: (data: UpdateProjectRequest) => void; triggerClassName?: string; align?: "start" | "end" | "center" }) {
   const priorityLabels = useProjectPriorityLabels();
-  const priorityCfg = PROJECT_PRIORITY_CONFIG[project.priority];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <button type="button" className={cn(
-            "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-caption font-medium hover:bg-accent/60 transition-colors cursor-pointer",
+          <button type="button" data-priority={project.priority} className={cn(
+            "enact-project-priority-badge inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5",
             triggerClassName
           )}>
             <PriorityIcon priority={project.priority} />
-            <span className={cn("text-caption", priorityCfg.color)}>{priorityLabels[project.priority]}</span>
+            <span className="text-caption">{priorityLabels[project.priority]}</span>
           </button>
         }
       />

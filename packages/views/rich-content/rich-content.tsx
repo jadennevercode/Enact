@@ -564,7 +564,7 @@ export const RichContent = memo(function RichContent({
         data-density={density}
         data-phase={phase}
         className={cn(
-          "rich-text-editor readonly text-body",
+          "rich-text-editor readonly enact-rich-content",
           density === "compact" && "rich-content-compact",
           className,
         )}

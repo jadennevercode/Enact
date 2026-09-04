@@ -26,7 +26,6 @@ import {
 import { toast } from "sonner";
 import type { DaemonStatus } from "../../../shared/daemon-types";
 import {
-  DAEMON_STATE_COLORS,
   DAEMON_STATE_LABELS,
   formatUptime,
 } from "../../../shared/daemon-types";
@@ -242,11 +241,13 @@ export function DaemonPanel({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
+        data-enact-platform="desktop"
+        data-enact-daemon-surface="logs"
+        className="enact-daemon-panel flex h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
         showCloseButton={false}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+        <div className="enact-daemon-panel-header flex shrink-0 items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <Server className="size-4 shrink-0 text-muted-foreground" />
             <DialogTitle className="text-body font-medium">
@@ -265,7 +266,7 @@ export function DaemonPanel({
         </div>
 
         {/* Toolbar */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
+        <div className="enact-daemon-panel-toolbar flex shrink-0 flex-wrap items-center gap-2 px-4 py-2">
           {/* Search */}
           <div className="relative w-56">
             <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -322,7 +323,7 @@ export function DaemonPanel({
         <div
           ref={logContainerRef}
           onScroll={handleScroll}
-          className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-2 py-1 font-mono text-caption"
+          className="enact-daemon-log-viewport min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-caption"
         >
           {displayed.length === 0 ? (
             <EmptyState
@@ -362,7 +363,7 @@ export function DaemonPanel({
             communicated implicitly by the presence of the Jump-to-latest
             button below; an explicit "Paused" word read as "log stream is
             paused" (it isn't — data keeps flowing into the buffer). */}
-        <div className="flex shrink-0 items-center justify-between border-t bg-muted/30 px-4 py-1.5 text-caption text-muted-foreground">
+        <div className="enact-daemon-status-bar flex shrink-0 items-center justify-between px-4 py-1.5 text-caption text-muted-foreground">
           <span className="tabular-nums">
             Showing {filtered.length} of {logs.length}
             {logs.length === MAX_LOG_LINES && (
@@ -398,12 +399,14 @@ function ContextBadge({
 }) {
   const isRunning = status.state === "running";
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border bg-background px-1.5 py-0.5 text-caption font-normal">
+    <span
+      className="enact-daemon-status-badge enact-daemon-status inline-flex items-center gap-1.5 px-1.5 py-0.5 font-normal"
+      data-state={status.state}
+    >
       <span
-        className={cn(
-          "size-1.5 rounded-full",
-          DAEMON_STATE_COLORS[status.state],
-        )}
+        className="enact-daemon-status-dot size-1.5"
+        data-state={status.state}
+        aria-hidden="true"
       />
       <span
         className={cn(
@@ -444,12 +447,14 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
+      data-level={variant}
       className={cn(
-        "inline-flex h-7 items-center gap-1 rounded-md border bg-background px-2 text-caption transition-colors hover:bg-accent",
+        "enact-daemon-filter-chip inline-flex h-7 items-center gap-1 border bg-background px-2 text-caption",
         active
           ? variant
             ? LEVEL_BADGE_CLASS[variant]
-            : "bg-accent text-accent-foreground"
+            : "text-foreground"
           : "border-dashed text-muted-foreground",
       )}
     >
@@ -469,8 +474,9 @@ function FilterChip({
 function LevelBadge({ level }: { level: LogLevel }) {
   return (
     <span
+      data-level={level}
       className={cn(
-        "inline-flex h-4 shrink-0 items-center rounded border px-1 text-micro font-medium uppercase tracking-wide",
+        "enact-daemon-level-badge inline-flex h-4 shrink-0 items-center border px-1 text-micro font-medium uppercase tracking-wide",
         LEVEL_BADGE_CLASS[level],
       )}
     >
@@ -497,7 +503,7 @@ function LogLineRow({
   // for panic stack traces and partial writes during log rotation.
   if (!line.timestamp || !line.level) {
     return (
-      <div className="break-all whitespace-pre-wrap px-2 py-0.5 text-muted-foreground">
+      <div className="enact-daemon-log-row break-all whitespace-pre-wrap px-2 py-0.5 text-muted-foreground">
         {highlight(line.raw, search)}
       </div>
     );
@@ -506,7 +512,7 @@ function LogLineRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[auto_auto_minmax(0,1fr)] items-baseline gap-2 rounded px-2 py-0.5 hover:bg-accent/30",
+        "enact-daemon-log-row grid grid-cols-[auto_auto_minmax(0,1fr)] items-baseline gap-2 rounded px-2 py-0.5",
         hasFields && "cursor-pointer",
       )}
       onClick={hasFields ? onToggle : undefined}
@@ -574,7 +580,7 @@ function GroupRows({
         <button
           type="button"
           onClick={onToggle}
-          className="my-0.5 ml-2 inline-flex w-fit items-center gap-2 rounded border border-dashed border-muted-foreground/25 bg-muted/30 px-2 py-0.5 text-micro italic text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          className="enact-daemon-repeat-toggle my-0.5 ml-2 inline-flex w-fit items-center gap-2 rounded border border-dashed border-muted-foreground/25 bg-muted/30 px-2 py-0.5 text-micro italic text-muted-foreground"
         >
           <span>···</span>
           <span>
@@ -608,7 +614,7 @@ function GroupRows({
       <button
         type="button"
         onClick={onToggle}
-        className="my-0.5 ml-2 inline-flex w-fit items-center gap-2 rounded border border-dashed border-muted-foreground/25 px-2 py-0.5 text-micro italic text-muted-foreground hover:text-foreground"
+        className="enact-daemon-repeat-toggle my-0.5 ml-2 inline-flex w-fit items-center gap-2 rounded border border-dashed border-muted-foreground/25 px-2 py-0.5 text-micro italic text-muted-foreground"
       >
         <span>···</span>
         <span>collapse {rest.length + 1} repeated</span>

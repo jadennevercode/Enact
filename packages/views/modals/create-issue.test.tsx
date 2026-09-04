@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cloneElement,
   forwardRef,
@@ -20,6 +22,11 @@ const TEST_RESOURCES = {
   // `editor` carries the shared upload-gate copy ("Uploading…").
   en: { common: enCommon, modals: enModals, editor: enEditor },
 };
+
+const editorCss = readFileSync(
+  resolve(process.cwd(), "../ui/styles/features/editor.css"),
+  "utf8",
+);
 
 function I18nWrapper({ children }: { children: ReactNode }) {
   return (
@@ -1657,13 +1664,16 @@ describe("CreateIssueModal", () => {
       renderManual();
       const createButton = screen.getByRole("button", { name: "Create Issue" });
 
-      // Without these the control reads as a live primary button while
-      // aria-disabled. `pointer-events-none` is deliberately absent: it would
-      // kill the tooltip hover and the click that focuses the title.
-      expect(createButton.className).toContain("aria-disabled:opacity-50");
-      expect(createButton.className).toContain("aria-disabled:cursor-not-allowed");
-      expect(createButton.className).toContain("aria-disabled:active:translate-y-0");
-      expect(createButton.className).not.toContain("aria-disabled:pointer-events-none");
+      // The semantic class owns aria-disabled opacity/cursor/active treatment;
+      // pointer events remain enabled for tooltip hover and title focus.
+      expect(createButton.className).toContain("enact-modal-submit");
+      expect(createButton.className).not.toContain("pointer-events-none");
+      expect(editorCss).toMatch(
+        /\.enact-modal-submit\[aria-disabled="true"\] \{[\s\S]*?cursor: not-allowed;[\s\S]*?opacity: var\(--disabled-opacity\)/,
+      );
+      expect(editorCss).toMatch(
+        /\.enact-modal-submit\[aria-disabled="true"\]:active \{[\s\S]*?transform: translateY\(0\)/,
+      );
     });
   });
 
@@ -1674,11 +1684,9 @@ describe("CreateIssueModal", () => {
       for (const isExpanded of [false, true]) {
         const className = manualDialogContentClass(isExpanded);
 
-        // Without this the `!important` widths below also override
-        // DialogContent's own `max-w-[calc(100%-2rem)]` and the card runs
-        // edge to edge on a phone.
-        expect(className).toContain("!max-w-[calc(100vw-1.5rem)]");
-        expect(className).toContain(isExpanded ? "sm:!max-w-4xl" : "sm:!max-w-2xl");
+        // Sizing is owned by the semantic class and expanded state by data
+        // attributes on DialogContent rather than utility class composition.
+        expect(className).toBe("enact-modal-create-issue");
       }
     });
 
@@ -1691,10 +1699,9 @@ describe("CreateIssueModal", () => {
       // Grid placement only sees direct children — re-wrapping either control
       // collapses the 2x2 phone footer back to one jammed row.
       const footer = switchToAgent.parentElement;
-      expect(footer?.className).toContain("grid-cols-[auto_1fr]");
-      expect(footer?.className).toContain("sm:flex");
+      expect(footer?.className).toContain("enact-modal-create-footer");
       expect(create.parentElement).toBe(footer);
-      expect(create.className).toContain("justify-self-end");
+      expect(create.className).toContain("enact-modal-submit");
     });
   });
 });

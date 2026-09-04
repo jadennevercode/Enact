@@ -85,8 +85,8 @@ function PropRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-8 items-center gap-2 rounded-md px-2 -mx-2 hover:bg-accent/50 transition-colors">
-      <span className="w-16 shrink-0 text-caption text-muted-foreground">{label}</span>
+    <div className="enact-project-property-row flex min-h-8 items-center gap-2 px-2 -mx-2">
+      <span className="enact-project-property-label w-16 shrink-0">{label}</span>
       <div className="flex min-w-0 flex-1 items-center gap-1.5 text-caption truncate">
         {children}
       </div>
@@ -279,7 +279,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       <div>
         <button
           type="button"
-          className={`flex w-full items-center gap-1 rounded-md px-2 py-1 text-caption font-medium transition-colors mb-2 hover:bg-accent/70 ${propertiesOpen ? "" : "text-muted-foreground hover:text-foreground"}`}
+          className="enact-project-section-trigger flex w-full items-center gap-1 px-2 py-1 mb-2"
+          data-collapsed={propertiesOpen ? undefined : "true"}
           onClick={() => setPropertiesOpen(!propertiesOpen)}
         >
           {t(($) => $.detail.section_properties)}
@@ -418,16 +419,17 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           <div>
             <button
               type="button"
-              className={`flex w-full items-center gap-1 rounded-md px-2 py-1 text-caption font-medium transition-colors mb-2 hover:bg-accent/70 ${progressOpen ? "" : "text-muted-foreground hover:text-foreground"}`}
+              className="enact-project-section-trigger flex w-full items-center gap-1 px-2 py-1 mb-2"
+              data-collapsed={progressOpen ? undefined : "true"}
               onClick={() => setProgressOpen(!progressOpen)}
             >
               {t(($) => $.detail.section_progress)}
               <ChevronRight className={`!size-3 shrink-0 stroke-[2.5] text-muted-foreground transition-transform ${progressOpen ? "rotate-90" : ""}`} />
             </button>
             {progressOpen && <div className="pl-2 flex items-center gap-3">
-              <div className="relative h-2 flex-1 rounded-full bg-muted overflow-hidden">
+              <div className="enact-project-progress-track relative h-2 flex-1">
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all"
+                  className="enact-project-progress-fill absolute inset-y-0 left-0 rounded-full"
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -443,7 +445,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       <div>
         <button
           type="button"
-          className={`flex w-full items-center gap-1 rounded-md px-2 py-1 text-caption font-medium transition-colors mb-2 hover:bg-accent/70 ${descriptionOpen ? "" : "text-muted-foreground hover:text-foreground"}`}
+          className="enact-project-section-trigger flex w-full items-center gap-1 px-2 py-1 mb-2"
+          data-collapsed={descriptionOpen ? undefined : "true"}
           onClick={() => setDescriptionOpen(!descriptionOpen)}
         >
           {t(($) => $.detail.section_description)}
@@ -471,7 +474,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   return (
     <>
-    <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
+    <ResizablePanelGroup orientation="horizontal" className="enact-project-detail flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
       <ResizablePanel id="content" minSize="50%">
         <div className="flex h-full flex-col">
           <BreadcrumbHeader
@@ -610,7 +613,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t(($) => $.delete_dialog.cancel)}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {t(($) => $.delete_dialog.confirm)}
               </AlertDialogAction>
             </AlertDialogFooter>

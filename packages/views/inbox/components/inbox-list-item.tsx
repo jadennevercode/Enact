@@ -119,11 +119,8 @@ export function InboxListItem({
       onContextMenu={
         openContextMenu ? (e) => openContextMenu(item, e) : undefined
       }
-      className={`group flex w-full cursor-default select-none items-center gap-3 rounded-md px-2 py-2.5 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
-        isSelected
-          ? "bg-accent"
-          : "hover:bg-accent/50 data-[popup-open]:bg-accent/50"
-      }`}
+      data-selected={isSelected ? "true" : undefined}
+      className="enact-inbox-row group flex w-full cursor-default select-none items-center gap-3 px-2 py-2.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
     >
       <ActorAvatar
         actorType={actorType}
@@ -135,7 +132,7 @@ export function InboxListItem({
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5">
             {showUnread && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+              <span className="enact-inbox-unread-dot h-1.5 w-1.5 shrink-0" />
             )}
             <span
               className={`truncate text-body ${showUnread ? "font-medium" : "text-muted-foreground"}`}
@@ -156,7 +153,7 @@ export function InboxListItem({
                 e.stopPropagation();
                 onAction();
               }}
-              className="hidden rounded p-0.5 text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring [@media(hover:hover)]:group-hover:inline-flex [@media(hover:hover)]:group-focus-within:inline-flex"
+              className="enact-inbox-row-action hidden p-0.5 outline-none focus-visible:ring-1 focus-visible:ring-ring [@media(hover:hover)]:group-hover:inline-flex [@media(hover:hover)]:group-focus-within:inline-flex"
             >
               <ActionIcon className="h-3.5 w-3.5" />
             </button>

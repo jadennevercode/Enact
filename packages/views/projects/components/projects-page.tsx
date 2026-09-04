@@ -200,7 +200,7 @@ function ProgressRing({ project }: { project: Project }) {
         <svg className="h-3.5 w-3.5 -rotate-90" viewBox="0 0 16 16">
           <circle className="text-muted" strokeWidth="2" stroke="currentColor" fill="none" r="6" cx="8" cy="8" />
           <circle
-            className="text-emerald-500"
+            className="enact-project-progress-ring-value"
             strokeWidth="2"
             stroke="currentColor"
             fill="none"
@@ -390,7 +390,8 @@ function ProjectTableRow({
 
   return (
     <ListGridRow
-      className={`h-11 cursor-pointer ${selected ? "bg-accent/30" : ""}`}
+      data-selected={selected ? "true" : undefined}
+      className="enact-project-row h-11 cursor-pointer"
       {...rowLink(rowHref, project.title)}
     >
       <CheckboxCell checked={selected} onToggle={onToggleSelect} />
@@ -599,7 +600,7 @@ function ProjectCard({
       : 0;
 
   return (
-    <div className="group/card group/row flex flex-col rounded-md border bg-card transition-colors hover:border-primary/50">
+    <div className="enact-project-card group/card group/row flex flex-col">
       <div className="p-3 pb-2">
         <div className="flex items-center gap-2">
           <AppLink
@@ -619,7 +620,7 @@ function ProjectCard({
               <svg className="h-4 w-4 -rotate-90" viewBox="0 0 16 16">
                 <circle className="text-muted" strokeWidth="2" stroke="currentColor" fill="none" r="6" cx="8" cy="8" />
                 <circle
-                  className="text-emerald-500"
+                  className="enact-project-progress-ring-value"
                   strokeWidth="2"
                   stroke="currentColor"
                   fill="none"
@@ -642,7 +643,7 @@ function ProjectCard({
         )}
       </div>
 
-      <div className="mt-0 flex items-center justify-between border-t px-3 pb-3 pt-2">
+      <div className="enact-project-card-footer mt-0 flex items-center justify-between px-3 pb-3 pt-2">
         <ProjectLeadPicker
           project={project}
           handleUpdate={handleUpdate}
@@ -717,7 +718,7 @@ function ProjectBatchToolbar({
 
   return (
     <>
-      <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg max-md:above-chat-launcher">
+      <div className="enact-project-batch-toolbar absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 px-2 py-1.5 max-md:above-chat-launcher">
         <div className="mr-1 flex items-center gap-1.5 border-r pl-1 pr-2">
           <span className="text-body font-medium">
             {t(($) => $.page.selected, { count: rows.length })}
@@ -938,7 +939,7 @@ export function ProjectsPage() {
 
   return (
     // relative: positioning anchor for the page-centered batch toolbar.
-    <div className="relative flex flex-1 min-h-0 flex-col">
+    <div className="enact-project-page relative flex flex-1 min-h-0 flex-col">
       <CollectionPageHeader
         icon={FolderKanban}
         title={t(($) => $.page.title)}
@@ -995,11 +996,8 @@ export function ProjectsPage() {
                     <Button
                       variant={hasActiveFilters ? "default" : "outline"}
                       size="sm"
-                      className={
-                        hasActiveFilters
-                          ? "h-8 w-8 gap-1 bg-brand px-0 text-white hover:bg-brand/90 md:w-auto md:px-2.5"
-                          : "h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
-                      }
+                      className="enact-project-filter-trigger h-8 w-8 gap-1 px-0 md:w-auto md:px-2.5"
+                      data-active={hasActiveFilters ? "true" : undefined}
                     >
                       <Filter className="size-3.5" />
                       {hasActiveFilters ? (
@@ -1017,7 +1015,7 @@ export function ProjectsPage() {
                           role="button"
                           tabIndex={-1}
                           aria-label={t(($) => $.toolbar.clear_filters)}
-                          className="-mr-1 ml-0.5 hidden rounded-sm p-0.5 hover:bg-white/20 md:inline-flex"
+                          className="enact-project-filter-clear -mr-1 ml-0.5 hidden p-0.5 md:inline-flex"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

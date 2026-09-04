@@ -142,21 +142,21 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-full !max-w-2xl !h-[85vh]">
-        <DialogHeader className="border-b px-5 py-3 space-y-0">
-          <DialogTitle className="text-title-sm font-semibold">
+      <DialogContent className="enact-modal-squad">
+        <DialogHeader className="enact-modal-dialog-header">
+          <DialogTitle>
             {t(($) => $.create_squad.title)}
           </DialogTitle>
-          <DialogDescription className="mt-1 text-caption">
+          <DialogDescription className="enact-modal-dialog-description">
             {t(($) => $.create_squad.description)}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="space-y-4 min-w-0">
+        <div className="enact-modal-form-body">
+          <div className="enact-modal-form-stack">
             {/* Identity row mirrors CreateAgentDialog so the two creates read
                 as siblings — avatar (left) + name/description stack (right). */}
-            <div className="flex items-start gap-4">
+            <div className="enact-modal-form-identity">
               <AvatarUploadControl
                 variant="squad"
                 value={avatarUrl}
@@ -165,9 +165,9 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
                 onUploaded={setAvatarUrl}
                 onClear={() => setAvatarUrl(null)}
               />
-              <div className="flex-1 min-w-0 space-y-3">
+              <div className="enact-modal-form-column">
                 <div>
-                  <Label className="text-caption text-muted-foreground">
+                  <Label className="enact-modal-form-label">
                     {t(($) => $.create_squad.name_label)}
                   </Label>
                   <Input
@@ -185,7 +185,7 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <div>
-                  <Label className="text-caption text-muted-foreground">
+                  <Label className="enact-modal-form-label">
                     {t(($) => $.create_squad.description_label)}
                   </Label>
                   <Input
@@ -227,7 +227,7 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
         {/* Inline footer — see CreateAgentDialog: shadcn DialogFooter applies
             negative margins assuming a padded DialogContent. Our content is
             p-0, so a plain bordered row is the right call. */}
-        <div className="flex items-center justify-end gap-2 border-t bg-background px-5 py-3">
+        <div className="enact-modal-footer">
           <Button variant="ghost" onClick={onClose}>
             {t(($) => $.create_squad.cancel)}
           </Button>
@@ -285,15 +285,15 @@ function LeaderPicker({
 
   return (
     <div>
-      <Label className="text-caption text-muted-foreground">
+      <Label className="enact-modal-form-label">
         {t(($) => $.create_squad.leader_label)}
       </Label>
-      <p className="mt-0.5 mb-1.5 text-caption text-muted-foreground">
+      <p className="enact-modal-form-help">
         {t(($) => $.create_squad.leader_hint)}
       </p>
 
       {noAgents ? (
-        <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/30 px-3 py-2.5 text-body text-muted-foreground">
+        <div className="enact-modal-picker-empty">
           {t(($) => $.create_squad.no_agents)}
         </div>
       ) : (
@@ -304,7 +304,7 @@ function LeaderPicker({
             if (!v) setFilter("");
           }}
         >
-          <PopoverTrigger className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-left text-body transition-colors hover:bg-muted">
+          <PopoverTrigger className="enact-modal-picker-trigger">
             {selected ? (
               <ActorAvatar actorType="agent" actorId={selected.id} size="sm" showStatusDot />
             ) : (
@@ -327,17 +327,17 @@ function LeaderPicker({
             />
           </PopoverTrigger>
           <PopoverContent align="start" className="w-[var(--anchor-width)] p-0">
-            <div className="border-b px-2 py-1.5">
+            <div className="enact-modal-picker-search">
               <input
                 autoFocus
                 type="text"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder={t(($) => $.create_squad.picker_search_placeholder)}
-                className="w-full bg-transparent text-body placeholder:text-muted-foreground outline-none"
+                className="enact-modal-picker-input"
               />
             </div>
-            <div className="max-h-72 overflow-y-auto p-1">
+            <div className="enact-modal-picker-list">
               {filteredMine.length > 0 && (
                 <PickerSection label={t(($) => $.create_squad.group_my_agents)}>
                   {filteredMine.map((a) => (
@@ -456,13 +456,13 @@ function AdditionalMembersPicker({
 
   return (
     <div>
-      <Label className="text-caption text-muted-foreground">
+      <Label className="enact-modal-form-label">
         {t(($) => $.create_squad.members_label)}{" "}
         <span className="text-muted-foreground">
           {t(($) => $.create_squad.members_optional)}
         </span>
       </Label>
-      <p className="mt-0.5 mb-1.5 text-caption text-muted-foreground">
+      <p className="enact-modal-form-help">
         {t(($) => $.create_squad.members_hint)}
       </p>
 
@@ -485,7 +485,7 @@ function AdditionalMembersPicker({
               aria-expanded={open}
               aria-controls="squad-member-listbox"
               tabIndex={0}
-              className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-left text-body transition-colors hover:bg-muted focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+              className="enact-modal-picker-trigger"
             >
               {value.length === 0 ? (
                 <>
@@ -521,17 +521,17 @@ function AdditionalMembersPicker({
           }
         />
         <PopoverContent align="start" className="w-[var(--anchor-width)] p-0">
-          <div className="border-b px-2 py-1.5">
+          <div className="enact-modal-picker-search">
             <input
               autoFocus
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t(($) => $.create_squad.picker_search_placeholder)}
-              className="w-full bg-transparent text-body placeholder:text-muted-foreground outline-none"
+              className="enact-modal-picker-input"
             />
           </div>
-          <div id="squad-member-listbox" role="listbox" className="max-h-72 overflow-y-auto p-1">
+          <div id="squad-member-listbox" role="listbox" className="enact-modal-picker-list">
             {filteredMine.length > 0 && (
               <PickerSection label={t(($) => $.create_squad.group_my_agents)}>
                 {filteredMine.map((a) => (
@@ -597,7 +597,7 @@ function MemberChip({
 }) {
   const { t } = useT("modals");
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border bg-background px-1.5 py-0.5 text-caption">
+    <span className="enact-modal-member-chip">
       <ActorAvatar actorType={m.type} actorId={m.id} size="xs" />
       <span className="max-w-[120px] truncate">{m.name}</span>
       <button
@@ -608,7 +608,7 @@ function MemberChip({
           onRemove();
         }}
         aria-label={t(($) => $.create_squad.members_remove_aria, { name: m.name })}
-        className="rounded-full text-muted-foreground hover:text-foreground"
+        className="enact-modal-chip-remove"
       >
         <X className="h-3 w-3" />
       </button>

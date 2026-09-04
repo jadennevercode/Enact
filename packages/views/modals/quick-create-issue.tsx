@@ -25,7 +25,6 @@ import {
 } from "@enact/ui/components/ui/dropdown-menu";
 import { Button } from "@enact/ui/components/ui/button";
 import { Switch } from "@enact/ui/components/ui/switch";
-import { cn } from "@enact/ui/lib/utils";
 import { api, ApiError } from "@enact/core/api";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
@@ -546,23 +545,23 @@ export function AgentCreatePanel({
         <DialogTitle className="sr-only">{t(($) => $.create_issue.sr_agent)}</DialogTitle>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
-          <div className="flex items-center gap-1.5 text-caption">
-            <span className="text-muted-foreground">{workspaceName}</span>
+        <div className="enact-modal-breadcrumb-header">
+          <div className="enact-modal-breadcrumb">
+            <span className="enact-modal-breadcrumb-context">{workspaceName}</span>
             <ChevronRight className="size-3 text-faint-foreground" />
-            <span className="font-medium">{t(($) => $.create_issue.agent_breadcrumb)}</span>
+            <span className="enact-modal-breadcrumb-title">{t(($) => $.create_issue.agent_breadcrumb)}</span>
           </div>
           {/* Native `title` instead of Base UI Tooltip — Tooltip opens on
               keyboard focus, and the dialog's focus trap briefly lands focus
               on the first focusable element on mount, causing the tooltip to
               auto-pop every open. Same workaround applies to expand. */}
-          <div className="flex items-center gap-1">
+          <div className="enact-modal-breadcrumb-actions">
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
               title={isExpanded ? t(($) => $.common.collapse_tooltip) : t(($) => $.common.expand_tooltip)}
               aria-label={isExpanded ? t(($) => $.common.collapse_tooltip) : t(($) => $.common.expand_tooltip)}
-              className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+              className="enact-modal-icon-action"
             >
               {isExpanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
             </button>
@@ -571,7 +570,7 @@ export function AgentCreatePanel({
               onClick={onClose}
               title={t(($) => $.common.close)}
               aria-label={t(($) => $.common.close)}
-              className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+              className="enact-modal-icon-action"
             >
               <XIcon className="size-4" />
             </button>
@@ -582,7 +581,7 @@ export function AgentCreatePanel({
             route to their leader agent on the backend; the leader runs the
             quick-create flow with the squad's Operating Protocol layered
             on top, so a squad pick is "ask this squad to file the issue". */}
-        <div className="px-5 pt-1 pb-2 shrink-0">
+        <div className="enact-modal-actor-region">
           <ActorPicker
             actor={actor}
             visibleAgents={visibleAgents}
@@ -599,7 +598,7 @@ export function AgentCreatePanel({
         </div>
 
         {selectedAgent && versionBlocked && (
-          <div className="mx-5 mb-2 shrink-0 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-caption text-amber-700 dark:text-amber-300">
+          <div className="enact-modal-notice">
             {versionCheck.state === "missing"
               ? t(($) => $.create_issue.agent.version_missing, { min: versionCheck.min })
               : t(($) => $.create_issue.agent.version_below, {
@@ -618,7 +617,8 @@ export function AgentCreatePanel({
             editor unbounded and pushed the modal past the viewport. */}
         <div
           {...dropZoneProps}
-          className="relative px-5 pb-3 flex flex-1 min-h-[140px] overflow-y-auto"
+          className="enact-modal-editor-region"
+          data-min-height="prompt"
         >
           <ContentEditor
             ref={editorRef}
@@ -639,7 +639,7 @@ export function AgentCreatePanel({
 
 
         {error && (
-          <div className="px-5 pb-2 text-caption text-destructive">{error}</div>
+          <div className="enact-modal-error">{error}</div>
         )}
 
         {/* Property toolbar — the project is visible by default; priority and
@@ -652,7 +652,7 @@ export function AgentCreatePanel({
             avoids "where did this end up?" surprise. We deliberately keep
             it non-editable: changing the parent is a `Set parent` action on
             the parent itself, not a knob in the quick-create flow. */}
-        <div className="flex items-center gap-1.5 px-4 pb-2 shrink-0 flex-wrap">
+        <div className="enact-modal-property-toolbar" data-density="compact">
           {(visibleFields.includes("project") ||
             projectId !== null ||
             fieldPickerOpen === "project") && (
@@ -750,7 +750,7 @@ export function AgentCreatePanel({
           {parentIssueId && (
             <span
               data-testid="agent-sub-issue-chip"
-              className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground"
+              className="enact-modal-sub-issue-chip"
               title={t(($) => $.create_issue.agent.sub_issue_of, {
                 identifier: parentIssueIdentifier ?? "",
               })}
@@ -772,8 +772,8 @@ export function AgentCreatePanel({
               attach group reproduces what `justify-between` did when the
               children were two wrapper divs, and `justify-self-end` goes
               inert on flex items. */}
-        <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-2.5 border-t px-4 py-3 shrink-0 sm:flex sm:flex-wrap">
-          <div className="flex min-h-7 items-center gap-2 sm:mr-auto">
+        <div className="enact-modal-create-footer">
+          <div className="enact-modal-footer-leading">
             {/* Deliberately NOT disabled while uploading: each file is its
                 own queue entry, so queueing a second one is safe and waiting
                 for the first to land just to attach the next is busywork. */}
@@ -783,7 +783,7 @@ export function AgentCreatePanel({
               onSelect={(file) => editorRef.current?.uploadFile(file)}
             />
             {keepOpen && sentCount > 0 && (
-              <span className="text-caption text-emerald-600 dark:text-emerald-400">
+              <span className="enact-modal-success-state">
                 {t(($) => $.create_issue.agent.sent_count, { count: sentCount })}
               </span>
             )}
@@ -795,12 +795,12 @@ export function AgentCreatePanel({
             aria-disabled={gate.uploading || undefined}
             aria-busy={gate.uploading || undefined}
             title={t(($) => $.create_issue.switch_to_manual_tooltip)}
-            className="flex shrink-0 items-center gap-1.5 justify-self-end text-caption px-2 py-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="enact-modal-mode-switch"
           >
             <ArrowLeftRight className="size-3.5" />
             {t(($) => $.create_issue.switch_to_manual)}
           </button>
-          <label className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground cursor-pointer select-none">
+          <label className="enact-modal-keep-open">
             <Switch
               size="sm"
               checked={keepOpen}
@@ -820,10 +820,8 @@ export function AgentCreatePanel({
                 ? t(($) => $.create_issue.agent.version_blocked_tooltip, { min: versionCheck.min })
                 : undefined
             }
-            className={cn(
-              "justify-self-end min-w-28",
-              justSent && "!bg-emerald-600 !text-white",
-            )}
+            className="enact-modal-submit"
+            data-success={justSent ? "true" : undefined}
           >
             {submitting ? t(($) => $.create_issue.agent.sending) : gate.uploading ? t(($) => $.create_issue.agent.uploading) : justSent ? (
               <span className="flex items-center gap-1"><Check className="size-3.5" />{t(($) => $.create_issue.agent.sent_label)}</span>

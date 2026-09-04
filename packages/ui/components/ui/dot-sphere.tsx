@@ -146,7 +146,7 @@ export function DotSphere({
   sphereRadius = 200,
   dotRadiusMax = 3,
   speed = 0.18,
-  bgColor = "oklch(0.145 0 0)",
+  bgColor,
   dotColor = DOT_SPHERE_COLOR,
   followMouse = false,
 }: DotSphereProps) {
@@ -175,6 +175,9 @@ export function DotSphere({
     const canvasElement = canvas
     const context = ctx
     const state = stateRef.current
+    const backgroundColor =
+      bgColor ??
+      getComputedStyle(canvasElement).getPropertyValue("--background").trim()
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches
@@ -286,7 +289,7 @@ export function DotSphere({
 
     function drawDots() {
       context.beginPath()
-      context.fillStyle = bgColor
+      context.fillStyle = backgroundColor
       context.rect(0, 0, state.windowSize.w, state.windowSize.h)
       context.fill()
       context.closePath()

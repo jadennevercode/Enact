@@ -280,7 +280,7 @@ export function SquadDetailPage() {
               <AlertDialogAction
                 onClick={() => deleteMut.mutate()}
                 disabled={deleteMut.isPending}
-                className="bg-destructive text-white hover:bg-destructive/90"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {deleteMut.isPending
                   ? t(($) => $.archive_dialog.archiving)
@@ -1183,7 +1183,7 @@ function SquadMembersTab({
                   <span className="text-body font-medium">{getEntityName(m.member_type, m.member_id)}</span>
                   <span className="text-caption text-muted-foreground capitalize">{m.member_type}</span>
                   {isLeader(m) && (
-                    <span className="inline-flex items-center gap-0.5 text-caption bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-warning/10 px-1.5 py-0.5 text-caption text-warning">
                       <Crown className="size-3" />
                       {t(($) => $.members_tab.leader_chip)}
                     </span>
@@ -1258,7 +1258,7 @@ function SquadMembersTab({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-muted-foreground hover:text-amber-600 h-8 w-8 p-0"
+                        className="text-muted-foreground hover:text-warning h-8 w-8 p-0"
                         onClick={() => onSetLeader(m.member_id)}
                         disabled={setLeaderPending}
                         aria-label={t(($) => $.members_tab.make_leader_tooltip)}

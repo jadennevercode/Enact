@@ -171,7 +171,7 @@ const configureNav: { key: NavKey; labelKey: NavLabelKey }[] = [
 function DraftDot() {
   const hasDraft = useIssueDraftStore((s) => s.hasDraft());
   if (!hasDraft) return null;
-  return <span className="absolute top-0 right-0 size-1.5 rounded-full bg-brand" />;
+  return <span className="enact-sidebar-dot absolute top-0 right-0 size-1.5" />;
 }
 
 /**
@@ -233,22 +233,18 @@ function SortablePinItem({
           onNavigate?.();
         }}
         className={cn(
-          "text-muted-foreground hover:not-data-active:bg-sidebar-accent/70 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground",
+          "enact-sidebar-nav-item",
           isDragging && "pointer-events-none",
         )}
       >
         {iconNode}
-        <span
-          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap"
-          style={{
-            maskImage: "linear-gradient(to right, black calc(100% - 12px), transparent)",
-            WebkitMaskImage: "linear-gradient(to right, black calc(100% - 12px), transparent)",
-          }}
-        >{label}</span>
+        <span className="enact-sidebar-pin-label min-w-0 flex-1 overflow-hidden whitespace-nowrap">
+          {label}
+        </span>
         <Tooltip>
           <TooltipTrigger
             render={<span role="button" />}
-            className="hidden size-2.5 shrink-0 items-center justify-center rounded-sm text-muted-foreground group-hover/pin:flex hover:text-foreground"
+            className="enact-sidebar-pin-action hidden size-2.5 shrink-0 items-center justify-center group-hover/pin:flex"
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -408,8 +404,8 @@ function PinSkeleton() {
   return (
     <SidebarMenuItem>
       <div className="flex h-7 w-full items-center gap-2 px-2">
-        <div className="size-3.5 shrink-0 rounded-sm bg-sidebar-accent/40" />
-        <div className="h-3 w-24 rounded bg-sidebar-accent/40" />
+        <div className="enact-sidebar-pin-skeleton-part size-3.5 shrink-0" />
+        <div className="enact-sidebar-pin-skeleton-part h-3 w-24" />
       </div>
     </SidebarMenuItem>
   );
@@ -422,11 +418,9 @@ interface AppSidebarProps {
   searchSlot?: React.ReactNode;
   /** Extra className for SidebarHeader */
   headerClassName?: string;
-  /** Extra style for SidebarHeader */
-  headerStyle?: React.CSSProperties;
 }
 
-export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }: AppSidebarProps = {}) {
+export function AppSidebar({ topSlot, searchSlot, headerClassName }: AppSidebarProps = {}) {
   const { t } = useT("layout");
   const { pathname, push } = useNavigation();
   const user = useAuthStore((s) => s.user);
@@ -601,7 +595,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
         {/* Product identity, then Workspace Switcher. On desktop `topSlot` is
             the traffic-light spacer, so the brand sits below it rather than
             fighting the macOS drag strip. */}
-        <SidebarHeader className={cn("py-3", headerClassName)} style={headerStyle}>
+        <SidebarHeader className={cn("enact-sidebar-header", headerClassName)}>
           <EnactBrand />
           <SidebarMenu>
             <SidebarMenuItem>
@@ -616,10 +610,13 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                             workspace's own unread stays on the Inbox nav count
                             (below), so it is deliberately excluded here. */}
                         {(myInvitations.length > 0 || otherWorkspaceUnread) && (
-                          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand ring-1 ring-sidebar" />
+                          <span
+                            className="enact-sidebar-dot absolute -top-0.5 -right-0.5 size-2 bg-brand ring-sidebar"
+                            data-ring="true"
+                          />
                         )}
                       </span>
-                      <span className="flex-1 truncate font-medium">
+                      <span className="enact-sidebar-workspace-name flex-1 truncate">
                         {workspace?.name ?? "Enact"}
                       </span>
                       <ChevronDown className="size-3 text-muted-foreground" />
@@ -640,17 +637,17 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                       size="lg"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-body font-medium leading-tight">
+                      <p className="enact-sidebar-user-name truncate">
                         {user?.name}
                       </p>
-                      <p className="truncate text-caption text-muted-foreground leading-tight">
+                      <p className="enact-sidebar-user-email truncate">
                         {user?.email}
                       </p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel className="text-caption text-muted-foreground">
+                    <DropdownMenuLabel className="enact-sidebar-menu-label">
                       {t(($) => $.sidebar.workspaces_label)}
                     </DropdownMenuLabel>
                     {workspaces.map((ws) => (
@@ -668,10 +665,10 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                             excluded (its unread is the Inbox nav count), so dot
                             and check never collide on one row. */}
                         {ws.id !== workspace?.id && unreadWsIds.has(ws.id) && (
-                          <span className="size-2 rounded-full bg-brand" />
+                          <span className="enact-sidebar-dot size-2 bg-brand" />
                         )}
                         {ws.id === workspace?.id && (
-                          <Check className="h-3.5 w-3.5 text-primary" />
+                          <Check className="enact-sidebar-workspace-status h-3.5 w-3.5" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -688,16 +685,17 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
-                        <DropdownMenuLabel className="text-caption text-muted-foreground">
+                        <DropdownMenuLabel className="enact-sidebar-menu-label">
                           {t(($) => $.sidebar.pending_invitations_label)}
                         </DropdownMenuLabel>
                         {myInvitations.map((inv) => (
                           <div key={inv.id} className="flex items-center gap-2 px-2 py-1.5">
                             <WorkspaceAvatar name={inv.workspace_name ?? "W"} size="sm" />
-                            <span className="flex-1 truncate text-body">{inv.workspace_name ?? t(($) => $.sidebar.invitation_workspace_fallback)}</span>
+                            <span className="enact-sidebar-invitation-name flex-1 truncate">{inv.workspace_name ?? t(($) => $.sidebar.invitation_workspace_fallback)}</span>
                             <button
                               type="button"
-                              className="text-caption px-2 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                              data-variant="accept"
+                              className="enact-sidebar-invitation-button px-2 py-0.5"
                               disabled={acceptInvitationMut.isPending}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -708,7 +706,8 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                             </button>
                             <button
                               type="button"
-                              className="text-caption px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50"
+                              data-variant="decline"
+                              className="enact-sidebar-invitation-button px-2 py-0.5"
                               disabled={declineInvitationMut.isPending}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -741,7 +740,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
             )}
             <SidebarMenuItem>
               <SidebarMenuButton
-                className="text-muted-foreground"
+                className="enact-sidebar-nav-item"
                 onClick={() => openCreateIssueWithPreference()}
               >
                 <span className="relative">
@@ -771,7 +770,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                       <SidebarMenuButton
                         isActive={isActive}
                         render={<AppLink href={href} />}
-                        className="text-muted-foreground hover:not-data-active:bg-sidebar-accent/70 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+                        className="enact-sidebar-nav-item"
                       >
                         <Icon />
                         <span>{t(($) => $.nav[item.labelKey])}</span>
@@ -802,11 +801,11 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
               <SidebarGroup className="group/pinned">
                 <SidebarGroupLabel
                   render={<CollapsibleTrigger />}
-                  className="group/trigger cursor-pointer hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
+                  className="enact-sidebar-pinned-label group/trigger"
                 >
                   <span>{t(($) => $.sidebar.pinned_label)}</span>
                   <ChevronRight className="!size-3 ml-1 stroke-[2.5] transition-transform duration-200 group-data-[panel-open]/trigger:rotate-90" />
-                  <span className="ml-auto text-micro text-muted-foreground opacity-0 transition-opacity group-hover/pinned:opacity-100">{visiblePinned.length}</span>
+                  <span className="enact-sidebar-pinned-count ml-auto">{visiblePinned.length}</span>
                 </SidebarGroupLabel>
                 <CollapsibleContent>
                   <SidebarGroupContent>
@@ -845,7 +844,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                       <SidebarMenuButton
                         isActive={isActive}
                         render={<AppLink href={href} />}
-                        className="text-muted-foreground hover:not-data-active:bg-sidebar-accent/70 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+                        className="enact-sidebar-nav-item"
                       >
                         <Icon />
                         <span>{t(($) => $.nav[item.labelKey])}</span>
@@ -870,7 +869,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
                       <SidebarMenuButton
                         isActive={isActive}
                         render={<AppLink href={href} />}
-                        className="text-muted-foreground hover:not-data-active:bg-sidebar-accent/70 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+                        className="enact-sidebar-nav-item"
                       >
                         <Icon />
                         <span>{t(($) => $.nav[item.labelKey])}</span>

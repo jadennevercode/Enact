@@ -68,7 +68,7 @@ describe("AppCrashBoundary", () => {
 
     const shell = container.firstElementChild;
     expect(shell).not.toBeNull();
-    expect(shell).toHaveClass("flex", "flex-col");
+    expect(shell).toHaveClass("enact-desktop-crash-shell");
     expect(shell?.firstElementChild).toHaveAttribute("data-testid", "drag-strip");
   });
 

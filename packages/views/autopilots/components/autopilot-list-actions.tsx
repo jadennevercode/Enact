@@ -170,7 +170,7 @@ export function AutopilotRowActions({ row }: { row: Autopilot }) {
             <button
               type="button"
               aria-label={t(($) => $.actions.row_menu)}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover/row:opacity-100 data-popup-open:bg-accent data-popup-open:opacity-100 data-popup-open:text-accent-foreground"
+              className="enact-management-row-action flex size-7 items-center justify-center opacity-0 transition-opacity group-hover/row:opacity-100 data-popup-open:opacity-100"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -245,7 +245,7 @@ export function AutopilotBatchToolbar({
     <>
       {/* Anchored to the page root (relative), NOT the viewport — see the
           skills batch toolbar for the rationale. */}
-      <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg max-md:above-chat-launcher">
+      <div className="enact-management-batch-toolbar absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 px-2 py-1.5 max-md:above-chat-launcher">
         <div className="mr-1 flex items-center gap-1.5 border-r pl-1 pr-2">
           <span className="text-body font-medium">
             {t(($) => $.actions.selected, { count: rows.length })}

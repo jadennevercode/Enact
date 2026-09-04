@@ -33,7 +33,7 @@ const isEmptyItem = (el: HTMLButtonElement | undefined) =>
  * first interaction is pixel-identical.
  */
 export const PICKER_TRIGGER_CLASS =
-  "flex items-center gap-1.5 cursor-pointer rounded px-1 -mx-1 hover:bg-accent/30 transition-colors overflow-hidden";
+  "enact-issue-picker-trigger flex items-center gap-1.5 cursor-pointer px-1 -mx-1 overflow-hidden";
 
 // ---------------------------------------------------------------------------
 // PropertyPicker — generic Popover shell with optional search
@@ -263,10 +263,11 @@ export function PickerItem({
     <button
       type="button"
       data-picker-item
+      data-custom-hover={hoverClassName ? "true" : undefined}
       {...(emptyValue ? { [EMPTY_ITEM_ATTR]: "" } : {})}
       disabled={disabled}
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-body ${disabled ? "opacity-50 cursor-not-allowed" : hoverClassName ?? "hover:bg-accent"} transition-colors`}
+      className={`enact-issue-picker-item flex w-full items-center gap-3 px-2 py-1.5 text-left ${disabled ? "opacity-50 cursor-not-allowed" : hoverClassName ?? ""}`}
     >
       {/* min-w-0 lets long children (like truncated label names) shrink
           inside the flex row instead of pushing the selected checkmark off

@@ -7,7 +7,7 @@ import { useWorkspacePaths } from "@enact/core/paths";
 import { useViewStore, useViewStoreApi } from "@enact/core/issues/stores/view-store-context";
 import type { GanttZoom } from "@enact/core/issues/stores/view-store";
 import { projectListOptions } from "@enact/core/projects/queries";
-import type { Issue, IssueStatusCategory } from "@enact/core/types";
+import type { Issue } from "@enact/core/types";
 import { issueStatusCategory } from "@enact/core/issues";
 import { dateOnlyToUTCDate } from "@enact/core/issues/date";
 import { cn } from "@enact/ui/lib/utils";
@@ -288,24 +288,6 @@ function BackgroundLayer({
 }
 
 // ---------------------------------------------------------------------------
-// Bar color by status (uses semantic Tailwind tokens, not hardcoded colors).
-// ---------------------------------------------------------------------------
-
-// Keyed by CATEGORY, not by status key: an issue on a custom status draws in
-// the color of the category it behaves as. Keying this by IssueStatus made the
-// lookup `undefined` for every custom key, so the bar lost its color entirely.
-// (ENA-6243)
-const STATUS_BAR_BG: Record<IssueStatusCategory, string> = {
-  backlog: "bg-muted-foreground/60",
-  todo: "bg-muted-foreground/70",
-  in_progress: "bg-warning",
-  in_review: "bg-success",
-  done: "bg-info",
-  blocked: "bg-destructive",
-  cancelled: "bg-muted-foreground/40",
-};
-
-// ---------------------------------------------------------------------------
 // One row — left label cell + right timeline track with absolute bar.
 // ---------------------------------------------------------------------------
 
@@ -366,7 +348,8 @@ function ScheduledRow({
   return (
     <IssueActionsContextMenu issue={issue}>
       <div
-        className="flex border-b border-foreground/5 hover:bg-accent/30 transition-colors"
+        data-status={issueStatusCategory(issue) ?? "todo"}
+        className="enact-issue-gantt-row flex"
         style={{ height: ROW_HEIGHT }}
       >
         {/* Sticky label cell */}
@@ -408,18 +391,19 @@ function ScheduledRow({
                   <AppLink
                     href={p.issueDetail(issue.id)}
                     newTabTitle={issue.identifier}
+                    data-marker={bar.isMarker ? "true" : undefined}
+                    data-status={issueStatusCategory(issue) ?? "todo"}
                     className={cn(
-                      "absolute top-1/2 -translate-y-1/2 transition-opacity hover:opacity-90",
+                      "enact-issue-gantt-bar absolute top-1/2 -translate-y-1/2",
                       bar.isMarker
-                        ? "h-3 w-3 rotate-45 rounded-[2px]"
-                        : "h-5 rounded-md",
-                      STATUS_BAR_BG[issueStatusCategory(issue) ?? "todo"],
+                        ? "h-3 w-3 rotate-45"
+                        : "h-5",
                       inverted && "ring-2 ring-destructive ring-offset-1 ring-offset-background",
                     )}
                     style={{ left: bar.left, width: bar.width }}
                   >
                     {!bar.isMarker && bar.width > 60 && (
-                      <span className="block truncate px-2 py-[2px] text-micro leading-4 text-white">
+                      <span className="block truncate px-2 py-[2px] text-micro leading-4">
                         {issue.title}
                       </span>
                     )}
@@ -500,9 +484,9 @@ export function GanttView({ issues }: { issues: Issue[] }) {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="enact-issue-gantt flex flex-col flex-1 min-h-0">
       {/* Toolbar */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
+      <div className="enact-issue-gantt-toolbar flex h-9 shrink-0 items-center gap-2 px-3">
         <div className="inline-flex items-center rounded-md border border-foreground/10 p-0.5">
           {([
             { value: "day", label: t(($) => $.gantt.zoom_day) },

@@ -451,7 +451,7 @@ export function ThreadMinimap({
   return (
     // Positioning shim; only the nav and the card take pointer events so the
     // strip never blocks content clicks.
-    <div ref={shimRef} className={cn("pointer-events-none z-10 flex flex-col justify-center py-6", className)}>
+    <div ref={shimRef} className={cn("enact-issue-thread-minimap pointer-events-none z-10 flex flex-col justify-center py-6", className)}>
       <nav
         ref={navRef}
         aria-label={t(($) => $.detail.thread_nav_label)}
@@ -501,7 +501,7 @@ export function ThreadMinimap({
           ref={cardRef}
           onPointerEnter={cancelClose}
           onPointerLeave={scheduleClose}
-          className="pointer-events-auto absolute right-8 top-0 w-72 rounded-lg bg-popover p-2.5 text-body text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-transform duration-150 ease-out motion-reduce:transition-none"
+          className="enact-issue-thread-preview pointer-events-auto absolute right-8 top-0 w-72 p-2.5 text-body motion-reduce:transition-none"
           style={{ transform: `translateY(${preview.y}px) translateY(-50%)` }}
         >
           {activeThread.resolved && (

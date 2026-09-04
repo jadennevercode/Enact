@@ -81,7 +81,7 @@ function ActiveTabHost({ tabId }: { tabId: string }) {
   // `display: contents` keeps the wrapper transparent to the surrounding
   // flex layout.
   return (
-    <div ref={hostRef} style={{ display: "contents" }}>
+    <div ref={hostRef} className="enact-desktop-tab-content">
       <ScrollRestorationProvider adapter={scrollAdapter}>
         <RouterProvider router={router} />
       </ScrollRestorationProvider>

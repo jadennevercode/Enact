@@ -299,7 +299,7 @@ export function ChatMessageList({
       // The gutter lives on the scroll container, so it applies once to the
       // whole list — rows, header, footer — and the scrollbar still rides the
       // surface edge rather than being inset with the text.
-      className={cn("flex-1 overflow-y-auto", CHAT_GUTTER)}
+      className={cn("enact-chat-transcript flex-1 overflow-y-auto", CHAT_GUTTER)}
     >
       {/* Already inside the gutter + column, so this pre-mount frame renders the
        *  skeleton BODY rather than <ChatMessageSkeleton>, which brings its own
@@ -447,7 +447,7 @@ const MessageBubble = memo(function MessageBubble({
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="rounded-2xl bg-muted px-3.5 py-2 text-body max-w-[80%] break-words">
+        <div className="enact-chat-message-user px-3.5 py-2 max-w-[80%] break-words">
           {/* User messages are authored as markdown in ContentEditor, so they
            * render through the SAME RichContent as assistant replies and as
            * Issue/Comment — a Mermaid fence a user pastes is a diagram here
@@ -569,7 +569,7 @@ function AssistantMessage({
   const isNoResponse = message?.message_kind === "no_response";
 
   return (
-    <div className="w-full space-y-1.5">
+    <div className="enact-chat-message-assistant w-full space-y-1.5">
       {timeline.length > 0 && (
         <TimelineView
           items={timeline}
@@ -704,7 +704,7 @@ function QuickActions({
   const regenerateLabel = t(($) => $.message_list.quick_actions_regenerate);
 
   return (
-    <div className="mt-2 border-t border-border/40 pt-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+    <div className={cn("enact-chat-quick-actions mt-2 pt-2 animate-in fade-in slide-in-from-bottom-1 duration-300")}>
       <div className="flex flex-wrap items-center gap-2" aria-label="Suggested follow-ups">
         <QuickActionsHeading />
         {actions.slice(0, 3).map((action, index) => (
@@ -968,14 +968,12 @@ function FailureBubble({
     t(($) => $.message_list.failure.fallback);
 
   return (
-    <div className="w-full space-y-1.5">
-      {/* Failure read as an inline, low-key note — not a destructive
-       *  alert. Intentionally borderless / no background tint: a chat
-       *  failure is informational ("this didn't work"), not a system
-       *  error. The icon + muted destructive text are signal enough,
-       *  the rest stays in the normal reply rhythm. */}
+      <div className="enact-chat-message-failure w-full space-y-1.5">
+      {/* Failure reads as an inline, low-key note rather than a destructive
+       * alert. It intentionally has no background tint; the semantic icon and
+       * copy carry the failure signal while preserving the reply rhythm. */}
       <div className="flex items-start gap-1.5 text-body">
-        <AlertTriangle className="size-3.5 shrink-0 text-destructive mt-0.5" />
+        <AlertTriangle className="enact-chat-message-failure-icon size-3.5 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="text-destructive">{label}</div>
           {rawError.trim() && (
@@ -1091,12 +1089,12 @@ function OuterProcessFold({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground transition-colors">
+      <CollapsibleTrigger className="enact-chat-process-trigger flex items-center gap-1 text-caption text-muted-foreground">
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         <span>{t(($) => $.message_list.process_steps, { count: stepCount })}</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-1 rounded-lg border bg-muted/20 p-2 space-y-0.5">
+        <div className="enact-chat-process-surface mt-1 p-2 space-y-0.5">
           {items.map((item) =>
             item.type === "text" ? (
               <MiddleTextRow

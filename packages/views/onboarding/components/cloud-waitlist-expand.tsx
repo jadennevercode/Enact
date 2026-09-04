@@ -58,19 +58,16 @@ export function CloudWaitlistExpand({
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border bg-muted/40 p-5">
-      <p className="text-label leading-[1.55] text-foreground">
+    <div className="enact-onboarding-cloud-panel">
+      <p className="enact-onboarding-cloud-intro">
         {t(($) => $.cloud_waitlist.intro_main)}{" "}
-        <span className="text-muted-foreground">
+        <span className="enact-onboarding-cloud-intro-secondary">
           {t(($) => $.cloud_waitlist.intro_warning)}
         </span>
       </p>
 
-      <div className="flex flex-col gap-1.5">
-        <Label
-          htmlFor="waitlist-email"
-          className="text-caption font-medium text-muted-foreground"
-        >
+      <div className="enact-onboarding-cloud-field">
+        <Label htmlFor="waitlist-email" className="enact-onboarding-cloud-label">
           {t(($) => $.cloud_waitlist.email_label)}
         </Label>
         <Input
@@ -90,13 +87,10 @@ export function CloudWaitlistExpand({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label
-          htmlFor="waitlist-reason"
-          className="text-caption font-medium text-muted-foreground"
-        >
+      <div className="enact-onboarding-cloud-field">
+        <Label htmlFor="waitlist-reason" className="enact-onboarding-cloud-label">
           {t(($) => $.cloud_waitlist.reason_label)}
-          <span className="ml-2 font-normal text-muted-foreground">
+          <span className="enact-onboarding-cloud-optional">
             {t(($) => $.cloud_waitlist.optional)}
           </span>
         </Label>
@@ -111,18 +105,18 @@ export function CloudWaitlistExpand({
         />
       </div>
 
-      <div className="flex items-center justify-end">
+      <div className="enact-onboarding-cloud-actions">
         <Button size="lg" disabled={submitted || !canSubmit} onClick={submit}>
-          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          {submitting && <Loader2 className="enact-onboarding-action-icon animate-spin" />}
           {submitted ? (
             <>
-              <Check className="h-4 w-4" />
+              <Check className="enact-onboarding-action-icon" />
               {t(($) => $.cloud_waitlist.on_list)}
             </>
           ) : (
             <>
               {t(($) => $.cloud_waitlist.join)}
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="enact-onboarding-action-icon" />
             </>
           )}
         </Button>

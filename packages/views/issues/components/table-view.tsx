@@ -2401,8 +2401,8 @@ export function TableView({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
+    <div className="enact-issue-table flex min-h-0 flex-1 flex-col">
+      <div className="enact-issue-table-toolbar flex shrink-0 items-center gap-2 px-3 py-1.5">
         <TableIssueSearch
           value={search}
           onChange={onSearchChange}

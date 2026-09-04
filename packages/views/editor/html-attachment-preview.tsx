@@ -27,7 +27,6 @@
  */
 
 import { Download, ExternalLink, Maximize2, Trash2 } from "lucide-react";
-import { cn } from "@enact/ui/lib/utils";
 import { paths, useWorkspaceSlug } from "@enact/core/paths";
 import { useT } from "../i18n";
 import { useNavigation } from "../navigation";
@@ -84,7 +83,7 @@ export function HtmlAttachmentPreview({
 
   return (
     <div
-      className="group/html-preview relative my-1"
+      className="enact-attachment-html"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <HtmlPreviewBody
@@ -95,18 +94,14 @@ export function HtmlAttachmentPreview({
         errorTestId="html-attachment-preview-error"
       />
       <div
-        className={cn(
-          "absolute right-2 top-2 flex items-center gap-0.5 rounded-md border border-border bg-background/95 p-0.5 shadow-sm transition-opacity",
-          // Error state pins the toolbar open — Preview / Download are the
-          // only user-reachable escape hatches when inline render fails.
-          isError
-            ? "opacity-100"
-            : "opacity-0 group-hover/html-preview:opacity-100",
-        )}
+        className="enact-attachment-html-toolbar"
+        // Error state pins the toolbar open — Preview / Download are the
+        // only user-reachable escape hatches when inline render fails.
+        data-pinned={isError ? "true" : undefined}
       >
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="enact-attachment-action"
           title={t(($) => $.attachment.preview)}
           aria-label={t(($) => $.attachment.preview)}
           onMouseDown={(e) => {
@@ -120,7 +115,7 @@ export function HtmlAttachmentPreview({
         {canOpenInNewTab && (
           <button
             type="button"
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="enact-attachment-action"
             title={t(($) => $.attachment.open_in_new_tab)}
             aria-label={t(($) => $.attachment.open_in_new_tab)}
             onMouseDown={(e) => {
@@ -134,7 +129,7 @@ export function HtmlAttachmentPreview({
         )}
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="enact-attachment-action"
           title={t(($) => $.image.download)}
           aria-label={t(($) => $.image.download)}
           onMouseDown={(e) => {
@@ -148,7 +143,8 @@ export function HtmlAttachmentPreview({
         {onDelete && (
           <button
             type="button"
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            className="enact-attachment-action"
+            data-tone="destructive"
             title={t(($) => $.attachment.remove)}
             aria-label={t(($) => $.attachment.remove)}
             onMouseDown={(e) => {

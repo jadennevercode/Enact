@@ -85,11 +85,11 @@ export function TelegramTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="enact-integrations-stack">
       {isError ? (
         <Card>
           <CardContent>
-            <p className="text-body text-muted-foreground">
+            <p className="enact-integration-description">
               {t(($) => $.telegram.load_failed)}
             </p>
           </CardContent>
@@ -97,16 +97,16 @@ export function TelegramTab() {
       ) : isLoading ? (
         <Card>
           <CardContent>
-            <p className="text-body text-muted-foreground">{t(($) => $.telegram.loading)}</p>
+            <p className="enact-integration-description">{t(($) => $.telegram.loading)}</p>
           </CardContent>
         </Card>
       ) : !configured ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.telegram.not_enabled_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.telegram.not_enabled_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.telegram.not_enabled_description_prefix)}{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-micro">
+              <code className="enact-integration-inline-code">
                 ENACT_TELEGRAM_SECRET_KEY
               </code>{" "}
               {t(($) => $.telegram.not_enabled_description_suffix)}{" "}
@@ -115,13 +115,13 @@ export function TelegramTab() {
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-3">
-          <h2 className="text-body font-semibold">{t(($) => $.telegram.connected_bots)}</h2>
+        <section className="enact-integration-section">
+          <h2 className="enact-integration-section-title">{t(($) => $.telegram.connected_bots)}</h2>
           {installations.length === 0 ? (
             <Card>
-              <CardContent className="space-y-2">
-                <p className="text-body font-medium">{t(($) => $.telegram.empty_title)}</p>
-                <p className="text-caption text-muted-foreground">
+              <CardContent className="enact-integration-state-card">
+                <p className="enact-integration-row-title">{t(($) => $.telegram.empty_title)}</p>
+                <p className="enact-integration-meta">
                   {t(($) => $.telegram.empty_description_prefix)}{" "}
                   <strong>{t(($) => $.telegram.empty_description_cta)}</strong>{" "}
                   {t(($) => $.telegram.empty_description_suffix)}
@@ -130,7 +130,7 @@ export function TelegramTab() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="divide-y">
+              <CardContent className="enact-integration-list">
                 {installations.map((inst) => (
                   <InstallationRow
                     key={inst.id}
@@ -190,8 +190,8 @@ function InstallationRow({
   const isActive = installation.status === "active";
   const agentName = getAgentName(installation.agent_id);
   return (
-    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
+    <div className="enact-integration-row">
+      <div className="enact-integration-row-main">
         <ActorAvatar
           actorType="agent"
           actorId={installation.agent_id}
@@ -199,21 +199,21 @@ function InstallationRow({
           enableHoverCard
           profileLink
         />
-        <div className="space-y-1">
-          <p className="text-body font-medium">
+        <div className="enact-integration-copy">
+          <p className="enact-integration-row-title">
             {agentName}
             {installation.bot_username ? (
-              <span className="ml-2 text-caption text-muted-foreground">
+              <span className="enact-integration-provider-identity">
                 @{installation.bot_username}
               </span>
             ) : null}
             {!isActive && (
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+              <span className="enact-integration-chip" data-inline="true">
                 {t(($) => $.telegram.revoked_badge)}
               </span>
             )}
           </p>
-          <p className="text-micro text-muted-foreground">
+          <p className="enact-integration-detail">
             {t(($) => $.telegram.installed_at_label, {
               when: new Date(installation.installed_at).toLocaleString(),
             })}
@@ -222,7 +222,7 @@ function InstallationRow({
       </div>
       {canManage && isActive && (
         <Button variant="outline" size="sm" onClick={onDisconnect}>
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {t(($) => $.telegram.disconnect)}
         </Button>
       )}
@@ -336,7 +336,7 @@ export function TelegramAgentBindButton({
 
   return (
     <div
-      className={cn("flex flex-wrap items-center gap-2", className)}
+      className={cn("enact-integration-connect-actions", className)}
       data-testid="telegram-agent-bind-buttons"
     >
       <Button
@@ -351,7 +351,7 @@ export function TelegramAgentBindButton({
         }
         data-testid="telegram-agent-connect"
       >
-        <TelegramMark className="h-3 w-3" />
+        <TelegramMark className="enact-integration-provider-mark-compact" />
         {t(($) => $.telegram.bind_button)}
       </Button>
 
@@ -359,26 +359,26 @@ export function TelegramAgentBindButton({
         open={dialogOpen}
         onOpenChange={(v) => (v ? setDialogOpen(true) : closeDialog())}
       >
-        <DialogContent className="sm:max-w-lg" data-testid="telegram-connect-dialog">
+        <DialogContent className="enact-integration-dialog" data-testid="telegram-connect-dialog">
           <DialogHeader>
             <DialogTitle>{t(($) => $.telegram.connect_dialog_title)}</DialogTitle>
           </DialogHeader>
 
-          <p className="text-caption text-muted-foreground">
+          <p className="enact-integration-meta">
             {t(($) => $.telegram.connect_dialog_description)}
           </p>
 
           <button
             type="button"
             onClick={() => openExternal(telegramDocsUrl(i18n.language))}
-            className="inline-flex w-fit items-center gap-2 text-body font-medium text-primary underline-offset-2 hover:underline"
+            className="enact-integration-doc-link"
             data-testid="telegram-docs-link"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="enact-integration-action-icon-large" />
             {t(($) => $.telegram.connect_docs_link)}
           </button>
 
-          <div className="space-y-1.5">
+          <div className="enact-integration-field">
             <Label htmlFor="telegram-bot-token">
               {t(($) => $.telegram.bot_token_label)}
             </Label>
@@ -436,14 +436,14 @@ function TelegramAgentBotStatusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "enact-integration-status-row",
         className,
       )}
       data-testid="telegram-agent-bot-status"
     >
-      <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-      <span className="truncate">{t(($) => $.telegram.agent_bot_connected_label)}</span>
-      <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0" />
+      <span className="enact-integration-status-dot" data-status="active" />
+      <span className="enact-integration-truncate">{t(($) => $.telegram.agent_bot_connected_label)}</span>
+      <ChevronRight className="enact-integration-status-chevron" />
     </button>
   );
 }
@@ -483,13 +483,13 @@ function TelegramAgentBotConnectedBadge({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("enact-integration-connected", className)}
       data-testid="telegram-agent-bot-connected"
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-          <span className="truncate">
+      <div className="enact-integration-connected-header">
+        <span className="enact-integration-connected-status">
+          <span className="enact-integration-status-dot" data-status="active" />
+          <span className="enact-integration-truncate">
             {t(($) => $.telegram.agent_bot_connected_label)}
             {installation.bot_username ? ` · @${installation.bot_username}` : ""}
           </span>
@@ -503,7 +503,7 @@ function TelegramAgentBotConnectedBadge({
           aria-label={t(($) => $.telegram.disconnect)}
           data-testid="telegram-agent-bot-disconnect"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {disconnecting
             ? t(($) => $.telegram.disconnecting)
             : t(($) => $.telegram.disconnect)}
@@ -514,10 +514,10 @@ function TelegramAgentBotConnectedBadge({
         <button
           type="button"
           onClick={() => openExternal(`https://t.me/${installation.bot_username}`)}
-          className="inline-flex items-center gap-1 text-caption text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+          className="enact-integration-manage-link"
           title={t(($) => $.telegram.agent_bot_manage_tooltip)}
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="enact-integration-action-icon" />
           {t(($) => $.telegram.agent_bot_manage_link)}
         </button>
       )}

@@ -58,7 +58,9 @@ const backgroundTokens = [
 type Rgb = [number, number, number];
 
 function readBlock(source: string, selector: string): Map<string, string> {
-  const start = source.indexOf(`${selector} {`);
+  const directStart = source.indexOf(`${selector} {`);
+  const listStart = source.indexOf(`${selector},`);
+  const start = directStart >= 0 ? directStart : listStart;
   if (start < 0) throw new Error(`${selector} block not found`);
   const end = source.indexOf("\n}", start);
   if (end < 0) throw new Error(`${selector} block is unterminated`);
@@ -97,22 +99,48 @@ const decodeSrgb = (c: number) =>
  * Quantises to 8-bit on purpose: contrast is judged on what the display
  * actually paints, not on the unrounded float behind it.
  */
-function oklchToRgb(value: string): Rgb {
-  const match = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value);
-  if (!match?.[1] || !match[2] || !match[3]) {
-    throw new Error(`expected an alpha-free oklch() colour, got "${value}"`);
+function cssColorToRgb(value: string): Rgb {
+  const hsl = /^hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)$/.exec(value);
+  if (hsl?.[1] && hsl[2] && hsl[3]) {
+    const hue = (Number(hsl[1]) % 360) / 360;
+    const saturation = Number(hsl[2]) / 100;
+    const lightness = Number(hsl[3]) / 100;
+    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+    const segment = hue * 6;
+    const secondary = chroma * (1 - Math.abs((segment % 2) - 1));
+    const [red, green, blue] =
+      segment < 1
+        ? [chroma, secondary, 0]
+        : segment < 2
+          ? [secondary, chroma, 0]
+          : segment < 3
+            ? [0, chroma, secondary]
+            : segment < 4
+              ? [0, secondary, chroma]
+              : segment < 5
+                ? [secondary, 0, chroma]
+                : [chroma, 0, secondary];
+    const match = (lightness - chroma / 2) * 255;
+    return [
+      Math.round((red * 255) + match),
+      Math.round((green * 255) + match),
+      Math.round((blue * 255) + match),
+    ];
   }
 
-  const lightness = Number(match[1]);
-  const chroma = Number(match[2]);
-  const hue = (Number(match[3]) * Math.PI) / 180;
+  const oklch = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value);
+  if (!oklch?.[1] || !oklch[2] || !oklch[3]) {
+    throw new Error(`expected an alpha-free HSL or OKLCH colour, got "${value}"`);
+  }
+
+  const lightness = Number(oklch[1]);
+  const chroma = Number(oklch[2]);
+  const hue = (Number(oklch[3]) * Math.PI) / 180;
   const a = chroma * Math.cos(hue);
   const b = chroma * Math.sin(hue);
-
   const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3;
   const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3;
   const s = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3;
-
   const channel = (linear: number) =>
     Math.round(clamp01(encodeSrgb(clamp01(linear))) * 255);
 
@@ -138,15 +166,31 @@ function contrastRatio(foreground: Rgb, background: Rgb): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+function expectTokenPairPasses(
+  declarations: Map<string, string>,
+  foregroundToken: string,
+  backgroundToken: string,
+  floor: number,
+) {
+  const foreground = cssColorToRgb(resolveToken(declarations, foregroundToken));
+  const background = cssColorToRgb(resolveToken(declarations, backgroundToken));
+  const ratio = contrastRatio(foreground, background);
+
+  expect(
+    Number(ratio.toFixed(2)),
+    `${foregroundToken} on ${backgroundToken} is ${ratio.toFixed(2)}:1`,
+  ).toBeGreaterThanOrEqual(floor);
+}
+
 function expectTonePasses(
   declarations: Map<string, string>,
   tone: string,
   floor: number,
 ) {
-  const foreground = oklchToRgb(resolveToken(declarations, tone));
+  const foreground = cssColorToRgb(resolveToken(declarations, tone));
 
   for (const token of backgroundTokens) {
-    const background = oklchToRgb(resolveToken(declarations, token));
+    const background = cssColorToRgb(resolveToken(declarations, token));
     const ratio = contrastRatio(foreground, background);
 
     expect(
@@ -391,33 +435,27 @@ function findTransparencyAsHierarchy(source: string): { line: number; found: str
 // ── the contract ───────────────────────────────────────────────────────────
 
 describe("text contrast", () => {
-  describe("--muted-foreground, the floor for text", () => {
-    it("clears WCAG AA on every light surface", () => {
-      expectTonePasses(readBlock(tokensCss(), ":root"), "--muted-foreground", WCAG_AA_NORMAL_TEXT);
-    });
+  const themeScopes = [
+    ["default dark", ":root"],
+    ["light", ".light"],
+  ] as const;
 
-    it("clears WCAG AA on every dark surface", () => {
-      expectTonePasses(readBlock(tokensCss(), ".dark"), "--muted-foreground", WCAG_AA_NORMAL_TEXT);
+  describe("--muted-foreground, the floor for text", () => {
+    it.each(themeScopes)("clears WCAG AA on every %s surface", (_mode, selector) => {
+      expectTonePasses(readBlock(tokensCss(), selector), "--muted-foreground", WCAG_AA_NORMAL_TEXT);
     });
   });
 
   describe("--faint-foreground, for marks that are not text", () => {
-    it("clears non-text contrast on every light surface", () => {
-      expectTonePasses(readBlock(tokensCss(), ":root"), "--faint-foreground", WCAG_AA_NON_TEXT);
+    it.each(themeScopes)("clears non-text contrast on every %s surface", (_mode, selector) => {
+      expectTonePasses(readBlock(tokensCss(), selector), "--faint-foreground", WCAG_AA_NON_TEXT);
     });
 
-    it("clears non-text contrast on every dark surface", () => {
-      expectTonePasses(readBlock(tokensCss(), ".dark"), "--faint-foreground", WCAG_AA_NON_TEXT);
-    });
-
-    it.each([
-      ["light", ":root"],
-      ["dark", ".dark"],
-    ])("stays quieter than muted-foreground in %s mode", (_mode, selector) => {
+    it.each(themeScopes)("stays quieter than muted-foreground in %s mode", (_mode, selector) => {
       const declarations = readBlock(tokensCss(), selector);
-      const surface = oklchToRgb(resolveToken(declarations, "--surface"));
-      const faint = oklchToRgb(resolveToken(declarations, "--faint-foreground"));
-      const muted = oklchToRgb(resolveToken(declarations, "--muted-foreground"));
+      const surface = cssColorToRgb(resolveToken(declarations, "--surface"));
+      const faint = cssColorToRgb(resolveToken(declarations, "--faint-foreground"));
+      const muted = cssColorToRgb(resolveToken(declarations, "--muted-foreground"));
 
       expect(
         contrastRatio(faint, surface),
@@ -426,19 +464,38 @@ describe("text contrast", () => {
     });
   });
 
-  // The landing route tree re-declares the light palette so token-driven
-  // components stay light under next-themes' `.dark` class. That copy is only
-  // correct while it matches the source, so drift here is a bug in itself — a
-  // tone missing from the copy silently inherits its `.dark` value on a white
-  // surface.
+  describe("semantic status foregrounds", () => {
+    const statuses = ["success", "warning", "info", "destructive"] as const;
+
+    it.each(themeScopes)("keeps status labels readable in %s mode", (_mode, selector) => {
+      const declarations = readBlock(tokensCss(), selector);
+
+      for (const status of statuses) {
+        expectTokenPairPasses(
+          declarations,
+          `--${status}-foreground`,
+          `--${status}`,
+          WCAG_AA_NORMAL_TEXT,
+        );
+      }
+    });
+  });
+
+  // Fixed-light pages receive their palette from the shared token scope rather
+  // than copying any product color token into page-local marketing CSS.
   it.each(["--muted-foreground", "--faint-foreground"])(
-    "keeps the landing-light copy of %s in sync with the light token",
+    "keeps %s defined by the fixed-light token scope",
     (tone) => {
-      expect(resolveToken(readBlock(landingCss(), ".landing-light"), tone)).toBe(
-        resolveToken(readBlock(tokensCss(), ":root"), tone),
-      );
+      expect(readBlock(tokensCss(), ".enact-fixed-light").has(tone)).toBe(true);
+      expect(landingCss()).not.toContain(`${tone}:`);
     },
   );
+
+  it("keeps the landing stylesheet free of copied application palette tokens", () => {
+    expect(landingCss()).not.toMatch(
+      /--(?:app-shell|page-canvas|surface|background|foreground|card|popover|primary|secondary|muted|faint-foreground|accent|destructive|success|warning|info|border|input|ring|brand|scrollbar)[\w-]*\s*:/,
+    );
+  });
 
   /**
    * The detector is the part of this guard most likely to rot, because every
@@ -515,5 +572,5 @@ describe("text contrast", () => {
       violations,
       `Transparency standing in for a text tone:\n${violations.join("\n")}`,
     ).toEqual([]);
-  });
+  }, 15_000);
 });

@@ -1,0 +1,386 @@
+/* Shared Issues and My Issues presentation for Web and Desktop. */
+
+@layer utilities {
+  .enact-issue-page,
+  .enact-issue-detail,
+  .enact-issue-window {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--page-canvas);
+    color: var(--foreground);
+  }
+
+  .enact-issue-toolbar {
+    min-width: 0;
+    color: var(--foreground);
+  }
+
+  .enact-issue-state {
+    color: var(--muted-foreground);
+  }
+
+  .enact-issue-state-media {
+    color: var(--faint-foreground);
+  }
+
+  .enact-issue-filter-bar {
+    border-radius: var(--radius-lg);
+    background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  }
+
+  .enact-issue-filter-chip {
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .enact-issue-filter-dot {
+    background-color: var(--enact-issue-color, var(--muted-foreground));
+  }
+
+  .enact-issue-view-bar {
+    min-width: 0;
+  }
+
+  .enact-issue-view-tab {
+    color: var(--muted-foreground);
+  }
+
+  .enact-issue-view-tab[data-active="true"],
+  .enact-issue-view-tab[data-active="true"]:hover {
+    border-color: var(--surface-border);
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-issue-batch-toolbar {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--floating-shadow);
+  }
+
+  .enact-issue-list {
+    min-width: 0;
+    background-color: var(--page-canvas);
+  }
+
+  .enact-issue-list-section {
+    border-radius: var(--radius-lg);
+    background-color: var(--muted);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-list-section:hover {
+    background-color: var(--accent);
+  }
+
+  .enact-issue-list-row {
+    color: var(--foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-list-row:hover:not([data-popup-open]),
+  .enact-issue-list-row[data-popup-open] {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-issue-list-row[data-selected="true"],
+  .enact-issue-list-row[data-selected="true"]:hover,
+  .enact-issue-list-row[data-selected="true"][data-popup-open] {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-issue-list-row[data-dragging="true"],
+  .enact-issue-board-card-frame[data-dragging="true"],
+  .enact-issue-swimlane[data-dragging="true"] {
+    opacity: var(--disabled-opacity);
+  }
+
+  .enact-issue-drag-overlay {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    box-shadow: var(--floating-shadow);
+  }
+
+  .enact-issue-board,
+  .enact-issue-swimlane-view,
+  .enact-issue-table,
+  .enact-issue-gantt {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .enact-issue-board-column,
+  .enact-issue-swimlane-status,
+  .enact-issue-swimlane-cell {
+    --enact-issue-status: var(--muted-foreground);
+
+    border-radius: var(--radius-xl);
+    background-color: color-mix(
+      in oklab,
+      var(--enact-issue-status) 10%,
+      var(--page-canvas)
+    );
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="todo"] {
+    --enact-issue-status: var(--destructive);
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="in_progress"] {
+    --enact-issue-status: var(--info);
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="in_review"] {
+    --enact-issue-status: var(--warning);
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="done"] {
+    --enact-issue-status: var(--success);
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="blocked"] {
+    --enact-issue-status: var(--destructive);
+  }
+
+  .enact-issue-board-card {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    color: var(--surface-foreground);
+    box-shadow: var(--surface-shadow);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
+  }
+
+  .group\/card:hover .enact-issue-board-card,
+  .group\/card[data-popup-open] .enact-issue-board-card {
+    border-color: color-mix(in oklab, var(--foreground) 15%, transparent);
+    background-color: var(--surface-hover);
+  }
+
+  .enact-issue-card-title {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-issue-metadata,
+  .enact-issue-metadata-chip {
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-issue-metadata-chip {
+    border-radius: var(--radius-4xl);
+    background-color: color-mix(in oklab, var(--muted) 60%, transparent);
+  }
+
+  .enact-issue-table-toolbar,
+  .enact-issue-gantt-toolbar {
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .enact-issue-gantt-row {
+    border-bottom: var(--border-width) solid
+      color-mix(in oklab, var(--foreground) 5%, transparent);
+    transition: background-color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-gantt-row:hover {
+    background-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+
+  .enact-issue-gantt-bar {
+    --enact-issue-status: var(--muted-foreground);
+    --enact-issue-status-foreground: var(--background);
+
+    border-radius: var(--radius-md);
+    background-color: var(--enact-issue-status);
+    color: var(--enact-issue-status-foreground);
+    transition: opacity var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-gantt-bar[data-marker="true"] {
+    border-radius: calc(var(--border-width) * 2);
+  }
+
+  .enact-issue-gantt-bar:hover {
+    opacity: 0.9;
+  }
+
+  .enact-issue-gantt-bar[data-status="done"] {
+    --enact-issue-status: var(--info);
+    --enact-issue-status-foreground: var(--info-foreground);
+  }
+
+  .enact-issue-gantt-bar[data-status="in_progress"] {
+    --enact-issue-status: var(--warning);
+    --enact-issue-status-foreground: var(--warning-foreground);
+  }
+
+  .enact-issue-gantt-bar[data-status="in_review"] {
+    --enact-issue-status: var(--success);
+    --enact-issue-status-foreground: var(--success-foreground);
+  }
+
+  .enact-issue-gantt-bar[data-status="blocked"] {
+    --enact-issue-status: var(--destructive);
+    --enact-issue-status-foreground: var(--destructive-foreground);
+  }
+
+  .enact-issue-picker-trigger {
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-picker-trigger:hover,
+  .enact-issue-picker-trigger[data-open] {
+    background-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+
+  .enact-issue-picker-item {
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    transition: background-color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-picker-item:not([data-custom-hover]):hover,
+  .enact-issue-picker-item:not([data-custom-hover]).bg-accent {
+    background-color: var(--accent);
+  }
+
+  .enact-issue-detail-content {
+    min-width: 0;
+    color: var(--foreground);
+  }
+
+  .enact-issue-detail-scroller {
+    scrollbar-gutter: stable both-edges;
+  }
+
+  .enact-issue-detail-section-title {
+    color: var(--foreground);
+    font-size: var(--text-title-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-title-sm--line-height);
+  }
+
+  .enact-issue-inspector {
+    color: var(--foreground);
+  }
+
+  .enact-issue-comment-card {
+    border-color: var(--surface-border);
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+
+  .enact-issue-comment-highlight {
+    background-color: color-mix(in oklab, var(--card) 95%, var(--brand) 5%);
+  }
+
+  .enact-issue-comment-sticky {
+    position: sticky;
+    z-index: var(--z-sticky);
+    background-color: var(--card);
+    transition: background-color var(--motion-slow) var(--ease-standard);
+  }
+
+  .enact-issue-comment-sticky::after {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--space-unit);
+    background-color: inherit;
+    content: "";
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, var(--foreground), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, var(--foreground), transparent);
+  }
+
+  .enact-issue-composer {
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+    box-shadow: 0 0 0 var(--border-width) var(--border);
+  }
+
+  .enact-issue-thread-minimap {
+    color: var(--muted-foreground);
+  }
+
+  .enact-issue-thread-preview {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--menu-shadow);
+    transition: transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-issue-window-state {
+    color: var(--muted-foreground);
+  }
+
+  .enact-issue-window-state-media {
+    border-radius: var(--radius-4xl);
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  .enact-issue-window-state-media[data-tone="destructive"] {
+    background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-issue-list-section,
+    .enact-issue-list-row,
+    .enact-issue-board-card,
+    .enact-issue-gantt-row,
+    .enact-issue-gantt-bar,
+    .enact-issue-picker-trigger,
+    .enact-issue-picker-item,
+    .enact-issue-comment-sticky,
+    .enact-issue-thread-preview {
+      transition: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .enact-issue-filter-chip {
+      outline: var(--border-width) solid CanvasText;
+      outline-offset: calc(var(--border-width) * -1);
+    }
+
+    .enact-issue-list-row[data-selected="true"],
+    .enact-issue-board-card,
+    .enact-issue-comment-card,
+    .enact-issue-thread-preview {
+      border-color: CanvasText;
+    }
+
+    .enact-issue-list-row[data-selected="true"] {
+      outline: var(--border-width) solid Highlight;
+      outline-offset: calc(var(--border-width) * -1);
+    }
+  }
+}

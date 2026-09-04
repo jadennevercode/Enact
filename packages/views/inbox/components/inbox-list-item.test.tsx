@@ -130,7 +130,8 @@ function renderRow(props: {
   );
 }
 
-const unreadDot = (container: HTMLElement) => container.querySelector(".bg-brand");
+const unreadDot = (container: HTMLElement) =>
+  container.querySelector(".enact-inbox-unread-dot");
 const title = (container: HTMLElement) => container.querySelector(".truncate");
 
 describe("InboxListItem unread affordance", () => {

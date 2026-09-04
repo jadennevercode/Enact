@@ -164,7 +164,7 @@ export function RuntimesPage({
     hasLocalMachine !== true;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="enact-runtime-page flex min-h-0 flex-1 flex-col">
       <PageHeaderBar
         totalCount={machines.length}
         onConnectRemote={() => setShowConnectDialog(true)}
@@ -282,7 +282,7 @@ function MikaSetupCard({
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-4 rounded-xl border bg-card p-5 sm:flex-row sm:items-center">
+      <div className="enact-management-card mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <span
           role="img"
           aria-label={t(($) => $.mika_setup.title)}
@@ -365,7 +365,7 @@ function OrphanRuntimeProfiles({
           {t(($) => $.profiles.unassigned_description)}
         </p>
       </div>
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="enact-runtime-machine-list overflow-hidden">
         <RuntimeList runtimes={runtimes} now={now} />
       </div>
     </section>
@@ -522,7 +522,8 @@ function MachineRow({ machine }: { machine: RuntimeMachine }) {
   return (
     <AppLink
       href={paths.runtimeDetail(locator)}
-      className="group flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      className="enact-runtime-machine-row group flex min-w-0 items-center gap-3 px-4 py-3.5"
+      data-health={machine.health}
     >
       {body}
     </AppLink>
@@ -571,7 +572,7 @@ function EmptyState({ onConnectRemote }: { onConnectRemote: () => void }) {
 
 function RuntimesPageSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="enact-runtime-page flex min-h-0 flex-1 flex-col">
       <PageHeader>
         <Skeleton className="h-4 w-24" />
       </PageHeader>

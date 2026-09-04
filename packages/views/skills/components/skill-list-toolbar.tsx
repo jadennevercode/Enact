@@ -177,7 +177,7 @@ export function SkillListToolbar({
   );
 
   return (
-    <div className={PAGE_TOOLBAR}>
+    <div className={`enact-management-toolbar ${PAGE_TOOLBAR}`}>
       {/* Left: name search + result count. The count only appears while
           search/filters narrow the list — in the idle state it would just
           duplicate the total already shown in the page header. Below md the
@@ -212,11 +212,8 @@ export function SkillListToolbar({
               <Button
                 variant={hasActiveFilters ? "default" : "outline"}
                 size="sm"
-                className={
-                  hasActiveFilters
-                    ? "h-8 w-8 gap-1 bg-brand px-0 text-white hover:bg-brand/90 md:w-auto md:px-2.5"
-                    : "h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
-                }
+                className="enact-management-filter-trigger h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
+                data-active={hasActiveFilters ? "true" : undefined}
               >
                 <Filter className="size-3.5" />
                 {hasActiveFilters ? (
@@ -240,7 +237,7 @@ export function SkillListToolbar({
                     role="button"
                     tabIndex={-1}
                     aria-label={t(($) => $.toolbar.clear_filters)}
-                    className="-mr-1 ml-0.5 hidden rounded-sm p-0.5 hover:bg-white/20 md:inline-flex"
+                    className="enact-management-filter-clear -mr-1 ml-0.5 hidden p-0.5 md:inline-flex"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

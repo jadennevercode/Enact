@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -13,6 +14,17 @@ import {
 } from "./step-shell";
 
 const TEST_RESOURCES = { en: { common: enCommon, onboarding: enOnboarding } };
+const ONBOARDING_CSS = readFileSync(
+  "../ui/styles/features/onboarding-auth.css",
+  "utf8",
+);
+
+function cssBlock(selector: string): string {
+  const start = ONBOARDING_CSS.indexOf(selector);
+  expect(start, `${selector} is missing`).toBeGreaterThanOrEqual(0);
+  const end = ONBOARDING_CSS.indexOf("}", start);
+  return ONBOARDING_CSS.slice(start, end + 1);
+}
 
 function renderShell(props: Partial<Parameters<typeof StepShell>[0]> = {}) {
   return render(
@@ -43,9 +55,11 @@ describe("onboarding step shell", () => {
   // share a left edge, which is how the platform fork ended up ~150px right
   // of every other step.
   it("centres a single content measure", () => {
-    expect(STEP_COLUMN).toContain("mx-auto");
-    expect(STEP_COLUMN).toMatch(/max-w-\[[\d.]+rem\]/);
-    expect(STEP_COLUMN).not.toMatch(/\bp[xlr]?-/);
+    expect(STEP_COLUMN).toBe("enact-onboarding-step-column");
+    const block = cssBlock(".enact-onboarding-step-column {");
+    expect(block).toContain("max-width:");
+    expect(block).toContain("margin-inline: auto");
+    expect(block).not.toMatch(/padding(?:-inline)?:/);
   });
 
   // The column fills the pane so StepFooter's `mt-auto` has something to push
@@ -54,8 +68,10 @@ describe("onboarding step shell", () => {
     const { container } = renderShell();
 
     const column = container.querySelector("main > div")!;
-    expect(column.className).toContain("min-h-full");
-    expect(column.className).toContain("flex-col");
+    expect(column.className).toContain("enact-onboarding-step-column");
+    const block = cssBlock(".enact-onboarding-step-column {");
+    expect(block).toContain("min-height: 100%");
+    expect(block).toContain("flex-direction: column");
   });
 
   // The panes persist across steps, so a screen reader user gets no
@@ -82,7 +98,8 @@ describe("onboarding step shell", () => {
       </I18nProvider>,
     );
 
-    expect(container.firstElementChild!.className).toContain("mt-auto");
+    expect(container.firstElementChild).toHaveClass("enact-onboarding-footer");
+    expect(cssBlock(".enact-onboarding-footer {")).toContain("margin-top: auto");
     expect(screen.getByText("Name it to continue.")).toBeInTheDocument();
   });
 
@@ -114,10 +131,20 @@ describe("onboarding step shell", () => {
       onBack: () => {},
     });
 
-    expect(container.querySelector("aside")!.className).toContain("hidden");
+    const sidebar = container.querySelector("aside")!;
+    expect(sidebar).toHaveClass("enact-onboarding-sidebar");
+    expect(cssBlock(".enact-onboarding-sidebar {")).toContain("display: none");
 
-    const compact = container.querySelector("main .md\\:hidden")!;
+    const compact = container.querySelector(
+      "main .enact-onboarding-compact-progress",
+    )!;
     expect(compact).not.toBeNull();
+    expect(cssBlock(".enact-onboarding-compact-progress {")).toContain(
+      "display: flex",
+    );
+    expect(ONBOARDING_CSS).toMatch(
+      /@media \(min-width: 768px\)[\s\S]*?\.enact-onboarding-compact-progress\s*\{[^}]*display:\s*none;[\s\S]*?\.enact-onboarding-sidebar\s*\{[^}]*display:\s*block;/,
+    );
     expect(compact.textContent).toContain("Meet Mika");
     expect(compact.querySelector("button")).not.toBeNull();
   });
@@ -134,7 +161,9 @@ describe("onboarding step shell", () => {
     expect(rail.getByRole("button", { name: /log out/i })).toBeInTheDocument();
 
     const compact = within(
-      container.querySelector("main .md\\:hidden") as HTMLElement,
+      container.querySelector(
+        "main .enact-onboarding-compact-progress",
+      ) as HTMLElement,
     );
     expect(
       compact.getByRole("button", { name: /log out/i }),

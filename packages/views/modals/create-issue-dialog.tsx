@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@enact/ui/lib/utils";
 import { Dialog, DialogContent } from "@enact/ui/components/ui/dialog";
 import {
   useCreateModeStore,
   type CreateMode,
 } from "@enact/core/issues/stores/create-mode-store";
 import { AgentCreatePanel } from "./quick-create-issue";
-import { ManualCreatePanel, manualDialogContentClass } from "./create-issue";
+import { ManualCreatePanel } from "./create-issue";
 
 /**
  * Shell that owns the single `<Dialog>` AND `<DialogContent>` for the
@@ -50,39 +49,14 @@ export function CreateIssueDialog({
     setMode(next);
   };
 
-  const className =
-    mode === "agent"
-      ? cn(
-          "p-0 gap-0 flex flex-col overflow-hidden",
-          "!top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2",
-          // Smooth size transition when switching modes — the manual mode
-          // uses the same easing.
-          "!transition-all !duration-300 !ease-out",
-          // Phone gutter. The widths below are `!important` so they beat
-          // DialogContent's own sizing — which also made them beat its
-          // `max-w-[calc(100%-2rem)]` safety margin, leaving the card flush
-          // against both screen edges on a 430px viewport (ENA-6236). Restore
-          // the margin here and let the `sm:` widths take over above 640px.
-          "!w-full !max-w-[calc(100vw-1.5rem)]",
-          // Expanded matches manual's expanded footprint so toggling expand
-          // mid-flow (or after a mode switch) lands the user on the same
-          // visual size. Collapsed keeps the slim, content-driven default
-          // — pasted screenshots still scroll inside instead of pushing the
-          // dialog past the viewport. `dvh`, not `vh`: mobile Safari resolves
-          // `vh` against the URL-bar-hidden viewport, so 80vh can leave the
-          // footer under the browser chrome.
-          isExpanded
-            ? "!h-5/6 sm:!max-w-4xl"
-            : "!max-h-[80dvh] sm:!max-w-xl",
-        )
-      : manualDialogContentClass(isExpanded);
-
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
         finalFocus={false}
         showCloseButton={false}
-        className={className}
+        className="enact-modal-create-issue"
+        data-mode={mode}
+        data-expanded={isExpanded ? "true" : "false"}
       >
         {mode === "agent" ? (
           <AgentCreatePanel

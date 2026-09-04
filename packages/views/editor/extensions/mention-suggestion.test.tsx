@@ -418,7 +418,7 @@ describe("createMentionSuggestion", () => {
 
     const highlightedLabel = () => {
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
-      return buttons.find((b) => b.classList.contains("bg-accent"))?.textContent ?? "";
+      return buttons.find((b) => b.dataset.active === "true")?.textContent ?? "";
     };
     const press = (key: string) =>
       act(() => {
@@ -462,7 +462,7 @@ describe("createMentionSuggestion", () => {
 
     const highlightedLabel = () => {
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
-      return buttons.find((b) => b.classList.contains("bg-accent"))?.textContent ?? "";
+      return buttons.find((b) => b.dataset.active === "true")?.textContent ?? "";
     };
     let handled: boolean | undefined;
     const press = (init: KeyboardEventInit) =>
@@ -509,7 +509,7 @@ describe("createMentionSuggestion", () => {
 
     const highlightedLabel = () => {
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
-      return buttons.find((b) => b.classList.contains("bg-accent"))?.textContent ?? "";
+      return buttons.find((b) => b.dataset.active === "true")?.textContent ?? "";
     };
 
     for (const key of ["n", "j", "p", "k"]) {
@@ -1010,7 +1010,7 @@ describe("MentionList cancelled demotion", () => {
 
     const headings = () =>
       Array.from(
-        document.querySelectorAll<HTMLElement>("div.uppercase"),
+        document.querySelectorAll<HTMLElement>(".enact-editor-suggestion-group"),
       ).map((el) => el.textContent ?? "");
 
     it("keeps a cancelled project below a live issue in the search results", async () => {
@@ -1143,7 +1143,7 @@ describe("MentionList cancelled demotion", () => {
 
     const headings = () =>
       Array.from(
-        document.querySelectorAll<HTMLElement>("div.uppercase"),
+        document.querySelectorAll<HTMLElement>(".enact-editor-suggestion-group"),
       ).map((el) => el.textContent ?? "");
 
     it("keeps a cancelled issue matched by exact identifier out of the Cancelled group", async () => {

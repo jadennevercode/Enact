@@ -193,7 +193,11 @@ describe("DingTalkAgentBindButton", () => {
   it("renders the DingTalk brand mark in the connect button", () => {
     renderUI(<DingTalkAgentBindButton agentId="agent-1" agentName="Bot" />);
     const button = screen.getByTestId("dingtalk-agent-connect");
-    expect(button.querySelector('[data-testid="dingtalk-mark"].h-4.w-4')).toBeTruthy();
+    expect(
+      button.querySelector(
+        '[data-testid="dingtalk-mark"].enact-integration-provider-mark',
+      ),
+    ).toBeTruthy();
   });
 
   it("opens the BYO dialog and submits the pasted AppKey + AppSecret", async () => {
@@ -399,7 +403,9 @@ describe("DingTalkTab", () => {
     const overviewDescription = screen.getByText(
       enSettings.dingtalk.groups_overview_description,
     );
-    expect(overviewDescription.classList).toContain("text-caption");
+    expect(overviewDescription.classList).toContain(
+      "enact-integration-overview",
+    );
   });
 
   it("shows every observed Agent → Bot → Group relationship to an admin", async () => {
@@ -442,10 +448,7 @@ describe("DingTalkTab", () => {
     const connectedLabel = screen.getByText("Connected bot:");
     const connectedStatus = connectedLabel.parentElement?.parentElement;
     expect(connectedStatus?.classList).toContain(
-      "text-caption",
-    );
-    expect(connectedStatus?.classList).not.toContain(
-      "text-micro",
+      "enact-integration-connected-status",
     );
     const metadata = screen.getByTestId("dingtalk-installation-metadata");
     expect(metadata.contains(connectedLabel)).toBe(false);
@@ -461,9 +464,9 @@ describe("DingTalkTab", () => {
     const groupTitle = screen.getByText("Platform team");
     const forgetButton = screen.getByRole("button", { name: "Forget" });
     expect(groupTitle.parentElement?.contains(forgetButton)).toBe(true);
-    expect(forgetButton.classList).toContain("opacity-0");
-    expect(forgetButton.classList).toContain("group-hover:opacity-100");
-    expect(forgetButton.classList).toContain("group-focus-within:opacity-100");
+    expect(forgetButton.classList).toContain(
+      "enact-integration-resource-action",
+    );
     expect(
       screen.getByRole("heading", { name: "Recent groups", level: 4 }),
     ).toBeTruthy();
@@ -471,21 +474,23 @@ describe("DingTalkTab", () => {
       enSettings.dingtalk.groups_overview_description,
     );
     expect(overviewDescriptions).toHaveLength(1);
-    expect(overviewDescriptions[0]?.classList).toContain("text-caption");
-    expect(overviewDescriptions[0]?.classList).not.toContain("text-micro");
+    expect(overviewDescriptions[0]?.classList).toContain(
+      "enact-integration-overview",
+    );
     expect(screen.getByTestId("dingtalk-bot-groups").parentElement).toBe(
       screen.getByTestId("dingtalk-installation-row"),
     );
-    expect(screen.getByTestId("dingtalk-installation-row").classList).toContain("py-6");
+    expect(
+      screen.getByTestId("dingtalk-installation-row").classList,
+    ).toContain("enact-integration-installation-row");
     expect(
       screen.getByTestId("dingtalk-installation-row").closest('[data-slot="card"]')?.classList,
-    ).toContain("py-0");
+    ).toContain("enact-integration-card-flush");
     const conversationId = screen.getByLabelText(
       "DingTalk group conversation ID cid-platform",
     );
     expect(conversationId.textContent).toBe("cid-platform");
-    expect(conversationId.classList).toContain("text-faint-foreground");
-    expect(conversationId.classList).toContain("group-hover:text-muted-foreground");
+    expect(conversationId.classList).toContain("enact-integration-resource-id");
     await userEvent.hover(conversationId);
     await waitFor(() =>
       expect(document.querySelector('[data-slot="tooltip-content"]')).toBeTruthy(),

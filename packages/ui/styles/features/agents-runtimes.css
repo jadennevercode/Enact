@@ -1,0 +1,484 @@
+/* Shared management collection, runtime health, usage, and Desktop daemon presentation. */
+
+@layer utilities {
+  .enact-management-page,
+  .enact-runtime-page,
+  .enact-usage-page {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--page-canvas);
+    color: var(--foreground);
+  }
+
+  .enact-management-toolbar,
+  .enact-usage-toolbar {
+    min-width: 0;
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .enact-management-scope-trigger,
+  .enact-management-filter-trigger,
+  .enact-management-filter-clear,
+  .enact-management-row,
+  .enact-management-row-action,
+  .enact-management-card,
+  .enact-usage-segment,
+  .enact-usage-card,
+  .enact-usage-bar-fill,
+  .enact-autopilot-template-card,
+  .enact-runtime-machine-row {
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-management-scope-trigger[data-active="true"],
+  .enact-management-scope-trigger[data-active="true"]:hover,
+  .enact-usage-segment[aria-pressed="true"],
+  .enact-usage-segment[aria-pressed="true"]:hover {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .enact-management-filter-trigger[data-active="true"] {
+    background-color: var(--brand);
+    color: var(--brand-foreground);
+  }
+
+  .enact-management-filter-trigger[data-active="true"]:hover {
+    background-color: color-mix(in oklab, var(--brand) 90%, transparent);
+    color: var(--brand-foreground);
+  }
+
+  .enact-management-filter-clear,
+  .enact-management-row-action {
+    border-radius: var(--radius-sm);
+  }
+
+  .enact-management-filter-clear:hover {
+    background-color: color-mix(in oklab, var(--brand-foreground) 20%, transparent);
+  }
+
+  .enact-management-row[data-selected="true"],
+  .enact-management-row[data-selected="true"]:hover {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-management-row-action {
+    color: var(--muted-foreground);
+  }
+
+  .enact-management-row-action:hover,
+  .enact-management-row-action[data-popup-open] {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .enact-management-row-action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-management-card,
+  .enact-usage-card,
+  .enact-runtime-machine-list,
+  .enact-runtime-provider-chip,
+  .enact-runtime-status-badge,
+  .enact-daemon-status-badge {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+
+  .enact-management-batch-toolbar {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--floating-shadow);
+  }
+
+  .enact-management-warning {
+    border-bottom: var(--border-width) solid var(--border);
+    background-color: color-mix(in oklab, var(--warning) 10%, transparent);
+    color: var(--foreground);
+  }
+
+  .enact-management-state,
+  .enact-management-meta,
+  .enact-usage-meta {
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-agent-status,
+  .enact-runtime-status,
+  .enact-autopilot-status,
+  .enact-daemon-status {
+    color: var(--foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-agent-status[data-state="needs-runtime"],
+  .enact-agent-status[data-availability="unstable"],
+  .enact-autopilot-status[data-status="paused"],
+  .enact-daemon-status[data-state="auth_expired"] {
+    color: var(--foreground);
+  }
+
+  .enact-agent-status[data-state="needs-runtime"] > :first-child,
+  .enact-agent-status[data-availability="unstable"] > :first-child,
+  .enact-autopilot-status[data-status="paused"] > :first-child {
+    color: var(--warning);
+  }
+
+  .enact-agent-status-dot,
+  .enact-runtime-health-dot,
+  .enact-autopilot-status-dot,
+  .enact-daemon-status-dot {
+    border-radius: var(--radius-4xl);
+    background-color: var(--muted-foreground);
+  }
+
+  .enact-agent-status-dot[data-availability="online"],
+  .enact-runtime-health-dot[data-health="online"],
+  .enact-autopilot-status-dot[data-status="completed"],
+  .enact-autopilot-status-dot[data-status="issue_created"],
+  .enact-daemon-status-dot[data-state="running"] {
+    background-color: var(--success);
+  }
+
+  .enact-agent-status-dot[data-availability="unstable"],
+  .enact-runtime-health-dot[data-health="recently_lost"],
+  .enact-autopilot-status-dot[data-status="skipped"] {
+    background-color: var(--warning);
+  }
+
+  .enact-agent-status-dot[data-availability="offline"],
+  .enact-runtime-health-dot[data-health="offline"] {
+    background-color: var(--muted-foreground);
+  }
+
+  .enact-runtime-health-dot[data-health="about_to_gc"],
+  .enact-autopilot-status-dot[data-status="failed"],
+  .enact-daemon-status-dot[data-state="cli_not_found"],
+  .enact-daemon-status-dot[data-state="auth_expired"] {
+    background-color: var(--destructive);
+  }
+
+  .enact-daemon-status-dot[data-state="starting"],
+  .enact-daemon-status-dot[data-state="stopping"] {
+    background-color: var(--warning);
+    animation: enact-daemon-pulse var(--motion-slow) var(--ease-standard) infinite alternate;
+  }
+
+  .enact-daemon-status-dot[data-state="installing_cli"] {
+    background-color: var(--info);
+    animation: enact-daemon-pulse var(--motion-slow) var(--ease-standard) infinite alternate;
+  }
+
+  .enact-autopilot-status-dot[data-status="running"] {
+    background-color: var(--info);
+  }
+
+  .enact-runtime-health-icon[data-health="online"] {
+    color: var(--success);
+  }
+
+  .enact-runtime-health-icon[data-health="recently_lost"] {
+    color: var(--warning);
+  }
+
+  .enact-runtime-health-icon[data-health="offline"],
+  .enact-runtime-health-icon[data-health="loading"] {
+    color: var(--muted-foreground);
+  }
+
+  .enact-runtime-health-icon[data-health="about_to_gc"] {
+    color: var(--destructive);
+  }
+
+  .enact-runtime-status-badge,
+  .enact-runtime-kind-badge,
+  .enact-agent-visibility-badge,
+  .enact-daemon-level-badge {
+    border-radius: var(--radius-sm);
+    font-size: var(--text-caption);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-runtime-kind-badge[data-kind="custom"],
+  .enact-runtime-status-badge[data-status="public"] {
+    background-color: color-mix(in oklab, var(--info) 10%, transparent);
+    color: var(--info);
+  }
+
+  .enact-runtime-kind-badge[data-kind="builtin"],
+  .enact-runtime-status-badge[data-status="disabled"] {
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  .enact-runtime-status-badge[data-status="registering"] {
+    background-color: color-mix(in oklab, var(--warning) 10%, transparent);
+    color: var(--foreground);
+  }
+
+  .enact-runtime-machine-row:hover,
+  .enact-runtime-machine-row:focus-visible,
+  .enact-autopilot-template-card:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-runtime-machine-row:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: calc(var(--focus-ring-width) * -1);
+  }
+
+  .enact-usage-segmented {
+    border-radius: var(--radius-md);
+    background-color: var(--muted);
+  }
+
+  .enact-usage-segmented[data-disabled="true"] {
+    opacity: var(--disabled-opacity);
+  }
+
+  .enact-usage-segment {
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+  }
+
+  .enact-usage-segment:hover {
+    color: var(--foreground);
+  }
+
+  .enact-usage-card {
+    overflow: hidden;
+  }
+
+  .enact-usage-card-header,
+  .enact-usage-table-header {
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .enact-usage-kpi-grid {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+  }
+
+  .enact-usage-kpi-card {
+    color: var(--foreground);
+  }
+
+  .enact-usage-kpi-label {
+    color: var(--muted-foreground);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+  }
+
+  .enact-usage-kpi-value {
+    font-size: var(--text-display);
+    line-height: var(--text-display--line-height);
+  }
+
+  .enact-usage-empty {
+    border: var(--border-width) dashed var(--surface-border);
+    border-radius: var(--radius-md);
+    color: var(--muted-foreground);
+  }
+
+  .enact-usage-bar-track {
+    border-radius: var(--radius-4xl);
+    background-color: var(--muted);
+    overflow: hidden;
+  }
+
+  .enact-usage-bar-fill {
+    border-radius: inherit;
+    background-color: var(--chart-1);
+  }
+
+  .enact-autopilot-template-card {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+  }
+
+  [data-enact-platform="desktop"].enact-daemon-panel {
+    border: var(--border-width) solid var(--surface-border);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--floating-shadow);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-panel-header,
+  [data-enact-platform="desktop"] .enact-daemon-panel-toolbar {
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-log-viewport,
+  [data-enact-platform="desktop"] .enact-daemon-status-bar {
+    background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-status-bar {
+    border-top: var(--border-width) solid var(--border);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-filter-chip,
+  [data-enact-platform="desktop"] .enact-daemon-log-row,
+  [data-enact-platform="desktop"] .enact-daemon-repeat-toggle {
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-filter-chip[aria-pressed="true"] {
+    border-color: currentColor;
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  [data-enact-platform="desktop"] .enact-daemon-log-row:hover,
+  [data-enact-platform="desktop"] .enact-daemon-repeat-toggle:hover {
+    background-color: var(--surface-hover);
+  }
+
+  [data-enact-platform="desktop"].enact-daemon-runtime-actions {
+    color: var(--foreground);
+  }
+
+  .enact-usage-failure-swatch {
+    border-radius: var(--radius-sm);
+  }
+
+  .enact-usage-failure-segment,
+  .enact-usage-failure-swatch {
+    background-color: var(--muted-foreground);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="auth"],
+  .enact-usage-failure-swatch[data-failure-class="auth"] {
+    background-color: var(--chart-1);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="rate_limit"],
+  .enact-usage-failure-swatch[data-failure-class="rate_limit"] {
+    background-color: var(--chart-2);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="timeout"],
+  .enact-usage-failure-swatch[data-failure-class="timeout"] {
+    background-color: var(--warning);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="provider"],
+  .enact-usage-failure-swatch[data-failure-class="provider"] {
+    background-color: var(--chart-3);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="runtime"],
+  .enact-usage-failure-swatch[data-failure-class="runtime"] {
+    background-color: var(--destructive);
+  }
+
+  .enact-usage-failure-segment[data-failure-class="agent"],
+  .enact-usage-failure-swatch[data-failure-class="agent"] {
+    background-color: var(--chart-4);
+  }
+
+  .enact-usage-legend-swatch[data-series="1"] {
+    background-color: var(--chart-1);
+  }
+
+  .enact-usage-legend-swatch[data-series="2"] {
+    background-color: var(--chart-2);
+  }
+
+  .enact-usage-legend-swatch[data-series="3"] {
+    background-color: var(--chart-3);
+  }
+
+  .enact-usage-legend-swatch[data-series="4"] {
+    background-color: var(--chart-4);
+  }
+
+  @keyframes enact-daemon-pulse {
+    from {
+      opacity: var(--disabled-opacity);
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-management-scope-trigger,
+    .enact-management-filter-trigger,
+    .enact-management-filter-clear,
+    .enact-management-row,
+    .enact-management-row-action,
+    .enact-management-card,
+    .enact-usage-segment,
+    .enact-usage-card,
+    .enact-usage-bar-fill,
+    .enact-autopilot-template-card,
+    .enact-runtime-machine-row,
+    [data-enact-platform="desktop"] .enact-daemon-filter-chip,
+    [data-enact-platform="desktop"] .enact-daemon-log-row,
+    [data-enact-platform="desktop"] .enact-daemon-repeat-toggle {
+      transition: none;
+    }
+
+    .enact-agent-status [class*="animate-"],
+    .enact-runtime-status [class*="animate-"],
+    .enact-daemon-status [class*="animate-"],
+    .enact-daemon-status-dot {
+      animation: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .enact-management-card,
+    .enact-management-batch-toolbar,
+    .enact-usage-card,
+    .enact-usage-kpi-grid,
+    .enact-runtime-machine-list,
+    .enact-runtime-provider-chip,
+    .enact-runtime-status-badge,
+    .enact-autopilot-template-card,
+    [data-enact-platform="desktop"].enact-daemon-panel,
+    [data-enact-platform="desktop"] .enact-daemon-status-badge {
+      border-color: CanvasText;
+    }
+
+    .enact-management-row[data-selected="true"],
+    .enact-management-scope-trigger[data-active="true"],
+    .enact-usage-segment[aria-pressed="true"],
+    [data-enact-platform="desktop"] .enact-daemon-filter-chip[aria-pressed="true"] {
+      outline: var(--border-width) solid Highlight;
+      outline-offset: calc(var(--border-width) * -1);
+    }
+
+    .enact-agent-status-dot,
+    .enact-runtime-health-dot,
+    .enact-autopilot-status-dot,
+    .enact-daemon-status-dot {
+      forced-color-adjust: none;
+      border: var(--border-width) solid CanvasText;
+    }
+  }
+}

@@ -758,8 +758,8 @@ function PropertyFilterOptions({
             )}
             {option.color && (
               <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: option.color }}
+                className="enact-issue-filter-dot size-2.5 shrink-0 rounded-full"
+                style={{ "--enact-issue-color": option.color } as React.CSSProperties}
               />
             )}
             <span className="truncate">{option.name}</span>
@@ -1050,7 +1050,7 @@ export function IssuesHeader({
 
   return (
     <>
-    <div className={cn("min-h-12 shrink-0 py-2 [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
+    <div className={cn("enact-issue-toolbar min-h-12 shrink-0 py-2 [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
       <div className="flex w-full min-w-0 items-start justify-between gap-2">
         {/* Left: the view bar — built-in tabs and saved views as one flat,
             per-user ordered row; wraps instead of overflowing. */}
@@ -1789,7 +1789,7 @@ export function IssueDisplayControls({
               size="sm"
               className={
                 hasActiveFilters
-                  ? "h-8 w-8 gap-1 bg-brand px-0 text-white hover:bg-brand/90 md:h-7 md:w-auto md:px-2.5"
+                  ? "h-8 w-8 gap-1 bg-brand px-0 text-brand-foreground hover:bg-brand/90 md:h-7 md:w-auto md:px-2.5"
                   : controlButtonClass
               }
             >

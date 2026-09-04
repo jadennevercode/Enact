@@ -140,12 +140,12 @@ export function InvitationsPage() {
   if (isLoading) {
     return (
       <InvitationsShell>
-        <Card className="w-full max-w-lg">
-          <CardContent className="flex flex-col gap-4 py-12">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-72" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
+        <Card className="enact-invite-card" data-width="wide">
+          <CardContent className="enact-invite-state" data-align="start">
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="title" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="copy" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="row" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="row" />
           </CardContent>
         </Card>
       </InvitationsShell>
@@ -158,13 +158,13 @@ export function InvitationsPage() {
   if (fetchError || !invitations || invitations.length === 0) {
     return (
       <InvitationsShell>
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Mail className="h-6 w-6 text-muted-foreground" />
+        <Card className="enact-invite-card">
+          <CardContent className="enact-invite-state">
+            <div className="enact-invite-icon-frame">
+              <Mail className="enact-invite-icon" />
             </div>
-            <h2 className="text-title font-semibold">{t(($) => $.batch.empty_title)}</h2>
-            <p className="text-body text-muted-foreground text-center">
+            <h2 className="enact-invite-title">{t(($) => $.batch.empty_title)}</h2>
+            <p className="enact-invite-description">
               {t(($) => $.batch.empty_hint)}
             </p>
             <Button
@@ -186,23 +186,23 @@ export function InvitationsPage() {
 
   return (
     <InvitationsShell>
-      <Card className="w-full max-w-lg">
-        <CardContent className="flex flex-col gap-6 py-10">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Users className="h-6 w-6 text-primary" />
+      <Card className="enact-invite-card" data-width="wide">
+        <CardContent className="enact-invite-state" data-density="roomy">
+          <div className="enact-invite-copy" data-density="compact">
+            <div className="enact-invite-icon-frame" data-tone="primary">
+              <Users className="enact-invite-icon" />
             </div>
-            <div className="space-y-1">
-              <h2 className="text-title-lg font-semibold">
+            <div className="enact-invite-copy" data-density="compact">
+              <h2 className="enact-invite-title" data-size="large">
                 {t(($) => $.batch.title)}
               </h2>
-              <p className="text-body text-muted-foreground">
+              <p className="enact-invite-description">
                 {t(($) => $.batch.subtitle)}
               </p>
             </div>
           </div>
 
-          <ul className="flex flex-col gap-2">
+          <ul className="enact-invite-list">
             {invitations.map((inv) => (
               <InvitationRow
                 key={inv.id}
@@ -214,16 +214,14 @@ export function InvitationsPage() {
           </ul>
 
           <Button
-            className="w-full"
+            className="enact-invite-primary-action"
             onClick={handleSubmit}
             disabled={submitting}
           >
             {submitting ? t(($) => $.batch.joining) : submitLabel}
           </Button>
 
-          {error && (
-            <p className="text-body text-destructive text-center">{error}</p>
-          )}
+          {error && <p className="enact-invite-error">{error}</p>}
         </CardContent>
       </Card>
     </InvitationsShell>
@@ -250,19 +248,17 @@ function InvitationRow({
       : t(($) => $.batch.row_invited_member, { inviter });
   return (
     <li>
-      <label
-        className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-card p-4 hover:bg-accent/40"
-      >
+      <label className="enact-selection-item enact-invite-selection-item">
         <Checkbox
           checked={checked}
           onCheckedChange={onToggle}
-          className="mt-1"
+          className="enact-invite-selection-checkbox"
         />
-        <div className="flex-1 min-w-0 space-y-1">
-          <div className="font-medium truncate">
+        <div className="enact-invite-selection-copy">
+          <div className="enact-invite-selection-name">
             {invitation.workspace_name ?? t(($) => $.batch.row_workspace_fallback)}
           </div>
-          <div className="text-caption text-muted-foreground truncate">
+          <div className="enact-invite-selection-meta">
             {roleLine}
           </div>
         </div>
@@ -275,18 +271,19 @@ function InvitationsShell({ children }: { children: ReactNode }) {
   const { t } = useT("invite");
   const logout = useLogout();
   return (
-    <div className="relative flex min-h-svh flex-col bg-background">
+    <div className="enact-invite-page">
       <DragStrip />
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-16 right-12 text-muted-foreground hover:text-destructive"
+        className="enact-invite-chrome-action"
+        data-position="logout"
         onClick={logout}
       >
         <LogOut />
         {t(($) => $.batch.log_out)}
       </Button>
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-12">
+      <div className="enact-invite-content">
         {children}
       </div>
     </div>

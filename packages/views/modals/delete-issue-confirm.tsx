@@ -59,7 +59,7 @@ export function DeleteIssueConfirmModal({
           <AlertDialogTitle>{t(($) => $.delete_issue.title)}</AlertDialogTitle>
           <AlertDialogDescription>
             {t(($) => $.delete_issue.description)}
-            <span className="mt-2 block text-caption text-muted-foreground">
+            <span className="enact-modal-confirm-hint">
               {t(($) => $.delete_issue.hint)}
             </span>
           </AlertDialogDescription>
@@ -69,7 +69,7 @@ export function DeleteIssueConfirmModal({
           <AlertDialogAction
             onClick={handleDelete}
             disabled={deleting}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            className="enact-modal-danger-action"
           >
             {deleting ? t(($) => $.delete_issue.deleting) : t(($) => $.delete_issue.confirm)}
           </AlertDialogAction>

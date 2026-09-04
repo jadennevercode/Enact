@@ -62,23 +62,26 @@ function DesktopNotFoundPage() {
   return (
     <div
       role="alert"
-      className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-4 p-8 text-center"
+      className="enact-desktop-edge-page"
     >
-      <div className="rounded-full bg-muted p-3 text-muted-foreground">
-        <Compass className="h-6 w-6" aria-hidden="true" />
+      <div className="enact-desktop-edge-icon">
+        <Compass className="enact-desktop-edge-icon-glyph" aria-hidden="true" />
       </div>
-      <div className="space-y-2">
-        <h2 className="text-title font-semibold">This page doesn&apos;t exist</h2>
-        <p className="max-w-lg text-body text-muted-foreground">
+      <div className="enact-desktop-edge-content">
+        <h2 className="enact-desktop-edge-title">This page doesn&apos;t exist</h2>
+        <p className="enact-desktop-edge-copy">
           Nothing in Enact matches this address. If you got here from a link,
           it probably points at a file on someone else&apos;s computer rather
           than a page.
         </p>
-        <p className="max-w-lg truncate font-mono text-caption text-muted-foreground">
+        <p
+          className="enact-desktop-edge-detail"
+          data-monospace="true"
+        >
           {location.pathname}
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="enact-desktop-edge-actions">
         {recoveryRoute ? (
           <Button
             type="button"
@@ -98,7 +101,7 @@ function DesktopNotFoundPage() {
           type="button"
           onClick={() => useTabStore.getState().closeActiveTab()}
         >
-          <X className="mr-2 h-4 w-4" aria-hidden="true" />
+          <X className="enact-desktop-edge-button-icon" aria-hidden="true" />
           Close tab
         </Button>
       </div>
@@ -121,26 +124,26 @@ function DesktopUnexpectedErrorPage({ error }: { error: unknown }) {
   return (
     <div
       role="alert"
-      className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-4 p-8 text-center"
+      className="enact-desktop-edge-page"
     >
-      <div className="rounded-full bg-destructive/10 p-3 text-destructive">
-        <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+      <div className="enact-desktop-edge-icon" data-tone="destructive">
+        <AlertTriangle className="enact-desktop-edge-icon-glyph" aria-hidden="true" />
       </div>
-      <div className="space-y-2">
-        <h2 className="text-title font-semibold">Something went wrong in this tab</h2>
-        <p className="max-w-lg text-body text-muted-foreground">
+      <div className="enact-desktop-edge-content">
+        <h2 className="enact-desktop-edge-title">Something went wrong in this tab</h2>
+        <p className="enact-desktop-edge-copy">
           A route-level renderer error was contained before it could take down the
           desktop shell. Reload this tab, or send the report if it keeps happening.
         </p>
-        <p className="max-w-lg truncate text-caption text-muted-foreground">{message}</p>
+        <p className="enact-desktop-edge-detail">{message}</p>
       </div>
-      <div className="flex gap-2">
+      <div className="enact-desktop-edge-actions">
         <Button
           type="button"
           variant="outline"
           onClick={() => useTabStore.getState().reloadActiveTab()}
         >
-          <RotateCw className="mr-2 h-4 w-4" aria-hidden="true" />
+          <RotateCw className="enact-desktop-edge-button-icon" aria-hidden="true" />
           Reload tab
         </Button>
         {recoveryRoute ? (
@@ -163,7 +166,7 @@ function DesktopUnexpectedErrorPage({ error }: { error: unknown }) {
           variant="outline"
           onClick={() => useTabStore.getState().closeActiveTab()}
         >
-          <X className="mr-2 h-4 w-4" aria-hidden="true" />
+          <X className="enact-desktop-edge-button-icon" aria-hidden="true" />
           Close tab
         </Button>
         <Button
@@ -175,7 +178,7 @@ function DesktopUnexpectedErrorPage({ error }: { error: unknown }) {
             })
           }
         >
-          <Send className="mr-2 h-4 w-4" aria-hidden="true" />
+          <Send className="enact-desktop-edge-button-icon" aria-hidden="true" />
           Report error
         </Button>
       </div>

@@ -115,7 +115,7 @@ export const SlashCommandList = forwardRef<
   if (items.length === 0) {
     if (hideOnEmpty) return null;
     return (
-      <div className="rounded-md border bg-popover p-2 text-caption text-muted-foreground shadow-md">
+      <div className="enact-editor-suggestion-empty">
         {t(($) =>
           query.trim()
             ? $.slash_command.no_results
@@ -137,7 +137,7 @@ export const SlashCommandList = forwardRef<
     // `--suggestion-available-height` from suggestion-popup.tsx's size
     // middleware), falling back to the design max when rendered standalone.
     // Single height authority — mirrors MentionList.
-    <div className="rounded-md border bg-popover py-1 shadow-md w-72 max-h-[min(300px,var(--suggestion-available-height,300px))] overflow-y-auto">
+    <div className="enact-editor-suggestion">
       {items.map((item, index) => {
         const description = describe(item);
         return (
@@ -146,9 +146,8 @@ export const SlashCommandList = forwardRef<
             ref={(el) => {
               itemRefs.current[index] = el;
             }}
-            className={`flex w-full flex-col gap-0.5 px-3 py-1.5 text-left text-caption transition-colors ${
-              selectedIndex === index ? "bg-accent" : "hover:bg-accent/50"
-            }`}
+            className="enact-editor-suggestion-item enact-editor-suggestion-command"
+            data-active={selectedIndex === index ? "true" : undefined}
             onClick={() => selectItem(index)}
           >
             <span className="font-medium">/{item.label}</span>

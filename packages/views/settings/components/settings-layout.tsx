@@ -15,13 +15,11 @@ export function SettingsTab({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-8">
-      <header>
-        <h2 className="text-title-lg font-semibold tracking-tight">{title}</h2>
+    <div className="enact-settings-tab">
+      <header className="enact-settings-tab-header">
+        <h2 className="enact-settings-tab-title">{title}</h2>
         {description ? (
-          <p className="mt-1 max-w-2xl text-body leading-6 text-muted-foreground">
-            {description}
-          </p>
+          <p className="enact-settings-tab-description">{description}</p>
         ) : null}
       </header>
       {children}
@@ -43,18 +41,20 @@ export function SettingsSection({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-3", className)}>
+    <section className={cn("enact-settings-section", className)}>
       {title || description || action ? (
-        <div className="flex min-w-0 items-end justify-between gap-4 px-0.5">
-          <div className="min-w-0">
-            {title ? <h3 className="text-body font-semibold">{title}</h3> : null}
+        <div className="enact-settings-section-header">
+          <div className="enact-settings-section-copy">
+            {title ? <h3 className="enact-settings-section-title">{title}</h3> : null}
             {description ? (
-              <p className="mt-1 text-caption leading-5 text-muted-foreground">
+              <p className="enact-settings-section-description text-caption text-muted-foreground">
                 {description}
               </p>
             ) : null}
           </div>
-          {action ? <div className="shrink-0">{action}</div> : null}
+          {action ? (
+            <div className="enact-settings-section-action">{action}</div>
+          ) : null}
         </div>
       ) : null}
       {children}
@@ -70,35 +70,20 @@ export function SettingsCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("gap-0 py-0 shadow-none", className)}>
-      <CardContent className="divide-y divide-surface-border px-0">
+    <Card className={cn("enact-settings-card", className)}>
+      <CardContent className="enact-settings-card-body px-0">
         {children}
       </CardContent>
     </Card>
   );
 }
 
-/**
- * Width tiers for the control column. Within a card, every text-entry
- * control shares the `text` tier so their edges align; a row may only
- * drop to a smaller tier when the field is deliberately short (a code,
- * an enum select) — the difference must read as intentional. Pick a
- * tier instead of adding per-row ad-hoc widths.
- */
-const SETTINGS_CONTROL_WIDTHS = {
-  /** Text inputs and textareas — the standard control column. */
-  text: "sm:w-96",
-  /** Selects/pickers with long option labels (timezone, model). */
-  "select-wide": "sm:w-72",
-  /** Compact enum selects (theme, language). */
-  select: "sm:w-48",
-  /** Short fixed-format codes (issue prefix). */
-  code: "sm:w-40",
-  /** Unconstrained — non-input content like avatar uploads. */
-  none: "sm:max-w-none",
-} as const;
-
-export type SettingsControlSize = keyof typeof SETTINGS_CONTROL_WIDTHS;
+export type SettingsControlSize =
+  | "text"
+  | "select-wide"
+  | "select"
+  | "code"
+  | "none";
 
 export function SettingsRow({
   label,
@@ -118,26 +103,16 @@ export function SettingsRow({
 }) {
   return (
     <div
-      className={cn(
-        "flex min-h-16 flex-col gap-3 px-4 py-3.5 sm:flex-row sm:justify-between sm:gap-8",
-        align === "center" ? "sm:items-center" : "sm:items-start",
-        className,
-      )}
+      className={cn("enact-settings-row", className)}
+      data-align={align}
     >
-      <div className="min-w-0 flex-1">
-        <div className="text-body font-medium">{label}</div>
+      <div className="enact-settings-row-copy">
+        <div className="enact-settings-row-label">{label}</div>
         {description ? (
-          <div className="mt-0.5 text-caption leading-5 text-muted-foreground">
-            {description}
-          </div>
+          <div className="enact-settings-row-description">{description}</div>
         ) : null}
       </div>
-      <div
-        className={cn(
-          "w-full shrink-0 sm:w-auto sm:max-w-[56%]",
-          size ? SETTINGS_CONTROL_WIDTHS[size] : undefined,
-        )}
-      >
+      <div className="enact-settings-row-control" data-size={size}>
         {children}
       </div>
     </div>
@@ -165,12 +140,12 @@ export function SettingsSaveState({
       </>
     ) : status === "saved" ? (
       <>
-        <Check className="size-3 text-success" />
+        <Check className="size-3" />
         {savedLabel}
       </>
     ) : (
       <>
-        <AlertCircle className="size-3 text-destructive" />
+        <AlertCircle className="size-3" />
         {errorLabel}
       </>
     );
@@ -178,10 +153,8 @@ export function SettingsSaveState({
   return (
     <span
       role="status"
-      className={cn(
-        "inline-flex items-center gap-1.5 text-caption text-muted-foreground",
-        status === "error" && "text-destructive",
-      )}
+      className="enact-settings-save-state"
+      data-status={status}
     >
       {content}
     </span>

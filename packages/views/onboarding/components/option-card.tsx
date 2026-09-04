@@ -1,19 +1,10 @@
 "use client";
 
 import { Input } from "@enact/ui/components/ui/input";
-import { cn } from "@enact/ui/lib/utils";
 import { useT } from "../../i18n";
 
 const OTHER_INPUT_MAX_LENGTH = 80;
 
-/**
- * Editorial radio-style option row used in the Step 1 questionnaire.
- *
- * Design reference: onboarding(3) `.opt` — thin border resting, and on
- * select: filled inset ring + radio marker turns into a filled dot.
- * Enter/Space select; full row is the hit target. ARIA radio inside a
- * containing `<fieldset role="radiogroup">` in StepQuestionnaire.
- */
 export function OptionCard({
   selected,
   onSelect,
@@ -29,29 +20,14 @@ export function OptionCard({
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={cn(
-        "group flex w-full items-center gap-3.5 rounded-lg border bg-card px-4 py-2.5 text-left transition-all",
-        selected
-          ? "border-foreground shadow-[inset_0_0_0_1px_var(--color-foreground)]"
-          : "hover:border-foreground/20 hover:bg-accent/30",
-      )}
+      className="enact-onboarding-option-card"
     >
       <RadioMark selected={selected} />
-      <span className="text-body font-normal leading-tight text-foreground">
-        {label}
-      </span>
+      <span className="enact-onboarding-option-label">{label}</span>
     </button>
   );
 }
 
-/**
- * "Other" variant — reveals an 80-char text input below the row once
- * selected. Auto-focus on first open saves the user a click.
- *
- * Clearing `otherValue` when the user picks a sibling option is the
- * parent questionnaire's job; this component stays focus-stable while
- * the user is mid-typing.
- */
 export function OtherOptionCard({
   selected,
   onSelect,
@@ -67,28 +43,21 @@ export function OtherOptionCard({
 }) {
   const { t } = useT("onboarding");
   return (
-    <div
-      className={cn(
-        "flex w-full flex-col rounded-lg border bg-card transition-all",
-        selected
-          ? "border-foreground shadow-[inset_0_0_0_1px_var(--color-foreground)]"
-          : "hover:border-foreground/20",
-      )}
-    >
+    <div className="enact-onboarding-other-option">
       <button
         type="button"
         role="radio"
         aria-checked={selected}
         onClick={onSelect}
-        className="flex w-full items-center gap-3.5 px-4 py-2.5 text-left"
+        className="enact-onboarding-other-option-trigger"
       >
         <RadioMark selected={selected} />
-        <span className="text-body font-normal leading-tight text-foreground">
+        <span className="enact-onboarding-option-label">
           {t(($) => $.option_card.other_label)}
         </span>
       </button>
       {selected && (
-        <div className="px-4 pb-3 pl-[44px]">
+        <div className="enact-onboarding-other-option-field">
           <Input
             autoFocus
             type="text"
@@ -96,7 +65,7 @@ export function OtherOptionCard({
             onChange={(e) => onOtherChange(e.target.value)}
             placeholder={placeholder}
             maxLength={OTHER_INPUT_MAX_LENGTH}
-            className="h-8 rounded-none border-x-0 border-t-0 border-b px-0 text-body shadow-none focus-visible:border-foreground focus-visible:ring-0"
+            className="enact-onboarding-other-option-input"
             aria-label={placeholder}
           />
         </div>
@@ -109,15 +78,9 @@ export function RadioMark({ selected }: { selected: boolean }) {
   return (
     <span
       aria-hidden
-      className={cn(
-        "relative inline-block h-4 w-4 shrink-0 rounded-full border-[1.5px] transition-colors",
-        selected ? "border-foreground" : "border-border",
-      )}
-    >
-      {selected && (
-        <span className="absolute inset-[3px] rounded-full bg-foreground" />
-      )}
-    </span>
+      data-selected={selected}
+      className="enact-onboarding-radio-mark"
+    />
   );
 }
 

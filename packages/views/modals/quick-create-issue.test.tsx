@@ -1062,9 +1062,7 @@ describe("AgentCreatePanel", () => {
       const attach = screen.getByRole("button", { name: "Upload file" });
 
       const footer = switchToManual.parentElement;
-      expect(footer?.className).toContain("grid-cols-[auto_1fr]");
-      // From `sm` up the same children lay out as the original single row.
-      expect(footer?.className).toContain("sm:flex");
+      expect(footer?.className).toContain("enact-modal-create-footer");
 
       // Grid placement only sees direct children: re-wrapping any of these in
       // a <div> collapses the 2x2 back to the jammed single row the bug

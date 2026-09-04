@@ -189,19 +189,19 @@ function SourceBackfillDialogBody({
 
   const options = useMemo<QuestionOption[]>(
     () => [
-      { slug: "friends_colleagues", icon: <Users className="h-4 w-4" />, label: t(($) => $.questions.source.friends_colleagues) },
-      { slug: "search", icon: <GoogleIcon className="h-[18px] w-[18px]" />, label: t(($) => $.questions.source.search) },
-      { slug: "social_x", icon: <XIcon className="h-[15px] w-[15px]" />, label: t(($) => $.questions.source.social_x) },
-      { slug: "social_linkedin", icon: <LinkedInIcon className="h-[18px] w-[18px]" />, label: t(($) => $.questions.source.social_linkedin) },
-      { slug: "social_youtube", icon: <YouTubeIcon className="h-[18px] w-[18px]" />, label: t(($) => $.questions.source.social_youtube) },
-      { slug: "social_github", icon: <GitHubIcon className="h-[18px] w-[18px]" />, label: t(($) => $.questions.source.social_github) },
-      { slug: "social_other", icon: <Globe className="h-4 w-4" />, label: t(($) => $.questions.source.social_misc) },
-      { slug: "blog_newsletter", icon: <Newspaper className="h-4 w-4" />, label: t(($) => $.questions.source.blog_newsletter) },
-      { slug: "ai_assistant", icon: <OpenAIIcon className="h-[16px] w-[16px]" />, label: t(($) => $.questions.source.ai_assistant) },
-      { slug: "from_work", icon: <Briefcase className="h-4 w-4" />, label: t(($) => $.questions.source.from_work) },
-      { slug: "event_conference", icon: <CalendarDays className="h-4 w-4" />, label: t(($) => $.questions.source.event_conference) },
-      { slug: "dont_remember", icon: <HelpCircle className="h-4 w-4" />, label: t(($) => $.questions.source.dont_remember) },
-      { slug: "other", icon: <MoreHorizontal className="h-4 w-4" />, label: t(($) => $.questions.source.other), isOther: true },
+      { slug: "friends_colleagues", icon: <Users />, label: t(($) => $.questions.source.friends_colleagues) },
+      { slug: "search", icon: <GoogleIcon />, label: t(($) => $.questions.source.search) },
+      { slug: "social_x", icon: <XIcon />, label: t(($) => $.questions.source.social_x) },
+      { slug: "social_linkedin", icon: <LinkedInIcon />, label: t(($) => $.questions.source.social_linkedin) },
+      { slug: "social_youtube", icon: <YouTubeIcon />, label: t(($) => $.questions.source.social_youtube) },
+      { slug: "social_github", icon: <GitHubIcon />, label: t(($) => $.questions.source.social_github) },
+      { slug: "social_other", icon: <Globe />, label: t(($) => $.questions.source.social_misc) },
+      { slug: "blog_newsletter", icon: <Newspaper />, label: t(($) => $.questions.source.blog_newsletter) },
+      { slug: "ai_assistant", icon: <OpenAIIcon />, label: t(($) => $.questions.source.ai_assistant) },
+      { slug: "from_work", icon: <Briefcase />, label: t(($) => $.questions.source.from_work) },
+      { slug: "event_conference", icon: <CalendarDays />, label: t(($) => $.questions.source.event_conference) },
+      { slug: "dont_remember", icon: <HelpCircle />, label: t(($) => $.questions.source.dont_remember) },
+      { slug: "other", icon: <MoreHorizontal />, label: t(($) => $.questions.source.other), isOther: true },
     ],
     [t],
   );
@@ -298,15 +298,15 @@ function SourceBackfillDialogBody({
   }, [busy, onComplete]);
 
   return (
-    <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
-      <div className="px-6 pt-6 pb-2">
-        <div className="text-micro font-medium uppercase tracking-[0.08em] text-muted-foreground">
+    <DialogContent className="enact-onboarding-backfill-dialog">
+      <div className="enact-onboarding-backfill-header">
+        <div className="enact-onboarding-backfill-eyebrow">
           {t(($) => $.source_backfill.eyebrow)}
         </div>
-        <h2 className="mt-1 text-balance font-serif text-display-sm font-medium leading-tight tracking-tight text-foreground">
+        <h2 className="enact-onboarding-backfill-title">
           {t(($) => $.questions.source.question)}
         </h2>
-        <p className="mt-2 text-body text-muted-foreground">
+        <p className="enact-onboarding-backfill-lede">
           {t(($) => $.source_backfill.lede)}
         </p>
       </div>
@@ -314,7 +314,7 @@ function SourceBackfillDialogBody({
       <fieldset
         role="radiogroup"
         aria-label={t(($) => $.questions.source.question)}
-        className="m-0 grid grid-cols-1 gap-2 p-0 px-6 pt-4 sm:grid-cols-2"
+        className="enact-onboarding-backfill-options"
       >
         {options.map((option) =>
           option.isOther ? (
@@ -343,16 +343,13 @@ function SourceBackfillDialogBody({
         )}
       </fieldset>
 
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t bg-muted/40 px-6 py-3">
-        <span
-          aria-live="polite"
-          className="mr-auto text-caption text-muted-foreground"
-        >
+      <div className="enact-onboarding-backfill-footer">
+        <span aria-live="polite" className="enact-onboarding-backfill-hint">
           {canSubmit
             ? t(($) => $.source_backfill.hint_ready)
             : t(($) => $.step_question.hint_pick)}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="enact-onboarding-backfill-actions">
           <Button variant="secondary" disabled={busy} onClick={skip}>
             {t(($) => $.common.skip)}
           </Button>

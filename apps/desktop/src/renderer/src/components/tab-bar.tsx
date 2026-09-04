@@ -74,28 +74,6 @@ const TAB_ENTRY_EASE = [0.22, 1, 0.36, 1] as const;
 // pill where it reaches in. The mask is opaque again by the radius where the
 // arc's anti-aliasing starts, so every pixel the arc and the canvas fill cover
 // keeps its backing.
-const TAB_FLARE_RADIUS = 10;
-const tabFlareGradient = (side: "left" | "right") => {
-  const r = TAB_FLARE_RADIUS;
-  return `radial-gradient(circle at top ${side}, transparent ${r - 1.2}px, var(--surface-border) ${r - 0.8}px, var(--surface-border) ${r - 0.2}px, var(--page-canvas) ${r + 0.2}px)`;
-};
-const tabFlareNotchMask = (side: "left" | "right") => {
-  const r = TAB_FLARE_RADIUS;
-  return `radial-gradient(circle at top ${side}, transparent ${r - 1.6}px, black ${r - 1.2}px)`;
-};
-// The flares are mirror images: the offset overlaps the tab edge by 1px so arc
-// and side border meet, and gradient and mask share the corner the offset picks.
-const tabFlareStyle = (side: "left" | "right"): React.CSSProperties => {
-  const overhang = -TAB_FLARE_RADIUS + 1;
-  const mask = tabFlareNotchMask(side);
-  return {
-    ...(side === "left" ? { left: overhang } : { right: overhang }),
-    backgroundImage: tabFlareGradient(side),
-    maskImage: mask,
-    WebkitMaskImage: mask,
-  };
-};
-
 type TabSnapshot = {
   workspaceSlug: string | null;
   ids: Set<string>;
@@ -307,22 +285,12 @@ function SortableTabItem({
       title={tab.pinned ? `${title} (pinned)` : undefined}
       style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       className={cn(
-        "group relative flex size-full min-w-0 items-center gap-1.5 px-2.5 text-caption transition-colors",
-        "select-none cursor-default",
-        isActive
-          ? "font-medium text-foreground"
-          : "text-muted-foreground hover:text-sidebar-accent-foreground",
+        "enact-desktop-tab-button group relative flex size-full min-w-0 items-center gap-1.5 px-2.5",
         isDragging && "opacity-60",
       )}
     >
       <ResourceLeadingVisual visual={visual} />
-      <span
-        className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left"
-        style={{
-          maskImage: "linear-gradient(to right, black calc(100% - 12px), transparent)",
-          WebkitMaskImage: "linear-gradient(to right, black calc(100% - 12px), transparent)",
-        }}
-      >
+      <span className="enact-desktop-tab-label min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left">
         {title}
       </span>
       <span
@@ -331,7 +299,7 @@ function SortableTabItem({
         role="button"
         aria-label={tab.pinned ? "Unpin tab" : "Pin tab"}
         title={tab.pinned ? "Unpin tab" : "Pin tab"}
-        className="hidden size-3.5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors group-hover:flex hover:bg-muted-foreground/20 hover:text-foreground"
+        className="enact-desktop-tab-action hidden size-3.5 shrink-0 items-center justify-center group-hover:flex"
       >
         {tab.pinned ? <PinOff className="size-2.5" /> : <Pin className="size-2.5" />}
       </span>
@@ -341,7 +309,7 @@ function SortableTabItem({
           onPointerDown={stopDragOnAction}
           role="button"
           aria-label="Close tab"
-          className="hidden size-3.5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors group-hover:flex hover:bg-muted-foreground/20 hover:text-foreground"
+          className="enact-desktop-tab-action hidden size-3.5 shrink-0 items-center justify-center group-hover:flex"
         >
           <X className="size-2.5" />
         </span>
@@ -355,7 +323,7 @@ function SortableTabItem({
       style={style}
       data-tab-frame
       data-tab-id={tab.id}
-      className={cn("h-9 w-40 min-w-32", isActive && "z-10")}
+      className={cn("enact-desktop-tab-frame h-9 w-40 min-w-32", isActive && "z-10")}
     >
       <motion.div
         className="group/tab relative size-full"
@@ -372,27 +340,33 @@ function SortableTabItem({
           <span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-0",
+              "enact-desktop-tab-active-chrome pointer-events-none absolute inset-0",
               isDragging && "opacity-60",
             )}
           >
             {/* Keep the fill inside the translucent keyline so it matches the
                 flare arcs and content card ring. */}
-            <span className="absolute inset-x-0 top-0 bottom-2.5 rounded-t-lg border border-b-0 border-surface-border bg-page-canvas bg-clip-padding" />
-            <span className="absolute inset-x-0 bottom-0 h-2.5 bg-page-canvas" />
+            <span className="enact-desktop-tab-active-cap absolute inset-x-0 top-0 bottom-2.5" />
+            <span className="enact-desktop-tab-active-base absolute inset-x-0 bottom-0 h-2.5" />
             <span
-              className={cn("absolute bottom-0 size-2.5", SIDEBAR_WRAPPER_FILL_CLASS)}
-              style={tabFlareStyle("left")}
+              data-side="left"
+              className={cn(
+                "enact-desktop-tab-flare absolute bottom-0 size-2.5",
+                SIDEBAR_WRAPPER_FILL_CLASS,
+              )}
             />
             <span
-              className={cn("absolute bottom-0 size-2.5", SIDEBAR_WRAPPER_FILL_CLASS)}
-              style={tabFlareStyle("right")}
+              data-side="right"
+              className={cn(
+                "enact-desktop-tab-flare absolute bottom-0 size-2.5",
+                SIDEBAR_WRAPPER_FILL_CLASS,
+              )}
             />
           </span>
         ) : (
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-0.5 top-1 bottom-1 rounded-lg bg-sidebar-accent opacity-0 transition-opacity group-hover/tab:opacity-100"
+            className="enact-desktop-tab-hover pointer-events-none absolute inset-x-0.5 top-1 bottom-1"
           />
         )}
         {showSeparator && (
@@ -401,7 +375,7 @@ function SortableTabItem({
           // arrives rather than lingering 2px off its rounded edge.
           <span
             aria-hidden
-            className="pointer-events-none absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 bg-surface-border transition-opacity group-hover/tab:opacity-0 prev-tab-hover:opacity-0"
+            className="enact-desktop-tab-separator pointer-events-none absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 group-hover/tab:opacity-0 prev-tab-hover:opacity-0"
           />
         )}
         <ContextMenu>
@@ -451,7 +425,7 @@ function SortableTabItem({
         {showAddedHighlight && (
           <motion.span
             aria-hidden
-            className="pointer-events-none absolute inset-x-0.5 top-1 bottom-1 rounded-lg bg-primary/10 ring-1 ring-inset ring-primary/20"
+            className="enact-desktop-tab-added-highlight pointer-events-none absolute inset-x-0.5 top-1 bottom-1"
             initial={{ opacity: shouldReduceMotion ? 0.25 : 0.65 }}
             animate={{ opacity: 0 }}
             transition={{ duration: shouldReduceMotion ? 0.16 : 0.42 }}
@@ -497,7 +471,7 @@ function NewTabEdgeFeedback({
       key={`${signal.tabId}-${signal.sequence}`}
       aria-hidden
       data-new-tab-edge-feedback="true"
-      className="pointer-events-none absolute top-4 bottom-1 right-0 z-20 w-8 rounded-r-lg bg-gradient-to-l from-primary/35 via-primary/10 to-transparent"
+      className="enact-desktop-tab-edge-feedback pointer-events-none absolute top-4 bottom-1 right-0 z-20 w-8"
       initial={{
         opacity: shouldReduceMotion ? 0.45 : 0,
         x: shouldReduceMotion ? 0 : 4,
@@ -547,7 +521,7 @@ function NewTabButton() {
       aria-label="New tab"
       title="New tab"
       style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-      className="mb-1 flex size-7 shrink-0 items-center justify-center self-end rounded-md text-faint-foreground transition-colors hover:bg-muted/50 hover:text-muted-foreground"
+      className="enact-desktop-new-tab mb-1 flex size-7 shrink-0 items-center justify-center self-end"
     >
       <Plus className="size-3.5" />
     </button>
@@ -649,7 +623,7 @@ export function TabBar() {
   };
 
   return (
-    <div className="flex h-full w-full min-w-0 max-w-full items-center justify-start gap-0.5 px-2">
+    <div className="enact-desktop-tab-bar flex h-full w-full min-w-0 max-w-full items-center justify-start gap-0.5 px-2">
       <div className="relative flex h-full min-w-0 flex-1 items-center">
         <DndContext
           sensors={sensors}
@@ -663,7 +637,7 @@ export function TabBar() {
           <div
             ref={tabScrollRef}
             data-tab-scroll-container
-            className="no-scrollbar flex h-full min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden overscroll-x-contain px-4"
+            className="enact-desktop-tab-scroller no-scrollbar flex h-full min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden overscroll-x-contain px-4"
             style={tabFadeStyle}
           >
             <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
@@ -693,7 +667,7 @@ export function TabBar() {
                       unpinnedCount > 0 && (
                         <div
                           aria-hidden
-                          className="mx-1 mb-2.5 h-4 w-px shrink-0 self-end bg-surface-border"
+                          className="enact-desktop-tab-zone-divider mx-1 mb-2.5 h-4 w-px shrink-0 self-end"
                         />
                       )}
                   </Fragment>

@@ -1,9 +1,9 @@
 /*
  * Media rules that are specific to rich text editor surfaces.
  *
- * The reusable Attachment component owns the generic .image-* figure and
- * toolbar styles in attachment.css. This file only contains rich-text-editor
- * fallbacks and editor-specific constraints.
+ * Generic attachment presentation lives in the shared application theme.
+ * This file only contains rich-text-editor fallbacks and editor-specific
+ * constraints for generated/plugin markup.
  */
 
 /* Images — generic fallback (non-NodeView contexts) */
@@ -21,6 +21,6 @@
   text-align: center;
 }
 
-.rich-text-editor .image-figure {
+.rich-text-editor .enact-attachment-image {
   max-width: min(100%, 640px);
 }

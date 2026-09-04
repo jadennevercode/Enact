@@ -158,14 +158,17 @@ function SkipWelcome({ workspaceId, onDismiss }: SkipWelcomeProps) {
           if (!open) onDismiss();
         }}
       >
-        <DialogContent className="max-w-md sm:max-w-md">
-          <DialogTitle className="text-title font-semibold">
+        <DialogContent
+          className="enact-workspace-welcome-dialog"
+          data-size="compact"
+        >
+          <DialogTitle className="enact-workspace-welcome-error-title">
             {t(($) => $.welcome_after_onboarding.skip.error_title)}
           </DialogTitle>
-          <DialogDescription className="text-body text-muted-foreground">
+          <DialogDescription className="enact-workspace-welcome-description">
             {t(($) => $.welcome_after_onboarding.skip.error_body)}
           </DialogDescription>
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="enact-workspace-welcome-actions">
             <Button variant="ghost" onClick={onDismiss}>
               {t(($) => $.welcome_after_onboarding.skip.dismiss)}
             </Button>
@@ -201,25 +204,26 @@ function SkipWelcome({ workspaceId, onDismiss }: SkipWelcomeProps) {
       }}
     >
       <DialogContent
-        className="max-w-xl sm:max-w-xl"
+        className="enact-workspace-welcome-dialog"
+        data-size="wide"
         aria-describedby="welcome-after-onboarding-skip-subtitle"
       >
-        <div className="flex flex-col items-center gap-4 pt-6">
-          <div className="text-6xl animate-welcome-emoji-pop" aria-hidden>
+        <div className="enact-workspace-welcome-hero">
+          <div className="enact-workspace-welcome-emoji" aria-hidden>
             🎉
           </div>
-          <DialogTitle className="text-center text-display-sm font-semibold">
+          <DialogTitle className="enact-workspace-welcome-title">
             {t(($) => $.welcome_after_onboarding.skip.title)}
           </DialogTitle>
           <DialogDescription
             id="welcome-after-onboarding-skip-subtitle"
-            className="text-center text-body text-muted-foreground max-w-md"
+            className="enact-workspace-welcome-subtitle"
           >
             {t(($) => $.welcome_after_onboarding.skip.subtitle)}
           </DialogDescription>
         </div>
 
-        <div className="mt-6 flex flex-col gap-2">
+        <div className="enact-workspace-welcome-preview-list">
           <SkipPreviewCard
             cardKey="install_runtime"
             statusLabel={t(
@@ -228,7 +232,7 @@ function SkipWelcome({ workspaceId, onDismiss }: SkipWelcomeProps) {
           />
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div className="enact-workspace-welcome-primary-action">
           <Button size="lg" onClick={handleGotIt}>
             {t(($) => $.welcome_after_onboarding.skip.got_it)}
           </Button>
@@ -248,19 +252,17 @@ function SkipPreviewCard({
   const { t } = useT("onboarding");
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border bg-background px-3 py-2.5">
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-body font-medium leading-tight">
+    <div className="enact-workspace-welcome-preview">
+      <div className="enact-workspace-welcome-preview-copy">
+        <div className="enact-workspace-welcome-preview-title-row">
+          <p className="enact-workspace-welcome-preview-title">
             {t(($) => $.welcome_after_onboarding.skip.cards[cardKey].title)}
           </p>
-          <span
-            className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-medium text-primary"
-          >
+          <span className="enact-workspace-welcome-preview-status">
             {statusLabel}
           </span>
         </div>
-        <p className="mt-1 text-caption text-muted-foreground leading-snug">
+        <p className="enact-workspace-welcome-preview-description">
           {t(($) => $.welcome_after_onboarding.skip.cards[cardKey].subtitle)}
         </p>
       </div>
@@ -270,10 +272,10 @@ function SkipPreviewCard({
 
 function FullScreenLoading({ label }: { label: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <p className="text-body text-muted-foreground">{label}</p>
+    <div className="enact-workspace-welcome-loading">
+      <div className="enact-workspace-welcome-loading-content">
+        <Loader2 className="enact-workspace-welcome-loading-icon" />
+        <p className="enact-workspace-welcome-loading-label">{label}</p>
       </div>
     </div>
   );

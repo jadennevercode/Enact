@@ -37,10 +37,10 @@ const STATE_ICON: Record<
   GitHubPullRequestState,
   { icon: React.ComponentType<{ className?: string }>; className: string }
 > = {
-  open: { icon: GitPullRequestArrow, className: "text-emerald-600 dark:text-emerald-400" },
+  open: { icon: GitPullRequestArrow, className: "text-success" },
   draft: { icon: GitPullRequestDraft, className: "text-muted-foreground" },
-  merged: { icon: GitMerge, className: "text-violet-600 dark:text-violet-400" },
-  closed: { icon: GitPullRequestClosed, className: "text-rose-600 dark:text-rose-400" },
+  merged: { icon: GitMerge, className: "text-brand" },
+  closed: { icon: GitPullRequestClosed, className: "text-destructive" },
 };
 
 export function PullRequestList({ issueId }: { issueId: string }) {
@@ -167,8 +167,8 @@ function PullRequestStats({ pr }: { pr: GitHubPullRequest }) {
   const { t } = useT("issues");
   return (
     <span className="inline-flex items-center gap-1.5 tabular-nums">
-      <span className="text-emerald-600 dark:text-emerald-400">+{pr.additions ?? 0}</span>
-      <span className="text-rose-600 dark:text-rose-400">−{pr.deletions ?? 0}</span>
+      <span className="text-success">+{pr.additions ?? 0}</span>
+      <span className="text-destructive">−{pr.deletions ?? 0}</span>
       <span aria-hidden="true">·</span>
       <span>
         {t(($) => $.detail.pull_request_card_files_count, {
@@ -216,13 +216,13 @@ function getChecksBadge(
     case "failed":
       return {
         icon: XCircle,
-        className: "text-rose-600 dark:text-rose-400",
+        className: "text-destructive",
         label: checksFailedLabel(status, t),
       };
     case "pending":
       return {
         icon: CircleDashed,
-        className: "text-amber-600 dark:text-amber-400",
+        className: "text-warning",
         label: t(($) => $.detail.pull_request_checks_running, {
           passed: status.passed,
           total: status.total,
@@ -232,7 +232,7 @@ function getChecksBadge(
     case "passed":
       return {
         icon: CheckCircle2,
-        className: "text-emerald-600 dark:text-emerald-400",
+        className: "text-success",
         label: t(($) => $.detail.pull_request_checks_all_passed, { total: status.total }),
       };
     case "none":
@@ -276,13 +276,13 @@ function getMergeBadge(status: PullRequestMergeStatus, t: IssuesT): PullRequestB
     case "conflicting":
       return {
         icon: TriangleAlert,
-        className: "text-amber-600 dark:text-amber-400",
+        className: "text-warning",
         label: t(($) => $.detail.pull_request_merge_conflicting),
       };
     case "ready":
       return {
         icon: CheckCircle2,
-        className: "text-emerald-600 dark:text-emerald-400",
+        className: "text-success",
         label: t(($) => $.detail.pull_request_merge_ready),
       };
     case "blocked":

@@ -181,7 +181,7 @@ const TitleEditor = forwardRef<TitleEditorRef, TitleEditorProps>(
       ],
       editorProps: {
         attributes: {
-          class: cn("title-editor outline-none", className),
+          class: cn("title-editor enact-editor-title", className),
           role: "textbox",
           "aria-multiline": "false",
           "aria-label": placeholderText || t(($) => $.title_editor.title_aria_label),

@@ -1,0 +1,1052 @@
+/* Shared Settings and Billing presentation for Web and Desktop. */
+
+@layer utilities {
+  .enact-settings-page,
+  .enact-billing-test-page,
+  .enact-billing-return-page {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--page-canvas);
+    color: var(--foreground);
+  }
+
+  .enact-settings-page {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+  }
+
+  .enact-settings-navigation {
+    flex: 0 0 auto;
+    overflow-x: auto;
+    border-bottom: var(--border-width) solid var(--surface-border);
+    padding: calc(var(--space-unit) * 2);
+  }
+
+  .enact-settings-navigation-header {
+    display: flex;
+    align-items: center;
+  }
+
+  .enact-settings-tab-list {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-unit);
+    padding: 0;
+  }
+
+  .enact-settings-tab-group-label {
+    display: none;
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-tab-trigger {
+    min-height: calc(var(--space-unit) * 8);
+    flex: 0 0 auto;
+    padding-inline: calc(var(--space-unit) * 2.5);
+  }
+
+  .enact-settings-tab-trigger:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-settings-tab-trigger[data-active],
+  .enact-settings-tab-trigger[data-active]:hover {
+    background-color: var(--surface-selected) !important;
+    color: var(--surface-selected-foreground) !important;
+  }
+
+  .enact-settings-content {
+    min-width: 0;
+    flex: 1 1 0%;
+  }
+
+  .enact-settings-content-inner {
+    width: 100%;
+    max-width: calc(var(--space-unit) * 192);
+    margin-inline: auto;
+    padding: calc(var(--space-unit) * 4);
+  }
+
+  .enact-settings-content-inner[data-width="wide"] {
+    max-width: calc(var(--space-unit) * 320);
+  }
+
+  .enact-settings-tab {
+    display: grid;
+    gap: calc(var(--space-unit) * 8);
+  }
+
+  .enact-settings-tab-header,
+  .enact-settings-section-copy,
+  .enact-settings-row-copy,
+  .enact-billing-card-copy {
+    min-width: 0;
+  }
+
+  .enact-settings-tab-title {
+    color: var(--foreground);
+    font-size: var(--text-title-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-title-lg--line-height);
+    letter-spacing: -0.015em;
+  }
+
+  .enact-settings-tab-description {
+    max-width: calc(var(--space-unit) * 168);
+    margin-top: var(--space-unit);
+    color: var(--muted-foreground);
+    font-size: var(--text-body);
+    line-height: calc(var(--space-unit) * 6);
+  }
+
+  .enact-settings-section {
+    display: grid;
+    gap: calc(var(--space-unit) * 3);
+  }
+
+  .enact-settings-section-header {
+    display: flex;
+    min-width: 0;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: calc(var(--space-unit) * 4);
+    padding-inline: calc(var(--space-unit) / 2);
+  }
+
+  .enact-settings-section-title {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-settings-section-description,
+  .enact-settings-row-description,
+  .enact-settings-field-help,
+  .enact-billing-meta,
+  .enact-billing-return-detail {
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: calc(var(--space-unit) * 5);
+  }
+
+  .enact-settings-section-description {
+    margin-top: var(--space-unit);
+  }
+
+  .enact-settings-section-action {
+    flex: 0 0 auto;
+  }
+
+  .enact-settings-card,
+  .enact-settings-catalog,
+  .enact-billing-list-row,
+  .enact-billing-seat-preview {
+    border: var(--border-width) solid var(--surface-border);
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+
+  .enact-settings-card,
+  .enact-settings-catalog {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .enact-settings-card {
+    gap: 0;
+    padding-block: 0;
+    box-shadow: none;
+  }
+
+  .enact-settings-card-body > * + * {
+    border-top: var(--border-width) solid var(--surface-border);
+  }
+
+  .enact-settings-row {
+    display: flex;
+    min-height: calc(var(--space-unit) * 16);
+    flex-direction: column;
+    gap: calc(var(--space-unit) * 3);
+    padding: calc(var(--space-unit) * 3.5) calc(var(--space-unit) * 4);
+  }
+
+  .enact-settings-row-label,
+  .enact-settings-field-label {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-settings-row-description {
+    margin-top: calc(var(--space-unit) / 2);
+  }
+
+  .enact-settings-row-control {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .enact-settings-save-state {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 1.5);
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-save-state[data-status="error"],
+  .enact-settings-field-error {
+    color: var(--destructive);
+  }
+
+  .enact-settings-save-state[data-status="saved"] > :first-child {
+    color: var(--success);
+  }
+
+  .enact-settings-form,
+  .enact-settings-dialog-body {
+    display: grid;
+    gap: calc(var(--space-unit) * 4);
+  }
+
+  .enact-settings-field {
+    display: grid;
+    gap: calc(var(--space-unit) * 2);
+  }
+
+  .enact-settings-field-error {
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-inline-code {
+    border-radius: var(--radius-sm);
+    background-color: var(--muted);
+    padding: calc(var(--space-unit) / 2) var(--space-unit);
+    font-family: var(--font-mono);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-notice {
+    --enact-settings-notice-tone: var(--info);
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: calc(var(--space-unit) * 3);
+    margin-top: calc(var(--space-unit) * 4);
+    border: var(--border-width) solid
+      color-mix(in oklab, var(--enact-settings-notice-tone) 36%, var(--surface-border));
+    border-radius: var(--radius-lg);
+    background-color: color-mix(
+      in oklab,
+      var(--enact-settings-notice-tone) 7%,
+      var(--card)
+    );
+    padding: calc(var(--space-unit) * 3) calc(var(--space-unit) * 4);
+    color: var(--foreground);
+  }
+
+  .enact-settings-notice[data-tone="destructive"] {
+    --enact-settings-notice-tone: var(--destructive);
+  }
+
+  .enact-settings-notice[data-tone="info"] {
+    --enact-settings-notice-tone: var(--info);
+  }
+
+  .enact-settings-notice-icon {
+    width: calc(var(--space-unit) * 4);
+    height: calc(var(--space-unit) * 4);
+    flex: 0 0 auto;
+    margin-top: calc(var(--space-unit) / 2);
+    color: var(--enact-settings-notice-tone);
+  }
+
+  .enact-settings-notice-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .enact-settings-notice-title {
+    color: var(--enact-settings-notice-tone);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-settings-notice-description {
+    margin-top: calc(var(--space-unit) / 2);
+    color: var(--muted-foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-settings-notice > .enact-settings-notice-description {
+    margin-top: 0;
+  }
+
+  .enact-settings-notice-code {
+    font-family: var(--font-mono);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-notice-action {
+    flex: 0 0 auto;
+  }
+
+  .enact-settings-diagnostics {
+    padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 4);
+  }
+
+  .enact-settings-diagnostics-row {
+    display: grid;
+    grid-template-columns: calc(var(--space-unit) * 35) minmax(0, 1fr);
+    align-items: baseline;
+    gap: calc(var(--space-unit) * 3);
+    padding-block: calc(var(--space-unit) * 1.5);
+  }
+
+  .enact-settings-diagnostics-label {
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-diagnostics-value {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .enact-settings-diagnostics-value[data-mono="true"] {
+    font-family: var(--font-mono);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-diagnostics-status {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 1.5);
+  }
+
+  .enact-settings-diagnostics-status-dot {
+    width: calc(var(--space-unit) * 1.5);
+    height: calc(var(--space-unit) * 1.5);
+    flex: 0 0 auto;
+  }
+
+  .enact-settings-update-status {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 1.5);
+    margin-top: calc(var(--space-unit) * 2);
+    color: var(--muted-foreground);
+  }
+
+  .enact-settings-update-status[data-status="current"] {
+    margin-top: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-update-status[data-status="up-to-date"] {
+    color: var(--success);
+  }
+
+  .enact-settings-update-status[data-status="available"] {
+    color: var(--primary);
+  }
+
+  .enact-settings-update-status[data-status="error"] {
+    color: var(--destructive);
+  }
+
+  .enact-settings-update-status-icon {
+    width: calc(var(--space-unit) * 3.5);
+    height: calc(var(--space-unit) * 3.5);
+    flex: 0 0 auto;
+  }
+
+  [data-enact-platform="desktop"].enact-update-notification {
+    position: fixed;
+    inset-inline-end: calc(var(--space-unit) * 4);
+    inset-block-end: calc(var(--space-unit) * 4);
+    width: calc(var(--space-unit) * 80);
+    max-width: calc(100vw - var(--space-unit) * 8);
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--popover);
+    padding: calc(var(--space-unit) * 4);
+    color: var(--popover-foreground);
+    box-shadow: var(--floating-shadow);
+    animation: enact-update-notification-enter var(--motion-standard)
+      var(--ease-standard);
+  }
+
+  .enact-update-notification-close {
+    position: absolute;
+    inset-block-start: calc(var(--space-unit) * 2);
+    inset-inline-end: calc(var(--space-unit) * 2);
+    display: grid;
+    width: calc(var(--space-unit) * 7);
+    height: calc(var(--space-unit) * 7);
+    place-items: center;
+    border-radius: var(--radius-md);
+    color: var(--muted-foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-update-notification-close:hover {
+    background-color: var(--surface-hover);
+    color: var(--foreground);
+  }
+
+  .enact-update-notification-close:focus-visible,
+  .enact-update-notification-action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-update-notification-close-icon {
+    width: calc(var(--space-unit) * 3.5);
+    height: calc(var(--space-unit) * 3.5);
+  }
+
+  .enact-update-notification-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--space-unit) * 3);
+  }
+
+  .enact-update-notification-icon-frame {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    margin-top: calc(var(--space-unit) / 2);
+    border-radius: var(--radius-md);
+    background-color: color-mix(in oklab, var(--success) 10%, transparent);
+    padding: calc(var(--space-unit) * 1.5);
+    color: var(--success);
+  }
+
+  .enact-update-notification-icon {
+    width: calc(var(--space-unit) * 4);
+    height: calc(var(--space-unit) * 4);
+  }
+
+  .enact-update-notification-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .enact-update-notification-title {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-update-notification-description {
+    margin-top: calc(var(--space-unit) / 2);
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-update-notification-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 1.5);
+    margin-top: calc(var(--space-unit) * 2);
+  }
+
+  .enact-update-notification-action {
+    display: inline-flex;
+    min-height: calc(var(--space-unit) * 7);
+    align-items: center;
+    justify-content: center;
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-md);
+    padding-inline: calc(var(--space-unit) * 3);
+    font-size: var(--text-caption);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-caption--line-height);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-update-notification-action[data-variant="secondary"] {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .enact-update-notification-action[data-variant="secondary"]:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-update-notification-action[data-variant="primary"] {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .enact-update-notification-action[data-variant="primary"]:hover {
+    background-color: color-mix(in oklab, var(--primary) 90%, transparent);
+  }
+
+  @keyframes enact-update-notification-enter {
+    from {
+      opacity: 0;
+      transform: translateY(calc(var(--space-unit) * 2));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-enact-platform="desktop"].enact-update-notification {
+      animation: none;
+    }
+
+    .enact-update-notification-close,
+    .enact-update-notification-action {
+      transition: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .enact-settings-notice,
+    [data-enact-platform="desktop"].enact-update-notification,
+    .enact-update-notification-icon-frame,
+    .enact-update-notification-action {
+      border-color: CanvasText;
+    }
+
+    .enact-update-notification-icon-frame {
+      border: var(--border-width) solid CanvasText;
+    }
+
+    .enact-update-notification-close:focus-visible,
+    .enact-update-notification-action:focus-visible {
+      outline-color: Highlight;
+    }
+
+    .enact-settings-update-status-icon,
+    .enact-update-notification-icon {
+      forced-color-adjust: auto;
+    }
+  }
+
+  .enact-settings-danger-zone {
+    border-color: color-mix(in oklab, var(--destructive) 32%, var(--surface-border));
+    background-color: color-mix(in oklab, var(--destructive) 5%, var(--card));
+  }
+
+  .enact-settings-danger-label {
+    color: var(--destructive);
+  }
+
+  .enact-settings-catalog-stack {
+    display: grid;
+    gap: calc(var(--space-unit) * 5);
+  }
+
+  .enact-settings-catalog-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--space-unit) * 3);
+  }
+
+  .enact-settings-catalog-search {
+    position: relative;
+    width: 100%;
+  }
+
+  .enact-settings-catalog-header,
+  .enact-settings-catalog-row {
+    display: grid;
+    gap: calc(var(--space-unit) * 2);
+    padding: calc(var(--space-unit) * 3) calc(var(--space-unit) * 4);
+  }
+
+  .enact-settings-catalog-header {
+    display: none;
+    border-bottom: var(--border-width) solid var(--surface-border);
+    background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-settings-catalog-body > * + * {
+    border-top: var(--border-width) solid var(--surface-border);
+  }
+
+  .enact-settings-catalog-row[data-archived="true"] {
+    opacity: 0.6;
+  }
+
+  .enact-settings-catalog-loading,
+  .enact-settings-catalog-empty {
+    padding: calc(var(--space-unit) * 12) calc(var(--space-unit) * 4);
+    text-align: center;
+  }
+
+  .enact-settings-catalog-loading {
+    color: var(--muted-foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-settings-color-swatch {
+    width: calc(var(--space-unit) * 2.5);
+    height: calc(var(--space-unit) * 2.5);
+    flex: 0 0 auto;
+    border-radius: var(--radius-4xl);
+    background-color: var(--enact-settings-color, var(--muted-foreground));
+  }
+
+  .enact-settings-color-swatch[data-size="control"] {
+    width: calc(var(--space-unit) * 5);
+    height: calc(var(--space-unit) * 5);
+  }
+
+  .enact-settings-color-option {
+    width: calc(var(--space-unit) * 6);
+    height: calc(var(--space-unit) * 6);
+    cursor: pointer;
+    border: var(--border-width) solid var(--surface-border);
+    transition: transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-settings-color-option:hover {
+    transform: scale(1.1);
+  }
+
+  .enact-settings-color-option:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-settings-color-trigger {
+    display: flex;
+    min-height: calc(var(--space-unit) * 9);
+    align-items: center;
+    gap: calc(var(--space-unit) * 2.5);
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-md);
+    padding-inline: calc(var(--space-unit) * 2.5);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-settings-color-trigger:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-settings-color-trigger:focus-visible,
+  .enact-billing-interval-option:focus-visible,
+  .enact-billing-tier:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-settings-dialog-confirm {
+    min-height: calc(var(--space-unit) * 11);
+  }
+
+  .enact-billing-return-page {
+    display: flex;
+    min-height: 100dvh;
+    align-items: center;
+    justify-content: center;
+    padding: calc(var(--space-unit) * 6);
+  }
+
+  .enact-billing-return-message {
+    display: grid;
+    width: 100%;
+    max-width: 60ch;
+    justify-items: start;
+    gap: calc(var(--space-unit) * 3);
+  }
+
+  .enact-billing-return-status,
+  .enact-billing-return-title {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 2);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-billing-return-status {
+    color: var(--muted-foreground);
+  }
+
+  .enact-billing-return-title {
+    color: var(--foreground);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .enact-billing-return-title > :first-child {
+    color: var(--destructive);
+  }
+
+  .enact-billing-test-page {
+    display: grid;
+    gap: calc(var(--space-unit) * 6);
+    padding: calc(var(--space-unit) * 6);
+  }
+
+  .enact-billing-card-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .enact-billing-tier,
+  .enact-billing-list-row,
+  .enact-billing-interval-option {
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-billing-tier {
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    padding: calc(var(--space-unit) * 3);
+    text-align: left;
+  }
+
+  .enact-billing-tier:hover {
+    border-color: var(--primary);
+  }
+
+  .enact-billing-tier:disabled {
+    cursor: not-allowed;
+    opacity: var(--disabled-opacity);
+  }
+
+  .enact-billing-list {
+    display: grid;
+    gap: calc(var(--space-unit) * 2);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  .enact-billing-list-row {
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    padding: calc(var(--space-unit) * 2.5);
+  }
+
+  .enact-billing-amount {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .enact-billing-amount[data-sign="positive"] {
+    color: var(--success);
+  }
+
+  .enact-billing-amount[data-sign="negative"] {
+    color: var(--destructive);
+  }
+
+  .enact-billing-status {
+    margin-inline-start: calc(var(--space-unit) * 1.5);
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklab, var(--warning) 10%, transparent);
+    padding: calc(var(--space-unit) / 2) calc(var(--space-unit) * 1.5);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+  }
+
+  .enact-billing-status[data-status="credited"] {
+    background-color: color-mix(in oklab, var(--success) 10%, transparent);
+    color: var(--success);
+  }
+
+  .enact-billing-status[data-status="failed"],
+  .enact-billing-status[data-status="canceled"] {
+    background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .enact-billing-status[data-status="pending"] {
+    background-color: color-mix(in oklab, var(--warning) 10%, transparent);
+    color: var(--foreground);
+  }
+
+  .enact-billing-upgrade-body {
+    display: grid;
+    gap: calc(var(--space-unit) * 5);
+    padding: calc(var(--space-unit) * 4);
+  }
+
+  .enact-billing-interval-switch {
+    display: inline-flex;
+    width: 100%;
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-unit);
+  }
+
+  .enact-billing-interval-option {
+    min-height: calc(var(--space-unit) * 11);
+    flex: 1 1 0%;
+    border-radius: var(--radius-md);
+    padding-inline: calc(var(--space-unit) * 4);
+    color: var(--muted-foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-billing-interval-option:hover {
+    color: var(--foreground);
+  }
+
+  .enact-billing-interval-option[aria-pressed="true"],
+  .enact-billing-interval-option[aria-pressed="true"]:hover {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+    box-shadow: var(--surface-shadow);
+  }
+
+  .enact-billing-seat-preview {
+    display: grid;
+    gap: calc(var(--space-unit) * 3);
+    border-radius: var(--radius-lg);
+    padding: calc(var(--space-unit) * 4);
+  }
+
+  .enact-billing-seat-preview-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--space-unit) * 4);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  @media (min-width: 640px) {
+    .enact-settings-content-inner {
+      padding: calc(var(--space-unit) * 6);
+    }
+
+    .enact-settings-row {
+      flex-direction: row;
+      justify-content: space-between;
+      gap: calc(var(--space-unit) * 8);
+    }
+
+    .enact-settings-row[data-align="center"] {
+      align-items: center;
+    }
+
+    .enact-settings-row[data-align="start"] {
+      align-items: flex-start;
+    }
+
+    .enact-settings-row-copy {
+      flex: 1 1 0%;
+    }
+
+    .enact-settings-row-control {
+      width: auto;
+      max-width: 56%;
+    }
+
+    .enact-settings-row-control[data-size="text"] {
+      width: calc(var(--space-unit) * 96);
+    }
+
+    .enact-settings-row-control[data-size="select-wide"] {
+      width: calc(var(--space-unit) * 72);
+    }
+
+    .enact-settings-row-control[data-size="select"] {
+      width: calc(var(--space-unit) * 48);
+    }
+
+    .enact-settings-row-control[data-size="code"] {
+      width: calc(var(--space-unit) * 40);
+    }
+
+    .enact-settings-row-control[data-size="none"] {
+      max-width: none;
+    }
+
+    .enact-settings-catalog-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .enact-settings-catalog-search {
+      max-width: calc(var(--space-unit) * 96);
+    }
+
+    .enact-billing-upgrade-body {
+      padding: calc(var(--space-unit) * 5);
+    }
+
+    .enact-billing-interval-switch {
+      width: auto;
+    }
+
+    .enact-billing-interval-option {
+      min-width: calc(var(--space-unit) * 32);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .enact-settings-page {
+      flex-direction: row;
+      overflow: hidden;
+    }
+
+    .enact-settings-navigation {
+      width: calc(var(--space-unit) * 56);
+      overflow-y: auto;
+      border-right: var(--border-width) solid var(--surface-border);
+      border-bottom: 0;
+      padding: calc(var(--space-unit) * 4);
+    }
+
+    .enact-settings-navigation-header {
+      margin-bottom: calc(var(--space-unit) * 4);
+    }
+
+    .enact-settings-tab-list {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .enact-settings-tab-group-label {
+      display: block;
+      padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 2)
+        var(--space-unit);
+    }
+
+    .enact-settings-tab-group-label[data-group="workspace"] {
+      padding-top: calc(var(--space-unit) * 4);
+    }
+
+    .enact-settings-tab-trigger {
+      width: 100% !important;
+      padding-inline: calc(var(--space-unit) * 2);
+    }
+
+    .enact-settings-tab-trigger::after {
+      display: none;
+    }
+
+    .enact-settings-content {
+      overflow-y: auto;
+    }
+
+    .enact-settings-content-inner {
+      padding: calc(var(--space-unit) * 8);
+    }
+
+    .enact-settings-catalog-header {
+      display: grid;
+    }
+
+    .enact-settings-catalog-row {
+      align-items: center;
+      gap: calc(var(--space-unit) * 4);
+    }
+
+    .enact-settings-catalog-header[data-catalog="labels"],
+    .enact-settings-catalog-row[data-catalog="labels"] {
+      grid-template-columns: minmax(11rem, 1fr) minmax(12rem, 1.4fr) 6rem 7rem 2rem;
+    }
+
+    .enact-settings-catalog-header[data-catalog="properties"],
+    .enact-settings-catalog-row[data-catalog="properties"] {
+      grid-template-columns: minmax(10rem, 1fr) 6rem minmax(10rem, 1.4fr) 6rem 7rem 2rem;
+    }
+
+    .enact-settings-catalog-header[data-catalog="quick-actions"],
+    .enact-settings-catalog-row[data-catalog="quick-actions"] {
+      grid-template-columns: minmax(10rem, 1fr) minmax(9rem, 1fr) 6rem 5rem 7rem 2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-settings-color-option,
+    .enact-settings-color-trigger,
+    .enact-billing-tier,
+    .enact-billing-list-row,
+    .enact-billing-interval-option {
+      transition: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .enact-settings-card,
+    .enact-settings-catalog,
+    .enact-settings-danger-zone,
+    .enact-billing-list-row,
+    .enact-billing-seat-preview,
+    .enact-billing-tier,
+    .enact-billing-interval-switch {
+      border-color: CanvasText;
+    }
+
+    .enact-settings-tab-trigger[data-active],
+    .enact-billing-interval-option[aria-pressed="true"] {
+      outline: var(--border-width) solid Highlight;
+      outline-offset: calc(var(--border-width) * -1);
+    }
+
+    .enact-settings-color-swatch,
+    .enact-billing-status {
+      border: var(--border-width) solid CanvasText;
+    }
+  }
+}

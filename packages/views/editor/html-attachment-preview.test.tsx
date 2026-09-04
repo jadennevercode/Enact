@@ -1,7 +1,14 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const editorCss = readFileSync(
+  resolve(process.cwd(), "../ui/styles/features/editor.css"),
+  "utf8",
+);
 
 const { getAttachmentTextContentMock } = vi.hoisted(() => ({
   getAttachmentTextContentMock: vi.fn(),
@@ -268,10 +275,20 @@ describe("HtmlAttachmentPreview — failure mode does not unmount the toolbar", 
     expect(previewBtn.disabled).toBe(false);
     expect(downloadBtn.disabled).toBe(false);
     expect(openInNewTabBtn.disabled).toBe(false);
+    expect(previewBtn.parentElement).toHaveAttribute("data-pinned", "true");
 
     fireEvent.mouseDown(previewBtn);
     expect(onPreview).toHaveBeenCalled();
     fireEvent.mouseDown(downloadBtn);
     expect(onDownload).toHaveBeenCalled();
+  });
+
+  it("keeps normal hover reveal from being overridden by a later hide rule", () => {
+    expect(editorCss).toContain(
+      ".enact-attachment-html:hover .enact-attachment-html-toolbar",
+    );
+    expect(editorCss).not.toContain(
+      ".enact-attachment-html-toolbar:not([data-pinned=\"true\"])",
+    );
   });
 });

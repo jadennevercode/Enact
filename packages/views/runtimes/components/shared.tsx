@@ -16,25 +16,12 @@ export function RuntimeModeIcon({ mode }: { mode: string }) {
 // list rows to identify which CLI / model provider a runtime is wired to.
 export function ProviderChip({ provider }: { provider: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+    <span className="enact-runtime-provider-chip inline-flex items-center gap-1 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
       <ProviderLogo provider={provider} className="h-3 w-3" />
       <span className="capitalize">{provider}</span>
     </span>
   );
 }
-
-// Maps each derived 4-state runtime health to a semantic colour class.
-// The mapping intentionally reuses our existing tokens (success/warning/
-// muted-foreground/destructive) instead of introducing runtime-specific
-// colours — keeps the palette small and consistent with Skills.
-// Maps each derived 4-state runtime health to a semantic colour class.
-// Labels flow through useT — see useHealthLabel below.
-const HEALTH_VISUAL: Record<RuntimeHealth, { dot: string; tone: string }> = {
-  online: { dot: "bg-success", tone: "bg-success/10 text-success" },
-  recently_lost: { dot: "bg-warning", tone: "bg-warning/10 text-warning" },
-  offline: { dot: "bg-muted-foreground/40", tone: "bg-muted text-muted-foreground" },
-  about_to_gc: { dot: "bg-destructive", tone: "bg-destructive/10 text-destructive" },
-};
 
 export function HealthDot({
   health,
@@ -43,37 +30,22 @@ export function HealthDot({
   health: RuntimeHealth | "loading";
   className?: string;
 }) {
-  if (health === "loading") {
-    return (
-      <span
-        className={`inline-block h-2 w-2 rounded-full bg-muted ${className}`}
-      />
-    );
-  }
   return (
     <span
-      className={`inline-block h-2 w-2 rounded-full ${HEALTH_VISUAL[health].dot} ${className}`}
+      className={`enact-runtime-health-dot inline-block h-2 w-2 ${className}`}
+      data-health={health}
+      aria-hidden="true"
     />
   );
 }
 
 // Wifi-style runtime health indicator. The icon shape carries the rough
-// state ("can it talk to us?") and the colour carries severity. Used
-// wherever a richer signal than the bare dot is appropriate (agent
-// hover-card runtime row, runtime list health column).
-//
-//   online        → Wifi (full bars, success)
-//   recently_lost → WifiHigh (fewer bars, warning) — transient hiccup
-//   offline       → WifiOff (slashed, muted) — long unreachable
-//   about_to_gc   → WifiOff (slashed, destructive) — sweeper coming
-const HEALTH_ICON: Record<
-  RuntimeHealth,
-  { Icon: typeof Wifi; tone: string }
-> = {
-  online: { Icon: Wifi, tone: "text-success" },
-  recently_lost: { Icon: WifiHigh, tone: "text-warning" },
-  offline: { Icon: WifiOff, tone: "text-muted-foreground" },
-  about_to_gc: { Icon: WifiOff, tone: "text-destructive" },
+// state and the adjacent translated label carries the exact state.
+const HEALTH_ICON: Record<RuntimeHealth, typeof Wifi> = {
+  online: Wifi,
+  recently_lost: WifiHigh,
+  offline: WifiOff,
+  about_to_gc: WifiOff,
 };
 
 export function HealthIcon({
@@ -84,10 +56,22 @@ export function HealthIcon({
   className?: string;
 }) {
   if (health === "loading") {
-    return <Wifi className={`${className} text-faint-foreground`} />;
+    return (
+      <Wifi
+        className={`enact-runtime-health-icon ${className}`}
+        data-health="loading"
+        aria-hidden="true"
+      />
+    );
   }
-  const { Icon, tone } = HEALTH_ICON[health];
-  return <Icon className={`${className} ${tone}`} />;
+  const Icon = HEALTH_ICON[health];
+  return (
+    <Icon
+      className={`enact-runtime-health-icon ${className}`}
+      data-health={health}
+      aria-hidden="true"
+    />
+  );
 }
 
 // English-only fallback. Pure function form for non-component callers
@@ -123,15 +107,14 @@ export function HealthBadge({
   const labelOf = useHealthLabel();
   if (health === "loading") {
     return (
-      <Badge variant="secondary" className="bg-muted text-muted-foreground">
+      <Badge variant="secondary" className="enact-runtime-status-badge" data-health="loading">
         —
       </Badge>
     );
   }
-  const v = HEALTH_VISUAL[health];
   return (
-    <Badge variant="secondary" className={v.tone}>
-      <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />
+    <Badge variant="secondary" className="enact-runtime-status-badge" data-health={health}>
+      <HealthDot health={health} className="h-1.5 w-1.5" />
       {labelOf(health)}
     </Badge>
   );
@@ -190,11 +173,11 @@ export function KpiCard({
         ? "text-success"
         : "";
   return (
-    <div className="flex flex-col gap-2 p-5">
-      <div className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="enact-usage-kpi-card flex flex-col gap-2 p-5">
+      <div className="enact-usage-kpi-label font-medium uppercase tracking-wider">
         {label}
       </div>
-      <div className={`text-display font-semibold leading-none tabular-nums ${valueClass}`}>
+      <div className={`enact-usage-kpi-value font-semibold tabular-nums ${valueClass}`}>
         {value}
       </div>
       {hint != null && (

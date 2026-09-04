@@ -662,8 +662,7 @@ function renderIssueDetailWithHighlight(
   return { ...result, queryClient };
 }
 
-const highlightedCommentBackgroundClass =
-  "bg-[color-mix(in_srgb,var(--card)_95%,var(--brand)_5%)]";
+const highlightedCommentBackgroundClass = "enact-issue-comment-highlight";
 
 function hasHighlightedCommentBackground(root: ParentNode | null): boolean {
   if (!root) return false;
@@ -984,7 +983,7 @@ describe("IssueDetail (shared)", () => {
     fireEvent.click(screen.getByTestId("comment-composer-shell"));
     const editor = await screen.findByPlaceholderText("Leave a comment...");
     fireEvent.change(editor, { target: { value: "A new update" } });
-    const composer = editor.closest<HTMLElement>("[aria-busy], .relative.flex.flex-col.rounded-lg")!;
+    const composer = editor.closest<HTMLElement>("[aria-busy], .enact-issue-composer")!;
     fireEvent.click(within(composer).getByRole("button", { name: "Send" }));
 
     expect(scrollToIndexSpy).not.toHaveBeenCalled();
@@ -1716,7 +1715,7 @@ describe("IssueDetail (shared)", () => {
       await waitFor(() => {
         expect(
           document.getElementById("comment-reply-1")?.className,
-        ).toContain("bg-[color-mix(in_srgb,var(--card)_95%,var(--brand)_5%)]");
+        ).toContain("enact-issue-comment-highlight");
       });
     });
   });

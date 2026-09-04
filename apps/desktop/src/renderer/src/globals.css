@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@enact/ui/styles/tokens.css";
-@import "@enact/ui/styles/base.css";
+@import "@enact/ui/styles/application-theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -70,7 +69,7 @@ html[lang|="ja"] {
 @source "../../../../../packages/views/**/*.{ts,tsx}";
 @source "./**/*.tsx";
 
-/* Desktop-specific: override sidebar container padding for traffic light layout */
-[data-slot="sidebar-container"] {
+/* Desktop-specific: preserve traffic-light layout within the desktop shell. */
+.enact-desktop-shell [data-slot="sidebar-container"] {
   padding: 0 !important;
 }

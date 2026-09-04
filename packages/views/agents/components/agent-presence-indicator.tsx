@@ -62,19 +62,33 @@ export function AgentPresenceIndicator({
   if (compact) {
     return (
       <span
-        className="inline-flex items-center"
+        className="enact-agent-status inline-flex items-center"
+        data-availability={detail.availability}
+        data-workload={detail.workload}
         title={`${availabilityLabel}${detail.workload !== "idle" ? ` · ${workloadLabel}` : ""}`}
       >
-        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${av.dotClass}`} />
+        <span
+          className="enact-agent-status-dot h-1.5 w-1.5 shrink-0"
+          data-availability={detail.availability}
+          aria-hidden="true"
+        />
       </span>
     );
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+    <span
+      className="enact-agent-status inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5"
+      data-availability={detail.availability}
+      data-workload={detail.workload}
+    >
       {/* Availability — dot + label. Single dimension, single colour. */}
       <span className="inline-flex items-center gap-1.5">
-        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${av.dotClass}`} />
+        <span
+          className="enact-agent-status-dot h-1.5 w-1.5 shrink-0"
+          data-availability={detail.availability}
+          aria-hidden="true"
+        />
         <span className={`text-caption ${av.textClass}`}>{availabilityLabel}</span>
       </span>
 

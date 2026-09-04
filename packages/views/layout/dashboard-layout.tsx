@@ -29,16 +29,16 @@ export function DashboardLayout({
   return (
     <DashboardGuard
       loadingFallback={
-        <div className="flex h-svh items-center justify-center">
+        <div className="enact-dashboard-loading flex h-svh items-center justify-center">
           {loadingIndicator}
         </div>
       }
     >
-      <SidebarProvider className="h-svh bg-app-shell">
+      <SidebarProvider className="enact-dashboard-shell h-svh">
         <GlobalShortcuts />
         <WorkspacePresencePrefetch />
         <AppSidebar searchSlot={searchSlot} />
-        <SidebarInset className="relative overflow-hidden">
+        <SidebarInset className="enact-dashboard-canvas relative overflow-hidden">
           <NavigationProgress />
           {children}
           <ModalRegistry />

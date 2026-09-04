@@ -17,19 +17,19 @@ export function DesktopAuthRecoveryPage({
   );
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="enact-auth-desktop-shell" data-enact-platform="desktop">
       <DragStrip />
-      <div className="flex flex-1 items-center justify-center p-8">
-        <div className="flex max-w-sm flex-col items-center text-center">
+      <div className="enact-auth-recovery-body">
+        <div className="enact-auth-recovery-panel">
           <EnactIcon bordered size="lg" />
-          <h1 className="mt-6 text-title font-semibold">
+          <h1 className="enact-auth-recovery-title">
             {t(($) => $.desktop.recovery.title)}
           </h1>
-          <p className="mt-2 text-body text-muted-foreground">
+          <p className="enact-auth-recovery-description">
             {t(($) => $.desktop.recovery.description)}
           </p>
           <Button
-            className="mt-6"
+            className="enact-auth-recovery-action"
             disabled={isRetrying}
             onClick={onRetry ?? retryAuthentication}
           >

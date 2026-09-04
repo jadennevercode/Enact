@@ -71,15 +71,15 @@ export function HtmlBlockPreview({ html, className }: HtmlBlockPreviewProps) {
     setView((v) => (v === "preview" ? "source" : "preview"));
 
   return (
-    <div className={cn("code-block-wrapper group/code relative my-3", className)}>
+    <div className={cn("code-block-wrapper enact-rich-content-code-shell group/code", className)}>
       <div
-        className="absolute top-0 right-0 z-10 flex items-center gap-1.5 px-2 py-1.5 opacity-0 transition-opacity group-hover/code:opacity-100 focus-within:opacity-100"
+        className="enact-rich-content-code-toolbar"
       >
-        <span className="text-caption text-muted-foreground select-none">{HTML_LANGUAGE_LABEL}</span>
+        <span className="enact-rich-content-code-language">{HTML_LANGUAGE_LABEL}</span>
         <button
           type="button"
           onClick={toggleView}
-          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="enact-editor-toolbar-action"
           title={
             view === "preview"
               ? t(($) => $.code_block.show_source)
@@ -101,7 +101,7 @@ export function HtmlBlockPreview({ html, className }: HtmlBlockPreviewProps) {
           <button
             type="button"
             onClick={() => setFullscreen(true)}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="enact-editor-toolbar-action"
             title={t(($) => $.code_block.fullscreen)}
             aria-label={t(($) => $.code_block.fullscreen)}
           >
@@ -111,7 +111,7 @@ export function HtmlBlockPreview({ html, className }: HtmlBlockPreviewProps) {
         <button
           type="button"
           onClick={handleCopy}
-          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="enact-editor-toolbar-action"
           title={t(($) => $.code_block.copy_code)}
           aria-label={t(($) => $.code_block.copy_code)}
         >

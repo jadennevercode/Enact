@@ -104,8 +104,8 @@ export function ProjectArtifactsPage({ projectId }: ProjectArtifactsPageProps) {
   const hasArtifacts = folders.length > 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-col gap-3 border-b px-6 py-5">
+    <div className="enact-project-artifacts-page flex h-full min-h-0 flex-col">
+      <header className="enact-project-artifacts-header flex flex-col gap-3 px-6 py-5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <div className="flex items-baseline gap-3">
             <h1 className="text-title font-medium">{t(($) => $.artifacts.title)}</h1>
@@ -155,7 +155,7 @@ export function ProjectArtifactsPage({ projectId }: ProjectArtifactsPageProps) {
         <div className="flex min-h-0 flex-1">
           <nav
             aria-label={t(($) => $.artifacts.title)}
-            className="w-full max-w-xs shrink-0 overflow-y-auto border-r p-2 md:max-w-sm"
+            className="enact-project-artifacts-tree w-full max-w-xs shrink-0 overflow-y-auto p-2 md:max-w-sm"
           >
             {visibleFolders.map((folder) => (
               <ArtifactFolderRow
@@ -211,7 +211,7 @@ function ArtifactFolderRow({
         type="button"
         onClick={() => setOpen(!expanded)}
         aria-expanded={expanded}
-        className="flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-left text-caption text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="enact-project-artifact-folder flex h-8 w-full items-center gap-1.5 px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Chevron className="h-3 w-3 shrink-0" />
         <FolderOpen className="h-3.5 w-3.5 shrink-0" />
@@ -262,15 +262,7 @@ function ArtifactEntryRow({
       type="button"
       onClick={() => onSelect(entry.key)}
       aria-current={selected ? "true" : undefined}
-      className={cn(
-        "flex h-8 w-full items-center gap-1.5 rounded-md py-1 pl-7 pr-2 text-left text-caption transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        // The selected row states itself in weight and text color, which hover
-        // does not touch, so hovering it never reads as a downgrade to a plain
-        // hovered row.
-        selected
-          ? "bg-surface-selected font-medium text-foreground"
-          : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-      )}
+      className="enact-project-artifact-entry flex h-8 w-full items-center gap-1.5 py-1 pl-7 pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{entry.filename}</span>
@@ -372,7 +364,7 @@ function ArtifactDetail({
           {entry.versions.map(({ artifact, version }, index) => (
             <li
               key={artifact.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+              className="enact-project-artifact-version-row flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
             >
               <span className="shrink-0 text-caption font-medium tabular-nums">
                 {t(($) => $.artifacts.version_label, { version })}

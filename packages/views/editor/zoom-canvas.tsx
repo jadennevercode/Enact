@@ -54,7 +54,7 @@ function ToolbarButton({
             onClick={onClick}
             disabled={disabled}
             aria-label={label}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="enact-editor-toolbar-action"
           />
         }
       >
@@ -82,7 +82,7 @@ export function ZoomControls({
 
   return (
     <TooltipProvider delay={300}>
-      <div className={cn("flex items-center gap-0.5", className)}>
+      <div className={cn("enact-editor-zoom-controls", className)}>
         <ToolbarButton
           onClick={canvas.zoomOut}
           disabled={!canvas.canZoomOut || disabled}
@@ -93,7 +93,7 @@ export function ZoomControls({
         </ToolbarButton>
         {/* Fixed width so the toolbar doesn't jitter as digits change. */}
         <span
-          className="w-12 select-none text-center text-caption tabular-nums text-muted-foreground"
+          className="enact-editor-zoom-percent"
           aria-live="polite"
         >
           {canvas.zoomPercent}%

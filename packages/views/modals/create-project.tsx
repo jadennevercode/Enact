@@ -395,31 +395,25 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
         showCloseButton={false}
-        className={cn(
-          "p-0 gap-0 flex flex-col overflow-hidden",
-          "!top-1/2 !left-1/2 !-translate-x-1/2",
-          "!transition-all !duration-300 !ease-out",
-          isExpanded
-            ? "!max-w-4xl !w-full !h-5/6 !-translate-y-1/2"
-            : "!max-w-2xl !w-full !h-96 !-translate-y-1/2",
-        )}
+        className="enact-modal-project"
+        data-expanded={isExpanded ? "true" : "false"}
       >
         <DialogTitle className="sr-only">{t(($) => $.create_project.title)}</DialogTitle>
 
-        <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
-          <div className="flex items-center gap-1.5 text-caption">
-            <span className="text-muted-foreground">{workspaceName}</span>
+        <div className="enact-modal-breadcrumb-header">
+          <div className="enact-modal-breadcrumb">
+            <span className="enact-modal-breadcrumb-context">{workspaceName}</span>
             <ChevronRight className="size-3 text-faint-foreground" />
-            <span className="font-medium">{t(($) => $.create_project.title_breadcrumb)}</span>
+            <span className="enact-modal-breadcrumb-title">{t(($) => $.create_project.title_breadcrumb)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="enact-modal-breadcrumb-actions">
             <Tooltip>
               <TooltipTrigger
                 render={
                   <button
                     type="button"
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+                    className="enact-modal-icon-action"
                   >
                     {isExpanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
                   </button>
@@ -437,7 +431,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+                    className="enact-modal-icon-action"
                   >
                     <XIcon className="size-4" />
                   </button>
@@ -448,13 +442,13 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="px-5 pb-2 shrink-0">
+        <div className="enact-modal-title-region">
           <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
             <PopoverTrigger
               render={
                 <button
                   type="button"
-                  className="text-display-sm cursor-pointer rounded-lg p-1 -ml-1 hover:bg-accent/60 transition-colors"
+                  className="enact-modal-project-icon"
                   title={t(($) => $.create_project.icon_tooltip)}
                 >
                   {icon || "📁"}
@@ -474,13 +468,13 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
             autoFocus
             defaultValue={draft.title}
             placeholder={t(($) => $.create_project.title_placeholder)}
-            className="text-title font-semibold"
+            className="enact-editor-title"
             onChange={(v) => updateTitle(v)}
             onSubmit={handleSubmit}
           />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-5">
+        <div className="enact-modal-editor-region" data-layout="stack">
           <ContentEditor
             ref={descEditorRef}
             defaultValue={draft.description}
@@ -488,7 +482,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
             onUpdate={(md) => setDraft({ description: md })}
             debounceMs={500}
           />
-          <p className="mt-1 text-caption text-muted-foreground">
+          <p className="enact-modal-form-help">
             {t(($) => $.create_project.description_hint)}
           </p>
         </div>
@@ -499,7 +493,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
             Repos lives here alongside the property pills for now. Once we
             support more resource types (Linear / Notion / Figma / Slack), pull
             them out into a dedicated Resources strip above this footer. */}
-        <div className="flex items-center gap-1.5 px-4 py-2 shrink-0 flex-wrap">
+        <div className="enact-modal-property-toolbar">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -840,7 +834,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                       })}
                     </p>
                   ) : (
-                    <p className="text-micro text-amber-600 dark:text-amber-400">
+                    <p className="enact-modal-warning">
                       {t(($) => $.create_project.local_daemon_offline)}
                     </p>
                   )}
@@ -980,7 +974,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
 
         {/* Footer action bar — primary action in its own strip, matching
             create-issue. */}
-        <div className="flex items-center justify-end border-t px-4 py-3 shrink-0">
+        <div className="enact-modal-footer">
           <Button
             size="sm"
             onClick={handleSubmit}

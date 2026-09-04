@@ -671,7 +671,7 @@ describe("ChatInput project context", () => {
     const surface = container.querySelector('[data-slot="chat-input-surface"]');
 
     expect(container.firstElementChild).toHaveClass("relative", "z-10");
-    expect(surface).toHaveClass("rounded-lg");
+    expect(surface).toHaveClass("enact-chat-composer-surface");
     expect(surface).not.toHaveClass(
       "rounded-4xl",
       "shadow-[var(--menu-shadow)]",

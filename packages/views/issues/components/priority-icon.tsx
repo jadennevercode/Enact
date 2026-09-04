@@ -49,11 +49,11 @@ export function PriorityIcon({
           y1="5"
           x2="8"
           y2="8.6"
-          stroke="var(--background, #fff)"
+          stroke="var(--background)"
           strokeWidth="1.7"
           strokeLinecap="round"
         />
-        <circle cx="8" cy="11" r="0.95" fill="var(--background, #fff)" />
+        <circle cx="8" cy="11" r="0.95" fill="var(--background)" />
       </svg>
     );
   }

@@ -746,10 +746,8 @@ export function ChatWindow() {
   // viewport, so the chat body's gutter (CHAT_GUTTER) has to key off the
   // window's own width, not the page behind it.
   const containerClass = cn(
-    "absolute z-50 flex flex-col overflow-hidden bg-surface-raised @container",
-    isMobile
-      ? "inset-x-0"
-      : "right-2 rounded-xl shadow-[var(--floating-shadow)] ring-1 ring-surface-border",
+    "enact-chat-window absolute z-50 flex flex-col overflow-hidden @container",
+    isMobile ? "inset-x-0" : "right-2",
   );
   // Soft keyboards shrink only the *visual* viewport — the layout viewport
   // (and this panel's bottom-anchored parent) keeps its full height, so
@@ -804,6 +802,7 @@ export function ChatWindow() {
     <motion.div
       ref={windowRef}
       className={containerClass}
+      data-floating={isMobile ? undefined : "true"}
       style={containerStyle}
       initial={{ opacity: 0, scale: 0.95, ...motionSize }}
       animate={{
@@ -820,7 +819,7 @@ export function ChatWindow() {
     >
       {!isMobile && <ChatResizeHandles onDragStart={startDrag} />}
       {/* Header — ⊕ new + session dropdown | window tools */}
-      <div className="flex items-center justify-between border-b px-4 py-2.5 gap-2">
+      <div className="enact-chat-window-header flex items-center justify-between px-4 py-2.5 gap-2">
         <div className="flex items-center gap-1 min-w-0">
           <Tooltip>
             <TooltipTrigger
@@ -1141,7 +1140,7 @@ function AgentPickerItem({
       />
       <span className="truncate flex-1">{agent.name}</span>
       {!runtimeBound && (
-        <span className="shrink-0 text-micro text-amber-600 dark:text-amber-400">
+        <span className="enact-chat-runtime-warning shrink-0 text-micro">
           {t(($) => $.window.agent_needs_runtime)}
         </span>
       )}
@@ -1408,10 +1407,9 @@ function SessionDropdown({
           handleRowActivationKey(e, () => handleSelectSession(session));
         }}
         className={cn(
-          "group/history-row relative flex min-h-11 min-w-0 cursor-default items-center gap-2 overflow-hidden rounded-md py-1.5 pl-2 pr-2 outline-none transition-colors hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:ring-1 focus-visible:ring-ring",
-          isCurrent && "bg-accent/70",
-          isConfirmingAction && "bg-destructive/5 hover:bg-destructive/5",
+          "enact-chat-history-row group/history-row relative flex min-h-11 min-w-0 cursor-default items-center gap-2 overflow-hidden py-1.5 pl-2 pr-2 outline-none focus-visible:ring-1 focus-visible:ring-ring",
         )}
+        data-confirming={isConfirmingAction ? "true" : undefined}
       >
         {isCurrent && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-brand" />}
         {agent ? (
@@ -1438,11 +1436,7 @@ function SessionDropdown({
             </div>
           ) : (
             <div
-              className={cn("truncate text-body", (showUnread || showCompleted) && !isRunning && "font-medium")}
-              style={{
-                maskImage: "linear-gradient(to right, black calc(100% - 18px), transparent)",
-                WebkitMaskImage: "linear-gradient(to right, black calc(100% - 18px), transparent)",
-              }}
+              className={cn("enact-chat-history-title truncate text-body", (showUnread || showCompleted) && !isRunning && "font-medium")}
             >
               {titleText}
             </div>
@@ -1490,7 +1484,7 @@ function SessionDropdown({
             <div className="flex shrink-0 items-center">
               <div className="flex h-7 items-center justify-end gap-1.5 text-caption text-muted-foreground [@media(hover:hover)]:group-hover/history-row:hidden [@media(hover:hover)]:group-focus-within/history-row:hidden">
                 {isRunning && <Loader2 className="size-3 animate-spin" />}
-                {showCompleted && !isRunning && <Check className="size-3 text-emerald-500" />}
+                {showCompleted && !isRunning && <Check className="enact-chat-completed-indicator size-3" />}
                 {showUnread && !isRunning && !showCompleted && (
                   <span
                     aria-label={t(($) => $.window.unread)}
@@ -1694,7 +1688,7 @@ function EmptyState({
               key={key}
               type="button"
               onClick={() => onPickPrompt(text)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-left text-body text-foreground transition-colors hover:bg-accent hover:border-brand/40"
+          className="enact-chat-starter-action w-full px-3 py-2 text-left text-body"
             >
               <span className="mr-2">{STARTER_ICONS[key]}</span>
               {text}

@@ -46,9 +46,8 @@ import { deriveThreadResolution } from "./thread-utils";
 import { RevisionConflictCompare } from "./revision-conflict-compare";
 
 const highlightedCommentBackgroundClass =
-  "bg-[color-mix(in_srgb,var(--card)_95%,var(--brand)_5%)]";
-const stickyHeaderFadeClass =
-  "after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-[inherit] after:[mask-image:linear-gradient(to_bottom,#000,transparent)] after:[-webkit-mask-image:linear-gradient(to_bottom,#000,transparent)]";
+  "enact-issue-comment-highlight";
+const stickyHeaderFadeClass = "enact-issue-comment-sticky";
 
 function StickyHeaderShell({
   className,
@@ -903,7 +902,7 @@ function CommentCardImpl({
     // overflow-clip (not -hidden) clips the rounded corners WITHOUT creating a
     // scroll container, so the sticky collapse affordances below resolve to the
     // timeline's scroll parent instead of this card. See PR #3623.
-    <Card className="!py-0 !gap-0 overflow-clip transition-colors duration-700">
+    <Card className="enact-issue-comment-card !py-0 !gap-0 overflow-clip transition-colors duration-700">
       {onCollapseResolved && (
         <button
           type="button"

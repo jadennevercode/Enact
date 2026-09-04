@@ -32,7 +32,7 @@ export function MentionView({ node }: NodeViewProps) {
     return (
       <NodeViewWrapper
         as="span"
-        className="inline"
+        className="inline enact-editor-mention-node"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <IssueMentionCard issueId={id} fallbackLabel={label} />
@@ -44,7 +44,7 @@ export function MentionView({ node }: NodeViewProps) {
     return (
       <NodeViewWrapper
         as="span"
-        className="inline"
+        className="inline enact-editor-mention-node"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <ProjectMentionCard projectId={id} fallbackLabel={label} />

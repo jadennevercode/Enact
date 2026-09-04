@@ -121,16 +121,17 @@ export function DingTalkConnectionLabel({
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 items-center gap-2 text-caption text-muted-foreground",
+        "enact-integration-connected-status",
         className,
       )}
     >
       <span
-        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+        className="enact-integration-status-dot"
+        data-status="active"
         aria-hidden="true"
       />
-      <span className="inline-flex min-w-0 items-center">
-        <span className="shrink-0">
+      <span className="enact-integration-identity">
+        <span className="enact-integration-identity-label">
           {t(($) => $.dingtalk.agent_bot_connected_label)}
         </span>
         {showBotIdentity && (
@@ -142,7 +143,7 @@ export function DingTalkConnectionLabel({
                     render={
                       <button
                         type="button"
-                        className="ml-1 min-w-0 cursor-help truncate rounded-sm text-left text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="enact-integration-identity-trigger"
                       >
                         {botIdentityText}
                       </button>
@@ -150,7 +151,7 @@ export function DingTalkConnectionLabel({
                   />
                   <TooltipContent
                     side="top"
-                    className="max-w-80 whitespace-normal break-all"
+                    className="enact-integration-permission-tooltip"
                     translate="no"
                   >
                     {linkedIdentityLabel}
@@ -158,7 +159,7 @@ export function DingTalkConnectionLabel({
                 </Tooltip>
               </TooltipProvider>
             ) : (
-              <span className="ml-1 truncate text-foreground">
+              <span className="enact-integration-identity-text">
                 {botIdentityText}
               </span>
             )}
@@ -174,22 +175,22 @@ export function DingTalkConnectionLabel({
                     render={
                       <button
                         type="button"
-                        className="-my-1 ml-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="enact-integration-permission-trigger"
                         aria-label={permissionTooltip}
                       >
-                        <Info className="size-3.5" aria-hidden="true" />
+                        <Info className="enact-integration-action-icon-medium" aria-hidden="true" />
                       </button>
                     }
                   />
                   <TooltipContent
                     side="top"
                     align="start"
-                    className="max-w-80 items-start whitespace-normal border-0 bg-surface-raised px-3 py-2 text-popover-foreground shadow-[var(--menu-shadow)] ring-1 ring-surface-border"
+                    className="enact-integration-permission-tooltip"
                   >
-                    <span className="leading-relaxed">
+                    <span className="enact-integration-permission-copy">
                       {permissionTooltipPrefix}{" "}
                       <code
-                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-micro text-foreground ring-1 ring-border"
+                        className="enact-integration-permission-code"
                         translate="no"
                       >
                         {dingTalkChatManagePermission}
@@ -316,29 +317,29 @@ export function DingTalkBotGroups({
   const renderObserved = (
     entries: Array<{ group: DingTalkGroup; bot: DingTalkGroupBot }>,
   ) => (
-    <div>
+    <div className="enact-integration-resource-list">
       {entries.map(({ group, bot }) => (
         <div
           key={group.conversation_id}
-          className="group space-y-1.5 border-t py-2.5"
+          className="enact-integration-resource-row"
           data-testid="dingtalk-group-item"
         >
-          <div className="flex min-w-0 items-baseline justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-baseline gap-3">
-              <p className="min-w-0 truncate text-caption font-medium">
+          <div className="enact-integration-resource-header">
+            <div className="enact-integration-resource-main">
+              <p className="enact-integration-resource-name">
                 {group.conversation_title || t(($) => $.dingtalk.group_untitled)}
               </p>
               {canForget && (
                 <button
                   type="button"
-                  className="pointer-events-none shrink-0 text-micro text-muted-foreground opacity-0 underline-offset-2 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:text-foreground hover:underline focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="enact-integration-resource-action"
                   onClick={() => setForgetTarget(group)}
                 >
                   {t(($) => $.dingtalk.group_forget)}
                 </button>
               )}
             </div>
-            <div className="flex min-w-0 max-w-[60%] items-center">
+            <div className="enact-integration-resource-id-wrap">
               <TooltipProvider delay={0}>
                 <Tooltip>
                   <TooltipTrigger
@@ -347,7 +348,7 @@ export function DingTalkBotGroups({
                         tabIndex={0}
                         translate="no"
                         aria-label={`${t(($) => $.dingtalk.conversation_id_label)} ${group.conversation_id}`}
-                        className="block min-w-0 truncate font-mono text-micro text-faint-foreground transition-colors group-hover:text-muted-foreground focus-visible:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="enact-integration-resource-id"
                       >
                         {group.conversation_id}
                       </code>
@@ -362,13 +363,13 @@ export function DingTalkBotGroups({
           </div>
           {bot.last_active_at && (
             <p
-              className="text-micro tabular-nums text-muted-foreground"
+              className="enact-integration-resource-meta"
               data-testid="dingtalk-group-activity"
             >
               {t(($) => $.dingtalk.group_last_active, {
                 time: timeAgo(bot.last_active_at),
               })}
-              <span className="mx-1.5" aria-hidden="true">·</span>
+              <span className="enact-integration-resource-separator" aria-hidden="true">·</span>
               {t(($) => $.dingtalk.group_mentions, {
                 count: bot.mention_count ?? 0,
               })}
@@ -381,43 +382,43 @@ export function DingTalkBotGroups({
 
   return (
     <div
-      className={cn("space-y-2 pt-3", className)}
+      className={cn("enact-integration-resource-section", className)}
       data-testid="dingtalk-bot-groups"
     >
-      <div className="flex items-center gap-2">
-        <h4 className="text-body font-medium text-pretty">
+      <div className="enact-integration-resource-header">
+        <h4 className="enact-integration-resource-section-title">
           {t(($) => $.dingtalk.groups_title)}
         </h4>
         {!isLoading && !isError && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-micro tabular-nums text-muted-foreground">
+          <span className="enact-integration-count">
             {t(($) => $.dingtalk.groups_count, { count: observed.length })}
           </span>
         )}
       </div>
       {showDescription && (
-        <p className="text-caption leading-relaxed text-muted-foreground">
+        <p className="enact-integration-help">
           {t(($) => $.dingtalk.groups_description)}
         </p>
       )}
       {isLoading ? (
-        <p className="text-caption text-muted-foreground">
+        <p className="enact-integration-meta">
           {t(($) => $.dingtalk.groups_loading)}
         </p>
       ) : isError ? (
-        <div className="flex items-center justify-between gap-3" role="alert">
-          <p className="text-caption text-muted-foreground">
+        <div className="enact-integration-resource-header" role="alert">
+          <p className="enact-integration-meta">
             {t(($) => $.dingtalk.groups_error)}
           </p>
           <button
             type="button"
-            className="shrink-0 text-caption font-medium underline-offset-2 hover:underline"
+            className="enact-integration-retry"
             onClick={onRetry}
           >
             {t(($) => $.dingtalk.groups_retry)}
           </button>
         </div>
       ) : observed.length === 0 ? (
-        <p className="text-caption text-muted-foreground">
+        <p className="enact-integration-meta">
           {inactiveCount > 0
             ? t(($) => $.dingtalk.groups_no_recent)
             : t(($) => $.dingtalk.groups_empty)}
@@ -426,28 +427,28 @@ export function DingTalkBotGroups({
         renderObserved(observed)
       )}
       {!isLoading && !isError && inactiveCount > 0 && (
-        <div className="border-t pt-2">
+        <div className="enact-integration-resource-inactive">
           <button
             type="button"
-            className="flex w-full items-center gap-1.5 py-1 text-caption font-medium text-muted-foreground hover:text-foreground"
+            className="enact-integration-resource-toggle"
             onClick={() => setInactiveExpanded((value) => !value)}
             aria-expanded={inactiveExpanded}
           >
             {inactiveExpanded
-              ? <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-              : <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+              ? <ChevronDown className="enact-integration-action-icon-medium" aria-hidden="true" />
+              : <ChevronRight className="enact-integration-action-icon-medium" aria-hidden="true" />}
             {t(($) => $.dingtalk.groups_inactive, { count: inactiveCount })}
           </button>
           {inactiveExpanded && (
-            <div className="pt-1">
+            <div className="enact-integration-resource-expanded">
               {inactiveQuery.isLoading ? (
-                <p className="py-2 text-caption text-muted-foreground">
+                <p className="enact-integration-meta enact-integration-resource-pending">
                   {t(($) => $.dingtalk.groups_loading)}
                 </p>
               ) : inactiveQuery.isError ? (
                 <button
                   type="button"
-                  className="py-2 text-caption font-medium underline-offset-2 hover:underline"
+                  className="enact-integration-retry enact-integration-resource-pending"
                   onClick={() => void inactiveQuery.refetch()}
                 >
                   {t(($) => $.dingtalk.groups_retry)}
@@ -580,14 +581,14 @@ export function DingTalkTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="enact-integrations-stack">
       {!configured ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.dingtalk.not_enabled_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.dingtalk.not_enabled_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.dingtalk.not_enabled_description_prefix)}{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-micro">
+              <code className="enact-integration-inline-code">
                 ENACT_DINGTALK_SECRET_KEY
               </code>{" "}
               {t(($) => $.dingtalk.not_enabled_description_suffix)}{" "}
@@ -596,15 +597,15 @@ export function DingTalkTab() {
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-4">
-          <div className="space-y-1.5">
-            <h2 className="text-body font-semibold">
+        <section className="enact-integration-section" data-density="roomy">
+          <div className="enact-integration-copy">
+            <h2 className="enact-integration-section-title">
               {t(($) => $.dingtalk.connections_title)}
             </h2>
             {!isLoading &&
               displayedInstallations.length > 0 &&
               groupDiscoverySupported && (
-              <p className="max-w-3xl text-caption leading-relaxed text-muted-foreground">
+              <p className="enact-integration-overview">
                 {t(($) => $.dingtalk.groups_overview_description)}
               </p>
             )}
@@ -612,14 +613,14 @@ export function DingTalkTab() {
           {isLoading || (!canManage && agentsLoading) ? (
             <Card>
               <CardContent>
-                <p className="text-body text-muted-foreground">{t(($) => $.dingtalk.loading)}</p>
+                <p className="enact-integration-description">{t(($) => $.dingtalk.loading)}</p>
               </CardContent>
             </Card>
           ) : displayedInstallations.length === 0 ? (
             <Card>
-              <CardContent className="space-y-2">
-                <p className="text-body font-medium">{t(($) => $.dingtalk.empty_title)}</p>
-                <p className="text-caption text-muted-foreground">
+              <CardContent className="enact-integration-state-card">
+                <p className="enact-integration-row-title">{t(($) => $.dingtalk.empty_title)}</p>
+                <p className="enact-integration-meta">
                   {t(($) => $.dingtalk.empty_description_prefix)}{" "}
                   <strong>{t(($) => $.dingtalk.empty_description_cta)}</strong>{" "}
                   {t(($) => $.dingtalk.empty_description_suffix)}
@@ -627,8 +628,8 @@ export function DingTalkTab() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="py-0">
-              <CardContent className="divide-y divide-border/70">
+            <Card className="enact-integration-card-flush">
+              <CardContent className="enact-integration-list">
                 {displayedInstallations.map((inst) => (
                   <InstallationRow
                     key={inst.id}
@@ -723,11 +724,11 @@ function InstallationRow({
   const botIdentity = suppliedBotIdentity ?? getDingTalkBotIdentity(groups, installation.id);
   return (
     <div
-      className="py-6"
+      className="enact-integration-installation-row"
       data-testid="dingtalk-installation-row"
     >
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="enact-integration-installation-main">
+        <div className="enact-integration-installation-identity">
           <ActorAvatar
             actorType="agent"
             actorId={installation.agent_id}
@@ -735,16 +736,16 @@ function InstallationRow({
             enableHoverCard={agentAvailable}
             profileLink={agentAvailable}
           />
-          <div className="min-w-0 space-y-1.5">
-            <h3 className="truncate text-title-sm font-medium text-pretty">
+          <div className="enact-integration-installation-copy">
+            <h3 className="enact-integration-installation-title">
               {agentName}
               {!isActive && (
-                <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+                <span className="enact-integration-chip" data-inline="true">
                   {t(($) => $.dingtalk.revoked_badge)}
                 </span>
               )}
             </h3>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="enact-integration-installation-meta">
               {isActive && (
                 <>
                   <DingTalkConnectionLabel
@@ -757,7 +758,7 @@ function InstallationRow({
                     showPermissionHelp={canManage}
                   />
                   <span
-                    className="text-micro text-muted-foreground"
+                    className="enact-integration-detail"
                     aria-hidden="true"
                   >
                     ·
@@ -765,7 +766,7 @@ function InstallationRow({
                 </>
               )}
               <span
-                className="text-micro text-muted-foreground"
+                className="enact-integration-detail"
                 data-testid="dingtalk-installation-metadata"
               >
                 {t(($) => $.dingtalk.installed_at_label, {
@@ -777,7 +778,7 @@ function InstallationRow({
         </div>
         {canManage && isActive && (
           <Button variant="outline" size="sm" onClick={onDisconnect}>
-            <Trash2 className="h-3 w-3" aria-hidden="true" />
+            <Trash2 className="enact-integration-action-icon" aria-hidden="true" />
             {t(($) => $.dingtalk.disconnect)}
           </Button>
         )}
@@ -793,7 +794,7 @@ function InstallationRow({
           isError={groupsError}
           onRetry={onRetryGroups}
           showDescription={false}
-          className="space-y-3 pt-5"
+          className="enact-integration-resource-nested"
         />
       )}
     </div>
@@ -935,7 +936,7 @@ export function DingTalkAgentBindButton({
 
   return (
     <div
-      className={cn("flex flex-wrap items-center gap-2", className)}
+      className={cn("enact-integration-connect-actions", className)}
       data-testid="dingtalk-agent-bind-buttons"
     >
       <Button
@@ -950,7 +951,7 @@ export function DingTalkAgentBindButton({
         }
         data-testid="dingtalk-agent-connect"
       >
-        <DingTalkMark className="h-4 w-4" />
+        <DingTalkMark className="enact-integration-provider-mark" />
         {t(($) => $.dingtalk.bind_button)}
       </Button>
 
@@ -959,30 +960,31 @@ export function DingTalkAgentBindButton({
         onOpenChange={(v) => (v ? setDialogOpen(true) : closeDialog())}
       >
         <DialogContent
-          className="gap-0 overflow-hidden p-0 sm:max-w-lg"
+          className="enact-integration-dialog"
+          data-layout="flush"
           data-testid="dingtalk-byo-dialog"
         >
-          <DialogHeader className="gap-1 border-b px-5 py-3">
-            <DialogTitle className="text-title-sm font-semibold">
+          <DialogHeader className="enact-integration-dialog-header">
+            <DialogTitle className="enact-integration-dialog-title">
               {t(($) => $.dingtalk.byo_dialog_title)}
             </DialogTitle>
 
             <button
               type="button"
               onClick={() => openExternal(dingtalkDocsUrl(i18n.language))}
-              className="inline-flex w-fit items-center gap-1.5 text-caption text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+              className="enact-integration-doc-link"
               data-testid="dingtalk-byo-docs-link"
             >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              <ExternalLink className="enact-integration-action-icon-medium" aria-hidden="true" />
               {t(($) => $.dingtalk.byo_docs_link)}
             </button>
           </DialogHeader>
 
-          <div className="space-y-4 p-5">
-            <div className="space-y-1.5">
+          <div className="enact-integration-dialog-body enact-integration-form">
+            <div className="enact-integration-field">
               <Label
                 htmlFor="dingtalk-byo-client-id"
-                className="text-caption text-muted-foreground"
+                className="enact-integration-meta"
               >
                 {t(($) => $.dingtalk.byo_appkey_label)}
               </Label>
@@ -998,10 +1000,10 @@ export function DingTalkAgentBindButton({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="enact-integration-field">
               <Label
                 htmlFor="dingtalk-byo-client-secret"
-                className="text-caption text-muted-foreground"
+                className="enact-integration-meta"
               >
                 {t(($) => $.dingtalk.byo_appsecret_label)}
               </Label>
@@ -1021,7 +1023,7 @@ export function DingTalkAgentBindButton({
           {/* Inline footer instead of <DialogFooter>: its -mx-4/-mb-4 offsets
               assume the default p-4 DialogContent; with p-0 they push the bar
               outside the dialog (same workaround as CreateAgentDialog). */}
-          <div className="flex items-center justify-end gap-2 border-t bg-background px-5 py-3">
+          <div className="enact-integration-dialog-footer">
             <Button variant="ghost" onClick={closeDialog} disabled={submitting}>
               {t(($) => $.dingtalk.byo_cancel)}
             </Button>
@@ -1056,14 +1058,14 @@ function DingTalkAgentBotStatusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "enact-integration-status-row",
         className,
       )}
       data-testid="dingtalk-agent-bot-status"
     >
       <DingTalkConnectionLabel showBotIdentity={false} />
       <ChevronRight
-        className="ml-auto h-3.5 w-3.5 shrink-0"
+        className="enact-integration-status-chevron"
         aria-hidden="true"
       />
     </button>
@@ -1110,10 +1112,10 @@ function DingTalkAgentBotConnectedBadge({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("enact-integration-connected", className)}
       data-testid="dingtalk-agent-bot-connected"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="enact-integration-connected-header">
         <DingTalkConnectionLabel
           botName={botName}
           botIdentityIssue={botIdentityIssue}
@@ -1128,7 +1130,7 @@ function DingTalkAgentBotConnectedBadge({
           aria-label={t(($) => $.dingtalk.disconnect)}
           data-testid="dingtalk-agent-bot-disconnect"
         >
-          <Trash2 className="h-3 w-3" aria-hidden="true" />
+          <Trash2 className="enact-integration-action-icon" aria-hidden="true" />
           {disconnecting
             ? t(($) => $.dingtalk.disconnecting)
             : t(($) => $.dingtalk.disconnect)}

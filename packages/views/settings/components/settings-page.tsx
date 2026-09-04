@@ -122,8 +122,7 @@ const LEGACY_WORKSPACE_TAB_REDIRECTS: Record<string, string> = {
   lark: "integrations",
 };
 
-const SETTINGS_TAB_TRIGGER_CLASS =
-  "h-8 shrink-0 px-2.5 hover:bg-surface-hover data-active:!bg-surface-selected data-active:!text-surface-selected-foreground data-active:hover:!bg-surface-selected md:!w-full md:px-2 md:after:hidden";
+const SETTINGS_TAB_TRIGGER_CLASS = "enact-settings-tab-trigger";
 
 export interface ExtraSettingsTab {
   value: string;
@@ -193,29 +192,29 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
       value={activeTab}
       onValueChange={handleTabChange}
       orientation={isMobile ? "horizontal" : "vertical"}
-      className="flex flex-1 min-h-0 flex-col gap-0 overflow-y-auto md:flex-row md:overflow-hidden"
+      className="enact-settings-page"
     >
       {/* Structural navigation; bounded setting groups remain in the content surface.
           Stays on the content surface color (no shell tint): the desktop's active
           tab merges into the card top, and a tinted panel under the first tabs
           breaks that seam (ENA-4439). Zoning comes from the divider instead. */}
-      <div className="shrink-0 overflow-x-auto border-b border-surface-border p-2 md:w-56 md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
+      <div className="enact-settings-navigation">
         {/* This page builds its own chrome instead of a PageHeader, so it has
             to supply the nav trigger itself — below `xl` the nav is a sheet or
             auto-collapsed, and settings has no other way back to it. */}
         {/* The gap below this row belongs to the row, not to the heading: with
             `items-center`, a bottom margin on the `h1` is part of the box being
             centred, so it offsets the heading against the trigger beside it. */}
-        <div className="flex items-center md:mb-4">
+        <div className="enact-settings-navigation-header">
           <CollapsedNavTrigger />
           <h1 className="sr-only text-body font-semibold md:not-sr-only md:px-2">{t(($) => $.page.title)}</h1>
         </div>
         <TabsList
           variant="line"
-          className="flex w-max min-w-full flex-row items-center gap-1 p-0 md:w-full md:flex-col md:items-stretch"
+          className="enact-settings-tab-list"
         >
           {/* My Account group */}
-          <span className="hidden px-2 pb-1 pt-2 text-caption font-medium text-muted-foreground md:block">
+          <span className="enact-settings-tab-group-label">
             {t(($) => $.page.my_account)}
           </span>
           {ACCOUNT_TAB_KEYS.map((key) => {
@@ -243,7 +242,10 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           ))}
 
           {/* Workspace group */}
-          <span className="hidden truncate px-2 pb-1 pt-4 text-caption font-medium text-muted-foreground md:block">
+          <span
+            className="enact-settings-tab-group-label truncate"
+            data-group="workspace"
+          >
             {workspaceName ?? t(($) => $.page.workspace_fallback)}
           </span>
           {visibleWorkspaceTabKeys.map((key) => {
@@ -263,10 +265,18 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
       </div>
 
       {/* Right content */}
-      <div className="min-w-0 flex-1 md:overflow-y-auto">
-        <div className={`mx-auto w-full p-4 sm:p-6 md:p-8 ${activeTab === "labels" || activeTab === "issue-statuses" || activeTab === "properties" || activeTab === "quick-actions"
-              ? "max-w-5xl"
-              : "max-w-3xl"}`}>
+      <div className="enact-settings-content">
+        <div
+          className="enact-settings-content-inner"
+          data-width={
+            activeTab === "labels" ||
+            activeTab === "issue-statuses" ||
+            activeTab === "properties" ||
+            activeTab === "quick-actions"
+              ? "wide"
+              : "standard"
+          }
+        >
           <TabsContent value="profile"><AccountTab /></TabsContent>
           <TabsContent value="preferences"><PreferencesTab /></TabsContent>
           <TabsContent value="shortcuts"><KeyboardShortcutsTab /></TabsContent>

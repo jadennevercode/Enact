@@ -163,7 +163,7 @@ export function IssueStatusesTab() {
       title={t(($) => $.issue_statuses.title)}
       description={t(($) => $.issue_statuses.description)}
     >
-      <div className="space-y-4">
+      <div className="enact-settings-catalog-stack">
         {!canCreate && (
           <p className="rounded-lg border border-surface-border bg-muted/20 px-4 py-3 text-caption text-muted-foreground">
             {t(($) => $.issue_statuses.flag_off)}
@@ -181,14 +181,14 @@ export function IssueStatusesTab() {
         )}
 
         {isLoading ? (
-          <div className="rounded-lg border border-surface-border bg-card px-4 py-12 text-center text-body text-muted-foreground">
+          <div className="enact-settings-catalog enact-settings-catalog-loading">
             {t(($) => $.issue_statuses.loading)}
           </div>
         ) : (
           // One list, not seven cards: the categories are sections of a single
           // workflow, and seven separate borders made them read as seven
           // unrelated settings.
-          <div className="overflow-hidden rounded-lg border border-surface-border bg-card">
+          <div className="enact-settings-catalog">
             {groups.map((group) => (
               <CategorySection
                 key={group.category}
@@ -634,9 +634,13 @@ function StatusEditorDialog({
                 <button
                   type="button"
                   aria-label={t(($) => $.issue_statuses.editor.color)}
-                  className="flex h-9 items-center gap-2.5 rounded-md border border-surface-border px-2.5 transition-colors hover:bg-surface-hover"
+                  className="enact-settings-color-trigger"
                 >
-                  <span className="size-5 rounded-full" style={{ backgroundColor: draft.color }} />
+                  <span
+                    className="enact-settings-color-swatch"
+                    data-size="control"
+                    style={{ "--enact-settings-color": draft.color } as React.CSSProperties}
+                  />
                   <span className="font-mono text-caption uppercase text-muted-foreground">
                     {draft.color}
                   </span>

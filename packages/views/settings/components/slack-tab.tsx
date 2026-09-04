@@ -90,14 +90,14 @@ export function SlackTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="enact-integrations-stack">
       {!configured ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.slack.not_enabled_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.slack.not_enabled_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.slack.not_enabled_description_prefix)}{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-micro">
+              <code className="enact-integration-inline-code">
                 ENACT_SLACK_SECRET_KEY
               </code>{" "}
               {t(($) => $.slack.not_enabled_description_suffix)}{" "}
@@ -107,27 +107,27 @@ export function SlackTab() {
         </Card>
       ) : !installSupported && installations.length === 0 ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.slack.preview_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.slack.preview_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.slack.preview_description)}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-3">
-          <h2 className="text-body font-semibold">{t(($) => $.slack.connected_bots)}</h2>
+        <section className="enact-integration-section">
+          <h2 className="enact-integration-section-title">{t(($) => $.slack.connected_bots)}</h2>
           {isLoading ? (
             <Card>
               <CardContent>
-                <p className="text-body text-muted-foreground">{t(($) => $.slack.loading)}</p>
+                <p className="enact-integration-description">{t(($) => $.slack.loading)}</p>
               </CardContent>
             </Card>
           ) : installations.length === 0 ? (
             <Card>
-              <CardContent className="space-y-2">
-                <p className="text-body font-medium">{t(($) => $.slack.empty_title)}</p>
-                <p className="text-caption text-muted-foreground">
+              <CardContent className="enact-integration-state-card">
+                <p className="enact-integration-row-title">{t(($) => $.slack.empty_title)}</p>
+                <p className="enact-integration-meta">
                   {t(($) => $.slack.empty_description_prefix)}{" "}
                   <strong>{t(($) => $.slack.empty_description_cta)}</strong>{" "}
                   {t(($) => $.slack.empty_description_suffix)}
@@ -136,7 +136,7 @@ export function SlackTab() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="divide-y">
+              <CardContent className="enact-integration-list">
                 {installations.map((inst) => (
                   <InstallationRow
                     key={inst.id}
@@ -196,8 +196,8 @@ function InstallationRow({
   const isActive = installation.status === "active";
   const agentName = getAgentName(installation.agent_id);
   return (
-    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
+    <div className="enact-integration-row">
+      <div className="enact-integration-row-main">
         <ActorAvatar
           actorType="agent"
           actorId={installation.agent_id}
@@ -205,16 +205,16 @@ function InstallationRow({
           enableHoverCard
           profileLink
         />
-        <div className="space-y-1">
-          <p className="text-body font-medium">
+        <div className="enact-integration-copy">
+          <p className="enact-integration-row-title">
             {agentName}
             {!isActive && (
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+              <span className="enact-integration-chip" data-inline="true">
                 {t(($) => $.slack.revoked_badge)}
               </span>
             )}
           </p>
-          <p className="text-micro text-muted-foreground">
+          <p className="enact-integration-detail">
             {t(($) => $.slack.installed_at_label, {
               when: new Date(installation.installed_at).toLocaleString(),
             })}
@@ -223,7 +223,7 @@ function InstallationRow({
       </div>
       {canManage && isActive && (
         <Button variant="outline" size="sm" onClick={onDisconnect}>
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {t(($) => $.slack.disconnect)}
         </Button>
       )}
@@ -353,7 +353,7 @@ export function SlackAgentBindButton({
 
   return (
     <div
-      className={cn("flex flex-wrap items-center gap-2", className)}
+      className={cn("enact-integration-connect-actions", className)}
       data-testid="slack-agent-bind-buttons"
     >
       <Button
@@ -368,7 +368,7 @@ export function SlackAgentBindButton({
         }
         data-testid="slack-agent-connect"
       >
-        <SlackMark className="h-3 w-3" />
+        <SlackMark className="enact-integration-provider-mark-compact" />
         {t(($) => $.slack.bind_button)}
       </Button>
 
@@ -376,7 +376,7 @@ export function SlackAgentBindButton({
         open={dialogOpen}
         onOpenChange={(v) => (v ? setDialogOpen(true) : closeDialog())}
       >
-        <DialogContent className="sm:max-w-lg" data-testid="slack-byo-dialog">
+        <DialogContent className="enact-integration-dialog" data-testid="slack-byo-dialog">
           <DialogHeader>
             <DialogTitle>{t(($) => $.slack.byo_dialog_title)}</DialogTitle>
           </DialogHeader>
@@ -385,9 +385,9 @@ export function SlackAgentBindButton({
             <button
               type="button"
               onClick={() => openExternal(SLACK_BYO_VIDEO_URL)}
-              className="inline-flex w-fit items-center gap-2 text-body font-medium text-primary underline-offset-2 hover:underline"
+              className="enact-integration-doc-link"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className="enact-integration-action-icon-large" />
               {t(($) => $.slack.byo_video_cta)}
             </button>
           ) : null}
@@ -395,15 +395,15 @@ export function SlackAgentBindButton({
           <button
             type="button"
             onClick={() => openExternal(slackDocsUrl(i18n.language))}
-            className="inline-flex w-fit items-center gap-2 text-body font-medium text-primary underline-offset-2 hover:underline"
+            className="enact-integration-doc-link"
             data-testid="slack-byo-docs-link"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="enact-integration-action-icon-large" />
             {t(($) => $.slack.byo_docs_link)}
           </button>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="enact-integration-form">
+            <div className="enact-integration-field">
               <Label htmlFor="slack-byo-bot-token">
                 {t(($) => $.slack.byo_bot_token_label)}
               </Label>
@@ -419,7 +419,7 @@ export function SlackAgentBindButton({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="enact-integration-field">
               <Label htmlFor="slack-byo-app-token">
                 {t(($) => $.slack.byo_app_token_label)}
               </Label>
@@ -478,14 +478,14 @@ function SlackAgentBotStatusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "enact-integration-status-row",
         className,
       )}
       data-testid="slack-agent-bot-status"
     >
-      <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-      <span className="truncate">{t(($) => $.slack.agent_bot_connected_label)}</span>
-      <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0" />
+      <span className="enact-integration-status-dot" data-status="active" />
+      <span className="enact-integration-truncate">{t(($) => $.slack.agent_bot_connected_label)}</span>
+      <ChevronRight className="enact-integration-status-chevron" />
     </button>
   );
 }
@@ -527,13 +527,13 @@ function SlackAgentBotConnectedBadge({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("enact-integration-connected", className)}
       data-testid="slack-agent-bot-connected"
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-          <span className="truncate">{t(($) => $.slack.agent_bot_connected_label)}</span>
+      <div className="enact-integration-connected-header">
+        <span className="enact-integration-connected-status">
+          <span className="enact-integration-status-dot" data-status="active" />
+          <span className="enact-integration-truncate">{t(($) => $.slack.agent_bot_connected_label)}</span>
         </span>
         <Button
           variant="destructive"
@@ -544,7 +544,7 @@ function SlackAgentBotConnectedBadge({
           aria-label={t(($) => $.slack.disconnect)}
           data-testid="slack-agent-bot-disconnect"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {disconnecting
             ? t(($) => $.slack.disconnecting)
             : t(($) => $.slack.disconnect)}
@@ -557,10 +557,10 @@ function SlackAgentBotConnectedBadge({
           onClick={() =>
             openExternal(`https://app.slack.com/client/${installation.team_id}`)
           }
-          className="inline-flex items-center gap-1 text-caption text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+          className="enact-integration-manage-link"
           title={t(($) => $.slack.agent_bot_manage_tooltip)}
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="enact-integration-action-icon" />
           {t(($) => $.slack.agent_bot_manage_link)}
         </button>
       )}

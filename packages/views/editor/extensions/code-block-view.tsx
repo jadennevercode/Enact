@@ -57,7 +57,7 @@ function CodeBlockView({ node }: NodeViewProps) {
     setView((v) => (v === "preview" ? "source" : "preview"));
 
   return (
-    <NodeViewWrapper className="code-block-wrapper group/code relative my-3">
+    <NodeViewWrapper className="code-block-wrapper enact-editor-code-shell group/code">
       {isMermaid && debouncedChart.trim() && (
         <div
           contentEditable={false}
@@ -80,10 +80,10 @@ function CodeBlockView({ node }: NodeViewProps) {
       )}
       <div
         contentEditable={false}
-        className="code-block-header absolute top-0 right-0 z-10 flex items-center gap-1.5 px-2 py-1.5 opacity-0 transition-opacity group-hover/code:opacity-100 focus-within:opacity-100"
+        className="code-block-header enact-editor-code-toolbar"
       >
         {language && (
-          <span className="text-caption text-muted-foreground select-none">
+          <span className="enact-editor-code-language">
             {language}
           </span>
         )}
@@ -91,7 +91,7 @@ function CodeBlockView({ node }: NodeViewProps) {
           <button
             type="button"
             onClick={toggleView}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="enact-editor-toolbar-action"
             title={
               view === "preview"
                 ? t(($) => $.code_block.show_source)

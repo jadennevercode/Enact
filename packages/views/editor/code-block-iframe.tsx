@@ -49,7 +49,7 @@ export function CodeBlockIframe({
       sandbox="allow-scripts"
       title={title}
       className={cn(
-        "w-full rounded-md border border-border bg-background",
+        "enact-rich-content-frame",
         heightClassName,
         className,
       )}

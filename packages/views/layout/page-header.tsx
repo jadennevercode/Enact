@@ -21,7 +21,7 @@ export const PAGE_GUTTER = "px-4";
  * `PAGE_GUTTER` — the toolbars drifted when each page spelled its own row.
  */
 export const PAGE_TOOLBAR = cn(
-  "flex h-12 shrink-0 items-center justify-between gap-2",
+  "enact-page-toolbar flex h-12 shrink-0 items-center justify-between gap-2",
   PAGE_GUTTER,
 );
 
@@ -44,7 +44,7 @@ export const PAGE_TOOLBAR = cn(
 export function CollapsedNavTrigger() {
   const sidebar = useSidebarSafe();
   if (!sidebar || sidebar.hasExternalTrigger) return null;
-  return <SidebarTrigger className="xl:hidden" />;
+  return <SidebarTrigger className="enact-page-collapsed-trigger xl:hidden" />;
 }
 
 interface PageHeaderProps {
@@ -84,7 +84,7 @@ export function PageHeader({ children, leading, className }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "flex h-12 shrink-0 items-center gap-2 border-b",
+        "enact-page-header flex h-12 shrink-0 items-center gap-2",
         className,
         PAGE_GUTTER,
       )}
