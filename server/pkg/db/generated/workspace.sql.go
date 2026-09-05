@@ -76,6 +76,13 @@ ws_skills AS (
 cleared_agent_label_assignments AS (
     DELETE FROM agent_to_label WHERE agent_id IN (SELECT id FROM ws_agents)
 ),
+cleared_agent_resources AS (
+    -- agent_resource (knowledge base bindings) carries no FK to either agent
+    -- or workspace_resource, per the repo's no-foreign-key rule, so nothing
+    -- cascades it away. Both of its parents live in this workspace, so reach
+    -- it through the agents.
+    DELETE FROM agent_resource WHERE agent_id IN (SELECT id FROM ws_agents)
+),
 cleared_skill_label_assignments AS (
     DELETE FROM skill_to_label WHERE skill_id IN (SELECT id FROM ws_skills)
 ),

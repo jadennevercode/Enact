@@ -1982,6 +1982,12 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/ontologies/{domain}", h.AttachAgentOntology)
 					r.Put("/ontologies/{skillId}/enabled", h.SetAgentOntologyEnabled)
 					r.Delete("/ontologies/{skillId}", h.RemoveAgentOntology)
+					// Knowledge bases this agent has opted into. Unlike
+					// skills these are not workspace-wide: the binding is what
+					// puts the knowledge index in this agent's brief.
+					r.Get("/knowledge", h.ListAgentKnowledge)
+					r.Post("/knowledge", h.AttachAgentKnowledge)
+					r.Delete("/knowledge/{resourceId}", h.RemoveAgentKnowledge)
 					r.Put("/runtime-skills/enabled", h.SetAgentRuntimeSkillEnabled)
 					r.Delete("/skills/{skillId}", h.RemoveAgentSkill)
 					// Workspace MCP servers assigned to this agent. Mirrors

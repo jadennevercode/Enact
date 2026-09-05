@@ -10,11 +10,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	agentpkg "github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // WorkspaceResourceResponse is the JSON shape returned by the resource API.
@@ -76,6 +76,8 @@ func validateAndNormalizeResourceRef(resourceType string, ref json.RawMessage) (
 		return validateGithubRepoRef(ref)
 	case "local_directory":
 		return validateLocalDirectoryRef(ref)
+	case knowledgeRepoResourceType:
+		return validateKnowledgeRepoRef(ref)
 	default:
 		return nil, fmt.Errorf("unknown resource_type %q", resourceType)
 	}
@@ -106,6 +108,131 @@ func validateGithubRepoRef(ref json.RawMessage) (json.RawMessage, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// knowledgeRepoResourceType is a git repository of knowledge documents, as
+// opposed to the code a task works on.
+//
+// It is a separate type rather than a flag on github_repo because the two are
+// injected into a run completely differently. A github_repo is workspace-wide
+// and arrives as a URL the agent may check out if the task needs it; a
+// knowledge_repo is selected per agent (see migration 444), checked out by the
+// daemon before the run starts, and summarised into the brief as an index the
+// agent reads without asking. Sharing one type would mean every consumer
+// branching on the flag anyway, and a workspace's code would start appearing
+// in the knowledge index the first time someone set it wrong.
+const knowledgeRepoResourceType = "knowledge_repo"
+
+// Delivery modes for a knowledge_repo: how an agent's writes reach the
+// repository's default branch.
+const (
+	// knowledgeDeliveryPullRequest opens a pull request and leaves merging to
+	// a person. The default, because a knowledge base is read by every future
+	// run of every agent bound to it: an unreviewed write is not one bad
+	// document, it is a bad document quoted back for months.
+	knowledgeDeliveryPullRequest = "pull_request"
+	// knowledgeDeliveryCommit pushes straight to the ref. For teams whose
+	// knowledge base is theirs alone and who would rather not review every
+	// note an agent writes.
+	knowledgeDeliveryCommit = "commit"
+)
+
+// knowledgeRepoRef is the JSONB shape stored for resource_type=knowledge_repo.
+//
+// path narrows the repository to the subdirectory the documents live in, so a
+// team can keep its knowledge base inside a repo that also holds other things
+// without the daemon checking out and indexing all of it. Empty means the
+// repository root.
+type knowledgeRepoRef struct {
+	URL      string `json:"url"`
+	Ref      string `json:"ref,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Delivery string `json:"delivery,omitempty"`
+}
+
+func validateKnowledgeRepoRef(ref json.RawMessage) (json.RawMessage, error) {
+	var payload knowledgeRepoRef
+	if err := json.Unmarshal(ref, &payload); err != nil {
+		return nil, fmt.Errorf("invalid knowledge_repo payload: %w", err)
+	}
+	payload.URL = strings.TrimSpace(payload.URL)
+	if payload.URL == "" {
+		return nil, errors.New("knowledge_repo: url is required")
+	}
+	if !isValidGitRepoURL(payload.URL) {
+		return nil, errors.New("knowledge_repo: url must be a valid http(s) or ssh git URL")
+	}
+	payload.Ref = strings.TrimSpace(payload.Ref)
+
+	normalizedPath, err := normalizeKnowledgePath(payload.Path)
+	if err != nil {
+		return nil, err
+	}
+	payload.Path = normalizedPath
+
+	payload.Delivery = strings.TrimSpace(payload.Delivery)
+	switch payload.Delivery {
+	case "":
+		// Stored empty rather than defaulted here so the default lives in one
+		// place (knowledgeDelivery) and can change without a data migration.
+	case knowledgeDeliveryPullRequest, knowledgeDeliveryCommit:
+	default:
+		return nil, fmt.Errorf("knowledge_repo: delivery must be %q or %q, got %q",
+			knowledgeDeliveryPullRequest, knowledgeDeliveryCommit, payload.Delivery)
+	}
+
+	out, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// normalizeKnowledgePath validates the in-repo subdirectory and returns it in
+// the one form the daemon will see: no leading or trailing slash, forward
+// slashes only, never absolute, never escaping the repository.
+//
+// The traversal check is not defence against a hostile workspace admin — they
+// can already point the resource at any repository they like. It is defence
+// against the path being joined onto a checkout root on the daemon: a `..`
+// here would make the sparse checkout and the index scan walk out of the
+// repository and into the runtime's own directory.
+func normalizeKnowledgePath(raw string) (string, error) {
+	p := strings.TrimSpace(raw)
+	if p == "" {
+		return "", nil
+	}
+	p = strings.ReplaceAll(p, "\\", "/")
+	if strings.HasPrefix(p, "/") {
+		return "", errors.New("knowledge_repo: path must be relative to the repository root")
+	}
+	// A Windows drive letter is absolute too, and survives the slash check.
+	if len(p) >= 2 && p[1] == ':' && isDriveLetter(p[0]) {
+		return "", errors.New("knowledge_repo: path must be relative to the repository root")
+	}
+	p = strings.Trim(p, "/")
+	for _, seg := range strings.Split(p, "/") {
+		switch seg {
+		case "":
+			return "", errors.New("knowledge_repo: path must not contain empty segments")
+		case ".", "..":
+			return "", errors.New("knowledge_repo: path must not contain \".\" or \"..\" segments")
+		}
+	}
+	return p, nil
+}
+
+// knowledgeDelivery reads the delivery mode out of a stored ref, applying the
+// default for rows that never set one.
+func knowledgeDelivery(ref json.RawMessage) string {
+	var payload knowledgeRepoRef
+	if json.Unmarshal(ref, &payload) != nil {
+		return knowledgeDeliveryPullRequest
+	}
+	if payload.Delivery == knowledgeDeliveryCommit {
+		return knowledgeDeliveryCommit
+	}
+	return knowledgeDeliveryPullRequest
 }
 
 // Execution modes for resource_type=local_directory. The zero value (absent
@@ -799,7 +926,28 @@ func (h *Handler) DeleteWorkspaceResource(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "resource not found")
 		return
 	}
-	if err := h.Queries.DeleteWorkspaceResource(r.Context(), resource.ID); err != nil {
+	// The agent bindings go with the resource, in one transaction. There is no
+	// foreign key to cascade for us (repo rule), and a binding whose resource
+	// is gone is not merely untidy: the claim path joins through it, so every
+	// future run of a bound agent would pay a join for a knowledge base that
+	// no longer exists, and re-adding the same URL later would silently
+	// resurrect bindings nobody re-granted.
+	tx, err := h.TxStarter.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	qtx := h.Queries.WithTx(tx)
+	if err := qtx.RemoveAgentResourceBindings(r.Context(), resource.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
+		return
+	}
+	if err := qtx.DeleteWorkspaceResource(r.Context(), resource.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
 	}
@@ -900,6 +1048,14 @@ func (h *Handler) applyWorkspaceResourcesToClaim(ctx context.Context, resp *Agen
 	out := make([]WorkspaceResourceData, 0, len(rows))
 	repos := make([]RepoData, 0, len(rows))
 	for _, row := range rows {
+		// Knowledge bases are not workspace-wide context. They reach a run
+		// only through the claiming agent's own bindings
+		// (applyAgentKnowledgeToClaim), so a workspace can attach a domain
+		// handbook without it landing in the brief of every agent that never
+		// needed it.
+		if row.ResourceType == knowledgeRepoResourceType {
+			continue
+		}
 		label := ""
 		if row.Label.Valid {
 			label = row.Label.String
@@ -934,5 +1090,76 @@ func (h *Handler) applyWorkspaceResourcesToClaim(ctx context.Context, resp *Agen
 	resp.WorkspaceResources = out
 	if len(repos) > 0 {
 		resp.Repos = repos
+	}
+}
+
+// KnowledgeSourceData is the wire shape for one knowledge base the claiming
+// agent has bound. The daemon checks these out before the run and renders an
+// index of them into the brief; see execenv/knowledge.go.
+//
+// It is a separate wire field from WorkspaceResources rather than a resource
+// row with a type the daemon switches on, because the daemon does different
+// work for it — a checkout and a front-matter scan, before the agent starts —
+// and because a daemon that predates this field must not silently treat a
+// knowledge base as a workspace resource it should list as checkout-on-demand
+// context.
+type KnowledgeSourceData struct {
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	Ref      string `json:"ref,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Delivery string `json:"delivery"`
+	Label    string `json:"label,omitempty"`
+}
+
+// applyAgentKnowledgeToClaim fills a claim response's knowledge sources from
+// the bindings of the agent that claimed the task.
+//
+// The repo list gets a `knowledge` entry for each one as well. That is not
+// cosmetic: the daemon derives its checkout allowlist from resp.Repos, so a
+// knowledge base absent from it could be indexed by the daemon and then
+// refused when the agent tried to check it out to write a document back.
+func (h *Handler) applyAgentKnowledgeToClaim(ctx context.Context, resp *AgentTaskResponse, agentID pgtype.UUID) {
+	if !agentID.Valid {
+		return
+	}
+	rows, err := h.Queries.ListAgentResourcesOfType(ctx, db.ListAgentResourcesOfTypeParams{
+		AgentID:      agentID,
+		ResourceType: knowledgeRepoResourceType,
+	})
+	if err != nil || len(rows) == 0 {
+		return
+	}
+	sources := make([]KnowledgeSourceData, 0, len(rows))
+	for _, row := range rows {
+		var payload knowledgeRepoRef
+		if json.Unmarshal(row.ResourceRef, &payload) != nil {
+			continue
+		}
+		url := strings.TrimSpace(payload.URL)
+		if url == "" {
+			continue
+		}
+		label := ""
+		if row.Label.Valid {
+			label = row.Label.String
+		}
+		sources = append(sources, KnowledgeSourceData{
+			ID:       uuidToString(row.ID),
+			URL:      url,
+			Ref:      strings.TrimSpace(payload.Ref),
+			Path:     payload.Path,
+			Delivery: knowledgeDelivery(row.ResourceRef),
+			Label:    label,
+		})
+		resp.Repos = append(resp.Repos, RepoData{
+			URL:         url,
+			Ref:         strings.TrimSpace(payload.Ref),
+			Description: label,
+			Kind:        RepoKindKnowledge,
+		})
+	}
+	if len(sources) > 0 {
+		resp.KnowledgeSources = sources
 	}
 }

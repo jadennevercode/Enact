@@ -285,6 +285,7 @@ var concurrentIndexCleanups = map[string]string{
 	// relies on this index to reject a second retrospect on the same issue, so
 	// a broken one would let duplicates through.
 	"443_issue_origin_retrospect_index": "idx_issue_origin_retrospect",
+	"445_agent_resource_resource_index": "idx_agent_resource_resource",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction
