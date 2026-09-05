@@ -3,10 +3,10 @@ import {
   type SupportedLocale,
 } from "@enact/core/i18n";
 
-export {
-  INSTALL_RUNTIME_ISSUE_TITLE,
-  INSTALL_RUNTIME_ISSUE_BODY,
-} from "./install-runtime-issue";
+// The install-a-runtime guide used to be authored here and created from the
+// browser. It is now the first step of the server-filed setup checklist
+// (internal/workspacesetup), written inside the transaction that creates the
+// workspace — so it cannot be missing, and there is no second copy to drift.
 export {
   getMikaOnboarding,
   type MikaContentLang,

@@ -32,6 +32,7 @@ import {
 import { InstalledFilterChips } from "./installed-filter-chips";
 import { MarketplaceCard } from "./marketplace-card";
 import { OntologyTab } from "./ontology-tab";
+import { RecommendationRail } from "./recommendation-rail";
 import { PublishDialog } from "./publish-dialog";
 
 /**
@@ -211,6 +212,15 @@ export function MarketplacePage() {
               </Button>
             ) : null}
           </div>
+
+          {/* Above the tabs' own content, and above the filters' effect: the
+              rail answers "what should I add", which is a different question
+              from "what is here", and a member who has just been told to
+              review recommended capability should not have to find it. */}
+          <RecommendationRail
+            onOpen={openListing}
+            onDescribeProject={() => push(paths.settings())}
+          />
 
           {kind === null ? (
             <OntologyTab installedFilter={installedFilter} />

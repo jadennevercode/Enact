@@ -1,0 +1,121 @@
+---
+title: Setting up a workspace
+description: What a new workspace opens with, what the four setup steps are for, and how the project profile changes what agents know and what gets recommended.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A new workspace arrives with one message in your inbox and one issue with four
+steps under it. Both exist because an agent here is not a chat window: it runs
+on a real computer, reads real files, and does better work when it knows what
+your project is.
+
+The steps close themselves. Each one is checked against real state — is a
+runtime connected, does a resource exist, is the profile filled in — so doing
+the thing is what closes the step, whether or not you ever open the issue.
+
+## The four steps
+
+### Connect a computer
+
+Agents run on a machine you control, under your own agent CLI and your own
+accounts, so your code and credentials stay where they already are. Open
+**Runtimes** in the sidebar. A laptop is fine to start.
+
+Nothing runs until a runtime is connected, which is why this is first.
+
+### Connect your code
+
+Point the workspace at a Git repository or a directory on a connected machine,
+under **Settings → Resources**.
+
+A resource is a pointer, not a copy. An agent checks a repository out only when
+a task calls for it, and nothing is uploaded to Enact.
+
+### Tell Enact what this project is
+
+The **project profile** is one or two sentences about the project, the stack you
+work in, and the kinds of work you bring here. Fill it in under **Settings →
+Workspace**, or ask Mika in chat — she will ask a few questions and write it.
+
+<Callout>
+This is the step that changes the most. Everything below depends on it.
+</Callout>
+
+### Review recommended capability
+
+Once there is a profile, the [Marketplace](/marketplace) ranks the directory
+against it and shows what fits at the top, with the reason it matched. Install
+what you want, dismiss what you do not, and the step closes.
+
+## What the profile actually does
+
+Two things read it, and they are why it is a real field rather than more prose
+in the workspace context.
+
+**Every agent run starts with it.** It is rendered into the run's brief as its
+own section, so a run does not have to infer your conventions from whichever
+files it happens to open. It is context, not instruction: the section says so
+where it appears, and a run applies your workspace context as a requirement
+while consulting the profile as a description.
+
+**The Marketplace ranks against it.** `stack` and `typical_work` are matched
+against what listings say they are for. An empty profile means the ranking has
+nothing to go on, and falls back to whatever the deployment ships.
+
+`typical_work` is a fixed list — ship code, review code, plan product, research,
+write docs, automate ops, analyze data, model knowledge, design, support,
+compliance. It is fixed because the recommender maps those values onto listing
+text, and a rule cannot be written against free text. Anything that does not fit
+goes in the summary or the constraints, where it still reaches every run.
+
+Unlike the workspace context, any member can edit the profile. It grants nothing
+and instructs nothing, and the interview that fills it in runs on an ordinary
+member's behalf.
+
+## Reading your repository
+
+The first time you connect a repository — if the workspace already has a profile
+and a Mika with a runtime — one issue is filed asking her to read it.
+
+She checks it out, reads the README, the package manifests, the CI
+configuration and the top of the tree, and writes what she found into the
+profile's **Repository** field: languages, frameworks, how it is built, how it
+is tested, how the tree is laid out.
+
+That field is read-only in Settings. It is written by the run that actually read
+the code, and it is evidence about the repository rather than your own words
+about the project — so editing the summary never discards it, and the run never
+rewrites your summary.
+
+If the workspace has no profile yet, or no runtime, nothing is filed. A
+repository brief attached to a project nobody has described is a report nobody
+asked for.
+
+## From the CLI
+
+```bash
+enact workspace profile get --output json
+
+enact workspace profile set --json-stdin <<'JSON'
+{
+  "summary": "A logistics control tower for mid-size carriers.",
+  "domain": "logistics",
+  "stack": ["go", "typescript", "postgres"],
+  "languages": ["zh", "en"],
+  "typical_work": ["ship_code", "review_code"],
+  "constraints": "Production changes need a second reviewer."
+}
+JSON
+```
+
+`profile set` is a **replace**, not a merge: a field you omit is cleared. Read
+the current one first and send it back with your changes. The two exceptions are
+the repository fields, which are carried forward when your document leaves them
+out entirely.
+
+## A workspace created before this existed
+
+Opening the Marketplace or the welcome modal reads the checklist, and reading it
+is what files any steps that are missing. Nothing needs to be migrated by hand;
+steps that are already true close on that same read.

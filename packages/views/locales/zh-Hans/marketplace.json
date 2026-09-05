@@ -133,5 +133,21 @@
     "delete": "删除草稿",
     "new_version": "发布新版本"
   },
-  "not_installed": "未安装"
+  "not_installed": "未安装",
+  "recommendations": {
+    "title": "为这个项目推荐",
+    "no_profile": "还没有为你排序的内容。告诉 Enact 这个项目是什么，整个目录就会照着它排。",
+    "describe_project": "说明这个项目",
+    "none_matched": "目录里没有匹配这个项目的内容。已考虑 {{count}} 条。",
+    "not_specific": "与这个项目无关——是这个部署提供的",
+    "dismiss": "不要这个",
+    "reason": {
+      "stack": "技术栈",
+      "work": "工作类型",
+      "domain": "领域",
+      "official": "官方",
+      "featured": "精选",
+      "popular": "常被安装"
+    }
+  }
 }

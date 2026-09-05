@@ -208,6 +208,12 @@ export function StepWorkspace({
         // created workspace agree either way — but submitting it explicitly
         // is what makes an edited prefix stick.
         issue_prefix: effectivePrefix,
+        // The setup checklist and its welcome inbox item are written server-
+        // side, and the server has no other way to know what language to write
+        // them in: the member's locale lives in a cookie the API never sees.
+        // `resolvedLanguage` is what the surrounding screen was rendered with,
+        // so the checklist matches the flow the member just walked through.
+        language: locale,
       },
       {
         onSuccess: onCreated,

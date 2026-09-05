@@ -32,6 +32,14 @@ vi.mock("@tanstack/react-query", () => ({
   }),
 }));
 
+// The project-profile section is its own surface with its own query and its
+// own tests. Stubbing it keeps this file's react-query stand-in from having to
+// serve two different queries, which it cannot: it answers every useQuery with
+// the member list.
+vi.mock("./workspace-profile-section", () => ({
+  WorkspaceProfileSection: () => null,
+}));
+
 vi.mock("@enact/core/paths", () => ({
   useCurrentWorkspace: () => workspaceRef.current,
   useHasOnboarded: () => true,

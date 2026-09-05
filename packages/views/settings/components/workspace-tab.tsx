@@ -36,6 +36,7 @@ import type { Workspace } from "@enact/core/types";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { useNavigation } from "../../navigation";
 import { DeleteWorkspaceDialog } from "./delete-workspace-dialog";
+import { WorkspaceProfileSection } from "./workspace-profile-section";
 import { useT } from "../../i18n";
 import {
   SettingsCard,
@@ -463,6 +464,14 @@ export function WorkspaceTab() {
             )}
         </SettingsCard>
       </SettingsSection>
+
+      {/* What this workspace says its project is. Its own section rather than
+          another row above, because it is read by things the general details
+          are not: every agent run's brief, and the Marketplace ranking. */}
+      <WorkspaceProfileSection
+        workspaceId={workspace.id}
+        canManage={canManageWorkspace}
+      />
 
       {/* Danger Zone — gated on the member query settling so the owner-only
           Delete button and the sole-owner Leave guidance don't flash in

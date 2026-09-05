@@ -58,7 +58,8 @@
     "reaction_added": "Reacted",
     "quick_create_done": "Created with agent",
     "quick_create_failed": "Create with agent failed",
-    "quick_create_unconfirmed": "Create with agent unconfirmed"
+    "quick_create_unconfirmed": "Create with agent unconfirmed",
+    "workspace_welcome": "Getting started"
   },
   "labels": {
     "set_status_to": "Set status to",

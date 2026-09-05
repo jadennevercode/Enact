@@ -73,6 +73,28 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 两者都不会影响已经安装过它的工作区。他们的副本是他们自己的。
 
+## 为这个项目推荐
+
+在目录上方，Marketplace 会把你可以安装的东西，照着这个工作区对自己项目的描述——技术栈、领域、常做的事——排序。在 **设置 → 工作区** 里填写，或者在聊天里找 Mika，她会问几个问题然后替你写好。
+
+每一条推荐都会说明它为什么出现：命中了画像里的哪个值，以及命中在哪个字段。发布者亲手打的 tag 权重高于正文里的一次提及，而"常被安装"有硬上限——否则一个所有人都装了的 listing 会主导一个本该关于你的项目的排序。
+
+有些结果标着**与这个项目无关**。那些是这个部署提供的东西，因为没有更匹配的才显示出来。它们被标出来而不是藏起来，所以空白的推荐栏永远不会被理解成"这里没有适合你的东西"。
+
+排序在你每次打开页面时重新计算，对着那一刻的目录——所以今天下午发布的东西，能够到今天上午建好的工作区。
+
+**不要这个** 只针对你当时看到的那个版本。这个 listing 发了新版本会重新出现在你面前，因为新版本是另一件事。
+
+<Callout>
+这套排序不涉及任何模型。它是对 listing 元数据的一次打分，所以又快又不花钱，也因此每条结果都能告诉你它匹配了什么。想要在这之上的判断——装哪个、装完改什么——去问 Mika。
+</Callout>
+
+## 前置条件
+
+一个 listing 可以声明在你这边必须先成立的东西：主机上的工具、插件、目录结构。没有任何东西会去校验它们——条件在你的机器上，不在服务器上——所以它们只是在你安装之前给你看的一段说明。
+
+要读。一个 Skill 会去调用发布方主机上装好的引擎的智能体家族，装到你这里之后会去执行你这台机器上没有的命令。
+
 ## Ontologies
 
 市场的最后一个标签页列出 ontology。它们不是条目：它们由 Capability Hub 提供，并附加到智能体上，而不是复制进工作区。这个标签页的存在，是为了让各种能力在同一个地方就能找到；附加关系的管理在 [Ontologies](/skills) 页面进行。
@@ -84,6 +106,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 ```bash
 enact marketplace list --kind skill --output json
 enact marketplace list --not-installed --output json
+enact marketplace recommend --output json
 enact marketplace get <listing-id> --output json
 enact marketplace install <listing-id> --output json
 

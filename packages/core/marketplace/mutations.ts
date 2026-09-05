@@ -78,3 +78,39 @@ export function useInstallMarketplaceListing(wsId: string) {
     },
   });
 }
+
+/**
+ * Turns a recommendation down, or puts it back.
+ *
+ * These ARE optimistic, unlike everything above: the outcome is locally
+ * predictable (the card leaves the rail, or returns), the member stays on the
+ * page, failure is rare, and rollback is putting one row back. That is exactly
+ * the case CLAUDE.md allows it for — and a dismissal that takes a server round
+ * trip before the card moves feels broken in a way an install does not.
+ *
+ * The whole recommendation subtree is invalidated on settle rather than
+ * patched, because dropping one row changes what fits under the server's limit:
+ * a seventh listing may now be shown, and only the server knows which.
+ */
+export function useDismissMarketplaceRecommendation(wsId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (listingId: string) => api.dismissMarketplaceRecommendation(listingId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: marketplaceKeys.all(wsId) });
+      // Dismissing is one of the two ways the setup checklist's capability
+      // step is satisfied, so the checklist is stale the moment this lands.
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.setup(wsId) });
+    },
+  });
+}
+
+export function useRestoreMarketplaceRecommendation(wsId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (listingId: string) => api.restoreMarketplaceRecommendation(listingId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: marketplaceKeys.all(wsId) });
+    },
+  });
+}

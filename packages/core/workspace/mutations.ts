@@ -18,6 +18,13 @@ export function useCreateWorkspace() {
       description?: string;
       /** Omit to let the server derive it from the slug. */
       issue_prefix?: string;
+      /**
+       * The language the setup checklist and its welcome inbox item are
+       * written in. The server cannot infer it: a workspace has no language of
+       * its own and the reader's locale lives in a cookie the API never sees.
+       * Omitting it means the member is met in English.
+       */
+      language?: string;
     }) => api.createWorkspace(data),
     // Seed the workspace list cache BEFORE callers navigate to /{newWs.slug}/issues.
     // The destination [workspaceSlug]/layout queries by slug from this cache;

@@ -59,6 +59,10 @@ import type {
   MarketplaceCatalog,
   MarketplaceInstall,
   MarketplaceInstalledFilter,
+  MarketplaceRecommendations,
+  WorkspaceSetup,
+  WorkspaceProfile,
+  UpdateWorkspaceProfileRequest,
   MarketplaceInstallRequest,
   MarketplaceInstallResult,
   MarketplaceListingDetail,
@@ -428,6 +432,7 @@ import {
   MarketplaceCatalogSchema,
   MarketplaceListingDetailSchema,
   MarketplaceVersionListSchema,
+  MarketplaceRecommendationsSchema,
   PublishMarketplaceListingResponseSchema,
   MarketplaceInstallListSchema,
   MarketplaceInstallResultSchema,
@@ -435,6 +440,11 @@ import {
   EMPTY_MARKETPLACE_CATALOG,
   EMPTY_MARKETPLACE_INSTALL_RESULT,
   EMPTY_MARKETPLACE_FILE,
+  EMPTY_MARKETPLACE_RECOMMENDATIONS,
+  WorkspaceSetupSchema,
+  WorkspaceProfileSchema,
+  EMPTY_WORKSPACE_SETUP,
+  EMPTY_WORKSPACE_PROFILE,
   IssueViewSchema,
   IssueViewListSchema,
   IssueViewPreferenceSchema,
@@ -2528,11 +2538,57 @@ export class ApiClient {
     return this.fetch(`/api/workspaces/${id}`);
   }
 
-  async createWorkspace(data: { name: string; slug: string; description?: string; context?: string; issue_prefix?: string }): Promise<Workspace> {
+  /**
+   * `language` selects the copy the setup checklist and its welcome inbox item
+   * are written in. The server has no other signal — the locale lives in a
+   * cookie the API never sees — so a caller that omits it gets English.
+   */
+  async createWorkspace(data: { name: string; slug: string; description?: string; context?: string; issue_prefix?: string; language?: string }): Promise<Workspace> {
     return this.fetch("/api/workspaces", {
       method: "POST",
       body: JSON.stringify(data),
     });
+  }
+
+  /**
+   * The setup checklist. This GET writes on the server: it files what the
+   * workspace is missing and closes the steps that have become true, which is
+   * how a step closes when a member connects a runtime without touching the
+   * issue. Calling it is therefore also how a workspace created before the
+   * checklist existed gets one.
+   */
+  async getWorkspaceSetup(id: string, language?: string): Promise<WorkspaceSetup> {
+    const suffix = language ? `?language=${encodeURIComponent(language)}` : "";
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/setup${suffix}`);
+    return parseWithFallback(raw, WorkspaceSetupSchema, EMPTY_WORKSPACE_SETUP, {
+      endpoint: "GET /api/workspaces/{id}/setup",
+    }) as WorkspaceSetup;
+  }
+
+  async getWorkspaceProfile(id: string): Promise<WorkspaceProfile> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/profile`);
+    return parseWithFallback(raw, WorkspaceProfileSchema, EMPTY_WORKSPACE_PROFILE, {
+      endpoint: "GET /api/workspaces/{id}/profile",
+    }) as WorkspaceProfile;
+  }
+
+  /**
+   * Replaces the profile. Not a patch: an omitted field is cleared, except
+   * `repo_brief` and `repo_brief_sources`, which the server carries forward
+   * when the key is absent so a form that does not show them cannot discard
+   * what the repository analysis found.
+   */
+  async updateWorkspaceProfile(
+    id: string,
+    data: UpdateWorkspaceProfileRequest,
+  ): Promise<WorkspaceProfile> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/profile`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, WorkspaceProfileSchema, EMPTY_WORKSPACE_PROFILE, {
+      endpoint: "PUT /api/workspaces/{id}/profile",
+    }) as WorkspaceProfile;
   }
 
   async updateWorkspace(id: string, data: { name?: string; description?: string; context?: string; settings?: Record<string, unknown>; issue_prefix?: string; avatar_url?: string }): Promise<Workspace> {
@@ -3024,6 +3080,35 @@ export class ApiClient {
     return parseWithFallback(raw, MarketplaceCatalogSchema, EMPTY_MARKETPLACE_CATALOG, {
       endpoint: "GET /api/marketplace/listings",
     }) as MarketplaceCatalog;
+  }
+
+  /**
+   * The directory ranked against this workspace's project profile. Recomputed
+   * server-side on every call against the listings as they are right now, so
+   * this is never cached client-side beyond a normal query staleness window.
+   */
+  async listMarketplaceRecommendations(limit?: number): Promise<MarketplaceRecommendations> {
+    const suffix = limit ? `?limit=${limit}` : "";
+    const raw = await this.fetch<unknown>(`/api/marketplace/recommendations${suffix}`);
+    return parseWithFallback(raw, MarketplaceRecommendationsSchema, EMPTY_MARKETPLACE_RECOMMENDATIONS, {
+      endpoint: "GET /api/marketplace/recommendations",
+    }) as MarketplaceRecommendations;
+  }
+
+  /**
+   * "Not this one." Scoped server-side to the version the member was shown, so
+   * a new version of the same listing comes back.
+   */
+  async dismissMarketplaceRecommendation(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/recommendations/${encodeURIComponent(id)}/dismiss`, {
+      method: "POST",
+    });
+  }
+
+  async restoreMarketplaceRecommendation(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/recommendations/${encodeURIComponent(id)}/dismiss`, {
+      method: "DELETE",
+    });
   }
 
   async getMarketplaceListing(

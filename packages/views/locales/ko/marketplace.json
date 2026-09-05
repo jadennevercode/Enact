@@ -133,5 +133,21 @@
     "delete": "초안 삭제",
     "new_version": "새 버전 공개"
   },
-  "not_installed": "설치 안 됨"
+  "not_installed": "설치 안 됨",
+  "recommendations": {
+    "title": "이 프로젝트에 추천",
+    "no_profile": "아직 여러분에 맞춰 정렬된 것이 없습니다. 이 프로젝트가 무엇인지 Enact에 알려주면 그것을 기준으로 디렉터리가 정렬됩니다.",
+    "describe_project": "이 프로젝트 설명하기",
+    "none_matched": "디렉터리에 이 프로젝트에 맞는 것이 없었습니다. {{count}}개를 검토했습니다.",
+    "not_specific": "이 프로젝트에 대한 것이 아니라 이 배포가 제공하는 것입니다",
+    "dismiss": "이건 아님",
+    "reason": {
+      "stack": "스택",
+      "work": "업무 유형",
+      "domain": "도메인",
+      "official": "공식",
+      "featured": "추천",
+      "popular": "많이 설치됨"
+    }
+  }
 }
