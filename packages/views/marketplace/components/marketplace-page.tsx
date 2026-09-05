@@ -219,7 +219,7 @@ export function MarketplacePage() {
               review recommended capability should not have to find it. */}
           <RecommendationRail
             onOpen={openListing}
-            onDescribeProject={() => push(paths.settings())}
+            onDescribeProject={() => push(paths.settingsWorkspace())}
           />
 
           {kind === null ? (

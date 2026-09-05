@@ -583,6 +583,41 @@ export class TestApiClient {
     }
   }
 
+  // --- Workspace setup and project profile ---------------------------------
+  //
+  // The checklist read writes server-side (it files what is missing and closes
+  // what has become true), so a spec calling this is also how a workspace
+  // created by `ensureWorkspace` gets its steps. That is deliberate and the
+  // same thing the app does on the Marketplace page.
+
+  async getWorkspaceSetup(): Promise<{
+    steps: { key: string; done: boolean; issue_id?: string }[];
+    complete: boolean;
+    parent_issue_id?: string;
+  }> {
+    const res = await this.authedFetch(`/api/workspaces/${this.workspaceId}/setup`);
+    if (!res.ok) throw new Error(`read workspace setup failed: ${res.status}`);
+    return res.json();
+  }
+
+  async setWorkspaceProfile(profile: Record<string, unknown>) {
+    const res = await this.authedFetch(`/api/workspaces/${this.workspaceId}/profile`, {
+      method: "PUT",
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) {
+      throw new Error(`write workspace profile failed: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
+  }
+
+  async listInboxItems(): Promise<{ id: string; type: string; title: string }[]> {
+    const res = await this.authedFetch("/api/inbox");
+    if (!res.ok) throw new Error(`list inbox failed: ${res.status}`);
+    const body = await res.json();
+    return Array.isArray(body) ? body : (body.items ?? []);
+  }
+
   async listSkills(): Promise<{ id: string; name: string }[]> {
     const res = await this.authedFetch("/api/skills");
     if (!res.ok) throw new Error(`list skills failed: ${res.status}`);

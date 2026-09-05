@@ -67,6 +67,11 @@ function workspaceScoped(slug: string) {
     marketplaceListing: (id: string) => `${ws}/marketplace/${encode(id)}`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
     settings: () => `${ws}/settings`,
+    // The workspace's own General tab, where the project profile lives. A bare
+    // `settings()` opens the account's Profile tab, which is a different
+    // person's-vs-project distinction than the word "profile" suggests, so
+    // anything pointing at the project profile has to name this one.
+    settingsWorkspace: () => `${ws}/settings?tab=workspace`,
     settingsResources: () => `${ws}/settings/resources`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
