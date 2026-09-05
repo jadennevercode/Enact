@@ -6601,6 +6601,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		DisabledRuntimeSkills:            convertDisabledRuntimeSkillsForEnv(task.Agent, task.RuntimeID, provider),
 		Repos:                            convertReposForEnv(task.Repos),
 		WorkspaceResources:               convertWorkspaceResourcesForEnv(task.WorkspaceResources),
+		KnowledgeSources:                 d.prepareKnowledgeSources(task.WorkspaceID, task.KnowledgeSources),
 		ChatSessionID:                    task.ChatSessionID,
 		ChatChannelType:                  task.ChatChannelType,
 		ChatChannelDeliversFiles:         task.ChatChannelDeliversFiles,
@@ -8519,13 +8520,26 @@ func convertIssueStatusesForEnv(statuses []IssueStatusData) []execenv.IssueStatu
 	return result
 }
 
+// convertReposForEnv builds the brief's Repositories list.
+//
+// Knowledge bases travel in the same wire field so they land in the daemon's
+// checkout allowlist, but they are not repositories the task works on and must
+// not appear under Repositories: they have their own section, already checked
+// out and indexed, and listing them twice would invite the agent to check out
+// a base it can already read.
 func convertReposForEnv(repos []RepoData) []execenv.RepoContextForEnv {
 	if len(repos) == 0 {
 		return nil
 	}
-	result := make([]execenv.RepoContextForEnv, len(repos))
-	for i, r := range repos {
-		result[i] = execenv.RepoContextForEnv{URL: r.URL, Description: r.Description, Ref: r.Ref}
+	result := make([]execenv.RepoContextForEnv, 0, len(repos))
+	for _, r := range repos {
+		if r.Kind == RepoKindKnowledge {
+			continue
+		}
+		result = append(result, execenv.RepoContextForEnv{URL: r.URL, Description: r.Description, Ref: r.Ref})
+	}
+	if len(result) == 0 {
+		return nil
 	}
 	return result
 }

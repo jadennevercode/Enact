@@ -427,6 +427,87 @@ func writeWorkspaceResources(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("For `github_repo` resources, use `enact repo checkout <url>` to fetch the code. Add `--ref <branch-or-sha>` when a task or handoff names an exact revision.\n\n")
 }
 
+// writeKnowledge emits the Knowledge section: an index of the documents in
+// every knowledge base bound to this agent.
+//
+// The section carries titles, descriptions and paths — never document bodies.
+// The agent opens what it needs with its ordinary file tools, which is why the
+// files are already on disk when this is read. The instruction to consult the
+// index before reading is explicit because the failure mode this design exists
+// to prevent is an agent that reads everything or nothing.
+func writeKnowledge(b *strings.Builder, ctx TaskContextForEnv) {
+	if len(ctx.KnowledgeSources) == 0 {
+		return
+	}
+	b.WriteString("## Knowledge\n\n")
+	b.WriteString("Knowledge bases attached to you, already checked out and indexed below. ")
+	b.WriteString("Scan the index, then open only the documents relevant to this task with your file tools — do not read a base end to end.\n\n")
+
+	for _, src := range ctx.KnowledgeSources {
+		name := src.Label
+		if name == "" {
+			name = src.URL
+		}
+		fmt.Fprintf(b, "### %s\n\n", name)
+
+		if src.Unavailable != "" {
+			// Say it plainly. An agent shown an empty index would conclude the
+			// workspace has written nothing down, and report that as a finding.
+			fmt.Fprintf(b, "Not available for this run: %s. Source: %s. ", src.Unavailable, src.URL)
+			b.WriteString("Say so if the task depended on it; do not conclude the knowledge base is empty.\n\n")
+			continue
+		}
+
+		fmt.Fprintf(b, "- Location: `%s`\n", src.LocalPath)
+		fmt.Fprintf(b, "- Source: %s", src.URL)
+		if src.Ref != "" {
+			fmt.Fprintf(b, " (`%s`)", src.Ref)
+		}
+		b.WriteString("\n")
+		fmt.Fprintf(b, "- Documents: %d\n", src.TotalDocs)
+		b.WriteString("\n")
+
+		switch {
+		case src.TotalDocs == 0:
+			b.WriteString("This knowledge base has no documents yet.\n\n")
+		case src.Truncated:
+			fmt.Fprintf(b, "Too many documents to list. Directories under `%s`:\n\n", src.LocalPath)
+			for _, dir := range src.Dirs {
+				path := dir.Path
+				if path == "" {
+					path = "."
+				}
+				fmt.Fprintf(b, "- `%s` — %d document(s)\n", path, dir.Count)
+			}
+			b.WriteString("\nList a directory and read the documents whose names match what you need.\n\n")
+		default:
+			for _, doc := range src.Docs {
+				if doc.Description != "" {
+					fmt.Fprintf(b, "- **%s** — %s (`%s`)\n", doc.Title, doc.Description, doc.RelPath)
+				} else {
+					fmt.Fprintf(b, "- **%s** (`%s`)\n", doc.Title, doc.RelPath)
+				}
+			}
+			b.WriteString("\n")
+		}
+
+		// Writing back. The checkout above is read-only workspace state shared
+		// by every task on this machine; a write goes through a checkout of
+		// the agent's own.
+		b.WriteString("To add or edit a document here, check the repository out into your working directory with ")
+		fmt.Fprintf(b, "`enact repo checkout %s`", src.URL)
+		if src.Ref != "" {
+			fmt.Fprintf(b, " --ref %s", src.Ref)
+		}
+		b.WriteString(" and work there — never edit the indexed location above, which is shared and is reset. ")
+		if src.Delivery == "commit" {
+			b.WriteString("Deliver by committing and pushing to the branch above.\n\n")
+		} else {
+			b.WriteString("Deliver by committing to a branch and opening a pull request.\n\n")
+		}
+	}
+}
+
 // writeIssueMetadata emits the Issue Metadata discipline section
 // (compressed). The dispatcher gates by kind.hasIssueContext(); this
 // helper does not re-check.
@@ -919,6 +1000,7 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 	}
 
 	writeWorkspaceResources(&b, ctx)
+	writeKnowledge(&b, ctx)
 
 	if kind.hasIssueContext() {
 		writeIssueMetadata(&b)
