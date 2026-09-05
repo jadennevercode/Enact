@@ -148,6 +148,19 @@ never cancels tasks now. `CancelTasksForIssue` fires only from the issue-deletio
 paths (`DeleteIssue` / `BatchDeleteIssues`), where the owning issue row is going
 away, so no task is left orphaned.
 
+## Retrospect sub-issue on a finished issue
+
+| Behavior | Source |
+|---|---|
+| Files the sub-issue from the `EventIssueUpdated` listener, so single update, batch update and the GitHub webhook are all covered | `server/cmd/server/retrospect_listeners.go` (`registerRetrospectListeners`) |
+| Fires only on the transition INTO a done category, both sides resolved through `issuestatus.Effective` | `server/internal/service/retrospect.go` (`finishedNow`) |
+| Requires a live Retrospect Agent: `system_key='retrospect'`, not archived, runtime bound; otherwise `ErrNoRetrospectAgent` and nothing is logged | `server/internal/service/retrospect.go` (`liveRetrospectAgent`) |
+| Requires agent work: an issue with no rows in `ListTasksByIssue` is skipped | `server/internal/service/retrospect.go` (`MaybeFileForFinishedIssue`) |
+| Never retrospects a retrospect: `origin_type='retrospect'` returns early | `server/internal/service/retrospect.go` (`MaybeFileForFinishedIssue`); `server/migrations/441_issue_origin_retrospect.up.sql` |
+| Once per issue: the guarantee is the partial unique index, the `GetIssueByOrigin` lookup is only a pre-check | `server/migrations/442_issue_origin_retrospect_index.up.sql`; `isRetrospectDuplicate` in `server/internal/service/retrospect.go` |
+| Sub-issue shape: `Retrospect: <parent title>`, parent = the finished issue, `todo`, priority `low`, assigned to the agent, created in the finished issue's member creator's name | `server/internal/service/retrospect.go` (`retrospectBrief`, `retrospectCreator`) |
+| Proposal waits on a human reply; a status change, silence, or an agent's comment is explicitly not agreement | `server/internal/service/builtin_agents/retrospect/INSTRUCTIONS.md` |
+
 ## Ownership-only assignment and duplicate-run awareness
 
 | Behavior | Source |

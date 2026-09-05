@@ -450,6 +450,19 @@ describe("AgentDetailPage DM button", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("treats the Retrospect Agent as a built-in, exactly like Mika", async () => {
+    // The gate reads `system_key`, not a list of known keys, so a second
+    // built-in inherits Mika's treatment for free. This pins that: the server
+    // refuses to archive or publish either of them, and hard-coding "mika"
+    // here would leave the Retrospect Agent offering both and failing.
+    agentsRef.current = [{ ...baseAgent, system_key: "retrospect" }];
+    membersRef.current = [{ user_id: "user-1", role: "admin" }];
+    renderPage();
+
+    await screen.findByRole("button", { name: "Assign work" });
+    expect(screen.queryByLabelText("Agent actions")).not.toBeInTheDocument();
+  });
+
   it("keeps the more-actions trigger for an editable non-system agent", async () => {
     // Positive counterpart: an owner of a normal agent has a real archive
     // action, so the menu trigger must still render. Guards the gate against

@@ -121,7 +121,6 @@ type NavKey =
   | "runtimes"
   | "ontologies"
   | "skills"
-  | "lessons"
   | "marketplace"
   | "settings";
 
@@ -139,7 +138,6 @@ type NavLabelKey =
   | "runtimes"
   | "ontologies"
   | "skills"
-  | "lessons"
   | "marketplace"
   | "settings";
 
@@ -164,7 +162,6 @@ const configureNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "runtimes", labelKey: "runtimes" },
   { key: "ontologies", labelKey: "ontologies" },
   { key: "skills", labelKey: "skills" },
-  { key: "lessons", labelKey: "lessons" },
   { key: "marketplace", labelKey: "marketplace" },
   { key: "settings", labelKey: "settings" },
 ];

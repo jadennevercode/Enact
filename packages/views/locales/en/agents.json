@@ -302,7 +302,18 @@
       "ai": {
         "title": "Build with AI",
         "description": "Describe the outcome you want. An Agent Builder will ask focused questions and prepare a live draft."
+      },
+      "retrospect": {
+        "title": "Retrospect Agent",
+        "description": "Enact's built-in reviewer. It reads finished work, proposes changes to skills, agents and agent families, and writes down what the team learned."
       }
+    },
+    "retrospect": {
+      "dialog_title": "Where should the Retrospect Agent run?",
+      "dialog_description": "Pick the runtime it reviews on. From then on, finishing an issue that agents worked on files a review under it. It always proposes configuration changes as a comment and waits for someone to agree.",
+      "cancel": "Cancel",
+      "confirm": "Set up agent",
+      "failed": "Couldn't set up the Retrospect Agent."
     },
     "sections": {
       "identity": "Identity",

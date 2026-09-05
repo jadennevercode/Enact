@@ -94,7 +94,6 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   runtimes: ["runtimes", "environments", "machines", "运行时"],
   ontologies: ["ontology", "ontologies", "caphub", "本体", "领域模型"],
   skills: ["skills", "library", "技能"],
-  lessons: ["lessons", "learnings", "retrospective", "经验", "复盘"],
   marketplace: ["marketplace", "store", "catalog", "install", "publish", "市场", "商店", "安装", "发布"],
   settings: ["settings", "config", "preferences", "设置", "配置"],
 };

@@ -1,0 +1,88 @@
+---
+title: Retrospect Agent
+description: Configure one agent to review finished work, propose reviewed changes to the skills and agents your team runs on, and write down what was learned.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+The **Retrospect Agent** reads work that is already finished and decides what, if anything, should change because of it. It produces two kinds of output, and only these two:
+
+- **Configuration changes** — a proposed edit to a [skill](/skills), to an [agent](/agents)'s instructions, or to a [squad](/squads) leader's instructions, so that a mistake made once is not available to be made again.
+- **Knowledge documents** — markdown about the product and the domain, written into the workspace's repository under `docs/knowledge/` and delivered the way that workspace delivers code.
+
+The point is the loop: a workspace that only ever writes skills by hand gets better at the rate someone remembers to go back and edit them. A workspace that retrospects gets better at the rate it finishes work.
+
+## Turning it on
+
+Nothing seeds this agent. A workspace gets one when someone configures it on the **New agent** page: pick the [runtime](/daemon-runtimes) it runs on and the language it writes in, and Enact creates a single agent named **Retrospect**, visible to the whole workspace and runnable by every member.
+
+Configuring it is the entire switch. There is deliberately no second workspace setting — a flag and an agent can disagree, and then nobody can say why the workspace did or did not learn from a piece of work.
+
+To turn it off, archive the agent; restoring it turns the loop back on. An agent that is archived, or left without a runtime, files nothing. Configuring twice hands back the agent the workspace already has rather than creating a second one.
+
+<Callout>
+The Retrospect Agent's **instructions** field holds this workspace's notes — where knowledge documents live, which skills and agents are in scope, what this team counts as worth writing down. They are layered under a built-in contract and can only add to it: they cannot remove the agreement gate before a configuration change, the bar of repetition before proposing one, or the duty to report what was rejected.
+</Callout>
+
+## When a retrospect happens
+
+| Trigger | How it starts |
+|---|---|
+| **Finishing an issue** | An issue that agents actually worked on reaches a done status, and Enact files a retrospect sub-issue under it, assigned to the agent. |
+| **Assigning** | [Assign](/assigning-issues) any issue to the Retrospect Agent. |
+| **Mentioning** | [@-mention it](/mentioning-agents) in a comment. |
+| **On a schedule** | Point an [autopilot](/autopilots) at it. |
+
+Three of those four are ordinary assignment. The Retrospect Agent is an agent, so everything you already do with one works here.
+
+The automatic one has conditions worth knowing:
+
+- **Only work agents did.** An issue nobody ran a task against has no transcript to read, and a retrospect on it would be a guess dressed as a finding.
+- **Once per issue.** An issue that is reopened and finished again is not retrospected a second time.
+- **Never a retrospect of a retrospect.** Finishing the sub-issue files nothing.
+
+The sub-issue is created under the finished issue at low priority, in the name of whoever the finished issue belongs to, so it lands in a person's subscriptions and there is someone in the thread to answer a proposal.
+
+## Most retrospects change nothing
+
+The bar for proposing a change is repetition, not annoyance: something that happened twice, in a place where you can name the next occasion. One occurrence does not clear it, nor does a preference nobody has tested, nor does a product defect — that is an issue to file, not a rule to write.
+
+So the common outcome is a comment saying nothing needs to change, and the reasoning behind it. That is a real result and reporting it is the job; a retrospect that always finds something is a retrospect nobody will read.
+
+The report also lists what the agent **considered and rejected**. That half is the more useful one: it is the record that stops the next retrospect from re-litigating the same question.
+
+## The review gate
+
+The agent never edits configuration on its own. When it wants to change something it posts a proposal comment, moves the sub-issue to `in_review`, and waits.
+
+A proposal contains, in this order:
+
+| Part | What it answers |
+|---|---|
+| **What happened** | The specific occasions, with ids or links. Two at minimum. |
+| **What I want to change** | The exact target: which skill, which agent, which squad, which file. |
+| **Before** | The current text, quoted verbatim. |
+| **After** | The proposed text, verbatim. |
+| **When this applies, and when it does not** | The boundary — a case where the new rule should *not* fire. |
+
+The boundary is the one people are tempted to skip, and it is the most load-bearing. A rule whose author cannot say where it stops has usually not been found yet — one case has been generalised.
+
+Agreement means a person replying to say so. **A status change is not agreement, silence is not agreement, and the agent's own comment is not agreement.** Once it has one, the agent re-reads the current text — if someone else changed it while it waited, it proposes again rather than overwriting them — applies the change, says what it applied, and sets the sub-issue to done.
+
+Knowledge documents skip this gate. They are additive: nothing behaves differently because a document exists, so the cost of a weak one is bounded in a way a skill edit's is not.
+
+## Undoing a change
+
+Skill edits are versioned. A change the Retrospect Agent applies shows up in the skill's **Versions** list alongside every other write, and restoring an earlier version appends it as a new version rather than rewinding history, so a restore can itself be undone — see [Version history](/skills#version-history).
+
+```bash
+enact skill versions <skill-id>
+```
+
+Agent and squad instructions are **not** versioned. The verbatim **Before** in the proposal comment is the only way back, which is why the proposal format requires it — leave the thread in place rather than clearing it once a change lands.
+
+## Related
+
+- [Skills](/skills) — the most common target of a proposal.
+- [Create and configure an agent](/agents-create) — runtimes, instructions, and Access, this agent included.
+- [Autopilots](/autopilots) — running a retrospect on a schedule.

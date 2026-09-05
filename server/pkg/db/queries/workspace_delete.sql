@@ -394,22 +394,6 @@ deleted_skill_files AS (
     DELETE FROM skill_file
     WHERE skill_id IN (SELECT id FROM ws_skills)
 ),
--- Lessons and their history go with the workspace. They are a record of
--- decisions about that workspace's skills, and the skills are being deleted
--- here too — a lesson pointing at a skill that no longer exists is not an
--- audit trail, it is an orphan.
-deleted_lesson_events AS (
-    DELETE FROM lesson_event
-    WHERE workspace_id = $1
-),
-deleted_lessons AS (
-    DELETE FROM lesson
-    WHERE workspace_id = $1
-),
-deleted_retrospectives AS (
-    DELETE FROM retrospective
-    WHERE workspace_id = $1
-),
 deleted_skill_versions AS (
     DELETE FROM skill_version
     WHERE workspace_id = $1

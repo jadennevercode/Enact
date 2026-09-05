@@ -3,8 +3,8 @@
 // It exists as its own package because both the HTTP handlers and the
 // workspace-seeding service write skills, and a snapshot that only some write
 // paths take is worse than none: the version list would show a history with
-// silent gaps, and a lesson approved against "the current version" could be
-// approved against text that was never recorded.
+// silent gaps, and a rollback offered against "the current version" could
+// restore text that was never recorded.
 //
 // Every function here takes a *db.Queries the caller has already bound to a
 // transaction. Recording a version outside the transaction that changed the
@@ -24,14 +24,18 @@ import (
 )
 
 // Sources a version can come from. These mirror the CHECK constraint in
-// migration 420; adding one here without adding it there fails at write time.
+// migration 420 as amended by migration 440; adding one here without adding it
+// there fails at write time.
 const (
-	SourceManual   = "manual"
-	SourceImport   = "import"
-	SourceRefresh  = "refresh"
-	SourceLesson   = "lesson"
-	SourceRollback = "rollback"
-	SourceSeed     = "seed"
+	SourceManual  = "manual"
+	SourceImport  = "import"
+	SourceRefresh = "refresh"
+	// SourceRetrospect marks a version a Retrospect Agent wrote. It is what
+	// makes an edit nobody typed legible in the version list, and what the
+	// rollback affordance is for.
+	SourceRetrospect = "retrospect"
+	SourceRollback   = "rollback"
+	SourceSeed       = "seed"
 )
 
 // File is one supporting file in a snapshot. Mirrors the JSONB shape stored in
@@ -45,12 +49,11 @@ type File struct {
 // written; Files is the complete supporting file set at that moment, not a
 // delta.
 type Input struct {
-	Skill    db.Skill
-	Files    []File
-	Source   string
-	LessonID pgtype.UUID
-	ActorID  pgtype.UUID
-	Summary  string
+	Skill   db.Skill
+	Files   []File
+	Source  string
+	ActorID pgtype.UUID
+	Summary string
 }
 
 // Record appends a snapshot of the skill and points skill.current_version_id at
@@ -111,7 +114,6 @@ func Record(ctx context.Context, q *db.Queries, input Input) (db.SkillVersion, b
 		Files:       encoded,
 		ContentHash: hash,
 		Source:      input.Source,
-		LessonID:    input.LessonID,
 		CreatedBy:   input.ActorID,
 		Summary:     input.Summary,
 	})

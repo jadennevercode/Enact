@@ -30,6 +30,7 @@ import {
   Plus,
   SlidersHorizontal,
   Tag,
+  Telescope,
   Unlink,
   Users,
 } from "lucide-react";
@@ -63,6 +64,7 @@ import { PropRow } from "../../common/prop-row";
 import { PropertyIcon } from "../../common/property-icon";
 import type { Attachment, Issue, IssueProperty, IssueStatus, IssueStatusCategory, IssuePriority, TimelineEntry, UpdateIssueRequest } from "@enact/core/types";
 import { contentReferencesAttachment } from "@enact/core/types";
+import { isRetrospectIssue } from "@enact/core/agents/retrospect";
 import { STATUS_CONFIG, PRIORITY_CONFIG } from "@enact/core/issues/config";
 import { formatDateOnly, isPastDateOnly } from "@enact/core/issues/date";
 import { useUpdateIssue } from "@enact/core/issues/mutations";
@@ -132,7 +134,6 @@ import { PAGE_GUTTER } from "../../layout/page-header";
 import { ProgressRing } from "./progress-ring";
 import { matchesPinyin } from "../../editor/extensions/pinyin-match";
 import { useT } from "../../i18n";
-import { IssueRetrospectiveBar } from "../../lessons";
 import { useIssueDetailScrollRestore } from "../hooks/use-issue-detail-scroll-restore";
 import { useInPageFind } from "../hooks/use-in-page-find";
 import { useStickyComposer } from "../hooks/use-sticky-composer";
@@ -774,6 +775,30 @@ function SubIssueRow({
           <span className="text-micro text-muted-foreground tabular-nums font-medium shrink-0">
             {child.identifier}
           </span>
+          {isRetrospectIssue(child) && (
+            // Provenance, not status: this row was filed by the retrospect
+            // loop rather than typed by someone. Deliberately one muted glyph
+            // — a coloured row would read as "needs attention", which a review
+            // of finished work does not.
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span
+                    className="flex shrink-0 items-center text-muted-foreground"
+                    aria-label={t(($) => $.detail.retrospect_origin_label)}
+                  >
+                    <Telescope
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  </span>
+                }
+              />
+              <TooltipContent side="top">
+                {t(($) => $.detail.retrospect_origin_tooltip)}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <IssueAgentActivityIndicator issueId={child.id} />
           <span className="flex min-w-0 flex-1 items-center gap-1.5">
             <span
@@ -3354,11 +3379,6 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
             </div>
 
             <LocalDirectoryHint />
-
-            {/* Offered only after the server has decided to ask — see
-                IssueRetrospectiveBar. Sits above the timeline because it is
-                about the work as a whole, not about any one entry in it. */}
-            <IssueRetrospectiveBar issueId={issueId} />
 
             {/* The "agent is working" live signal now lives in the header
                 (IssueAgentHeaderChip) so it stays in one fixed place and

@@ -256,6 +256,8 @@
     "current_issue": "This issue",
     "sub_issues_label": "Sub-issues",
     "sub_issue_of": "Sub-issue of",
+    "retrospect_origin_label": "Retrospect",
+    "retrospect_origin_tooltip": "Filed automatically by the Retrospect Agent after this work finished.",
     "add_sub_issues": "Add sub-issues",
     "add_sub_issue_tooltip": "Add sub-issue",
     "add_sub_issue_aria": "Add sub-issue",

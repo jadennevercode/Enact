@@ -1960,6 +1960,10 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				// cannot mint an agent carrying `system_key` and thereby claim
 				// the system instruction layer. Idempotent per workspace.
 				r.Post("/mika", h.CreateMikaAgent)
+				// The workspace's built-in Retrospect Agent, on the same terms
+				// and for the same reason. Configuring it is what turns the
+				// retrospect loop on, so this endpoint is the opt-in.
+				r.Post("/retrospect", h.CreateRetrospectAgent)
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", h.GetAgent)
 					r.Put("/", h.UpdateAgent)
@@ -2065,41 +2069,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Get("/versions", h.ListSkillVersions)
 					r.Get("/versions/{versionId}", h.GetSkillVersion)
 					r.Post("/versions/{versionId}/restore", h.RestoreSkillVersion)
-				})
-			})
-
-			// Lessons — proposals to change a skill, and the record of who
-			// decided them.
-			r.Route("/api/lessons", func(r chi.Router) {
-				r.Get("/", h.ListLessons)
-				// Filing a proposal is open to agents: the Lesson Learner is
-				// one, and proposing changes nothing on its own.
-				r.Post("/", h.CreateLesson)
-				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", h.GetLesson)
-					r.Patch("/", h.UpdateLesson)
-					// Deciding is not. RequireHumanActor refuses mat_ task
-					// tokens and mcn_ cloud PATs outright; the handlers add a
-					// second check for the legacy agent-attributed path. See
-					// the header of lesson_decision.go for why both.
-					r.Group(func(r chi.Router) {
-						r.Use(handler.RequireHumanActor)
-						r.Post("/approve", h.ApproveLesson)
-						r.Post("/reject", h.RejectLesson)
-						r.Post("/deprecate", h.DeprecateLesson)
-					})
-				})
-			})
-
-			// Retrospectives — one Lesson Learner scan over finished work.
-			r.Route("/api/retrospectives", func(r chi.Router) {
-				r.Get("/", h.ListRetrospectives)
-				r.Post("/", h.CreateRetrospective)
-				r.Get("/issue/{issueId}", h.GetIssueRetrospective)
-				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", h.GetRetrospective)
-					r.Post("/start", h.StartRetrospective)
-					r.Post("/dismiss", h.DismissRetrospective)
 				})
 			})
 

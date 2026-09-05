@@ -924,61 +924,6 @@ type LarkUserBinding struct {
 	BoundAt        pgtype.Timestamptz `json:"bound_at"`
 }
 
-// A proposal to change a skill, written against one version of it. Only a named person may approve; publication writes a skill_version in the same transaction.
-type Lesson struct {
-	ID            pgtype.UUID `json:"id"`
-	WorkspaceID   pgtype.UUID `json:"workspace_id"`
-	Number        int32       `json:"number"`
-	Title         string      `json:"title"`
-	Status        string      `json:"status"`
-	TargetKind    string      `json:"target_kind"`
-	TargetSkillID pgtype.UUID `json:"target_skill_id"`
-	// The skill_version this proposal was written against. Approval fails if the skill has moved on, so a reviewer only ever signs text they saw.
-	BaseVersionID       pgtype.UUID `json:"base_version_id"`
-	NewAsset            bool        `json:"new_asset"`
-	ProposedSkillName   string      `json:"proposed_skill_name"`
-	Observation         string      `json:"observation"`
-	Evidence            []byte      `json:"evidence"`
-	AppliesWhen         string      `json:"applies_when"`
-	Counterexample      string      `json:"counterexample"`
-	ProposedName        pgtype.Text `json:"proposed_name"`
-	ProposedDescription pgtype.Text `json:"proposed_description"`
-	ProposedContent     pgtype.Text `json:"proposed_content"`
-	ProposedFiles       []byte      `json:"proposed_files"`
-	ChangeSummary       string      `json:"change_summary"`
-	RetrospectiveID     pgtype.UUID `json:"retrospective_id"`
-	SourceTaskID        pgtype.UUID `json:"source_task_id"`
-	SourceIssueID       pgtype.UUID `json:"source_issue_id"`
-	ProposedByType      string      `json:"proposed_by_type"`
-	ProposedByID        pgtype.UUID `json:"proposed_by_id"`
-	// The person who approved or rejected. Never an agent — the endpoints refuse agent credentials.
-	DecidedBy          pgtype.UUID        `json:"decided_by"`
-	DecidedAt          pgtype.Timestamptz `json:"decided_at"`
-	DecisionReason     string             `json:"decision_reason"`
-	PublishedVersionID pgtype.UUID        `json:"published_version_id"`
-	PublishedAt        pgtype.Timestamptz `json:"published_at"`
-	DeprecatedAt       pgtype.Timestamptz `json:"deprecated_at"`
-	DeprecatedBy       pgtype.UUID        `json:"deprecated_by"`
-	DeprecationReason  string             `json:"deprecation_reason"`
-	RevertedVersionID  pgtype.UUID        `json:"reverted_version_id"`
-	ParentLessonID     pgtype.UUID        `json:"parent_lesson_id"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
-}
-
-// Append-only history of one lesson's state changes. The lesson row says where it stands; this says how it got there.
-type LessonEvent struct {
-	ID          pgtype.UUID        `json:"id"`
-	LessonID    pgtype.UUID        `json:"lesson_id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
-	Kind        string             `json:"kind"`
-	ActorType   string             `json:"actor_type"`
-	ActorID     pgtype.UUID        `json:"actor_id"`
-	Note        string             `json:"note"`
-	Details     []byte             `json:"details"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-}
-
 // A computer running an Enact daemon. Owned by a user, independent of any workspace; agent_runtime projects it into each workspace.
 type Machine struct {
 	ID         pgtype.UUID        `json:"id"`
@@ -1185,30 +1130,6 @@ type QuickAction struct {
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
-// One scan by the Lesson Learner over finished work. Suggested after an issue is done, started by hand, or fired on a schedule.
-type Retrospective struct {
-	ID          pgtype.UUID `json:"id"`
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	// suggested means asked but not answered. Accepting moves it to queued; declining to dismissed. Both answers are final for that scope.
-	Status        string             `json:"status"`
-	Scope         string             `json:"scope"`
-	ScopeID       pgtype.UUID        `json:"scope_id"`
-	Trigger       string             `json:"trigger"`
-	Since         pgtype.Timestamptz `json:"since"`
-	IssueID       pgtype.UUID        `json:"issue_id"`
-	TaskID        pgtype.UUID        `json:"task_id"`
-	AutopilotID   pgtype.UUID        `json:"autopilot_id"`
-	RequestedBy   pgtype.UUID        `json:"requested_by"`
-	DismissedAt   pgtype.Timestamptz `json:"dismissed_at"`
-	DismissedBy   pgtype.UUID        `json:"dismissed_by"`
-	LessonCount   int32              `json:"lesson_count"`
-	FailureReason string             `json:"failure_reason"`
-	StartedAt     pgtype.Timestamptz `json:"started_at"`
-	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-}
-
 type RuntimeProfile struct {
 	ID pgtype.UUID `json:"id"`
 	// Origin workspace: where this profile was created. NOT the access check — see runtime_profile_workspace.
@@ -1282,7 +1203,6 @@ type SkillVersion struct {
 	Files       []byte             `json:"files"`
 	ContentHash string             `json:"content_hash"`
 	Source      string             `json:"source"`
-	LessonID    pgtype.UUID        `json:"lesson_id"`
 	CreatedBy   pgtype.UUID        `json:"created_by"`
 	Summary     string             `json:"summary"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -1550,10 +1470,6 @@ type Workspace struct {
 	// When TRUE, an agent run that resolves to no precise accountable human (would be owner_fallback) is refused at enqueue instead of degrading to the agent owner (ENA-4302 §3.5). Default FALSE = owner_fallback. Never affects authorization (originator_user_id).
 	AttributionFailClosed bool  `json:"attribution_fail_closed"`
 	SdlcDefaultsVersion   int32 `json:"sdlc_defaults_version"`
-	// Whether finishing an issue that agents worked on offers a retrospective. Does not affect manual or scheduled ones.
-	RetrospectiveSuggestionsEnabled bool `json:"retrospective_suggestions_enabled"`
-	// Version of the product-owned Lesson Learner bundle this workspace has been provisioned with. Behind the Go constant means it is re-applied at boot.
-	LessonsDefaultsVersion int32 `json:"lessons_defaults_version"`
 }
 
 type WorkspaceInvitation struct {

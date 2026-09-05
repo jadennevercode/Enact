@@ -569,8 +569,8 @@ func (h *Handler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// No foreign key does this for us, per the repo rule. Versions go with the
-	// skill they snapshot; the lessons that targeted it are kept, because a
-	// lesson is a record of a decision someone made and outlives its subject.
+	// skill they snapshot: a snapshot of a skill that no longer exists is not a
+	// history, it is an orphan.
 	if err := qtx.DeleteSkillVersionsBySkill(r.Context(), skill.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to remove skill versions")
 		return

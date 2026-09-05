@@ -374,18 +374,6 @@ deleted_skill_files AS (
     DELETE FROM skill_file
     WHERE skill_id IN (SELECT id FROM ws_skills)
 ),
-deleted_lesson_events AS (
-    DELETE FROM lesson_event
-    WHERE workspace_id = $1
-),
-deleted_lessons AS (
-    DELETE FROM lesson
-    WHERE workspace_id = $1
-),
-deleted_retrospectives AS (
-    DELETE FROM retrospective
-    WHERE workspace_id = $1
-),
 deleted_skill_versions AS (
     DELETE FROM skill_version
     WHERE workspace_id = $1
@@ -492,10 +480,6 @@ WHERE channel_media_pending_object.workspace_id = $1
 // Same no-FK chore as chat_draft_restore above. Matched on workspace_id rather
 // than the session set because that column exists precisely so this statement
 // does not have to join through chat_session, which it deletes in this same CTE.
-// Lessons and their history go with the workspace. They are a record of
-// decisions about that workspace's skills, and the skills are being deleted
-// here too — a lesson pointing at a skill that no longer exists is not an
-// audit trail, it is an orphan.
 // Keep the two-system cleanup ledger until object storage has been settled.
 // Moving every row out of pending also prevents a concurrent media bind from
 // attaching an object after the workspace teardown commits. The reconciler

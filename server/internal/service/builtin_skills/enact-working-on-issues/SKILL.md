@@ -228,6 +228,21 @@ close intent writes the literal `done` key.
   `todo` when no active task / retry remains — that is the main server-owned
   status write on the agent-run path.
 
+### A retrospect sub-issue may appear under a finished issue
+
+In a workspace that has configured a Retrospect Agent, moving an issue that
+agents actually worked on into a `done`-category status files a sub-issue titled
+`Retrospect: <parent title>` under it, assigned to that agent. That is expected
+and is not yours to act on: it is not work the parent left unfinished, so do not
+close it, re-assign it, or fold it into your own report. It is filed at most once
+per issue — an issue reopened and finished again is not retrospected twice — and
+never under another retrospect.
+
+If it proposes a change to a skill, an agent's instructions, or a squad leader's
+instructions, it posts the proposal as a comment, sets itself to `in_review`, and
+waits for a **person** to reply agreeing. Your reply is not that agreement; do
+not supply it on a human's behalf, and do not apply the proposed edit yourself.
+
 ## Claim ownership without duplicating a run
 
 Assigning an active issue to an agent normally starts a run. When the work is

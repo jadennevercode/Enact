@@ -58,10 +58,7 @@
     "reaction_added": "반응 추가됨",
     "quick_create_done": "에이전트로 생성됨",
     "quick_create_failed": "에이전트 생성 실패",
-    "quick_create_unconfirmed": "에이전트 생성 결과 미확인",
-    "lesson_proposed": "검토 대기 중인 배운 점",
-    "lesson_decided": "배운 점이 결정되었습니다",
-    "retrospective_suggested": "회고를 제안합니다"
+    "quick_create_unconfirmed": "에이전트 생성 결과 미확인"
   },
   "labels": {
     "set_status_to": "상태 변경:",

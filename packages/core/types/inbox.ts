@@ -24,17 +24,7 @@ export type InboxItemType =
   // Quick create whose outcome could not be verified. Distinct from
   // quick_create_failed because it must NOT be rendered with failure framing:
   // the issue may actually have been created.
-  | "quick_create_unconfirmed"
-  // A lesson is waiting on someone who can decide it. action_required: the
-  // proposal sits there doing nothing until a person answers.
-  | "lesson_proposed"
-  // The proposer's answer. Approved, rejected or withdrawn all arrive as this
-  // one type; the `status` in `details` says which.
-  | "lesson_decided"
-  // Work an agent did just finished and a retrospective is on offer. info, not
-  // action_required: declining is a valid and common answer, and framing it as
-  // a chore would make the inbox lie about that.
-  | "retrospective_suggested";
+  | "quick_create_unconfirmed";
 
 /**
  * One workspace's unread inbox count in the cross-workspace summary

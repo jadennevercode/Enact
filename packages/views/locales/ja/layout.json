@@ -12,7 +12,6 @@
     "runtimes": "ランタイム",
     "ontologies": "オントロジー",
     "skills": "スキル",
-    "lessons": "学びの記録",
     "marketplace": "マーケットプレイス",
     "settings": "設定"
   },
@@ -23,7 +22,6 @@
     "member": "メンバー",
     "squad": "エージェントファミリー",
     "skill": "スキル",
-    "lesson": "学びの記録",
     "machine": "マシン",
     "runtime": "ランタイム",
     "attachment": "添付ファイル",

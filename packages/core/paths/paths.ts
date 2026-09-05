@@ -66,8 +66,6 @@ function workspaceScoped(slug: string) {
     marketplace: () => `${ws}/marketplace`,
     marketplaceListing: (id: string) => `${ws}/marketplace/${encode(id)}`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
-    lessons: () => `${ws}/lessons`,
-    lessonDetail: (id: string) => `${ws}/lessons/${encode(id)}`,
     settings: () => `${ws}/settings`,
     settingsResources: () => `${ws}/settings/resources`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,

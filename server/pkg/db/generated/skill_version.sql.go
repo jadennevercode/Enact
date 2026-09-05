@@ -14,10 +14,10 @@ import (
 const createSkillVersion = `-- name: CreateSkillVersion :one
 INSERT INTO skill_version (
     skill_id, workspace_id, version, name, description, content, config, files,
-    content_hash, source, lesson_id, created_by, summary
+    content_hash, source, created_by, summary
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-RETURNING id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, lesson_id, created_by, summary, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, created_by, summary, created_at
 `
 
 type CreateSkillVersionParams struct {
@@ -31,7 +31,6 @@ type CreateSkillVersionParams struct {
 	Files       []byte      `json:"files"`
 	ContentHash string      `json:"content_hash"`
 	Source      string      `json:"source"`
-	LessonID    pgtype.UUID `json:"lesson_id"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
 	Summary     string      `json:"summary"`
 }
@@ -48,7 +47,6 @@ func (q *Queries) CreateSkillVersion(ctx context.Context, arg CreateSkillVersion
 		arg.Files,
 		arg.ContentHash,
 		arg.Source,
-		arg.LessonID,
 		arg.CreatedBy,
 		arg.Summary,
 	)
@@ -65,7 +63,6 @@ func (q *Queries) CreateSkillVersion(ctx context.Context, arg CreateSkillVersion
 		&i.Files,
 		&i.ContentHash,
 		&i.Source,
-		&i.LessonID,
 		&i.CreatedBy,
 		&i.Summary,
 		&i.CreatedAt,
@@ -85,7 +82,7 @@ func (q *Queries) DeleteSkillVersionsBySkill(ctx context.Context, skillID pgtype
 }
 
 const getSkillVersion = `-- name: GetSkillVersion :one
-SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, lesson_id, created_by, summary, created_at FROM skill_version WHERE id = $1
+SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, created_by, summary, created_at FROM skill_version WHERE id = $1
 `
 
 func (q *Queries) GetSkillVersion(ctx context.Context, id pgtype.UUID) (SkillVersion, error) {
@@ -103,7 +100,6 @@ func (q *Queries) GetSkillVersion(ctx context.Context, id pgtype.UUID) (SkillVer
 		&i.Files,
 		&i.ContentHash,
 		&i.Source,
-		&i.LessonID,
 		&i.CreatedBy,
 		&i.Summary,
 		&i.CreatedAt,
@@ -112,7 +108,7 @@ func (q *Queries) GetSkillVersion(ctx context.Context, id pgtype.UUID) (SkillVer
 }
 
 const getSkillVersionByNumber = `-- name: GetSkillVersionByNumber :one
-SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, lesson_id, created_by, summary, created_at FROM skill_version WHERE skill_id = $1 AND version = $2
+SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, created_by, summary, created_at FROM skill_version WHERE skill_id = $1 AND version = $2
 `
 
 type GetSkillVersionByNumberParams struct {
@@ -135,7 +131,6 @@ func (q *Queries) GetSkillVersionByNumber(ctx context.Context, arg GetSkillVersi
 		&i.Files,
 		&i.ContentHash,
 		&i.Source,
-		&i.LessonID,
 		&i.CreatedBy,
 		&i.Summary,
 		&i.CreatedAt,
@@ -144,7 +139,7 @@ func (q *Queries) GetSkillVersionByNumber(ctx context.Context, arg GetSkillVersi
 }
 
 const getSkillVersionInWorkspace = `-- name: GetSkillVersionInWorkspace :one
-SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, lesson_id, created_by, summary, created_at FROM skill_version WHERE id = $1 AND workspace_id = $2
+SELECT id, skill_id, workspace_id, version, name, description, content, config, files, content_hash, source, created_by, summary, created_at FROM skill_version WHERE id = $1 AND workspace_id = $2
 `
 
 type GetSkillVersionInWorkspaceParams struct {
@@ -167,7 +162,6 @@ func (q *Queries) GetSkillVersionInWorkspace(ctx context.Context, arg GetSkillVe
 		&i.Files,
 		&i.ContentHash,
 		&i.Source,
-		&i.LessonID,
 		&i.CreatedBy,
 		&i.Summary,
 		&i.CreatedAt,
@@ -177,7 +171,7 @@ func (q *Queries) GetSkillVersionInWorkspace(ctx context.Context, arg GetSkillVe
 
 const listSkillVersionSummaries = `-- name: ListSkillVersionSummaries :many
 SELECT id, skill_id, workspace_id, version, name, description, config,
-       content_hash, source, lesson_id, created_by, summary, created_at
+       content_hash, source, created_by, summary, created_at
 FROM skill_version
 WHERE skill_id = $1
 ORDER BY version DESC
@@ -193,7 +187,6 @@ type ListSkillVersionSummariesRow struct {
 	Config      []byte             `json:"config"`
 	ContentHash string             `json:"content_hash"`
 	Source      string             `json:"source"`
-	LessonID    pgtype.UUID        `json:"lesson_id"`
 	CreatedBy   pgtype.UUID        `json:"created_by"`
 	Summary     string             `json:"summary"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -218,7 +211,6 @@ func (q *Queries) ListSkillVersionSummaries(ctx context.Context, skillID pgtype.
 			&i.Config,
 			&i.ContentHash,
 			&i.Source,
-			&i.LessonID,
 			&i.CreatedBy,
 			&i.Summary,
 			&i.CreatedAt,
@@ -262,22 +254,5 @@ type SetSkillCurrentVersionParams struct {
 
 func (q *Queries) SetSkillCurrentVersion(ctx context.Context, arg SetSkillCurrentVersionParams) error {
 	_, err := q.db.Exec(ctx, setSkillCurrentVersion, arg.ID, arg.CurrentVersionID)
-	return err
-}
-
-const setSkillVersionLesson = `-- name: SetSkillVersionLesson :exec
-UPDATE skill_version SET lesson_id = $2 WHERE id = $1
-`
-
-type SetSkillVersionLessonParams struct {
-	ID       pgtype.UUID `json:"id"`
-	LessonID pgtype.UUID `json:"lesson_id"`
-}
-
-// Attributes a version to the lesson that produced it. Needed only on the
-// new-skill publication path, where the version is written by the shared skill
-// creation helper before the lesson row can name it.
-func (q *Queries) SetSkillVersionLesson(ctx context.Context, arg SetSkillVersionLessonParams) error {
-	_, err := q.db.Exec(ctx, setSkillVersionLesson, arg.ID, arg.LessonID)
 	return err
 }

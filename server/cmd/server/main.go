@@ -469,9 +469,6 @@ func main() {
 		// server from starting or other workspaces from being upgraded.
 		slog.Warn("SDLC defaults reconciliation completed with errors", "error", err)
 	}
-	if err := service.EnsureLessonsDefaultsForAllWorkspaces(ctx, pool, queries); err != nil {
-		slog.Warn("lesson defaults reconciliation completed with errors", "error", err)
-	}
 	hub.SetAuthorizer(newScopeAuthorizer(queries))
 	// Order matters: subscriber listeners must register BEFORE notification listeners.
 	// The notification listener queries the subscriber table to determine recipients,
@@ -579,7 +576,12 @@ func main() {
 	// claim until the cache TTL expires.
 	taskSvc, autopilotSvc := backgroundServices(h)
 	registerAutopilotListeners(bus, autopilotSvc)
-	registerRetrospectiveListeners(bus, service.NewRetrospectiveService(queries))
+	// Files a retrospect sub-issue when work finishes, in the workspaces that
+	// have configured a Retrospect Agent. Reuses the router's IssueService so
+	// the sub-issue goes through the same create pipeline as every other issue
+	// — duplicate guard, counter, event, task enqueue — instead of a second
+	// one that would have to be kept in step with it.
+	registerRetrospectListeners(bus, service.NewRetrospectService(queries, h.IssueService))
 
 	// Construct a LivenessStore that mirrors the one wired into the HTTP
 	// handler. Both the heartbeat write path (handler) and the sweeper read

@@ -20,7 +20,6 @@ import type workspace from "../locales/en/workspace.json";
 import type artifacts from "../locales/en/artifacts.json";
 import type resources from "../locales/en/resources.json";
 import type autopilots from "../locales/en/autopilots.json";
-import type lessons from "../locales/en/lessons.json";
 import type skills from "../locales/en/skills.json";
 import type marketplace from "../locales/en/marketplace.json";
 import type chat from "../locales/en/chat.json";
@@ -64,7 +63,6 @@ declare global {
     artifacts: typeof artifacts;
     resources: typeof resources;
     autopilots: typeof autopilots;
-    lessons: typeof lessons;
     skills: typeof skills;
     marketplace: typeof marketplace;
     chat: typeof chat;

@@ -254,6 +254,8 @@
     "current_issue": "現在のタスク",
     "sub_issues_label": "サブタスク",
     "sub_issue_of": "親タスク",
+    "retrospect_origin_label": "振り返り",
+    "retrospect_origin_tooltip": "この仕事が完了した後、振り返りエージェントが自動で作成したタスクです。",
     "add_sub_issues": "サブタスクを追加",
     "add_sub_issue_tooltip": "サブタスクを追加",
     "add_sub_issue_aria": "サブタスクを追加",

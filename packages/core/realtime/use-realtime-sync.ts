@@ -14,7 +14,7 @@ import { artifactKeys } from "../artifacts/queries";
 import { workspaceResourceKeys } from "../resources/queries";
 import { pinKeys } from "../pins/queries";
 import { autopilotKeys } from "../autopilots/queries";
-import { lessonKeys, retrospectiveKeys, skillVersionKeys } from "../lessons/queries";
+import { skillVersionKeys } from "../skills/queries";
 import { runtimeKeys } from "../runtimes/queries";
 import { labelKeys } from "../labels/queries";
 import { propertyKeys } from "../properties/queries";
@@ -788,23 +788,8 @@ export function useRealtimeSync(
         const wsId = getCurrentWsId();
         if (!wsId) return;
         qc.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
-        // A skill's content moved, so its version history did too, and so did
-        // whether any open proposal is still approvable — `base_version_current`
-        // is computed against the version this event just replaced.
+        // A skill's content moved, so its version history did too.
         qc.invalidateQueries({ queryKey: skillVersionKeys.all(wsId) });
-        qc.invalidateQueries({ queryKey: lessonKeys.all(wsId) });
-      },
-      lesson: () => {
-        const wsId = getCurrentWsId();
-        if (!wsId) return;
-        qc.invalidateQueries({ queryKey: lessonKeys.all(wsId) });
-        // A decision changes how many lessons a retrospective is showing as
-        // outstanding, which the retrospective list renders.
-        qc.invalidateQueries({ queryKey: retrospectiveKeys.all(wsId) });
-      },
-      retrospective: () => {
-        const wsId = getCurrentWsId();
-        if (wsId) qc.invalidateQueries({ queryKey: retrospectiveKeys.all(wsId) });
       },
       workspace_resource: () => {
         const wsId = getCurrentWsId();

@@ -280,6 +280,11 @@ var concurrentIndexCleanups = map[string]string{
 	"430_retrospective_task_index":                  "idx_retrospective_task",
 	"433_workspace_resource_unique_index":           "uq_workspace_resource_key",
 	"434_workspace_resource_position_index":         "idx_workspace_resource_workspace",
+	// The retrospect sub-issue's once-only guarantee. An INVALID leftover from
+	// an interrupted build would not merely slow a query down — the insert
+	// relies on this index to reject a second retrospect on the same issue, so
+	// a broken one would let duplicates through.
+	"443_issue_origin_retrospect_index": "idx_issue_origin_retrospect",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

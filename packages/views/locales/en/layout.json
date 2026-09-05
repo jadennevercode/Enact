@@ -12,7 +12,6 @@
     "runtimes": "Runtimes",
     "ontologies": "Ontology",
     "skills": "Skills",
-    "lessons": "Lessons",
     "marketplace": "Marketplace",
     "settings": "Settings"
   },
@@ -23,7 +22,6 @@
     "member": "Member",
     "squad": "Agent Family",
     "skill": "Skill",
-    "lesson": "Lesson",
     "machine": "Machine",
     "runtime": "Runtime",
     "attachment": "Attachment",

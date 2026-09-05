@@ -141,6 +141,70 @@ describe("IssueSchema (via ListIssuesResponseSchema)", () => {
     ).toThrow();
   });
 
+  it("carries origin_type through, including a value this build predates", () => {
+    // The server grows the set (autopilot, quick_create, retrospect, ...), and
+    // an installed desktop build must not blank a list over a provenance it has
+    // never heard of — which is why this stays z.string() and not an enum.
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [
+        { ...baseIssue, origin_type: "retrospect" },
+        { ...baseIssue, id: "issue-2", origin_type: "some_future_origin" },
+      ],
+      total: 2,
+    });
+    expect(parsed.issues[0]?.origin_type).toBe("retrospect");
+    expect(parsed.issues[1]?.origin_type).toBe("some_future_origin");
+  });
+
+  // The shape the server actually sends for every issue a person typed. The
+  // field is deliberately not omitempty on the Go side, so `null` is the
+  // ordinary case, not an edge one — and a schema that rejected it would fail
+  // the row and, through parseWithFallback, blank the entire issue list.
+  it("accepts the null origin_type an ordinary issue carries", () => {
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [{ ...baseIssue, origin_type: null }],
+      total: 1,
+    });
+    expect(parsed.issues[0]?.origin_type ?? undefined).toBeUndefined();
+  });
+
+  it("does not blank a list because one issue has no provenance", () => {
+    const fallback = { issues: [], total: 0 };
+    const parsed = parseWithFallback(
+      {
+        issues: [
+          { ...baseIssue, origin_type: null },
+          { ...baseIssue, id: "issue-2", origin_type: "retrospect" },
+        ],
+        total: 2,
+      },
+      ListIssuesResponseSchema,
+      fallback,
+      { endpoint: "GET /api/issues" },
+    );
+    expect(parsed.issues).toHaveLength(2);
+  });
+
+  it("leaves origin_type undefined when the endpoint does not project it", () => {
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [baseIssue],
+      total: 1,
+    });
+    expect(parsed.issues[0]?.origin_type).toBeUndefined();
+  });
+
+  it("falls back rather than exposing a malformed origin_type", () => {
+    const fallback = { issues: [], total: 0 };
+    expect(
+      parseWithFallback(
+        { issues: [{ ...baseIssue, origin_type: 7 }], total: 1 },
+        ListIssuesResponseSchema,
+        fallback,
+        { endpoint: "GET /api/issues" },
+      ),
+    ).toEqual(fallback);
+  });
+
   it("accepts a primitive metadata KV map", () => {
     const payload = {
       issues: [
