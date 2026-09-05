@@ -1,0 +1,97 @@
+---
+title: 知识库
+description: 给智能体一个装文档的 git 仓库作为上下文，复盘智能体学到的东西也写回这里。
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+知识库是一个装文档的 git 仓库，给智能体读：领域背景、产品决策、新同事入职要有人讲一遍的那些事。它和团队干活用的[资源](/resources)仓库并列，区别是它绑在单个智能体上，而不是整个工作区。
+
+## 该用知识库还是 skill
+
+两者都是把文字送到智能体面前，区别在于什么时候加载。
+
+| | skill | 知识库 |
+|---|---|---|
+| 回答的问题 | 事情怎么做 | 团队知道什么 |
+| 加载方式 | 用到它的每次执行都全量加载 | 每次执行加载索引，文档按需打开 |
+| 谁来改 | skill 的维护者 | 有仓库权限的人，以及复盘智能体 |
+| 存在哪 | Enact 里，按 skill 版本化 | 你自己的 git 仓库 |
+
+每次都要遵守的规则属于 [skill](/skills)，因为 skill 是整篇加载的，而一条没人读的规则不改变任何行为。偶尔才需要的背景属于知识库，因为把它们每次全量塞进去，等于让用不到的执行替它们付上下文预算。
+
+## 智能体怎么读
+
+执行开始前，运行时会把仓库检出到机器上，读取每篇文档的 front-matter。智能体的 brief 里于是有一份索引，一篇文档一行：
+
+```text
+## Knowledge
+
+### 领域手册
+
+- Location: `/…/.knowledge/…/docs`
+- Source: https://github.com/acme/handbook.git (`main`)
+- Documents: 12
+
+- **发布窗口** — 什么时候可以发版。(`deploy-window.md`)
+- **定价模型** — 各档位怎么定价。(`pricing.md`)
+```
+
+智能体每次执行都读这份索引，然后用读代码那套文件工具打开真正相关的那一两篇。文档正文从不会被贴进 brief。
+
+所以 front-matter 不是可选的。`title` 和 `description` 是后续执行判断要不要打开一篇文档的全部依据，一句说不清里面有什么的 description，等于这篇文档不会被找到。
+
+```markdown
+---
+title: 发布窗口
+description: 什么时候可以发版，例外由谁批准。
+updated: 2026-09-05
+source: ENA-1234
+---
+```
+
+<Callout type="info">
+超过 60 篇之后，索引改成列目录和篇数，这一段的体积就不再随知识库增长。智能体先列目录，再读需要的那篇。
+</Callout>
+
+## 添加知识库
+
+在**设置 → 资源**里添加仓库，然后挂给该读它的智能体。没挂给任何智能体的知识库是不可见的 —— 正是这一点，让领域手册不会出现在一个只负责整理收件箱的智能体的 brief 里。
+
+```bash
+# 在工作区里建这个资源
+enact resource add --type knowledge_repo --url https://github.com/acme/handbook.git \
+  --path docs/knowledge --label "领域手册" --output json
+
+# 让某个智能体能读它
+enact agent knowledge add <agent-id> --resource-id <resource-id> --output json
+enact agent knowledge list <agent-id> --output json
+```
+
+| 字段 | 含义 |
+|---|---|
+| `url` | 运行时能访问的任意 git URL |
+| `ref` | 要读的分支、tag 或 commit（默认走仓库默认分支） |
+| `path` | 文档所在的子目录，这样知识库可以和别的内容共用一个仓库 |
+| `delivery` | `pull_request`（默认）或 `commit`，见下 |
+
+解绑之后资源还留在工作区里给别的智能体用。删除资源则会清掉所有智能体对它的绑定。
+
+## 写回
+
+智能体写文档的方式和写代码一样。brief 里那个被索引的位置是这台机器上所有执行共用的，每次执行会重置，所以智能体从不在那里编辑。它跑 `enact repo checkout <url>` 拿到属于自己的检出，在那里写，然后交付：
+
+- **`pull_request`**（默认）开一个 pull request，合并交给人。知识库会被每个绑定它的智能体的每次执行读到，所以一篇没人审的文档不是一个坏文件，而是一个被反复引用好几个月的坏文件。
+- **`commit`** 直接推到该分支，适合不想每条笔记都过一遍审阅的团队。
+
+## 复盘智能体
+
+这是知识库能积累而不是烂掉的关键。[复盘智能体](/retrospect)会回顾做完的工作，把学到的东西写下来；给它挂上知识库，这些文档就落在知识库里，而不是变成一个再也没人打开的附件。
+
+它写之前会先读索引，所以它会去改那篇已经讲这个主题的文档，而不是在旁边再建一篇。
+
+## 下一步
+
+- [资源](/resources) —— 智能体干活用的仓库和目录
+- [Skills](/skills) —— 每次执行都会加载的指令
+- [复盘](/retrospect) —— 从做完的工作里学习

@@ -7,12 +7,15 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 Resources tell agents which code your team works on and where to run. They belong to the [workspace](/workspaces), so there is no need to re-paste repository URLs or local paths into every issue.
 
-Two resource types are supported today:
+Three resource types are supported today:
 
 | Resource | Best for | Where runs happen |
 |---|---|---|
 | **GitHub repository** | Code shared by the team, with checkouts managed by the runtime | A runtime-managed working directory |
 | **Local directory** | An existing checkout, a very large repository, or when you want to inspect local changes directly | The original directory on a specific computer |
+| **Knowledge base** | Documents agents read as context, rather than code they change | Checked out and indexed by the runtime before each run |
+
+The first two are workspace-wide: every run sees them. A [knowledge base](/knowledge-bases) is attached to individual agents instead, so a domain handbook does not land in the brief of an agent that only triages the inbox.
 
 ## How resources enter a run
 
