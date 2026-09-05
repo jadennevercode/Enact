@@ -54,11 +54,18 @@ Skill edits are versioned and can be rolled back from the skill's version histor
 
 ## Writing a knowledge document
 
-- Put it in the workspace's repository or working directory under `docs/knowledge/`, one subject per file, named for the subject in lower-kebab-case.
-- Check what is already there. If a document covers the subject, edit it rather than adding a second — accumulating one good document beats filing five overlapping ones.
-- Open with what the reader needs to know, not how you came to know it. Front-matter carries `title`, `updated`, and `source` (the issue id).
+**Where it goes.** If your brief has a `## Knowledge` section, those knowledge bases are where documents belong — pick the one whose subject matches, and the first one listed if none clearly does. Otherwise fall back to `docs/knowledge/` in the workspace's repository or working directory. If the workspace has neither, attach the markdown with `enact attachment upload` and say in your report that it has nowhere permanent to live yet.
+
+**Read the index first.** The Knowledge section lists every document with its title and description. If one covers the subject, edit it rather than adding a second — accumulating one good document beats filing five overlapping ones. Never read a knowledge base end to end to find out; that is what the index is for.
+
+**How to write it.**
+
+- One subject per file, named for the subject in lower-kebab-case.
+- Front-matter is required and carries `title`, `description`, `updated`, and `source` (the issue id). `title` and `description` are what every future run sees in its index — a document whose description does not say what is inside it will not be opened, and the work of writing it is wasted. One sentence, concrete, no more than about 150 characters.
+- Open with what the reader needs to know, not how you came to know it.
 - Say plainly where you are unsure. A confident wrong sentence in a knowledge base is worse than no sentence.
-- Deliver it the way that workspace delivers code: a commit on a branch and a pull request, unless its conventions say otherwise. If the workspace has no repository or directory configured, attach the markdown with `enact attachment upload` and say in your report that it has nowhere permanent to live yet.
+
+**How to deliver it.** Never edit the indexed location in your brief — it is shared with every task on this machine and is reset. Check the repository out into your working directory with `enact repo checkout <url>` (adding `--ref <branch>` when the brief names one), write there, and deliver the way the brief says: open a pull request, or commit and push when it says the knowledge base takes commits directly.
 
 ## Report
 
