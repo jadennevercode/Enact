@@ -179,6 +179,11 @@ export type {
   CreateWorkspaceResourceRequest,
   UpdateWorkspaceResourceRequest,
   ListWorkspaceResourcesResponse,
+  KnowledgeRepoResourceRef,
+  KnowledgeRepoDelivery,
+  AgentKnowledgeSource,
+  ListAgentKnowledgeResponse,
+  AttachAgentKnowledgeRequest,
 } from "./resources";
 export type { PinnedItem, PinnedItemType, CreatePinRequest, ReorderPinsRequest } from "./pin";
 export type {

@@ -109,6 +109,7 @@ import type {
   StartMikaOnboardingResponse,
   CancelTaskResponse,
   WorkspaceResource,
+  ListAgentKnowledgeResponse,
   CreateWorkspaceResourceRequest,
   UpdateWorkspaceResourceRequest,
   ListArtifactsResponse,
@@ -286,6 +287,7 @@ import {
   EMPTY_ISSUE_TABLE_ROWS_RESPONSE,
   EMPTY_LIST_ISSUES_RESPONSE,
   EMPTY_LIST_ARTIFACTS_RESPONSE,
+  EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
   EMPTY_WORKSPACE_RESOURCE,
   EMPTY_ONTOLOGY_DETAIL,
@@ -312,6 +314,7 @@ import {
   UNREADABLE_CRON_PREVIEW_RESPONSE,
   ListIssuesResponseSchema,
   ListArtifactsResponseSchema,
+  ListAgentKnowledgeResponseSchema,
   ListWorkspaceResourcesResponseSchema,
   WorkspaceResourceResponseSchema,
   OntologyDetailSchema,
@@ -3733,6 +3736,51 @@ export class ApiClient {
       ListWorkspaceResourcesResponseSchema,
       EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
       { endpoint: "GET /api/resources" },
+    );
+  }
+
+  // Knowledge bases an agent reads. Per-agent, unlike every other resource
+  // surface: the binding is what puts the document index in that agent's
+  // brief, so these endpoints hang off the agent rather than the workspace.
+  async listAgentKnowledge(agentId: string): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(`/api/agents/${agentId}/knowledge`);
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "GET /api/agents/{id}/knowledge" },
+    );
+  }
+
+  async attachAgentKnowledge(
+    agentId: string,
+    resourceId: string,
+  ): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(`/api/agents/${agentId}/knowledge`, {
+      method: "POST",
+      body: JSON.stringify({ resource_id: resourceId }),
+    });
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "POST /api/agents/{id}/knowledge" },
+    );
+  }
+
+  async removeAgentKnowledge(
+    agentId: string,
+    resourceId: string,
+  ): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(
+      `/api/agents/${agentId}/knowledge/${resourceId}`,
+      { method: "DELETE" },
+    );
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "DELETE /api/agents/{id}/knowledge/{resourceId}" },
     );
   }
 

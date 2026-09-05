@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
+  BookOpen,
   FolderGit,
   FolderOpen,
   GitBranch,
@@ -30,6 +31,7 @@ import type {
   GithubRepoResourceRef,
   LocalDirectoryExecutionMode,
   LocalDirectoryResourceRef,
+  KnowledgeRepoResourceRef,
   WorkspaceResource,
 } from "@enact/core/types";
 import {
@@ -109,6 +111,12 @@ function isLocalDirectoryRef(r: WorkspaceResource): r is WorkspaceResource & {
   return r.resource_type === "local_directory";
 }
 
+function isKnowledgeRef(r: WorkspaceResource): r is WorkspaceResource & {
+  resource_ref: KnowledgeRepoResourceRef;
+} {
+  return r.resource_type === "knowledge_repo";
+}
+
 /**
  * Reads the execution mode off a stored ref. An absent or unrecognised value is
  * reported as in_place, matching the server: the field is optional, and a mode
@@ -140,6 +148,7 @@ export function ResourcesTab() {
   const navigation = useNavigation();
   const daemonStatus = useLocalDaemonStatus();
   const [addOpen, setAddOpen] = useState(false);
+  const [addKnowledgeOpen, setAddKnowledgeOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [modeDialog, setModeDialog] = useState<ModeDialogState | null>(null);
   const [modeSaving, setModeSaving] = useState(false);
@@ -190,8 +199,9 @@ export function ResourcesTab() {
 
   const githubResources = resources.filter(isGithubRef);
   const localResources = resources.filter(isLocalDirectoryRef);
+  const knowledgeResources = resources.filter(isKnowledgeRef);
   const otherResources = resources.filter(
-    (r) => !isGithubRef(r) && !isLocalDirectoryRef(r),
+    (r) => !isGithubRef(r) && !isLocalDirectoryRef(r) && !isKnowledgeRef(r),
   );
 
   // Identity, not raw string: the same repository reaches us as an https clone
@@ -329,6 +339,23 @@ export function ResourcesTab() {
         resource_ref: { url },
       });
       toast.success(t(($) => $.toast_attached));
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : t(($) => $.toast_attach_failed);
+      toast.error(msg);
+    }
+  };
+
+  const handleAttachKnowledge = async (url: string, path: string) => {
+    try {
+      await createResource.mutateAsync({
+        resource_type: "knowledge_repo",
+        // Only send what the user filled in: an empty path means the
+        // repository root, and the server stores the field as absent rather
+        // than as an empty string.
+        resource_ref: path ? { url, path } : { url },
+      });
+      toast.success(t(($) => $.knowledge_toast_attached));
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : t(($) => $.toast_attach_failed);
@@ -737,6 +764,48 @@ export function ResourcesTab() {
 
       {/* Rendered only when the server sent a type this build does not know.
           Removal is the one thing the user can still do with it. */}
+      <SettingsSection
+        title={t(($) => $.knowledge_section_title)}
+        description={t(($) => $.knowledge_section_description)}
+        action={
+          <Popover open={addKnowledgeOpen} onOpenChange={setAddKnowledgeOpen}>
+            <PopoverTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  <Plus className="size-3.5" />
+                  {t(($) => $.knowledge_add_button)}
+                </Button>
+              }
+            />
+            <PopoverContent align="end" className="w-96 space-y-2 p-2">
+              <div className="text-caption font-medium text-muted-foreground">
+                {t(($) => $.knowledge_popover_title)}
+              </div>
+              <KnowledgeRepoForm
+                onSubmit={async (url, path) => {
+                  await handleAttachKnowledge(url, path);
+                  setAddKnowledgeOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+        }
+      >
+        <SettingsCard>
+          {knowledgeResources.length === 0 ? (
+            <EmptyRow>{t(($) => $.knowledge_empty)}</EmptyRow>
+          ) : (
+            knowledgeResources.map((resource) => (
+              <KnowledgeRepoRow
+                key={resource.id}
+                resource={resource}
+                onRemove={() => void handleRemove(resource)}
+              />
+            ))
+          )}
+        </SettingsCard>
+      </SettingsSection>
+
       {otherResources.length > 0 && (
         <SettingsSection title={t(($) => $.other_section_title)}>
           <SettingsCard>
@@ -1026,6 +1095,122 @@ function GithubRepoRow({
         <Trash2 className="size-3.5" />
       </button>
     </div>
+  );
+}
+
+/**
+ * A knowledge base row.
+ *
+ * It says explicitly that the base reaches agents through their own settings,
+ * because this list is the only place it appears and a base attached here but
+ * bound to nobody does nothing at all — the failure that would otherwise be
+ * silent.
+ */
+function KnowledgeRepoRow({
+  resource,
+  onRemove,
+}: {
+  resource: WorkspaceResource & { resource_ref: KnowledgeRepoResourceRef };
+  onRemove: () => void;
+}) {
+  const { t } = useT("resources");
+  const ref = resource.resource_ref;
+  const display = resource.label || githubShortLabel(ref.url);
+  const tooltip = [
+    ref.url,
+    ref.ref ? `ref: ${ref.ref}` : null,
+    ref.path ? `path: ${ref.path}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <div className={ROW_CLASS}>
+      <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <a
+              href={ref.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 truncate hover:underline"
+            >
+              {display}
+            </a>
+          }
+        />
+        <TooltipContent side="top" className="whitespace-pre-line">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+      {ref.path && (
+        <span className="shrink-0 truncate text-caption text-muted-foreground">
+          {ref.path}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className={ROW_ACTION_CLASS}
+        title={t(($) => $.remove_tooltip)}
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function KnowledgeRepoForm({
+  onSubmit,
+}: {
+  onSubmit: (url: string, path: string) => Promise<void> | void;
+}) {
+  const { t } = useT("resources");
+  const [url, setUrl] = useState("");
+  const [path, setPath] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const handle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(trimmedUrl, path.trim());
+      setUrl("");
+      setPath("");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  return (
+    <form onSubmit={handle} className="space-y-1.5 border-t pt-1.5">
+      <input
+        type="text"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder={t(($) => $.url_placeholder)}
+        className="w-full bg-transparent px-2 py-1 text-caption outline-none placeholder:text-muted-foreground"
+      />
+      <input
+        type="text"
+        value={path}
+        onChange={(e) => setPath(e.target.value)}
+        placeholder={t(($) => $.knowledge_path_placeholder)}
+        className="w-full bg-transparent px-2 py-1 text-caption outline-none placeholder:text-muted-foreground"
+      />
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-caption"
+          disabled={!url.trim() || submitting}
+        >
+          {t(($) => $.url_submit)}
+        </Button>
+      </div>
+    </form>
   );
 }
 

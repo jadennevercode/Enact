@@ -78,5 +78,12 @@
   "mode_badge_worktree_tooltip": "任务在各自的 git worktree 中同时运行，并以分支形式交付结果。你的工作区不会被改动。",
   "toast_local_mode_updated": "已更新执行方式",
   "toast_local_mode_update_failed": "无法更新执行方式",
-  "mode_badge_in_place": "原地"
+  "mode_badge_in_place": "原地",
+  "knowledge_section_title": "知识库",
+  "knowledge_section_description": "装文档的仓库，智能体作为上下文来读。在智能体自己的设置里挂给它 —— 没挂给任何智能体的知识库不会被读到。",
+  "knowledge_empty": "还没有添加知识库。",
+  "knowledge_add_button": "添加知识库",
+  "knowledge_popover_title": "添加知识库",
+  "knowledge_path_placeholder": "文档所在子目录（可选，例如 docs/knowledge）",
+  "knowledge_toast_attached": "知识库已添加"
 }

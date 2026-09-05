@@ -275,7 +275,8 @@
     "discard_dialog_title": "Discard unsaved changes?",
     "discard_dialog_description": "You have unsaved changes in this tab. Leaving now will discard them.",
     "discard_keep": "Keep editing",
-    "discard_confirm": "Discard changes"
+    "discard_confirm": "Discard changes",
+    "knowledge": "Knowledge"
   },
   "creation_studio": {
     "title": "Create an agent",
@@ -763,6 +764,23 @@
       "started_prefix": "Started {{when}}",
       "dispatched_prefix": "Dispatched {{when}}",
       "queued_prefix": "Queued {{when}}"
+    },
+    "knowledge": {
+      "title": "Knowledge bases",
+      "description": "Repos of documents this agent reads as context. Its brief carries an index of every document; it opens the ones a task needs. Add the repo under Settings → Resources first.",
+      "add_button": "Attach",
+      "add_title": "Attach a knowledge base",
+      "add_description": "Knowledge bases on this workspace that this agent does not read yet.",
+      "attach_button": "Attach",
+      "empty": "This agent reads no knowledge bases.",
+      "none_available": "No unattached knowledge bases. Add one under Settings → Resources.",
+      "loading": "Loading knowledge bases…",
+      "remove_tooltip": "Stop this agent reading it",
+      "delivery_commit": "Commits directly",
+      "delivery_pull_request": "Pull request",
+      "toast_attached": "Knowledge base attached",
+      "toast_removed": "Knowledge base removed",
+      "toast_failed": "Could not update knowledge bases"
     }
   },
   "char_counter": {

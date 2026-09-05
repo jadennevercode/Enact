@@ -266,7 +266,8 @@
     "discard_dialog_title": "저장하지 않은 변경사항을 버릴까요?",
     "discard_dialog_description": "이 탭에 저장하지 않은 변경사항이 있습니다. 지금 나가면 변경사항이 사라집니다.",
     "discard_keep": "계속 편집",
-    "discard_confirm": "변경사항 버리기"
+    "discard_confirm": "변경사항 버리기",
+    "knowledge": "지식"
   },
   "create_dialog": {
     "title_create": "에이전트 만들기",
@@ -639,6 +640,23 @@
       "started_prefix": "{{when}} 시작됨",
       "dispatched_prefix": "{{when}} 디스패치됨",
       "queued_prefix": "{{when}} 대기 시작"
+    },
+    "knowledge": {
+      "title": "지식 베이스",
+      "description": "이 에이전트가 컨텍스트로 읽는 문서 저장소입니다. 브리프에 모든 문서의 색인이 실리고, 작업에 필요한 것만 엽니다. 먼저 설정 → 리소스에서 저장소를 추가하세요.",
+      "add_button": "연결",
+      "add_title": "지식 베이스 연결",
+      "add_description": "이 워크스페이스에 있고 아직 이 에이전트가 읽지 않는 지식 베이스입니다.",
+      "attach_button": "연결",
+      "empty": "이 에이전트가 읽는 지식 베이스가 없습니다.",
+      "none_available": "연결할 지식 베이스가 없습니다. 설정 → 리소스에서 추가하세요.",
+      "loading": "지식 베이스를 불러오는 중…",
+      "remove_tooltip": "이 에이전트에서 연결 해제",
+      "delivery_commit": "직접 커밋",
+      "delivery_pull_request": "풀 리퀘스트",
+      "toast_attached": "지식 베이스를 연결했습니다",
+      "toast_removed": "연결을 해제했습니다",
+      "toast_failed": "지식 베이스를 업데이트하지 못했습니다"
     }
   },
   "char_counter": {

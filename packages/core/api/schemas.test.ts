@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AppConfigSchema,
+  ListAgentKnowledgeResponseSchema,
+  EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   ChildIssueProgressResponseSchema,
   WecomInstallationSchema,
   ListWecomInstallationsResponseSchema,
@@ -1770,5 +1772,64 @@ describe("issue status catalog schemas", () => {
       { endpoint: "POST /api/issue-statuses" },
     );
     expect(parsed).toEqual(EMPTY_ISSUE_STATUS_ENTRY);
+  });
+});
+
+describe("Agent knowledge schemas", () => {
+  it("parses a well-formed binding list", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        {
+          resource_id: "res-1",
+          url: "https://github.com/acme/kb.git",
+          ref: "main",
+          path: "docs/knowledge",
+          delivery: "commit",
+          label: "Handbook",
+        },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("commit");
+    expect(parsed.knowledge_sources[0]?.path).toBe("docs/knowledge");
+  });
+
+  it("defaults a missing delivery to pull_request", () => {
+    // pull_request is the mode that asks a person before anything is
+    // published, so it is the safe assumption for a server too old to send
+    // the field. Guessing `commit` would let an agent push unreviewed.
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [{ resource_id: "res-1", url: "https://x/y.git" }],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("pull_request");
+    expect(parsed.knowledge_sources[0]?.label).toBeNull();
+  });
+
+  it("falls back to pull_request for a delivery mode it does not know", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        { resource_id: "res-1", url: "https://x/y.git", delivery: "force_push" },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("pull_request");
+  });
+
+  it("keeps unknown fields rather than dropping the row", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        { resource_id: "res-1", url: "https://x/y.git", future_field: 1 },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources).toHaveLength(1);
+  });
+
+  it("has an empty fallback for a response that does not parse at all", () => {
+    expect(
+      ListAgentKnowledgeResponseSchema.safeParse("not an object").success,
+    ).toBe(false);
+    expect(EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE.knowledge_sources).toEqual([]);
   });
 });
