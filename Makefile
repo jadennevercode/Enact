@@ -1,4 +1,4 @@
-.PHONY: help makehelp dev server daemon cli enact build test migrate-up migrate-down sqlc seed clean setup start stop check mmm-setup worktree-env setup-main start-main stop-main check-main setup-worktree start-worktree stop-worktree check-worktree remove-worktree db-up db-down db-drop db-reset selfhost selfhost-build selfhost-stop
+.PHONY: help makehelp dev server daemon cli enact build test migrate-up migrate-down sqlc seed clean setup start stop check mmm-setup worktree-env setup-main start-main stop-main check-main setup-worktree start-worktree stop-worktree check-worktree remove-worktree ontologizer-setup db-up db-down db-drop db-reset selfhost selfhost-build selfhost-stop
 
 MAIN_ENV_FILE ?= .env
 WORKTREE_ENV_FILE ?= .env.worktree
@@ -189,6 +189,14 @@ check: ## Run typecheck, TS tests, Go tests, and Playwright E2E for the current 
 
 mmm-setup: cli ## Provision the vendored MMM Runtime and import its Claude skills
 	@./server/bin/enact mmm setup --runtime-dir "$(CURDIR)/mmm-runtime" --import-skills $(ENACT_ARGS)
+
+ontologizer-setup: cli ## Provision an Ontologizer checkout on this host and import its skills (ONTOLOGIZER_DIR=path)
+	@if [ -z "$(ONTOLOGIZER_DIR)" ]; then \
+		echo "ONTOLOGIZER_DIR is required — Ontologizer is not vendored here, so point at your checkout:"; \
+		echo "  make ontologizer-setup ONTOLOGIZER_DIR=~/src/Ontologizer"; \
+		exit 1; \
+	fi
+	@./server/bin/enact ontologizer setup --runtime-dir "$(ONTOLOGIZER_DIR)" --import-skills $(ENACT_ARGS)
 
 db-up: ## Start the shared PostgreSQL container used by main and worktrees
 	@$(COMPOSE) up -d postgres

@@ -62,6 +62,7 @@ func init() {
 	daemonCmd.GroupID = groupRuntime
 	runtimeCmd.GroupID = groupRuntime
 	mmmCmd.GroupID = groupRuntime
+	ontologizerCmd.GroupID = groupRuntime
 
 	// Additional commands
 	authCmd.GroupID = groupAdditional
@@ -88,6 +89,7 @@ func init() {
 	rootCmd.AddCommand(daemonCmd)
 	rootCmd.AddCommand(runtimeCmd)
 	rootCmd.AddCommand(mmmCmd)
+	rootCmd.AddCommand(ontologizerCmd)
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(userCmd)
 	rootCmd.AddCommand(loginCmd)
