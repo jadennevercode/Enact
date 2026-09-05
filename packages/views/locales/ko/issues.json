@@ -347,6 +347,7 @@
       "hint_jump": "이동",
       "hint_close": "닫기"
     },
+    "artifacts_tooltip": "산출물",
     "sidebar_tooltip": "사이드바 열기/닫기",
     "find": {
       "placeholder": "태스크에서 찾기...",

@@ -2,7 +2,9 @@
 import { describe, it, expect } from "vitest";
 import {
   buildArtifactFolders,
+  buildArtifactScope,
   filterArtifactFolders,
+  filterArtifactScope,
   flattenArtifactEntries,
   UNFILED_FOLDER_ID,
 } from "./artifact-tree";
@@ -310,5 +312,210 @@ describe("filterArtifactFolders", () => {
     const before = folders.map((f) => f.entries.length);
     filterArtifactFolders(folders, "schema");
     expect(folders.map((f) => f.entries.length)).toEqual(before);
+  });
+});
+
+// The scope split is what separates an issue's own work from work it
+// delegated. The server sends both in one flat list, tagged by producing
+// issue; only the tag tells them apart.
+describe("buildArtifactScope, issue scope", () => {
+  const scope = { kind: "issue", issueId: "i1" } as const;
+
+  it("returns an empty tree for an empty listing", () => {
+    expect(buildArtifactScope([], scope)).toEqual({
+      own: [],
+      delegated: [],
+      entries: [],
+    });
+  });
+
+  it("puts the issue's own files in own and a child's in delegated", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "a", owner_issue_id: "i1", owner_issue_number: 1, filename: "own.pdf" }),
+        artifact({
+          id: "b",
+          owner_issue_id: "i2",
+          owner_issue_number: 2,
+          owner_issue_identifier: "ENC-2",
+          owner_issue_title: "Child issue",
+          filename: "child.pdf",
+        }),
+      ],
+      scope,
+    );
+
+    expect(tree.own.map((e) => e.filename)).toEqual(["own.pdf"]);
+    expect(tree.delegated).toHaveLength(1);
+    expect(tree.delegated[0]!.id).toBe("i2");
+    expect(tree.delegated[0]!.title).toBe("Child issue");
+    expect(tree.delegated[0]!.entries.map((e) => e.filename)).toEqual(["child.pdf"]);
+  });
+
+  it("lists own entries before delegated ones in entries", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "b", owner_issue_id: "i2", owner_issue_number: 2, filename: "child.pdf" }),
+        artifact({ id: "a", owner_issue_id: "i1", owner_issue_number: 1, filename: "own.pdf" }),
+      ],
+      scope,
+    );
+
+    expect(tree.entries.map((e) => e.filename)).toEqual(["own.pdf", "child.pdf"]);
+  });
+
+  it("leaves own empty when only children produced anything", () => {
+    const tree = buildArtifactScope(
+      [artifact({ id: "b", owner_issue_id: "i2", owner_issue_number: 2 })],
+      scope,
+    );
+
+    expect(tree.own).toEqual([]);
+    expect(tree.delegated).toHaveLength(1);
+  });
+
+  // Same filename under the issue and under a child is two artifacts, not two
+  // versions of one — the producing issue is what makes the name meaningful.
+  it("keeps a child's same-named file separate from the issue's own", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "a", owner_issue_id: "i1", owner_issue_number: 1, filename: "report.pdf" }),
+        artifact({ id: "b", owner_issue_id: "i2", owner_issue_number: 2, filename: "report.pdf" }),
+      ],
+      scope,
+    );
+
+    expect(tree.own[0]!.versions).toHaveLength(1);
+    expect(tree.delegated[0]!.entries[0]!.versions).toHaveLength(1);
+    expect(tree.own[0]!.key).not.toBe(tree.delegated[0]!.entries[0]!.key);
+  });
+
+  it("version-chains the issue's own same-named files, newest first", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "old", owner_issue_id: "i1", created_at: "2026-01-01T00:00:00Z" }),
+        artifact({ id: "new", owner_issue_id: "i1", created_at: "2026-02-01T00:00:00Z" }),
+      ],
+      scope,
+    );
+
+    expect(tree.own).toHaveLength(1);
+    expect(tree.own[0]!.current.id).toBe("new");
+    expect(tree.own[0]!.versions.map((v) => [v.artifact.id, v.version])).toEqual([
+      ["new", 2],
+      ["old", 1],
+    ]);
+  });
+
+  // A row the server could not tag is listed under delegated rather than
+  // dropped: a file the user can see and download beats a tidy empty tree.
+  it("keeps an untagged row rather than dropping it", () => {
+    const tree = buildArtifactScope(
+      [artifact({ id: "x", owner_issue_id: null, owner_issue_number: null })],
+      scope,
+    );
+
+    expect(tree.own).toEqual([]);
+    expect(tree.delegated[0]!.id).toBe(UNFILED_FOLDER_ID);
+    expect(tree.entries).toHaveLength(1);
+  });
+});
+
+describe("buildArtifactScope, chat scope", () => {
+  const scope = { kind: "chat" } as const;
+
+  it("puts every file in own, with no folders", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "a", owner_issue_id: null, filename: "b.pdf", chat_session_id: "cs1" }),
+        artifact({ id: "b", owner_issue_id: null, filename: "a.pdf", chat_session_id: "cs1" }),
+      ],
+      scope,
+    );
+
+    expect(tree.delegated).toEqual([]);
+    expect(tree.own.map((e) => e.filename)).toEqual(["a.pdf", "b.pdf"]);
+  });
+
+  // Inside one session the filename alone identifies a file, so re-uploading
+  // it is a new version rather than a second artifact.
+  it("version-chains same-named files on filename alone", () => {
+    const tree = buildArtifactScope(
+      [
+        artifact({ id: "old", owner_issue_id: null, created_at: "2026-01-01T00:00:00Z" }),
+        artifact({ id: "new", owner_issue_id: null, created_at: "2026-02-01T00:00:00Z" }),
+      ],
+      scope,
+    );
+
+    expect(tree.own).toHaveLength(1);
+    expect(tree.own[0]!.current.id).toBe("new");
+    expect(tree.own[0]!.versions).toHaveLength(2);
+  });
+
+  // A chat file that also happens to carry an issue edge still belongs to the
+  // session being viewed; the chat scope has nothing to delegate to.
+  it("does not split out a file that carries an owner issue", () => {
+    const tree = buildArtifactScope(
+      [artifact({ id: "a", owner_issue_id: "i9", owner_issue_number: 9 })],
+      scope,
+    );
+
+    expect(tree.delegated).toEqual([]);
+    expect(tree.own).toHaveLength(1);
+  });
+});
+
+describe("filterArtifactScope", () => {
+  const scope = { kind: "issue", issueId: "i1" } as const;
+  const tree = buildArtifactScope(
+    [
+      artifact({ id: "a", owner_issue_id: "i1", owner_issue_number: 1, filename: "design.pdf" }),
+      artifact({ id: "b", owner_issue_id: "i1", owner_issue_number: 1, filename: "notes.txt" }),
+      artifact({
+        id: "c",
+        owner_issue_id: "i2",
+        owner_issue_number: 2,
+        owner_issue_identifier: "ENC-2",
+        owner_issue_title: "Child issue",
+        filename: "child-design.pdf",
+      }),
+    ],
+    scope,
+  );
+
+  it("returns the tree unchanged for a blank query", () => {
+    expect(filterArtifactScope(tree, "  ")).toBe(tree);
+  });
+
+  it("filters own entries by filename", () => {
+    const filtered = filterArtifactScope(tree, "notes");
+    expect(filtered.own.map((e) => e.filename)).toEqual(["notes.txt"]);
+    expect(filtered.delegated).toEqual([]);
+  });
+
+  it("matches across both sides at once", () => {
+    const filtered = filterArtifactScope(tree, "design");
+    expect(filtered.own.map((e) => e.filename)).toEqual(["design.pdf"]);
+    expect(filtered.delegated[0]!.entries.map((e) => e.filename)).toEqual([
+      "child-design.pdf",
+    ]);
+    expect(filtered.entries).toHaveLength(2);
+  });
+
+  it("keeps a whole delegated folder when the child issue matches", () => {
+    const filtered = filterArtifactScope(tree, "ENC-2");
+    expect(filtered.own).toEqual([]);
+    expect(filtered.delegated[0]!.entries).toHaveLength(1);
+  });
+
+  it("is case-insensitive", () => {
+    expect(filterArtifactScope(tree, "NOTES").own).toHaveLength(1);
+  });
+
+  it("does not mutate the tree it was given", () => {
+    const ownBefore = tree.own.length;
+    filterArtifactScope(tree, "notes");
+    expect(tree.own).toHaveLength(ownBefore);
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2, UserRound } from "lucide-react";
+import { Archive, ArchiveRestore, FolderOpen, MoreHorizontal, Pencil, Trash2, UserRound } from "lucide-react";
 import { Button } from "@enact/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -206,6 +206,18 @@ export function ChatSessionHeader({
           </div>
         )}
       </div>
+
+      {/* Artifacts. A real destination rather than a menu item: the files are
+          what someone comes back to a finished conversation for, and a link
+          can be opened in a new tab. */}
+      <AppLink
+        href={wsPaths.chatSessionArtifacts(session.id)}
+        aria-label={t(($) => $.header.artifacts)}
+        title={t(($) => $.header.artifacts)}
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <FolderOpen className="h-4 w-4" />
+      </AppLink>
 
       <DropdownMenu>
         <DropdownMenuTrigger

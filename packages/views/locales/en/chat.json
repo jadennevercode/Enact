@@ -226,6 +226,7 @@
   },
   "header": {
     "view_profile": "View agent profile",
+    "artifacts": "Artifacts",
     "rename": "Rename chat",
     "archive": "Archive chat",
     "unarchive": "Unarchive chat",

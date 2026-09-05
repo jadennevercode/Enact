@@ -1,44 +1,50 @@
 ---
 title: Artifacts
-description: Browse the files agent runs produced across the workspace, grouped by the issue that produced them and kept as a version chain.
+description: Browse the files an issue or a chat produced, kept as a version chain, from the issue or the chat itself.
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-Agents produce files: a report, a diagram, an exported dataset, a screenshot. Those files land on the issue or the chat the run came from, which is the right place to read them in context and the wrong place to find one a week later.
+Agents produce files: a report, a diagram, an exported dataset, a screenshot. Those files belong to the work that produced them, so that is where you find them.
 
-**Artifacts** is the workspace-wide view of the same files. Open it from the sidebar, at `/{slug}/artifacts`.
+**Artifacts** is a browser over one issue's files, or one chat session's. Open it from the folder button in the issue header, at `/{slug}/issues/{id}/artifacts`, or from the same button in the chat session header, at `/{slug}/chat/{id}/artifacts`.
 
-## How the browser is arranged
+## What an issue's artifacts include
 
-The left pane is a tree, the right pane is the detail of whatever you selected.
+Three sources land in one listing.
 
-| Level | What it is |
+| Source | Where it appears |
 |---|---|
-| **Folder** | The issue the files came from, shown by its issue key and title. |
-| **Row** | One artifact — a filename, with every version of it behind it. |
-| **Detail** | Each version of the selected artifact, newest first, downloadable on its own. |
+| **Files on the issue** | The top group, under *This issue*. |
+| **Files attached in a comment** | The same top group — a comment belongs to its issue. |
+| **Files a sub-issue produced** | One folder per sub-issue, labelled with its issue key and title. |
 
-Files produced in [chat](/chat) are listed here too. They used to have nowhere to be collected and so never showed up in a browse view at all.
+Sub-issues are included one level deep. A sub-issue is where delegated work lands, so a parent whose children did the producing would otherwise look empty. A grandchild's files stay with the child that owns them.
+
+A chat session has nothing to delegate to, so its listing is flat.
 
 ## Versions
 
 An agent run never overwrites a file. Re-running the work uploads a new file, so the older one stays exactly as it was.
 
-Two files become versions of one artifact when they share **the same issue and the same filename**. The newest one is what the row shows and what a plain download gives you; the older ones stay reachable in the detail pane. Two different issues that both produced `report.pdf` are two separate artifacts, not one file with two versions — the issue is what makes the name meaningful.
+Two files become versions of one artifact when they share **the same producing issue and the same filename**. The newest one is what the row shows and what a plain download gives you; the older ones stay reachable in the detail pane. An issue and its sub-issue that both produced `report.pdf` have two separate artifacts, not one file with two versions — the issue is what makes the name meaningful. Inside a chat session the filename alone identifies a file.
 
-## Find and open a file
+## Find, open and remove a file
 
-Search filters the tree by filename and by folder, and folders that still have a match open themselves so you can see inside. Narrowing the search never changes which file the detail pane is describing.
+Search filters the list by filename, and by issue for a sub-issue folder. Folders that still have a match open themselves. Narrowing the search never changes which file the detail pane is describing.
 
-From the detail pane you can preview a file that Enact can render in the browser, download any version, and jump to the issue the file came from.
+From the detail pane you can preview a file that Enact can render in the browser, download any version, jump to the sub-issue a file came from, and delete a version.
+
+<Callout type="warn">
+Deleting removes that version for everyone and cannot be undone. If the file is shown inline in a description or a comment, that image or link breaks. The uploader and workspace admins can delete; other members cannot.
+</Callout>
 
 <Callout type="info">
-Very large listings are capped. When the cap is reached the browser says so and tells you the total, so a partial tree is never mistaken for the whole workspace.
+Very large listings are capped. When the cap is reached the browser says so and tells you the total. The issue's own files are kept ahead of its sub-issues', so a capped listing sheds delegated work first.
 </Callout>
 
 ## Next steps
 
 - [Issues](/issues) — where a run's files are attached in the first place.
+- [Chat](/chat) — the other place files are produced.
 - [Tasks](/tasks) — the run records behind the files.
-- [Resources](/resources) — the repositories and directories runs work in.

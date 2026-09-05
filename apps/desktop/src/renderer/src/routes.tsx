@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { createMemoryRouter, Outlet, useMatches } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 import { IssueDetailPage } from "./pages/issue-detail-page";
+import { IssueArtifactsPage } from "./pages/issue-artifacts-page";
+import { ChatArtifactsPage } from "./pages/chat-artifacts-page";
 import { AutopilotDetailPage } from "./pages/autopilot-detail-page";
 import { SkillDetailPage } from "./pages/skill-detail-page";
 import { LessonDetailPage } from "./pages/lesson-detail-page";
@@ -15,7 +17,6 @@ import {
 } from "./pages/runtime-detail-page";
 import { AttachmentPreviewRoute } from "./pages/attachment-preview-page";
 import { IssuesPage } from "@enact/views/issues/components";
-import { ArtifactsPage } from "@enact/views/artifacts/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
 import { MyIssuesPage } from "@enact/views/my-issues";
@@ -142,8 +143,8 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Issue" },
           },
           {
-            path: "artifacts",
-            element: <ArtifactsPage />,
+            path: "issues/:id/artifacts",
+            element: <IssueArtifactsPage />,
             handle: { title: "Artifacts" },
           },
           {
@@ -242,6 +243,11 @@ export const appRoutes: RouteObject[] = [
           },
           { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },
+          {
+            path: "chat/:sessionId/artifacts",
+            element: <ChatArtifactsPage />,
+            handle: { title: "Artifacts" },
+          },
           {
             path: "attachments/:id/preview",
             element: <AttachmentPreviewRoute />,

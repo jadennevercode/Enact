@@ -68,6 +68,7 @@ import type {
   CreateRetrospectiveRequest,
   MarketplaceCatalog,
   MarketplaceInstall,
+  MarketplaceInstalledFilter,
   MarketplaceInstallRequest,
   MarketplaceInstallResult,
   MarketplaceListingDetail,
@@ -3001,6 +3002,7 @@ export class ApiClient {
     q?: string;
     includeDeprecated?: boolean;
     mine?: boolean;
+    installed?: MarketplaceInstalledFilter;
   }): Promise<MarketplaceCatalog> {
     const query = new URLSearchParams();
     if (params?.kind) query.set("kind", params.kind);
@@ -3009,6 +3011,9 @@ export class ApiClient {
     if (params?.q) query.set("q", params.q);
     if (params?.includeDeprecated) query.set("include_deprecated", "true");
     if (params?.mine) query.set("mine", "true");
+    if (params?.installed) {
+      query.set("installed", params.installed === "installed" ? "true" : "false");
+    }
     const suffix = query.toString() ? `?${query.toString()}` : "";
     const raw = await this.fetch<unknown>(`/api/marketplace/listings${suffix}`);
     return parseWithFallback(raw, MarketplaceCatalogSchema, EMPTY_MARKETPLACE_CATALOG, {
@@ -3798,18 +3803,41 @@ export class ApiClient {
     return res.blob();
   }
 
-  // Artifacts — every file the workspace produced, resolved through the issue
-  // each one came from. Schema-parsed rather than cast: the artifacts browser
-  // builds its whole tree from this response, and a drifted field must degrade
-  // to an empty tree rather than throw inside the render.
-  async listArtifacts(limit?: number): Promise<ListArtifactsResponse> {
+  // Artifacts — the files one issue produced, including the files its direct
+  // children produced. Schema-parsed rather than cast: the browser builds its
+  // whole tree from this response, and a drifted field must degrade to an
+  // empty tree rather than throw inside the render.
+  async listIssueArtifacts(
+    issueId: string,
+    limit?: number,
+  ): Promise<ListArtifactsResponse> {
     const query = limit === undefined ? "" : `?limit=${limit}`;
-    const raw = await this.fetch<unknown>(`/api/artifacts${query}`);
+    const raw = await this.fetch<unknown>(
+      `/api/issues/${encodeURIComponent(issueId)}/artifacts${query}`,
+    );
     return parseWithFallback(
       raw,
       ListArtifactsResponseSchema,
       EMPTY_LIST_ARTIFACTS_RESPONSE,
-      { endpoint: "GET /api/artifacts" },
+      { endpoint: "GET /api/issues/{id}/artifacts" },
+    );
+  }
+
+  // Artifacts — the files uploaded into one chat session, by the member or by
+  // the agent.
+  async listChatSessionArtifacts(
+    sessionId: string,
+    limit?: number,
+  ): Promise<ListArtifactsResponse> {
+    const query = limit === undefined ? "" : `?limit=${limit}`;
+    const raw = await this.fetch<unknown>(
+      `/api/chat/sessions/${encodeURIComponent(sessionId)}/artifacts${query}`,
+    );
+    return parseWithFallback(
+      raw,
+      ListArtifactsResponseSchema,
+      EMPTY_LIST_ARTIFACTS_RESPONSE,
+      { endpoint: "GET /api/chat/sessions/{id}/artifacts" },
     );
   }
 

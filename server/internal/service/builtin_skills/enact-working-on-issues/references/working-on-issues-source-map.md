@@ -221,3 +221,13 @@ grep -n 'qualifyingIdents\|reference_only\|ReferenceOnly' internal/handler/githu
 grep -n 'prevIssue.Status == "backlog"\|func (h \*Handler) shouldEnqueueAgentTask' internal/handler/issue.go
 grep -n 'func notifyParentOfChildDone'       internal/handler/issue_child_done.go
 ```
+
+## Artifacts
+
+- `ListIssueArtifacts` (`server/internal/handler/artifact.go`) serves `GET /api/issues/{id}/artifacts`; `ListChatSessionArtifacts` in the same file serves `GET /api/chat/sessions/{sessionId}/artifacts`. Both are registered in `server/cmd/server/router.go` beside the listing they sit next to (`/attachments` and `/messages`).
+- The issue scope resolves its path param through `loadIssueForUser` (`server/internal/handler/handler.go`), so an identifier works and a foreign issue is a 404. The chat scope uses `gatePublicChatSessionForUser` (`server/internal/handler/chat.go`), the same gate as the transcript.
+- `ListArtifactsByIssue` (`server/pkg/db/queries/attachment.sql`) is the one-level-deep walk: `i.id = $2 OR i.parent_issue_id = $2`, with `COALESCE(a.issue_id, c.issue_id)` following the comment edge. The join is INNER, so a chat upload cannot reach an issue listing. `ORDER BY (i.id = $2) DESC` puts the issue's own rows ahead of its children's.
+- `ListArtifactsByChatSession` filters on `a.chat_session_id` and LEFT-joins the owner issue, which is normally NULL — the handler then omits all four `owner_issue_*` fields rather than synthesising `ENA-0`.
+- `?limit=` is clamped by `artifactLimit` (default 500, max 2000) and the response's `truncated` flag reports that the cap was hit. Both listings share `writeArtifacts` in the same file.
+- Deletion has no artifact endpoint of its own: it reuses `DELETE /api/attachments/{id}` (`server/internal/handler/file.go`), which allows the uploader or a workspace owner/admin and publishes `issue_attachments:changed`.
+- The client side derives folders and version chains in `packages/core/artifacts/artifact-tree.ts` (`buildArtifactScope`); nothing about grouping lives on the server.

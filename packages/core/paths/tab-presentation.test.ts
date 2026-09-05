@@ -19,10 +19,6 @@ describe("resolveTabPresentation — pages", () => {
       visual: { kind: "icon", icon: "ListTodo" },
       title: { kind: "nav", navKey: "issues" },
     });
-    expect(present("/acme/artifacts")).toEqual({
-      visual: { kind: "icon", icon: "FolderOpen" },
-      title: { kind: "nav", navKey: "artifacts" },
-    });
     expect(present("/acme/ontologies")).toEqual({
       visual: { kind: "icon", icon: "Network" },
       title: { kind: "nav", navKey: "ontologies" },

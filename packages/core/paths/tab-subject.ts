@@ -77,13 +77,11 @@ export function parseTabSubject(url: string): TabSubject {
 
   switch (segment) {
     case "issues":
+      // `/issues/:id/artifacts` stays the issue's own subject: the files are
+      // part of the issue, so opening them must not spawn a second tab.
       return id ? { kind: "issue", id } : { kind: "page", page: "issues" };
     case "my-issues":
       return { kind: "page", page: "myIssues" };
-    case "artifacts":
-      // Artifacts is a section route with no per-file detail page; a file
-      // opens through `/attachments/:id/preview` instead.
-      return { kind: "page", page: "artifacts" };
     case "autopilots":
       return id ? { kind: "autopilot", id } : { kind: "page", page: "autopilots" };
     case "agents":
@@ -107,7 +105,10 @@ export function parseTabSubject(url: string): TabSubject {
         archived: query.get("view") === "archived",
       };
     case "chat":
-      return { kind: "chat", sessionId: query.get("session") || null };
+      // A session is addressed by query param (`/chat?session=`) but its
+      // artifacts by path (`/chat/:id/artifacts`); both are the same subject,
+      // so the files open in the session's tab rather than a new one.
+      return { kind: "chat", sessionId: id || query.get("session") || null };
     case "runtimes":
       if (!id) return { kind: "page", page: "runtimes" };
       // `/runtimes/:machineId/runtime/:runtimeId` — nested runtime.

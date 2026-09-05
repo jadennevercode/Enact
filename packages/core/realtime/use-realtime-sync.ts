@@ -10,6 +10,7 @@ import { clearWorkspaceStorage } from "../platform/storage-cleanup";
 import { defaultStorage } from "../platform/storage";
 import { getCurrentWsId, getCurrentSlug } from "../platform/workspace-storage";
 import { issueKeys } from "../issues/queries";
+import { artifactKeys } from "../artifacts/queries";
 import { workspaceResourceKeys } from "../resources/queries";
 import { pinKeys } from "../pins/queries";
 import { autopilotKeys } from "../autopilots/queries";
@@ -1053,7 +1054,14 @@ export function useRealtimeSync(
       if (!issue_id) return;
       qc.invalidateQueries({ queryKey: issueKeys.attachments(issue_id) });
       const wsId = getCurrentWsId();
-      if (wsId) onIssueAuxiliaryRevision(qc, wsId, issue_id, issue_revision);
+      if (wsId) {
+        // Invalidate every artifact listing, not just this issue's: a parent's
+        // listing carries its children's files, so a child's change moves the
+        // parent too. At most one listing is mounted at a time, so the wide
+        // key costs one refetch rather than a fan-out.
+        qc.invalidateQueries({ queryKey: artifactKeys.all(wsId) });
+        onIssueAuxiliaryRevision(qc, wsId, issue_id, issue_revision);
+      }
     });
 
     const unsubIssueMetadataChanged = ws.on("issue_metadata:changed", (p) => {
@@ -1478,6 +1486,14 @@ export function useRealtimeSync(
       // work: they ignore the extra fields and rely on the invalidate
       // below, which keeps the old behavior alive.
       applyChatDoneToCache(qc, payload);
+      // A finished run is when the agent's files land, so the session's
+      // artifact listing is stale from here.
+      const artifactWsId = getCurrentWsId();
+      if (artifactWsId && payload.chat_session_id) {
+        qc.invalidateQueries({
+          queryKey: artifactKeys.chatSession(artifactWsId, payload.chat_session_id),
+        });
+      }
       // NOTE: the pending aggregate is left to the task:completed / task:failed
       // handlers (which carry the task_id needed to remove the right entry).
       // chat:done no longer invalidates it, so a chatty session doesn't refetch

@@ -204,21 +204,43 @@ SELECT * FROM attachment
 WHERE id = ANY(sqlc.arg(attachment_ids)::uuid[]) AND workspace_id = sqlc.arg(workspace_id)
 ORDER BY created_at ASC;
 
--- name: ListAttachmentsByWorkspace :many
--- Workspace artifacts: every file the workspace produced, tagged with the
--- issue it came from.
+-- name: ListArtifactsByIssue :many
+-- Issue artifacts: every file this issue produced, plus the files its direct
+-- children produced.
 --
 -- The owner issue is derived, not stored — an attachment hangs off an issue
 -- directly or off a comment that does, and COALESCE follows whichever edge
--- exists. It is what the browser groups into folders.
+-- exists. The join is inner, so chat uploads (which own neither edge) cannot
+-- reach this listing.
 --
--- Attachments with neither edge are chat uploads. They come back with a NULL
--- owner and the browser files them under Unfiled; when this listing was
--- project-scoped they could not appear at all, because a chat session
--- belonged to no project.
+-- Children are included one level deep because a sub-issue is where delegated
+-- work lands; a parent whose children did the producing would otherwise look
+-- empty. Deeper descendants are not walked — the folder list stays readable
+-- and the query stays a single index scan on idx_issue_parent.
 --
--- NULLS LAST keeps those unfiled rows behind the issue folders, so a
--- truncated listing loses them before it loses filed work.
+-- The issue's own rows sort ahead of its children's, so a truncated listing
+-- sheds delegated work before it sheds the issue's own.
+SELECT a.*,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+LEFT JOIN comment c ON c.id = a.comment_id
+JOIN issue i ON i.id = COALESCE(a.issue_id, c.issue_id)
+WHERE a.workspace_id = sqlc.arg(workspace_id)
+  AND (i.id = sqlc.arg(issue_id) OR i.parent_issue_id = sqlc.arg(issue_id))
+ORDER BY (i.id = sqlc.arg(issue_id)) DESC, i.number ASC, a.filename ASC, a.created_at ASC
+LIMIT sqlc.arg(row_limit);
+
+-- name: ListArtifactsByChatSession :many
+-- Chat artifacts: every file uploaded into one chat session, by the member or
+-- by the agent.
+--
+-- chat_session_id is the durable owner and survives the message binding, so
+-- a file stays listed whether or not it ever got attached to a message. The
+-- owner issue is joined anyway (LEFT, so a missing edge is not a filter) to
+-- keep one artifact row shape across both scopes; for chat rows it is
+-- normally NULL.
 SELECT a.*,
        i.id     AS owner_issue_id,
        i.number AS owner_issue_number,
@@ -227,5 +249,6 @@ FROM attachment a
 LEFT JOIN comment c ON c.id = a.comment_id
 LEFT JOIN issue i ON i.id = COALESCE(a.issue_id, c.issue_id)
 WHERE a.workspace_id = sqlc.arg(workspace_id)
-ORDER BY owner_issue_number ASC NULLS LAST, a.filename ASC, a.created_at ASC
+  AND a.chat_session_id = sqlc.arg(chat_session_id)
+ORDER BY a.filename ASC, a.created_at ASC
 LIMIT sqlc.arg(row_limit);

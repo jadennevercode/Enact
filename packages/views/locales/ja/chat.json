@@ -222,6 +222,7 @@
   },
   "header": {
     "view_profile": "Agent のプロフィール",
+    "artifacts": "成果物",
     "rename": "名前を変更",
     "delete": "チャットを削除",
     "archive": "チャットをアーカイブ",

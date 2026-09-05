@@ -21,7 +21,7 @@ A GitHub repository or a local directory the workspace's agents run against. Res
 
 ### Artifact
 
-A file an agent run produced. Artifacts are collected workspace-wide, grouped by the issue that produced them, and keep every version. See [Artifacts](/artifacts).
+A file an agent run produced. Artifacts hang off the issue or the chat that produced them, and keep every version. See [Artifacts](/artifacts).
 
 ## Agents and execution
 
@@ -62,7 +62,7 @@ Triggers agent runs automatically on a schedule or from external events; you can
 ## How the objects relate
 
 - The **workspace** is the container for everything; humans and **agents** collaborate inside it.
-- An **issue** records a piece of work; the workspace itself is the boundary that groups issues, its **resources**, and its **artifacts**.
+- An **issue** records a piece of work, and owns the **artifacts** that work produced; the workspace is the boundary that groups issues and its **resources**.
 - Assigning, @-mentioning, **chat**, or an **Autopilot** triggers an agent, producing a **task**.
 - The task completes on a **runtime**, and the results are written back to where it was triggered.
 - **Skills** let what works be reused across agents; **squads** let multiple agents work together.

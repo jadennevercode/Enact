@@ -8,7 +8,8 @@ describe("paths.workspace(slug)", () => {
     expect(ws.usage()).toBe("/acme/usage");
     expect(ws.issues()).toBe("/acme/issues");
     expect(ws.issueDetail("abc-123")).toBe("/acme/issues/abc-123");
-    expect(ws.artifacts()).toBe("/acme/artifacts");
+    expect(ws.issueArtifacts("abc-123")).toBe("/acme/issues/abc-123/artifacts");
+    expect(ws.chatSessionArtifacts("s1")).toBe("/acme/chat/s1/artifacts");
     expect(ws.autopilots()).toBe("/acme/autopilots");
     expect(ws.autopilotDetail("a1")).toBe("/acme/autopilots/a1");
     expect(ws.agents()).toBe("/acme/agents");

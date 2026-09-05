@@ -1,6 +1,6 @@
 ---
 name: enact-resources
-description: "Use when creating, inspecting, updating, or debugging Enact workspace resources (github_repo, local_directory), or when listing the workspace's artifacts."
+description: "Use when creating, inspecting, updating, or debugging Enact workspace resources (github_repo, local_directory)."
 user-invocable: false
 allowed-tools: Bash(enact *)
 ---
@@ -81,19 +81,6 @@ Add or update a resource when the user asks for durable workspace context: "把
 
 Resources are durable and affect future tasks. `enact repo checkout` is
 task-local checkout state; it does not change the resource list.
-
-## Artifacts
-
-`GET /api/artifacts` lists every file the workspace produced — issue
-attachments and chat uploads alike — newest first, as one flat list. The client
-derives folders and version grouping from the owner issue and the filename.
-
-Each row carries `owner_issue_id` / `owner_issue_number` /
-`owner_issue_identifier` / `owner_issue_title` when the file came from an issue.
-A file uploaded in chat has no owning issue, so those four fields are absent and
-the client files it under an unfiled group. `?limit=` caps the listing (default
-500, max 2000); the response's `truncated` flag says the cap was hit and the
-listing is a prefix of the truth.
 
 ## Debugging wrong context
 

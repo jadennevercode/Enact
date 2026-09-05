@@ -21,9 +21,11 @@ function workspaceScoped(slug: string) {
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,
-    // Every file the workspace produced. A section route with no per-file
-    // detail page — a file opens through `attachmentPreview`.
-    artifacts: () => `${ws}/artifacts`,
+    // The files an issue produced, its sub-issues included. Hangs off the
+    // issue because that is what owns them; there is no workspace-wide
+    // artifacts section. No per-file detail page — a file opens through
+    // `attachmentPreview`.
+    issueArtifacts: (id: string) => `${ws}/issues/${encode(id)}/artifacts`,
     autopilots: () => `${ws}/autopilots`,
     autopilotDetail: (id: string) => `${ws}/autopilots/${encode(id)}`,
     agents: () => `${ws}/agents`,
@@ -47,6 +49,10 @@ function workspaceScoped(slug: string) {
       `${ws}/chat?agent=${encode(agentId)}`,
     chatSession: (sessionId: string) =>
       `${ws}/chat?session=${encode(sessionId)}`,
+    // The files one chat session produced. A real route rather than a mode of
+    // the chat screen, so it survives a refresh and can be linked to.
+    chatSessionArtifacts: (sessionId: string) =>
+      `${ws}/chat/${encode(sessionId)}/artifacts`,
     myIssues: () => `${ws}/my-issues`,
     runtimes: () => `${ws}/runtimes`,
     runtimeDetail: (id: string) => `${ws}/runtimes/${encode(id)}`,

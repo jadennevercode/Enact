@@ -352,6 +352,7 @@
       "hint_jump": "jump",
       "hint_close": "close"
     },
+    "artifacts_tooltip": "Artifacts",
     "sidebar_tooltip": "Toggle sidebar",
     "find": {
       "placeholder": "Find in issue...",

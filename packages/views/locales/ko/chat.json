@@ -222,6 +222,7 @@
   },
   "header": {
     "view_profile": "Agent 프로필 보기",
+    "artifacts": "산출물",
     "rename": "이름 변경",
     "delete": "채팅 삭제",
     "archive": "채팅 보관",

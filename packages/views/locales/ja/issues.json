@@ -347,6 +347,7 @@
       "hint_jump": "移動",
       "hint_close": "閉じる"
     },
+    "artifacts_tooltip": "成果物",
     "sidebar_tooltip": "サイドバーの開閉",
     "find": {
       "placeholder": "タスク内を検索...",

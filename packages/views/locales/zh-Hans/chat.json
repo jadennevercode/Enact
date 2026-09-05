@@ -222,6 +222,7 @@
   },
   "header": {
     "view_profile": "查看 Agent 资料",
+    "artifacts": "产物",
     "rename": "重命名会话",
     "delete": "删除会话",
     "archive": "归档会话",

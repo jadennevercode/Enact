@@ -22,6 +22,7 @@ import {
   ChevronRight,
   CircleCheck,
   Milestone,
+  FolderOpen,
   MoreHorizontal,
   PanelRight,
   Pin,
@@ -2731,6 +2732,24 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
                 onOpenChange={handleThreadNavOpenChange}
               />
             )}
+            {/* Artifacts. Sits with the thread navigator because it navigates
+                away rather than acting on the issue. No count badge: the count
+                is only knowable from the full listing, and fetching that on
+                every issue open would cost a request nobody asked for. */}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <AppLink
+                    href={paths.issueArtifacts(issue.id)}
+                    aria-label={t(($) => $.detail.artifacts_tooltip)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                  </AppLink>
+                }
+              />
+              <TooltipContent side="bottom">{t(($) => $.detail.artifacts_tooltip)}</TooltipContent>
+            </Tooltip>
             {onDone && !issueBehavesAsAny(issue, ["done", "cancelled"]) && (
               <Tooltip>
                 <TooltipTrigger

@@ -2909,6 +2909,7 @@ const OntologySummaryWireSchema = z.object({
   capability_count: z.number().optional().default(0),
   is_layered: z.boolean().optional().default(false),
   caphub_url: z.string().optional().default(""),
+  attached: z.boolean().optional().default(false),
 }).loose();
 
 function ontologyItemFromWire(
@@ -2937,6 +2938,7 @@ function ontologySummaryFromWire(
     capabilityCount: ontology.capability_count,
     isLayered: ontology.is_layered,
     capHubUrl: ontology.caphub_url,
+    attached: ontology.attached,
   };
 }
 
@@ -2975,6 +2977,7 @@ export const EMPTY_ONTOLOGY_DETAIL: OntologyDetail = {
   capabilityCount: 0,
   isLayered: false,
   capHubUrl: "",
+  attached: false,
   entities: [],
   actions: [],
   policies: [],
@@ -3097,11 +3100,11 @@ export const EMPTY_JOIN_SHARE_LINK_RESPONSE: {
   workspace_slug: "",
 };
 
-// A file in the workspace's artifact listing. The owner-issue fields are what
-// the artifacts browser builds its folder tree from. They are nullable AND
-// defaulted: a chat upload has no owning issue, so the server omits all four,
-// and those files must land in the unfiled folder rather than collapse the
-// whole response to the empty fallback.
+// A file in an issue's or a chat session's artifact listing. The owner-issue
+// fields are what the browser separates the scope's own files from its
+// children's by. They are nullable AND defaulted: a chat upload has no owning
+// issue, so the server omits all four, and those files must still list rather
+// than collapse the whole response to the empty fallback.
 const ArtifactSchema = z.object({
   id: z.string(),
   workspace_id: z.string().default(""),
@@ -3129,12 +3132,15 @@ export const ListArtifactsResponseSchema = z.object({
   artifacts: z.array(ArtifactSchema).default([]),
   total: z.number().default(0),
   truncated: z.boolean().default(false),
+  // Absent on a chat listing, which has no issue to scope to.
+  scope_issue_id: z.string().nullable().optional().default(null),
 }).loose();
 
 export const EMPTY_LIST_ARTIFACTS_RESPONSE: ListArtifactsResponse = {
   artifacts: [],
   total: 0,
   truncated: false,
+  scope_issue_id: null,
 };
 
 // Workspace resources — repos and local directories the workspace's agents
@@ -3487,6 +3493,7 @@ export const MarketplaceListingSchema = z.object({
   latest_version: z.string().optional().default(""),
   latest_version_id: z.string().optional(),
   can_manage: z.boolean().optional().default(false),
+  installed: z.boolean().optional().default(false),
   installed_version: z.string().optional(),
   installed_version_id: z.string().optional(),
   created_at: z.string().optional().default(""),
@@ -3509,13 +3516,14 @@ export const MarketplaceFacetsSchema = z.object({
   kinds: z.record(z.string(), z.number()).optional().default({}),
   categories: z.record(z.string(), z.number()).optional().default({}),
   tags: z.record(z.string(), z.number()).optional().default({}),
+  installed: z.record(z.string(), z.number()).optional().default({}),
 }).loose();
 
 export const MarketplaceCatalogSchema = z.object({
   count: z.number().optional().default(0),
   total: z.number().optional().default(0),
   listings: z.array(MarketplaceListingSchema).optional().default([]),
-  facets: MarketplaceFacetsSchema.optional().default({ kinds: {}, categories: {}, tags: {} }),
+  facets: MarketplaceFacetsSchema.optional().default({ kinds: {}, categories: {}, tags: {}, installed: {} }),
 }).loose();
 
 export const MarketplaceListingDetailSchema = MarketplaceListingSchema.extend({
@@ -3555,6 +3563,7 @@ export const MarketplaceInstallResultSchema = z.object({
   skill: z.unknown().optional(),
   agent: z.unknown().optional(),
   mcp_server: z.unknown().optional(),
+  squad: z.unknown().optional(),
   existing_skill: z.object({
     id: z.string().optional().default(""),
     name: z.string().optional().default(""),
@@ -3567,7 +3576,7 @@ export const EMPTY_MARKETPLACE_CATALOG: MarketplaceCatalog = {
   count: 0,
   total: 0,
   listings: [],
-  facets: { kinds: {}, categories: {}, tags: {} },
+  facets: { kinds: {}, categories: {}, tags: {}, installed: {} },
 };
 
 export const EMPTY_MARKETPLACE_INSTALL_RESULT: MarketplaceInstallResult = {

@@ -2479,21 +2479,22 @@ describe("ApiClient artifacts response schema", () => {
     });
 
     const client = new ApiClient("https://api.example.test");
-    await expect(client.listArtifacts(25)).resolves.toEqual({
+    await expect(client.listIssueArtifacts("iss-1", 25)).resolves.toEqual({
       artifacts: [validArtifact],
       total: 1,
       truncated: false,
+      scope_issue_id: null,
     });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/artifacts?limit=25",
+      "https://api.example.test/api/issues/iss-1/artifacts?limit=25",
     );
   });
 
   it("omits the query string when no limit is given", async () => {
     const fetchMock = respondWith({ artifacts: [], total: 0, truncated: false });
-    await new ApiClient("https://api.example.test").listArtifacts();
+    await new ApiClient("https://api.example.test").listIssueArtifacts("iss-1");
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/artifacts",
+      "https://api.example.test/api/issues/iss-1/artifacts",
     );
   });
 
@@ -2501,13 +2502,18 @@ describe("ApiClient artifacts response schema", () => {
     respondWith({ artifacts: "not-an-array", total: "lots" });
 
     await expect(
-      new ApiClient("https://api.example.test").listArtifacts(),
-    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
+      new ApiClient("https://api.example.test").listIssueArtifacts("iss-1"),
+    ).resolves.toEqual({
+      artifacts: [],
+      total: 0,
+      truncated: false,
+      scope_issue_id: null,
+    });
   });
 
   // A chat upload belongs to no issue, so the server omits all four owner
-  // fields. That is the ordinary shape of half this listing — it must parse to
-  // nulls the tree can file as unfiled, never degrade the whole response.
+  // fields. That is the ordinary shape of every row in a chat listing — it
+  // must parse to nulls, never degrade the whole response.
   it("parses a chat upload, which carries no owner-issue fields, to null owners", async () => {
     const {
       owner_issue_id: _id,
@@ -2523,7 +2529,9 @@ describe("ApiClient artifacts response schema", () => {
       total: 1,
     });
 
-    const result = await new ApiClient("https://api.example.test").listArtifacts();
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listChatSessionArtifacts("cs-1");
     expect(result.artifacts).toHaveLength(1);
     expect(result.artifacts[0]).toMatchObject({
       id: "att-1",
@@ -2552,7 +2560,9 @@ describe("ApiClient artifacts response schema", () => {
       total: 1,
     });
 
-    const result = await new ApiClient("https://api.example.test").listArtifacts();
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listIssueArtifacts("iss-1");
     expect(result.artifacts[0]?.owner_issue_id).toBeNull();
     expect(result.artifacts[0]?.owner_issue_number).toBeNull();
   });
@@ -2563,8 +2573,40 @@ describe("ApiClient artifacts response schema", () => {
     respondWith({ artifacts: [validArtifact, { filename: "no-id.pdf" }], total: 2 });
 
     await expect(
-      new ApiClient("https://api.example.test").listArtifacts(),
-    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
+      new ApiClient("https://api.example.test").listIssueArtifacts("iss-1"),
+    ).resolves.toEqual({
+      artifacts: [],
+      total: 0,
+      truncated: false,
+      scope_issue_id: null,
+    });
+  });
+
+  // The issue route accepts a human-readable identifier, so the client cannot
+  // assume the id it asked with is the id its own rows carry. scope_issue_id
+  // is how the server names the issue it resolved.
+  it("keeps scope_issue_id so the caller can tell own files from a child's", async () => {
+    respondWith({
+      artifacts: [validArtifact],
+      total: 1,
+      scope_issue_id: "issue-uuid-1",
+    });
+
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listIssueArtifacts("ENC-42");
+    expect(result.scope_issue_id).toBe("issue-uuid-1");
+  });
+
+  it("targets the chat endpoint for a session listing", async () => {
+    const fetchMock = respondWith({ artifacts: [], total: 0 });
+    await new ApiClient("https://api.example.test").listChatSessionArtifacts(
+      "cs-1",
+      10,
+    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/chat/sessions/cs-1/artifacts?limit=10",
+    );
   });
 });
 

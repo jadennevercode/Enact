@@ -1787,6 +1787,12 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/reactions", h.AddIssueReaction)
 					r.Delete("/reactions", h.RemoveIssueReaction)
 					r.Get("/attachments", h.ListAttachments)
+					// Artifacts — the files this issue and its direct
+					// children produced, grouped and versioned by the client.
+					// Distinct from /attachments, which is the flat set of
+					// rows hanging off this issue alone and exists to resolve
+					// inline markdown references.
+					r.Get("/artifacts", h.ListIssueArtifacts)
 					r.Get("/children", h.ListChildIssues)
 					r.Get("/labels", h.ListLabelsForIssue)
 					r.Post("/labels", h.AttachLabel)
@@ -1847,11 +1853,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Delete("/", h.ArchiveIssueStatus)
 				})
 			})
-
-			// Artifacts — every file produced or attached anywhere in the
-			// workspace, newest first. Rows carry their owning issue when they
-			// have one; chat-origin attachments come back with none.
-			r.Get("/api/artifacts", h.ListArtifacts)
 
 			// Resources — repos and local directories the workspace's agents
 			// check out to work in.
@@ -2213,6 +2214,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// daemon suggestion pass for the latest assistant reply (ENA-5149).
 					r.Post("/quick-actions/regenerate", h.RegenerateChatQuickActions)
 					r.Get("/messages", h.ListChatMessages)
+					// Artifacts — every file uploaded into this session,
+					// gated exactly like the transcript above.
+					r.Get("/artifacts", h.ListChatSessionArtifacts)
 					r.Get("/messages/page", h.ListChatMessagesPage)
 					r.Get("/pending-task", h.GetPendingChatTask)
 					r.Delete("/queued-tasks", h.ClearQueuedChatTasks)
