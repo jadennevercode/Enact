@@ -167,6 +167,28 @@ func (q *Queries) CountIssues(ctx context.Context, arg CountIssuesParams) (int64
 	return count, err
 }
 
+const countIssuesByOrigin = `-- name: CountIssuesByOrigin :one
+SELECT count(*) FROM issue
+WHERE workspace_id = $1 AND origin_type = $2 AND origin_id = $3
+`
+
+type CountIssuesByOriginParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	OriginType  pgtype.Text `json:"origin_type"`
+	OriginID    pgtype.UUID `json:"origin_id"`
+}
+
+// Whether the product has already filed an issue of this kind against this
+// origin. Reads the same partial unique indexes the inserts conflict on
+// (migrations 447 and 448), so a caller can skip the write it knows will be
+// refused without treating a conflict as a failure.
+func (q *Queries) CountIssuesByOrigin(ctx context.Context, arg CountIssuesByOriginParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countIssuesByOrigin, arg.WorkspaceID, arg.OriginType, arg.OriginID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createIssue = `-- name: CreateIssue :one
 INSERT INTO issue (
     workspace_id, title, description, status, priority,
@@ -1224,6 +1246,63 @@ func (q *Queries) ListOpenIssues(ctx context.Context, arg ListOpenIssuesParams) 
 			&i.Stage,
 			&i.Properties,
 			&i.Revision,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkspaceSetupIssues = `-- name: ListWorkspaceSetupIssues :many
+SELECT id, workspace_id, title, description, status, priority, assignee_type, assignee_id, creator_type, creator_id, parent_issue_id, acceptance_criteria, context_refs, position, due_date, created_at, updated_at, number, origin_type, origin_id, first_executed_at, start_date, metadata, stage, properties, revision, last_activity_at FROM issue
+WHERE workspace_id = $1 AND origin_type = 'workspace_setup'
+ORDER BY number ASC
+`
+
+// The setup checklist a workspace opened with: the parent and its steps, found
+// by origin_type rather than by title. Titles are localized and owner-editable,
+// so nothing server-side may key off them.
+func (q *Queries) ListWorkspaceSetupIssues(ctx context.Context, workspaceID pgtype.UUID) ([]Issue, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceSetupIssues, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Issue{}
+	for rows.Next() {
+		var i Issue
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Title,
+			&i.Description,
+			&i.Status,
+			&i.Priority,
+			&i.AssigneeType,
+			&i.AssigneeID,
+			&i.CreatorType,
+			&i.CreatorID,
+			&i.ParentIssueID,
+			&i.AcceptanceCriteria,
+			&i.ContextRefs,
+			&i.Position,
+			&i.DueDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Number,
+			&i.OriginType,
+			&i.OriginID,
+			&i.FirstExecutedAt,
+			&i.StartDate,
+			&i.Metadata,
+			&i.Stage,
+			&i.Properties,
+			&i.Revision,
+			&i.LastActivityAt,
 		); err != nil {
 			return nil, err
 		}

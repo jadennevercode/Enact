@@ -98,6 +98,25 @@ UPDATE workspace SET
 WHERE id = $1
 RETURNING *;
 
+-- name: UpdateWorkspaceProfile :one
+-- The profile is replaced whole, never merged. It is authored in one act — a
+-- form submit, or a confirmed interview — and a field the author cleared has
+-- to actually clear, which a jsonb merge would silently keep.
+UPDATE workspace SET
+    profile = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING *;
+
+-- name: ListWorkspacesWithProfile :many
+-- Every workspace that has said what it is, for the recommender's pass over
+-- the directory. Sequential by design: one row per workspace is a cardinality
+-- where an index costs a write per update and saves nothing.
+SELECT id, name, slug, profile
+FROM workspace
+WHERE profile <> '{}'::jsonb
+ORDER BY id ASC;
+
 -- name: IncrementIssueCounter :one
 UPDATE workspace SET issue_counter = issue_counter + 1
 WHERE id = $1
@@ -208,6 +227,12 @@ cleared_issue_properties AS (
 ),
 cleared_quick_actions AS (
     DELETE FROM quick_action WHERE workspace_id = $1
+),
+cleared_recommendation_decisions AS (
+    -- marketplace_recommendation_decision (migration 449) carries no FK, for
+    -- the same reason the marketplace tables do not. Sweep it here so a
+    -- workspace's dismissals commit or roll back with the workspace row.
+    DELETE FROM marketplace_recommendation_decision WHERE workspace_id = $1
 ),
 ws_mcp_servers AS (
     SELECT id FROM workspace_mcp_server WHERE workspace_id = $1

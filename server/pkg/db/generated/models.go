@@ -990,6 +990,16 @@ type MarketplaceListingVersion struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type MarketplaceRecommendationDecision struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	VersionID   pgtype.UUID        `json:"version_id"`
+	Decision    string             `json:"decision"`
+	DecidedBy   pgtype.UUID        `json:"decided_by"`
+	DecidedAt   pgtype.Timestamptz `json:"decided_at"`
+}
+
 type Member struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
@@ -1468,8 +1478,9 @@ type Workspace struct {
 	IssueCounter int32              `json:"issue_counter"`
 	AvatarUrl    pgtype.Text        `json:"avatar_url"`
 	// When TRUE, an agent run that resolves to no precise accountable human (would be owner_fallback) is refused at enqueue instead of degrading to the agent owner (ENA-4302 §3.5). Default FALSE = owner_fallback. Never affects authorization (originator_user_id).
-	AttributionFailClosed bool  `json:"attribution_fail_closed"`
-	SdlcDefaultsVersion   int32 `json:"sdlc_defaults_version"`
+	AttributionFailClosed bool   `json:"attribution_fail_closed"`
+	SdlcDefaultsVersion   int32  `json:"sdlc_defaults_version"`
+	Profile               []byte `json:"profile"`
 }
 
 type WorkspaceInvitation struct {

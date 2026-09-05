@@ -16,6 +16,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/logger"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
 	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/workspacesetup"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
 	"github.com/go-chi/chi/v5"
@@ -108,25 +109,55 @@ type WorkspaceResponse struct {
 }
 
 func (h *Handler) workspaceToResponse(w db.Workspace) WorkspaceResponse {
-	var settings any
-	if w.Settings != nil {
-		json.Unmarshal(w.Settings, &settings)
-	}
-	if settings == nil {
-		settings = map[string]any{}
-	}
 	return WorkspaceResponse{
 		ID:          uuidToString(w.ID),
 		Name:        w.Name,
 		Slug:        w.Slug,
 		Description: textToPtr(w.Description),
 		Context:     textToPtr(w.Context),
-		Settings:    settings,
+		Settings:    decodeWorkspaceSettings(w.Settings),
 		IssuePrefix: w.IssuePrefix,
 		AvatarURL:   h.resolveAvatarURLPtr(textToPtr(w.AvatarUrl)),
 		CreatedAt:   timestampToString(w.CreatedAt),
 		UpdatedAt:   timestampToString(w.UpdatedAt),
 	}
+}
+
+// listWorkspaceRowToResponse renders a row from the workspace switcher's
+// narrow projection.
+//
+// ListWorkspaces deliberately does not read `profile`: a repository brief is
+// allowed to be several kilobytes, and the switcher renders a name. Paying
+// that on every sidebar load, once per workspace the member belongs to, to
+// avoid the mapping below would be the wrong trade.
+func (h *Handler) listWorkspaceRowToResponse(w db.ListWorkspacesRow) WorkspaceResponse {
+	return WorkspaceResponse{
+		ID:          uuidToString(w.ID),
+		Name:        w.Name,
+		Slug:        w.Slug,
+		Description: textToPtr(w.Description),
+		Context:     textToPtr(w.Context),
+		Settings:    decodeWorkspaceSettings(w.Settings),
+		IssuePrefix: w.IssuePrefix,
+		AvatarURL:   h.resolveAvatarURLPtr(textToPtr(w.AvatarUrl)),
+		CreatedAt:   timestampToString(w.CreatedAt),
+		UpdatedAt:   timestampToString(w.UpdatedAt),
+	}
+}
+
+// decodeWorkspaceSettings reads the settings blob, answering `{}` for anything
+// unreadable. The column is owner-editable JSON that predates any schema for
+// it, so a null, an empty column, or a value that is not an object all have to
+// render as "no settings" rather than as a failed workspace read.
+func decodeWorkspaceSettings(raw []byte) any {
+	var settings any
+	if raw != nil {
+		json.Unmarshal(raw, &settings)
+	}
+	if settings == nil {
+		settings = map[string]any{}
+	}
+	return settings
 }
 
 type MemberResponse struct {
@@ -161,7 +192,7 @@ func (h *Handler) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]WorkspaceResponse, len(workspaces))
 	for i, ws := range workspaces {
-		resp[i] = h.workspaceToResponse(ws)
+		resp[i] = h.listWorkspaceRowToResponse(ws)
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -188,6 +219,13 @@ type CreateWorkspaceRequest struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	IssuePrefix *string `json:"issue_prefix"`
+	// Language selects the copy the setup checklist and its welcome inbox item
+	// are written in. The server has no other way to know: a workspace has no
+	// language of its own, the creator's locale lives in a cookie the API
+	// never sees, and a member who reads Chinese should not be met by an
+	// English explanation of what Enact is. Unknown or absent falls back to
+	// English rather than failing the create.
+	Language string `json:"language"`
 }
 
 func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -289,6 +327,17 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	// workspace is never missing part of the portable delivery system.
 	if err := service.EnsureSDLCDefaultsInTx(r.Context(), qtx, ws.ID, parseUUID(userID), pgtype.UUID{}); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to seed SDLC defaults: "+err.Error())
+		return
+	}
+
+	// The setup checklist and its welcome inbox item, in the same transaction
+	// so a workspace is never visible without the thing that explains it. This
+	// is not agent work and starts no run: the four issues are a person's
+	// list, assigned to the member who just created the workspace.
+	if err := h.seedWorkspaceSetupInTx(
+		r.Context(), qtx, ws, parseUUID(userID), workspacesetup.NormalizeLanguage(req.Language),
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to seed the setup checklist: "+err.Error())
 		return
 	}
 	// The Retrospect Agent is deliberately NOT seeded here. It is opt-in: a

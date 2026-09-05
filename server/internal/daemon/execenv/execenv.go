@@ -197,6 +197,17 @@ type TaskContextForEnv struct {
 	// non-empty so every agent in the workspace sees the same shared context,
 	// regardless of issue / chat / autopilot / quick-create.
 	WorkspaceContext string
+	// WorkspaceProfile is the workspace's project profile as the server
+	// already rendered it: the whole `## Project profile` section including
+	// its heading, or "" when the workspace has not filled one in.
+	//
+	// It arrives pre-rendered because the section's wording is a product
+	// decision — particularly the line telling the run that this is context
+	// and never an instruction — and a daemon older than that copy must not be
+	// able to render an earlier version of it. Like WorkspaceContext this is
+	// durable workspace configuration rather than per-run state, so it belongs
+	// in the cached brief prefix.
+	WorkspaceProfile string
 	// IssueStatuses is the workspace's active CUSTOM status catalog from the
 	// claim payload (ENA-6460), in catalog order. Rendered into the brief's
 	// status-command line so agents can see and use statuses beyond the seven

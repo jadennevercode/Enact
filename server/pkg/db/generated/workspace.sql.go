@@ -25,7 +25,7 @@ func (q *Queries) AcquireSDLCDefaultsLock(ctx context.Context, workspaceID pgtyp
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
 `
 
 type CreateWorkspaceParams struct {
@@ -59,6 +59,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -135,6 +136,12 @@ cleared_issue_properties AS (
 ),
 cleared_quick_actions AS (
     DELETE FROM quick_action WHERE workspace_id = $1
+),
+cleared_recommendation_decisions AS (
+    -- marketplace_recommendation_decision (migration 449) carries no FK, for
+    -- the same reason the marketplace tables do not. Sweep it here so a
+    -- workspace's dismissals commit or roll back with the workspace row.
+    DELETE FROM marketplace_recommendation_decision WHERE workspace_id = $1
 ),
 ws_mcp_servers AS (
     SELECT id FROM workspace_mcp_server WHERE workspace_id = $1
@@ -224,7 +231,7 @@ func (q *Queries) GetDaemonWorkspace(ctx context.Context, id pgtype.UUID) (GetDa
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile FROM workspace
 WHERE id = $1
 `
 
@@ -245,6 +252,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -264,7 +272,7 @@ func (q *Queries) GetWorkspaceAttributionFailClosed(ctx context.Context, id pgty
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile FROM workspace
 WHERE slug = $1
 `
 
@@ -285,6 +293,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -350,15 +359,31 @@ WHERE m.user_id = $1
 ORDER BY w.created_at ASC
 `
 
-func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Workspace, error) {
+type ListWorkspacesRow struct {
+	ID                    pgtype.UUID        `json:"id"`
+	Name                  string             `json:"name"`
+	Slug                  string             `json:"slug"`
+	Description           pgtype.Text        `json:"description"`
+	Settings              []byte             `json:"settings"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+	Context               pgtype.Text        `json:"context"`
+	IssuePrefix           string             `json:"issue_prefix"`
+	IssueCounter          int32              `json:"issue_counter"`
+	AvatarUrl             pgtype.Text        `json:"avatar_url"`
+	AttributionFailClosed bool               `json:"attribution_fail_closed"`
+	SdlcDefaultsVersion   int32              `json:"sdlc_defaults_version"`
+}
+
+func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListWorkspacesRow, error) {
 	rows, err := q.db.Query(ctx, listWorkspaces, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Workspace{}
+	items := []ListWorkspacesRow{}
 	for rows.Next() {
-		var i Workspace
+		var i ListWorkspacesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -441,6 +466,48 @@ func (q *Queries) ListWorkspacesNeedingSDLCDefaults(ctx context.Context, sdlcDef
 	return items, nil
 }
 
+const listWorkspacesWithProfile = `-- name: ListWorkspacesWithProfile :many
+SELECT id, name, slug, profile
+FROM workspace
+WHERE profile <> '{}'::jsonb
+ORDER BY id ASC
+`
+
+type ListWorkspacesWithProfileRow struct {
+	ID      pgtype.UUID `json:"id"`
+	Name    string      `json:"name"`
+	Slug    string      `json:"slug"`
+	Profile []byte      `json:"profile"`
+}
+
+// Every workspace that has said what it is, for the recommender's pass over
+// the directory. Sequential by design: one row per workspace is a cardinality
+// where an index costs a write per update and saves nothing.
+func (q *Queries) ListWorkspacesWithProfile(ctx context.Context) ([]ListWorkspacesWithProfileRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspacesWithProfile)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkspacesWithProfileRow{}
+	for rows.Next() {
+		var i ListWorkspacesWithProfileRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Profile,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockWorkspaceForChatSessionCreate = `-- name: LockWorkspaceForChatSessionCreate :one
 SELECT id FROM workspace WHERE id = $1 FOR KEY SHARE
 `
@@ -512,7 +579,7 @@ UPDATE workspace SET
     avatar_url = COALESCE($7, avatar_url),
     updated_at = now()
 WHERE id = $1
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
 `
 
 type UpdateWorkspaceParams struct {
@@ -550,6 +617,45 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
+	)
+	return i, err
+}
+
+const updateWorkspaceProfile = `-- name: UpdateWorkspaceProfile :one
+UPDATE workspace SET
+    profile = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
+`
+
+type UpdateWorkspaceProfileParams struct {
+	ID      pgtype.UUID `json:"id"`
+	Profile []byte      `json:"profile"`
+}
+
+// The profile is replaced whole, never merged. It is authored in one act — a
+// form submit, or a confirmed interview — and a field the author cleared has
+// to actually clear, which a jsonb merge would silently keep.
+func (q *Queries) UpdateWorkspaceProfile(ctx context.Context, arg UpdateWorkspaceProfileParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, updateWorkspaceProfile, arg.ID, arg.Profile)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.Settings,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Context,
+		&i.IssuePrefix,
+		&i.IssueCounter,
+		&i.AvatarUrl,
+		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }

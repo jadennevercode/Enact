@@ -1446,6 +1446,18 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireWorkspaceMemberFromURL(queries, "id"))
 					r.Get("/", h.GetWorkspace)
+					// The setup checklist. A GET that writes: it files what the
+					// workspace is missing and closes the steps that have
+					// become true, because reading the checklist is exactly
+					// when its staleness matters. See workspace_setup.go.
+					r.Get("/setup", h.GetWorkspaceSetup)
+					// The project profile is member-writable, unlike
+					// `context` above it, which stays admin-only. Context is a
+					// standing instruction to every agent; the profile is a
+					// description every agent may consult, and the interview
+					// run writes it on an ordinary member's behalf.
+					r.Get("/profile", h.GetWorkspaceProfile)
+					r.Put("/profile", h.UpdateWorkspaceProfile)
 					r.Get("/members", h.ListMembersWithUser)
 					r.Post("/leave", h.LeaveWorkspace)
 					r.Get("/invitations", h.ListWorkspaceInvitations)
