@@ -467,3 +467,201 @@ func TestDetectOntologizerEnvNeedsARealCheckout(t *testing.T) {
 		t.Errorf("no config should yield no env, got %v", env)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Publish
+// ---------------------------------------------------------------------------
+
+func TestMarketplaceSlugKeepsPluginPrefixReadable(t *testing.T) {
+	// The server's own slugify drops a colon rather than separating on it,
+	// which would turn ontologizer:trace into "ontologizertrace".
+	cases := map[string]string{
+		"ontologizer:trace":       "ontologizer-trace",
+		"ontologizer:package":     "ontologizer-package",
+		"Ontology Domain Analyst": "ontology-domain-analyst",
+		"Ontology Construction":   "ontology-construction",
+		"  Spaced  //  Name  ":    "spaced-name",
+	}
+	for in, want := range cases {
+		if got := marketplaceSlug(in); got != want {
+			t.Errorf("marketplaceSlug(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// publishRecorder captures what a publish sends.
+type publishRecorder struct {
+	posts []map[string]any
+	// duplicate marks slugs the server answers as already published.
+	duplicate map[string]bool
+}
+
+func publishMockServer(t *testing.T, ws ontoWorkspace, rec *publishRecorder) *httptest.Server {
+	t.Helper()
+	write := func(w http.ResponseWriter, body any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(body)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/skills", func(w http.ResponseWriter, _ *http.Request) { write(w, ws.skills) })
+	mux.HandleFunc("/api/agents", func(w http.ResponseWriter, _ *http.Request) { write(w, ws.agents) })
+	mux.HandleFunc("/api/squads", func(w http.ResponseWriter, _ *http.Request) { write(w, ws.squads) })
+	mux.HandleFunc("/api/marketplace/listings", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		rec.posts = append(rec.posts, body)
+		if rec.duplicate[strVal(body, "slug")] {
+			w.WriteHeader(http.StatusConflict)
+			write(w, map[string]any{"error": "version 0.1.0 has already been published; a published version is never overwritten"})
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		write(w, map[string]any{"listing": map[string]any{"id": "listing-1"}})
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func newOntoPublishCmd() *cobra.Command {
+	c := &cobra.Command{Use: "publish"}
+	c.Flags().String("version", "", "")
+	c.Flags().String("visibility", "workspace", "")
+	c.Flags().String("changelog", "", "")
+	c.Flags().String("category", "ontology", "")
+	c.Flags().StringSlice("tags", nil, "")
+	c.Flags().StringSlice("kinds", nil, "")
+	c.Flags().Bool("dry-run", false, "")
+	c.Flags().String("profile", "", "")
+	return c
+}
+
+func TestOntologizerPublishCoversAllThreeKinds(t *testing.T) {
+	manifest := ontologizer.DefaultAgentManifest()
+	rec := &publishRecorder{duplicate: map[string]bool{}}
+	srv := publishMockServer(t, wiredWorkspace(), rec)
+	ontoEnv(t, srv.URL)
+
+	cmd := newOntoPublishCmd()
+	_ = cmd.Flags().Set("version", "0.1.0")
+	if err := runOntologizerPublish(cmd, nil); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	want := len(manifest.RuntimeSkillNames) + len(manifest.Agents) + 1
+	if len(rec.posts) != want {
+		t.Fatalf("published %d listings, want %d", len(rec.posts), want)
+	}
+
+	byKind := map[string]int{}
+	slugs := map[string]bool{}
+	for _, post := range rec.posts {
+		byKind[strVal(post, "kind")]++
+		slugs[strVal(post, "slug")] = true
+		if strVal(post, "version") != "0.1.0" {
+			t.Errorf("listing %q published at version %q", strVal(post, "slug"), strVal(post, "version"))
+		}
+		// Workspace-only by default: making something visible to the whole
+		// deployment should be a thing someone chose, not a default.
+		if strVal(post, "visibility") != "workspace" {
+			t.Errorf("listing %q defaulted to visibility %q", strVal(post, "slug"), strVal(post, "visibility"))
+		}
+		if strVal(post, "source_id") == "" {
+			t.Errorf("listing %q has no source entity", strVal(post, "slug"))
+		}
+	}
+	if byKind["skill"] != len(manifest.RuntimeSkillNames) || byKind["agent"] != len(manifest.Agents) || byKind["squad"] != 1 {
+		t.Errorf("kind spread %v", byKind)
+	}
+	// The family is the headline listing; a publish that dropped it would ship
+	// five roles nobody can assemble.
+	if !slugs["ontology-construction"] {
+		t.Error("the Agent Family was not published")
+	}
+	if !slugs["ontologizer-trace"] {
+		t.Error("skill slugs should keep the plugin prefix readable")
+	}
+}
+
+func TestOntologizerPublishTreatsAPublishedVersionAsDone(t *testing.T) {
+	rec := &publishRecorder{duplicate: map[string]bool{"ontology-construction": true}}
+	srv := publishMockServer(t, wiredWorkspace(), rec)
+	ontoEnv(t, srv.URL)
+
+	cmd := newOntoPublishCmd()
+	_ = cmd.Flags().Set("version", "0.1.0")
+	// Re-running the same version is the idempotent case: the listing already
+	// carries exactly what this run would send, so it is not a failure.
+	if err := runOntologizerPublish(cmd, nil); err != nil {
+		t.Fatalf("a republished version should not fail the run: %v", err)
+	}
+}
+
+func TestOntologizerPublishKindsAndDryRun(t *testing.T) {
+	rec := &publishRecorder{duplicate: map[string]bool{}}
+	srv := publishMockServer(t, wiredWorkspace(), rec)
+	ontoEnv(t, srv.URL)
+
+	cmd := newOntoPublishCmd()
+	_ = cmd.Flags().Set("version", "0.1.0")
+	_ = cmd.Flags().Set("kinds", "squad")
+	if err := runOntologizerPublish(cmd, nil); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if len(rec.posts) != 1 || strVal(rec.posts[0], "kind") != "squad" {
+		t.Fatalf("--kinds squad should publish only the family, got %+v", rec.posts)
+	}
+
+	rec.posts = nil
+	dry := newOntoPublishCmd()
+	_ = dry.Flags().Set("version", "0.1.0")
+	_ = dry.Flags().Set("dry-run", "true")
+	if err := runOntologizerPublish(dry, nil); err != nil {
+		t.Fatalf("dry run: %v", err)
+	}
+	if len(rec.posts) != 0 {
+		t.Errorf("--dry-run must not publish anything, got %d", len(rec.posts))
+	}
+}
+
+func TestOntologizerPublishRejectsBadFlags(t *testing.T) {
+	srv := publishMockServer(t, wiredWorkspace(), &publishRecorder{duplicate: map[string]bool{}})
+	ontoEnv(t, srv.URL)
+
+	noVersion := newOntoPublishCmd()
+	if err := runOntologizerPublish(noVersion, nil); err == nil || !strings.Contains(err.Error(), "--version is required") {
+		t.Errorf("an empty version should be refused before any request, got %v", err)
+	}
+
+	badVisibility := newOntoPublishCmd()
+	_ = badVisibility.Flags().Set("version", "0.1.0")
+	_ = badVisibility.Flags().Set("visibility", "everyone")
+	if err := runOntologizerPublish(badVisibility, nil); err == nil || !strings.Contains(err.Error(), "--visibility") {
+		t.Errorf("an unknown visibility should be refused, got %v", err)
+	}
+
+	badKind := newOntoPublishCmd()
+	_ = badKind.Flags().Set("version", "0.1.0")
+	_ = badKind.Flags().Set("kinds", "mcp")
+	if err := runOntologizerPublish(badKind, nil); err == nil || !strings.Contains(err.Error(), "--kinds") {
+		t.Errorf("a kind outside the portfolio should be refused, got %v", err)
+	}
+}
+
+func TestOntologizerPublishSaysWhatToRunWhenNothingExists(t *testing.T) {
+	rec := &publishRecorder{duplicate: map[string]bool{}}
+	srv := publishMockServer(t, ontoWorkspace{}, rec)
+	ontoEnv(t, srv.URL)
+
+	cmd := newOntoPublishCmd()
+	_ = cmd.Flags().Set("version", "0.1.0")
+	err := runOntologizerPublish(cmd, nil)
+	if err == nil {
+		t.Fatal("publishing an empty workspace should fail")
+	}
+	// The fix belongs in the message: a publish snapshots entities, so an empty
+	// workspace means bootstrap has not run.
+	if !strings.Contains(err.Error(), "agent bootstrap") {
+		t.Errorf("error should point at bootstrap, got: %v", err)
+	}
+}

@@ -307,3 +307,108 @@ func runOntologizerVerify(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(os.Stderr, "\nAll required checks passed. Machine-level health is `enact ontologizer setup`'s check step.")
 	return nil
 }
+
+// ---------------------------------------------------------------------------
+// Marketplace
+// ---------------------------------------------------------------------------
+
+var ontologizerPublishCmd = &cobra.Command{
+	Use:   "publish",
+	Short: "Publish the Ontologizer skills, agents and Agent Family to the Marketplace",
+	Long: `Publishes what this workspace holds, as three kinds of listing:
+
+  - every ontologizer:* skill, so a method can be taken on its own
+  - each of the five role agents, so a team can take one role
+  - the "Ontology Construction" Agent Family, which is the headline: installing
+    it creates every member agent, the skills each carries, and the family
+    binding them, in one transaction
+
+A publish reads an entity that already exists here — the server snapshots it
+and strips every credential-bearing field, which is what makes the redaction
+trustworthy. So run "enact ontologizer agent bootstrap" first; this publishes
+what that created, and reports anything it cannot find rather than inventing it.
+
+Visibility defaults to "workspace", an internal library. Make it "public" when
+you are ready for every workspace in the deployment to see it; both install the
+same way.
+
+A published version is never overwritten. Re-running with the same --version
+reports each listing as already published and changes nothing; publishing a new
+version adds it to the same listing, so the link and the history stay put.
+
+Publishing is a human decision about what leaves the workspace: the server
+refuses an agent actor, and requires workspace owner or admin.
+
+Examples:
+  enact ontologizer publish --version 0.1.0
+  enact ontologizer publish --version 0.2.0 --visibility public --changelog "adds the package stage"
+  enact ontologizer publish --version 0.1.0 --kinds squad --dry-run`,
+	Args: cobra.NoArgs,
+	RunE: runOntologizerPublish,
+}
+
+func init() {
+	ontologizerPublishCmd.Flags().String("version", "", "Version string for this publish (required); a published version is never overwritten")
+	ontologizerPublishCmd.Flags().String("visibility", "workspace", "workspace (internal library) or public (every workspace in the deployment)")
+	ontologizerPublishCmd.Flags().String("changelog", "", "What changed in this version")
+	ontologizerPublishCmd.Flags().String("category", "ontology", "Directory category")
+	ontologizerPublishCmd.Flags().StringSlice("tags", []string{"ontology", "knowledge-graph", "governance", "traceability"}, "Directory tags")
+	ontologizerPublishCmd.Flags().StringSlice("kinds", nil, "Limit to some of skill,agent,squad (default: all three)")
+	ontologizerPublishCmd.Flags().Bool("dry-run", false, "List what would be published without publishing it")
+	ontologizerCmd.AddCommand(ontologizerPublishCmd)
+}
+
+func runOntologizerPublish(cmd *cobra.Command, _ []string) error {
+	client, err := newAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+	if _, err := requireWorkspaceID(cmd); err != nil {
+		return err
+	}
+
+	version, _ := cmd.Flags().GetString("version")
+	if strings.TrimSpace(version) == "" {
+		return fmt.Errorf("--version is required — a listing's history is a sequence of versions, and the server refuses an empty one")
+	}
+	visibility, _ := cmd.Flags().GetString("visibility")
+	if visibility != "workspace" && visibility != "public" {
+		return fmt.Errorf("--visibility must be workspace or public, got %q", visibility)
+	}
+	changelog, _ := cmd.Flags().GetString("changelog")
+	category, _ := cmd.Flags().GetString("category")
+	tags, _ := cmd.Flags().GetStringSlice("tags")
+	kindList, _ := cmd.Flags().GetStringSlice("kinds")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+	kinds := map[string]bool{}
+	for _, kind := range kindList {
+		kind = strings.TrimSpace(kind)
+		if kind != "skill" && kind != "agent" && kind != "squad" {
+			return fmt.Errorf("--kinds must be some of skill,agent,squad, got %q", kind)
+		}
+		kinds[kind] = true
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), cli.AtLeastAPITimeout(120*time.Second))
+	defer cancel()
+
+	if err := publishPortfolio(ctx, client, ontologizer.DefaultAgentManifest(), portfolioPublishOptions{
+		Version:    strings.TrimSpace(version),
+		Visibility: visibility,
+		Changelog:  changelog,
+		Category:   category,
+		Tags:       tags,
+		Kinds:      kinds,
+		DryRun:     dryRun,
+	}); err != nil {
+		return err
+	}
+	if !dryRun {
+		fmt.Fprintln(os.Stderr, "\nBrowse them with `enact marketplace list --output json`.")
+		if visibility == "workspace" {
+			fmt.Fprintln(os.Stderr, "Visibility is workspace-only; re-publish a new version with --visibility public to reach the whole deployment.")
+		}
+	}
+	return nil
+}

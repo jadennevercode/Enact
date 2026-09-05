@@ -613,3 +613,201 @@ func intVal(m map[string]any, key string) int {
 	}
 	return 0
 }
+
+// ---------------------------------------------------------------------------
+// Publish
+// ---------------------------------------------------------------------------
+
+// Publishing a whole portfolio to the Marketplace.
+//
+// A publish reads an entity that already exists in the workspace — the server
+// snapshots it and strips every credential-bearing field, which is what makes
+// the redaction trustworthy. So this runs after bootstrap, never instead of it.
+//
+// One integration produces three kinds of listing. The Agent Family is the
+// headline: installing it creates every member agent, the skills each carries,
+// and the family binding them, in one transaction. The individual agents and
+// skills are published too so someone can take one role, or one method,
+// without the rest.
+
+type portfolioPublishOptions struct {
+	Version    string
+	Visibility string
+	Changelog  string
+	Category   string
+	Tags       []string
+	// Kinds selects which of skill/agent/squad to publish. Empty means all.
+	Kinds  map[string]bool
+	DryRun bool
+}
+
+func (o portfolioPublishOptions) wants(kind string) bool {
+	return len(o.Kinds) == 0 || o.Kinds[kind]
+}
+
+type publishTarget struct {
+	kind     string
+	sourceID string
+	slug     string
+	label    string
+}
+
+// publishPortfolio publishes every entity the manifest describes, in the order
+// that reads best in the output: the methods, then the roles that use them,
+// then the family that binds the roles.
+func publishPortfolio(ctx context.Context, client *cli.APIClient, manifest portfolio.Manifest, opts portfolioPublishOptions) error {
+	targets, err := collectPublishTargets(ctx, client, manifest, opts)
+	if err != nil {
+		return err
+	}
+	if len(targets) == 0 {
+		return fmt.Errorf("nothing to publish — run `%s` first so the entities exist in this workspace", manifest.BootstrapCommand)
+	}
+
+	if opts.DryRun {
+		fmt.Fprintf(os.Stderr, "\n==> Would publish %d listing(s) at version %s (%s)\n", len(targets), opts.Version, opts.Visibility)
+		for _, t := range targets {
+			fmt.Fprintf(os.Stderr, "  %-6s %-34s %s\n", t.kind, t.slug, t.label)
+		}
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "\n==> Publishing %d listing(s) at version %s (%s)\n", len(targets), opts.Version, opts.Visibility)
+	published, existing, failed := 0, 0, 0
+	for _, t := range targets {
+		body := map[string]any{
+			"kind":       t.kind,
+			"source_id":  t.sourceID,
+			"slug":       t.slug,
+			"version":    opts.Version,
+			"visibility": opts.Visibility,
+		}
+		if opts.Changelog != "" {
+			body["changelog"] = opts.Changelog
+		}
+		if opts.Category != "" {
+			body["category"] = opts.Category
+		}
+		if len(opts.Tags) > 0 {
+			body["tags"] = opts.Tags
+		}
+		var result map[string]any
+		if err := client.PostJSON(ctx, "/api/marketplace/listings", body, &result); err != nil {
+			// A version that is already published is the idempotent re-run
+			// case, not a failure: a published version is never overwritten,
+			// so the listing already carries exactly what this run would send.
+			if strings.Contains(err.Error(), "already been published") {
+				existing++
+				fmt.Fprintf(os.Stderr, "  %-6s %-34s already at %s — kept\n", t.kind, t.slug, opts.Version)
+				continue
+			}
+			failed++
+			fmt.Fprintf(os.Stderr, "  %-6s %-34s failed: %v\n", t.kind, t.slug, err)
+			continue
+		}
+		published++
+		fmt.Fprintf(os.Stderr, "  %-6s %-34s published\n", t.kind, t.slug)
+	}
+
+	fmt.Fprintf(os.Stderr, "Listings: %d published, %d already at this version, %d failed\n", published, existing, failed)
+	if failed > 0 {
+		return fmt.Errorf("%d listing(s) failed to publish", failed)
+	}
+	return nil
+}
+
+// collectPublishTargets resolves the workspace entities the manifest names.
+// Anything missing is reported and skipped rather than aborting: publishing
+// four of five roles is more useful than publishing none because one was
+// archived.
+func collectPublishTargets(ctx context.Context, client *cli.APIClient, manifest portfolio.Manifest, opts portfolioPublishOptions) ([]publishTarget, error) {
+	var targets []publishTarget
+
+	if opts.wants("skill") {
+		skillIDs, err := fetchPortfolioSkillIDs(ctx, client, manifest)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range manifest.RuntimeSkillNames {
+			id, ok := skillIDs[name]
+			if !ok {
+				fmt.Fprintf(os.Stderr, "  skill  %-34s not in the workspace — skipped\n", name)
+				continue
+			}
+			targets = append(targets, publishTarget{
+				kind: "skill", sourceID: id, label: name,
+				// The plugin prefix separates with a colon, which slugifies to
+				// nothing; spell the slug so the handle stays readable.
+				slug: marketplaceSlug(name),
+			})
+		}
+	}
+
+	if opts.wants("agent") || opts.wants("squad") {
+		var agents []map[string]any
+		path := "/api/agents?" + url.Values{"workspace_id": {client.WorkspaceID}}.Encode()
+		if err := client.GetJSON(ctx, path, &agents); err != nil {
+			return nil, fmt.Errorf("list agents: %w", err)
+		}
+		byName := make(map[string]string, len(agents))
+		for _, a := range agents {
+			byName[strVal(a, "name")] = strVal(a, "id")
+		}
+		if opts.wants("agent") {
+			for _, spec := range manifest.Agents {
+				id, ok := byName[spec.Name]
+				if !ok {
+					fmt.Fprintf(os.Stderr, "  agent  %-34s not in the workspace — skipped\n", spec.Name)
+					continue
+				}
+				targets = append(targets, publishTarget{
+					kind: "agent", sourceID: id, slug: marketplaceSlug(spec.Name), label: spec.Name,
+				})
+			}
+		}
+	}
+
+	if opts.wants("squad") {
+		var squads []map[string]any
+		if err := client.GetJSON(ctx, "/api/squads", &squads); err != nil {
+			return nil, fmt.Errorf("list squads: %w", err)
+		}
+		found := false
+		for _, s := range squads {
+			if strVal(s, "name") != manifest.Squad.Name {
+				continue
+			}
+			found = true
+			targets = append(targets, publishTarget{
+				kind: "squad", sourceID: strVal(s, "id"),
+				slug: marketplaceSlug(manifest.Squad.Name), label: manifest.Squad.Name,
+			})
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr, "  squad  %-34s not in the workspace — skipped\n", manifest.Squad.Name)
+		}
+	}
+
+	return targets, nil
+}
+
+// marketplaceSlug mirrors the server's slugify, except that it treats a colon
+// as a separator. The server drops it, which would turn "ontologizer:trace"
+// into "ontologizertrace" — a handle nobody can read or type.
+func marketplaceSlug(name string) string {
+	var b strings.Builder
+	lastDash := true
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastDash = false
+		case r == '-', r == '_', r == ' ', r == '.', r == '/', r == ':':
+			if !lastDash && b.Len() > 0 {
+				b.WriteRune('-')
+				lastDash = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
+}
