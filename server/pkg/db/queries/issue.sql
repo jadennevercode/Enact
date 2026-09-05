@@ -236,6 +236,18 @@ SELECT * FROM issue
 WHERE workspace_id = $1 AND origin_type = 'workspace_setup'
 ORDER BY number ASC;
 
+-- name: ListActiveIssuesByOriginType :many
+-- The product-filed issues of one kind that have not finished yet. The setup
+-- checklist reads it to distinguish "the repository has not been read" from
+-- "a run is reading it right now", which are the same `done: false` to a
+-- member and very different things to say.
+SELECT * FROM issue
+WHERE workspace_id = $1
+  AND origin_type = $2
+  AND status NOT IN ('done', 'cancelled')
+ORDER BY created_at DESC
+LIMIT 1;
+
 -- name: CountIssuesByOrigin :one
 -- Whether the product has already filed an issue of this kind against this
 -- origin. Reads the same partial unique indexes the inserts conflict on

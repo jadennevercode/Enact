@@ -546,6 +546,15 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		userID,
 		map[string]any{"resource": resp},
 	)
+
+	// Read the tree into the project profile, if this workspace has said what
+	// it is and has a Mika to do it. Deliberately after the response is
+	// decided and never able to fail it: the member asked to attach a
+	// resource, that succeeded, and an optional follow-up must not turn it
+	// into an error. See workspace_repo_analysis.go for every gate.
+	if ws, err := h.Queries.GetWorkspace(r.Context(), wsID); err == nil {
+		h.maybeFileRepositoryAnalysis(r, ws, resource, userID)
+	}
 	writeJSON(w, http.StatusCreated, resp)
 }
 

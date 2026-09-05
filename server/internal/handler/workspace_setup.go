@@ -370,6 +370,16 @@ func (h *Handler) readWorkspaceSetupState(ctx context.Context, ws db.Workspace) 
 		}
 		state.ReviewedCapability = dismissed > 0
 	}
+
+	// An analysis still running is what makes "the repository step is not done"
+	// explicable: the member connected the repository and something is reading
+	// it, which is a different thing to say than "you have not done this".
+	if running, err := h.Queries.ListActiveIssuesByOriginType(ctx, db.ListActiveIssuesByOriginTypeParams{
+		WorkspaceID: ws.ID,
+		OriginType:  pgtype.Text{String: workspacesetup.RepoAnalysisOriginType, Valid: true},
+	}); err == nil && len(running) > 0 {
+		state.RepoAnalysisIssueID = uuidToString(running[0].ID)
+	}
 	return state, nil
 }
 
