@@ -45,6 +45,50 @@ type marketplaceManifest struct {
 	Agent *marketplaceAgentManifest `json:"agent,omitempty"`
 	Mcp   *marketplaceMcpManifest   `json:"mcp,omitempty"`
 	Squad *marketplaceSquadManifest `json:"squad,omitempty"`
+	// Prerequisites are things that must be true on the installing side before
+	// the copy will actually work, in the publisher's own words: "run `enact
+	// ontologizer setup` on the runtime host", "the repository must contain a
+	// pnpm workspace".
+	//
+	// They exist because an install is a copy, and a copy of an agent whose
+	// skills shell out to a Python engine installed on the publisher's machine
+	// arrives describing commands the installing machine does not have. There
+	// is nothing the server can check here — the condition is on someone
+	// else's host — so this is prose shown before the install and nothing more.
+	// Presenting it as a validated gate would be worse than presenting it as
+	// what it is.
+	Prerequisites []string `json:"prerequisites,omitempty"`
+}
+
+// maxMarketplacePrerequisites and maxMarketplacePrerequisiteLen bound the
+// field. A publisher with more conditions than this is describing a runbook,
+// which belongs in the skill body where it can be read properly.
+const (
+	maxMarketplacePrerequisites   = 8
+	maxMarketplacePrerequisiteLen = 300
+)
+
+// normalizeMarketplacePrerequisites trims, drops blanks, and enforces the
+// bounds. Order is the publisher's, because prerequisites are often sequential.
+func normalizeMarketplacePrerequisites(values []string) ([]string, error) {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if len(value) > maxMarketplacePrerequisiteLen {
+			return nil, fmt.Errorf("each prerequisite must be at most %d characters", maxMarketplacePrerequisiteLen)
+		}
+		out = append(out, value)
+	}
+	if len(out) > maxMarketplacePrerequisites {
+		return nil, fmt.Errorf("a listing may declare at most %d prerequisites", maxMarketplacePrerequisites)
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, nil
 }
 
 // marketplaceSkillManifest describes a published skill. The SKILL.md body and

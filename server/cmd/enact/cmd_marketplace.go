@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -45,6 +46,28 @@ var marketplaceInstallCmd = &cobra.Command{
 	RunE:  runMarketplaceInstall,
 }
 
+var marketplaceRecommendCmd = &cobra.Command{
+	Use:   "recommend",
+	Short: "Rank the directory against this workspace's project profile",
+	Long: `Ranks what this workspace could install against what it has said about
+itself, and reports why each one surfaced.
+
+The ranking is computed fresh against the directory as it is right now, and it
+excludes what this workspace already installed and what it has dismissed. A
+result with "matched": false is not about this workspace — it is what the
+deployment ships, offered because nothing better matched.
+
+Read the reasons before repeating a recommendation to anyone. Each carries the
+profile value that matched and the field it matched in, so "matched your stack:
+go, in the listing's tags" is checkable and "this looks useful" is not.
+
+An empty profile is reported as profile_empty. Fill it in first — with
+` + "`enact workspace profile set`" + ` or by asking the member — rather than
+recommending against nothing.`,
+	Args: cobra.NoArgs,
+	RunE: runMarketplaceRecommend,
+}
+
 func init() {
 	marketplaceListCmd.Flags().String("kind", "", "Filter by kind: skill, agent, mcp, squad (an Agent Family)")
 	marketplaceListCmd.Flags().String("query", "", "Free-text filter over name, description and tags")
@@ -66,9 +89,90 @@ func init() {
 			"prefix with the server name for an agent template (github/env.GITHUB_TOKEN=...) "+
 			"and with the member then the server for an Agent Family (reviewer/github/env.GITHUB_TOKEN=...)")
 
+	marketplaceRecommendCmd.Flags().Int("limit", 0, "How many to return (server default 6, maximum 50)")
+
 	marketplaceCmd.AddCommand(marketplaceListCmd)
 	marketplaceCmd.AddCommand(marketplaceGetCmd)
 	marketplaceCmd.AddCommand(marketplaceInstallCmd)
+	marketplaceCmd.AddCommand(marketplaceRecommendCmd)
+}
+
+func runMarketplaceRecommend(cmd *cobra.Command, _ []string) error {
+	client, err := newAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	path := "/api/marketplace/recommendations"
+	if limit, _ := cmd.Flags().GetInt("limit"); limit > 0 {
+		path += "?limit=" + strconv.Itoa(limit)
+	}
+
+	ctx, cancel := cli.APIContext(context.Background())
+	defer cancel()
+
+	var result struct {
+		ProfileEmpty    bool `json:"profile_empty"`
+		Considered      int  `json:"considered"`
+		Recommendations []struct {
+			Listing map[string]any `json:"listing"`
+			Score   int            `json:"score"`
+			Matched bool           `json:"matched"`
+			Reasons []struct {
+				Kind  string `json:"kind"`
+				Term  string `json:"term"`
+				Field string `json:"field"`
+			} `json:"reasons"`
+		} `json:"recommendations"`
+	}
+	if err := client.GetJSON(ctx, path, &result); err != nil {
+		return fmt.Errorf("read marketplace recommendations: %w", err)
+	}
+
+	output, _ := cmd.Flags().GetString("output")
+	if output == "json" {
+		return cli.PrintJSON(os.Stdout, result)
+	}
+
+	// The table says WHY, because a ranking without its evidence is not
+	// something a reader can disagree with.
+	if result.ProfileEmpty {
+		fmt.Fprintln(os.Stderr,
+			"This workspace has no project profile, so nothing below is about it.")
+		fmt.Fprintln(os.Stderr,
+			"Fill one in with `enact workspace profile set` and run this again.")
+	}
+	headers := []string{"ID", "KIND", "NAME", "SCORE", "MATCHED", "WHY"}
+	rows := make([][]string, 0, len(result.Recommendations))
+	for _, rec := range result.Recommendations {
+		why := make([]string, 0, len(rec.Reasons))
+		for _, reason := range rec.Reasons {
+			switch {
+			case reason.Term != "" && reason.Field != "":
+				why = append(why, reason.Kind+":"+reason.Term+" in "+reason.Field)
+			case reason.Term != "":
+				why = append(why, reason.Kind+":"+reason.Term)
+			default:
+				why = append(why, reason.Kind)
+			}
+		}
+		matched := "no"
+		if rec.Matched {
+			matched = "yes"
+		}
+		rows = append(rows, []string{
+			strVal(rec.Listing, "id"),
+			strVal(rec.Listing, "kind"),
+			strVal(rec.Listing, "name"),
+			strconv.Itoa(rec.Score),
+			matched,
+			strings.Join(why, "; "),
+		})
+	}
+	cli.PrintTable(os.Stdout, headers, rows)
+	fmt.Fprintf(os.Stderr, "\n%d of %d eligible listings shown.\n",
+		len(result.Recommendations), result.Considered)
+	return nil
 }
 
 func runMarketplaceList(cmd *cobra.Command, _ []string) error {

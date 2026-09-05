@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -65,11 +66,11 @@ func publishFixtureSkill(t *testing.T, name, slug, visibility string) (listingID
 
 	listingID = resp.Listing.ID
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_file WHERE version_id IN
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_file WHERE version_id IN
 			(SELECT id FROM marketplace_listing_version WHERE listing_id = $1)`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
 	})
 	return listingID, skillID
 }
@@ -117,8 +118,8 @@ func TestPublishSkillThenInstallItIntoAnotherWorkspace(t *testing.T) {
 		t.Fatalf("install result = %+v, want a created skill", result)
 	}
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM skill_file WHERE skill_id = $1`, result.Skill.ID)
-		testPool.Exec(t.Context(), `DELETE FROM skill WHERE id = $1`, result.Skill.ID)
+		testPool.Exec(context.Background(), `DELETE FROM skill_file WHERE skill_id = $1`, result.Skill.ID)
+		testPool.Exec(context.Background(), `DELETE FROM skill WHERE id = $1`, result.Skill.ID)
 	})
 
 	// The installed skill is a copy in the consumer's own workspace, not a
@@ -247,8 +248,8 @@ func TestInstallingASkillWhoseNameIsTakenOffersTheImporterStrategies(t *testing.
 		t.Fatalf("rename strategy = %+v, want a new skill under a different name", renamed)
 	}
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM skill_file WHERE skill_id = $1`, renamed.Skill.ID)
-		testPool.Exec(t.Context(), `DELETE FROM skill WHERE id = $1`, renamed.Skill.ID)
+		testPool.Exec(context.Background(), `DELETE FROM skill_file WHERE skill_id = $1`, renamed.Skill.ID)
+		testPool.Exec(context.Background(), `DELETE FROM skill WHERE id = $1`, renamed.Skill.ID)
 	})
 	// The workspace's own skill is untouched.
 	var localContent string
@@ -276,9 +277,9 @@ func TestPublishingAnMcpServerWithholdsItsCredentials(t *testing.T) {
 	)).Want(http.StatusCreated).JSON(&published)
 	listingID := published.Listing.ID
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
 	})
 
 	// The credential must not be in the stored manifest, which is what every
@@ -315,7 +316,7 @@ func TestPublishingAnMcpServerWithholdsItsCredentials(t *testing.T) {
 		t.Fatalf("install result = %+v, want an MCP server", result)
 	}
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM workspace_mcp_server WHERE id = $1`, result.McpServer.ID)
+		testPool.Exec(context.Background(), `DELETE FROM workspace_mcp_server WHERE id = $1`, result.McpServer.ID)
 	})
 
 	var installedConfig string
@@ -359,11 +360,11 @@ func TestPublishingAnAgentTemplateOmitsWhatCannotTravel(t *testing.T) {
 	)).Want(http.StatusCreated).JSON(&published)
 	listingID := published.Listing.ID
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_file WHERE version_id IN
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_file WHERE version_id IN
 			(SELECT id FROM marketplace_listing_version WHERE listing_id = $1)`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
 	})
 
 	manifest := string(published.Version.Manifest)
@@ -414,12 +415,12 @@ func TestPublishingAnAgentTemplateOmitsWhatCannotTravel(t *testing.T) {
 	}
 	installedAgent := result.Agent.ID
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM agent_skill WHERE agent_id = $1`, installedAgent)
-		testPool.Exec(t.Context(), `DELETE FROM agent_mcp_server WHERE agent_id = $1`, installedAgent)
-		testPool.Exec(t.Context(), `DELETE FROM workspace_mcp_server WHERE workspace_id = $1`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM skill_file WHERE skill_id IN (SELECT id FROM skill WHERE workspace_id = $1)`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM skill WHERE workspace_id = $1`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM agent WHERE id = $1`, installedAgent)
+		testPool.Exec(context.Background(), `DELETE FROM agent_skill WHERE agent_id = $1`, installedAgent)
+		testPool.Exec(context.Background(), `DELETE FROM agent_mcp_server WHERE agent_id = $1`, installedAgent)
+		testPool.Exec(context.Background(), `DELETE FROM workspace_mcp_server WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM skill_file WHERE skill_id IN (SELECT id FROM skill WHERE workspace_id = $1)`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM skill WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM agent WHERE id = $1`, installedAgent)
 	})
 
 	if result.Agent.Instructions != "You review code carefully." {
@@ -552,8 +553,8 @@ func TestTakenDownListingStopsBeingInstallable(t *testing.T) {
 	)).Want(http.StatusCreated).JSON(&result)
 	if result.Skill != nil {
 		t.Cleanup(func() {
-			testPool.Exec(t.Context(), `DELETE FROM skill_file WHERE skill_id = $1`, result.Skill.ID)
-			testPool.Exec(t.Context(), `DELETE FROM skill WHERE id = $1`, result.Skill.ID)
+			testPool.Exec(context.Background(), `DELETE FROM skill_file WHERE skill_id = $1`, result.Skill.ID)
+			testPool.Exec(context.Background(), `DELETE FROM skill WHERE id = $1`, result.Skill.ID)
 		})
 	}
 }

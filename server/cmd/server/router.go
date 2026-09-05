@@ -2029,6 +2029,17 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Get("/listings", h.ListMarketplaceListings)
 				r.Post("/listings", h.PublishMarketplaceListing)
 				r.Get("/installs", h.ListMarketplaceInstalls)
+				// Ranked against this workspace's project profile, recomputed
+				// on every request against the directory as it is right now: a
+				// listing published this afternoon has to reach a workspace
+				// that was set up this morning. See internal/recommend.
+				r.Get("/recommendations", h.ListMarketplaceRecommendations)
+				// "Not this one", scoped to the version the member was looking
+				// at, so a new version of the same listing comes back.
+				r.Route("/recommendations/{id}", func(r chi.Router) {
+					r.Post("/dismiss", h.DismissMarketplaceRecommendation)
+					r.Delete("/dismiss", h.RestoreMarketplaceRecommendation)
+				})
 				r.Route("/listings/{id}", func(r chi.Router) {
 					r.Get("/", h.GetMarketplaceListing)
 					r.Patch("/", h.UpdateMarketplaceListing)

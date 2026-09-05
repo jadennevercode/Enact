@@ -62,6 +62,10 @@ type PublishMarketplaceListingRequest struct {
 	// not credentials, e.g. ["url"] for a public SSE endpoint. Everything not
 	// named here is withheld. See marketplace_sanitize.go.
 	PublicFields []string `json:"public_fields"`
+	// Prerequisites are what must be true on the installing side before the
+	// copy works — host tooling, a plugin, a directory layout. Shown before an
+	// install and nothing more; see marketplaceManifest.Prerequisites.
+	Prerequisites []string `json:"prerequisites"`
 }
 
 // PublishMarketplaceListingResponse returns the listing and the version that
@@ -154,6 +158,15 @@ func (h *Handler) PublishMarketplaceListing(w http.ResponseWriter, r *http.Reque
 		writeError(w, marketplacePublishStatus(err), err.Error())
 		return
 	}
+	// Set on the envelope rather than inside a kind-specific member: every
+	// kind can have host-side conditions, and an installer then reads one
+	// field regardless of what it is about to install.
+	prerequisites, err := normalizeMarketplacePrerequisites(req.Prerequisites)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	snapshot.Manifest.Prerequisites = prerequisites
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
