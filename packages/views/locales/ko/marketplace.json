@@ -5,12 +5,14 @@
     "skill": "스킬",
     "agent": "에이전트",
     "mcp": "MCP 서버",
-    "ontology": "온톨로지"
+    "ontology": "온톨로지",
+    "squad": "Agent Family"
   },
   "kind_singular": {
     "skill": "스킬",
     "agent": "에이전트 템플릿",
-    "mcp": "MCP 서버"
+    "mcp": "MCP 서버",
+    "squad": "Agent Family"
   },
   "search_placeholder": "마켓플레이스 검색",
   "all_kinds": "전체",
@@ -58,7 +60,11 @@
     "select_file": "파일을 선택하면 내용을 볼 수 있습니다.",
     "endpoint": "{{endpoint}}에 연결합니다",
     "requires_secrets": "설치 시 다음을 입력해야 합니다: {{fields}}",
-    "requires_nothing": "설치에 별도 설정이 필요하지 않습니다."
+    "requires_nothing": "설치에 별도 설정이 필요하지 않습니다.",
+    "family_installs_all": "설치하면 에이전트 {{count}}개와 그 스킬 및 MCP 서버, 그리고 이들을 묶는 Agent Family가 모두 생성됩니다.",
+    "family_instructions": "협업 방식",
+    "family_members": "포함된 에이전트",
+    "family_leader": "리더"
   },
   "install": {
     "action": "설치",
@@ -84,7 +90,9 @@
     "renamed": "기존 항목과 겹치지 않도록 \"{{name}}\"(으)로 설치했습니다.",
     "skipped": "건너뜀: 같은 이름의 항목이 이미 있습니다.",
     "failed": "설치에 실패했습니다.",
-    "open": "열기"
+    "open": "열기",
+    "family_hint": "에이전트 {{count}}개가 모두 이 워크스페이스에 내 사본으로 생성됩니다. 게시한 워크스페이스의 사람은 옮겨지지 않으니 설치 후 직접 추가하세요.",
+    "family_runtime_hint": "Family의 모든 에이전트가 이 런타임에 바인딩됩니다. 설치 후 개별로 옮길 수 있습니다."
   },
   "publish": {
     "action": "공개",
@@ -124,5 +132,6 @@
     "remove_confirm": "항목을 내리면 새로 설치할 수 없게 됩니다. 이미 설치한 워크스페이스의 사본은 그대로 유지됩니다.",
     "delete": "초안 삭제",
     "new_version": "새 버전 공개"
-  }
+  },
+  "not_installed": "설치 안 됨"
 }

@@ -58,9 +58,10 @@ export function useDeleteMarketplaceListing(wsId: string) {
  * Installs a listing into the current workspace.
  *
  * The invalidation is deliberately broad. An agent template install creates an
- * agent, several skills and several MCP servers in one transaction, and a
- * skill install can rename or replace an existing skill — so after one of
- * these, no cached list of any of those things can be trusted.
+ * agent, several skills and several MCP servers in one transaction, an Agent
+ * Family install creates several of each plus the squad, and a skill install
+ * can rename or replace an existing skill — so after one of these, no cached
+ * list of any of those things can be trusted.
  */
 export function useInstallMarketplaceListing(wsId: string) {
   const queryClient = useQueryClient();
@@ -72,6 +73,7 @@ export function useInstallMarketplaceListing(wsId: string) {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.agents(wsId) });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.mcpServers(wsId) });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) });
       queryClient.invalidateQueries({ queryKey: ["agents"] });
     },
   });

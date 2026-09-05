@@ -353,6 +353,7 @@ export type {
 
 export type {
   MarketplaceKind,
+  MarketplaceInstalledFilter,
   MarketplaceVisibility,
   MarketplaceStatus,
   MarketplaceConflictStrategy,
@@ -366,6 +367,8 @@ export type {
   MarketplaceMcpManifest,
   MarketplaceAgentSkillRef,
   MarketplaceAgentManifest,
+  MarketplaceSquadAgentRef,
+  MarketplaceSquadManifest,
   MarketplaceManifest,
   PublishMarketplaceListingRequest,
   PublishMarketplaceListingResponse,

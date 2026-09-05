@@ -66,11 +66,14 @@ export function InstallDialog({
   const [error, setError] = useState<string | null>(null);
 
   const manifest = listing.version?.manifest;
-  const isAgent = listing.kind === "agent";
+  // An Agent Family names no machine either, and binds every member to the one
+  // the installer picks, so both kinds ask the same question here.
+  const needsRuntime = listing.kind === "agent" || listing.kind === "squad";
+  const isSquad = listing.kind === "squad";
 
   const runtimesQuery = useQuery({
     ...runtimeListOptions(wsId),
-    enabled: open && isAgent,
+    enabled: open && needsRuntime,
   });
 
   /**
@@ -94,10 +97,25 @@ export function InstallDialog({
         })),
       );
     }
+    // A family's keys carry the member as well as the server, because two
+    // members can each expect a server of the same name.
+    if (manifest.squad?.agents) {
+      return manifest.squad.agents.flatMap((entry) => {
+        const member = entry.dir.replace(/^agents\//, "");
+        return (entry.agent.mcp_servers ?? []).flatMap((server) =>
+          server.required_secrets.map((path) => ({
+            key: `${member}/${server.name}/${path}`,
+            label: `${entry.agent.name} · ${server.name} · ${path}`,
+          })),
+        );
+      });
+    }
     return [];
   }, [manifest]);
 
-  const runtimeProvider = manifest?.agent?.runtime_provider;
+  const runtimeProvider =
+    manifest?.agent?.runtime_provider ??
+    manifest?.squad?.agents?.[0]?.agent.runtime_provider;
   const selectedRuntime = runtimesQuery.data?.find((r) => r.id === runtimeId);
   const providerMismatch =
     Boolean(runtimeProvider) &&
@@ -112,7 +130,7 @@ export function InstallDialog({
         version_id: listing.version?.id,
         on_conflict: strategy,
         name: name.trim() || undefined,
-        runtime_id: isAgent ? runtimeId : undefined,
+        runtime_id: needsRuntime ? runtimeId : undefined,
         secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
       });
 
@@ -140,7 +158,7 @@ export function InstallDialog({
     }
   };
 
-  const canSubmit = !install.isPending && (!isAgent || runtimeId !== "");
+  const canSubmit = !install.isPending && (!needsRuntime || runtimeId !== "");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,7 +224,15 @@ export function InstallDialog({
               </p>
             </div>
 
-            {isAgent ? (
+            {isSquad ? (
+              <p className="rounded-md border border-surface-border px-3 py-2 text-caption text-muted-foreground">
+                {t(($) => $.install.family_hint, {
+                  count: manifest?.squad?.agents?.length ?? 0,
+                })}
+              </p>
+            ) : null}
+
+            {needsRuntime ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="marketplace-install-runtime">
                   {t(($) => $.install.runtime_label)}
@@ -220,7 +246,11 @@ export function InstallDialog({
                   onValueChange={(value) => value && setRuntimeId(value)}
                 >
                   <SelectTrigger id="marketplace-install-runtime">
-                    <SelectValue placeholder={t(($) => $.install.runtime_hint)} />
+                    <SelectValue
+                      placeholder={t(($) =>
+                        isSquad ? $.install.family_runtime_hint : $.install.runtime_hint,
+                      )}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {runtimesQuery.data?.map((runtime) => (

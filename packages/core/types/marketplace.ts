@@ -1,13 +1,17 @@
 /**
  * Marketplace wire types.
  *
- * The directory carries three kinds of listing — skill, agent template and MCP
- * server. Ontologies appear as a fourth tab in the UI but are not listings:
- * they are federated from Capability Hub and read through the ontology
- * endpoints, so they have their own types in ./ontology.
+ * The directory carries four kinds of listing — skill, agent template, MCP
+ * server and Agent Family (`squad` in code, its glossary name in the UI).
+ * Ontologies appear as a fifth tab in the UI but are not listings: they are
+ * federated from Capability Hub and read through the ontology endpoints, so
+ * they have their own types in ./ontology.
  */
 
-export type MarketplaceKind = "skill" | "agent" | "mcp";
+export type MarketplaceKind = "skill" | "agent" | "mcp" | "squad";
+
+/** The installed-state filter a browse can narrow by. */
+export type MarketplaceInstalledFilter = "installed" | "not_installed";
 
 /**
  * `public` reaches every workspace in the deployment; `workspace` is an
@@ -52,6 +56,8 @@ export interface MarketplaceListing {
   latest_version_id?: string;
   /** Whether the reader may edit, publish to, or take down this listing. */
   can_manage: boolean;
+  /** Whether this workspace holds a copy. The badge every card carries. */
+  installed: boolean;
   /** Set when this workspace has installed the listing at least once. */
   installed_version?: string;
   installed_version_id?: string;
@@ -86,6 +92,8 @@ export interface MarketplaceFacets {
   kinds: Record<string, number>;
   categories: Record<string, number>;
   tags: Record<string, number>;
+  /** Counts of the visible set under `installed` and `not_installed`. */
+  installed: Record<string, number>;
 }
 
 export interface MarketplaceCatalog {
@@ -156,11 +164,35 @@ export interface MarketplaceAgentManifest {
   mcp_servers?: MarketplaceMcpManifest[];
 }
 
+/** One agent member of a published Agent Family. */
+export interface MarketplaceSquadAgentRef {
+  /** Prefix of this member's files, e.g. `agents/reviewer`. */
+  dir: string;
+  /** The squad role it was published under; `leader` for the leader. */
+  role: string;
+  agent: MarketplaceAgentManifest;
+}
+
+/**
+ * An Agent Family as published: the squad's own prose and every agent member
+ * as a full template. Human members never travel; the leader is named by the
+ * `dir` of the member it is.
+ */
+export interface MarketplaceSquadManifest {
+  name: string;
+  description: string;
+  instructions: string;
+  avatar_url?: string;
+  leader_dir: string;
+  agents: MarketplaceSquadAgentRef[];
+}
+
 export interface MarketplaceManifest {
   kind: MarketplaceKind;
   skill?: MarketplaceSkillManifest;
   agent?: MarketplaceAgentManifest;
   mcp?: MarketplaceMcpManifest;
+  squad?: MarketplaceSquadManifest;
 }
 
 // --- Requests --------------------------------------------------------------
@@ -231,6 +263,7 @@ export interface MarketplaceInstallResult {
   skill?: unknown;
   agent?: unknown;
   mcp_server?: unknown;
+  squad?: unknown;
   existing_skill?: ExistingSkillIdentity;
 }
 

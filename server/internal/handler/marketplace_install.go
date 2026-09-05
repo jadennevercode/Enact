@@ -41,13 +41,15 @@ type MarketplaceInstallRequest struct {
 	// Name overrides the published name. A workspace that already has a
 	// "code-review" skill can install someone else's under its own name.
 	Name string `json:"name"`
-	// RuntimeID is required for an agent listing: a template names no machine,
-	// so the installer picks one from its own workspace.
+	// RuntimeID is required for an agent or agent family listing: a template
+	// names no machine, so the installer picks one from its own workspace. A
+	// family binds every member to it.
 	RuntimeID string `json:"runtime_id"`
 	// Secrets fills the values the publisher withheld, keyed by the paths in
 	// the manifest's required_secrets — "env.GITHUB_TOKEN", "headers.X-Key",
 	// "url". For an agent template, a server's paths are prefixed with its
-	// name: "github/env.GITHUB_TOKEN".
+	// name: "github/env.GITHUB_TOKEN". For an agent family, with the member
+	// first: "reviewer/github/env.GITHUB_TOKEN".
 	Secrets map[string]string `json:"secrets"`
 }
 
@@ -62,6 +64,7 @@ type MarketplaceInstallResult struct {
 	Skill     *SkillWithFilesResponse     `json:"skill,omitempty"`
 	Agent     *AgentResponse              `json:"agent,omitempty"`
 	McpServer *WorkspaceMcpServerResponse `json:"mcp_server,omitempty"`
+	Squad     *SquadResponse              `json:"squad,omitempty"`
 	// ExistingSkill describes what an unresolved skill collision hit, so the
 	// client can offer overwrite / rename / skip.
 	ExistingSkill *ExistingSkillIdentity `json:"existing_skill,omitempty"`
@@ -149,6 +152,8 @@ func (h *Handler) InstallMarketplaceListing(w http.ResponseWriter, r *http.Reque
 		h.installMarketplaceMcp(w, r, listing, *version, manifest, req, wsUUID, userID)
 	case marketplaceKindAgent:
 		h.installMarketplaceAgent(w, r, listing, *version, manifest, files, req, wsUUID, member, userID)
+	case marketplaceKindSquad:
+		h.installMarketplaceSquad(w, r, listing, *version, manifest, files, req, wsUUID, member, userID)
 	default:
 		writeError(w, http.StatusUnprocessableEntity, "this listing's kind cannot be installed")
 	}
@@ -390,26 +395,14 @@ func (h *Handler) installMarketplaceMcp(
 	})
 }
 
-// installMarketplaceAgent materializes a template: the agent, the skills it
-// carries, and the MCP servers it expects, in one transaction. A partially
-// installed template — an agent whose skills failed to land — would look
-// configured and behave wrongly, so nothing becomes visible until all of it
-// does.
-func (h *Handler) installMarketplaceAgent(
-	w http.ResponseWriter, r *http.Request,
-	listing db.MarketplaceListing, version db.MarketplaceListingVersion,
-	manifest marketplaceManifest, files []marketplaceFile,
-	req MarketplaceInstallRequest, wsUUID pgtype.UUID, member db.Member, userID string,
-) {
-	if manifest.Agent == nil {
-		writeError(w, http.StatusUnprocessableEntity, "the published manifest carries no agent")
-		return
-	}
-	template := manifest.Agent
-
-	runtimeUUID, ok := parseUUIDOrBadRequest(w, strings.TrimSpace(req.RuntimeID), "runtime_id")
+// resolveInstallRuntime reads the runtime an agent template or an agent family
+// is to be bound to. A template names no machine, so the installer picks one
+// from its own workspace, and may only pick one it is allowed to create agents
+// on.
+func (h *Handler) resolveInstallRuntime(w http.ResponseWriter, r *http.Request, runtimeID string, wsUUID pgtype.UUID, member db.Member) (db.AgentRuntime, bool) {
+	runtimeUUID, ok := parseUUIDOrBadRequest(w, strings.TrimSpace(runtimeID), "runtime_id")
 	if !ok {
-		return
+		return db.AgentRuntime{}, false
 	}
 	runtime, err := h.Queries.GetAgentRuntimeForWorkspace(r.Context(), db.GetAgentRuntimeForWorkspaceParams{
 		ID:          runtimeUUID,
@@ -417,20 +410,55 @@ func (h *Handler) installMarketplaceAgent(
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid runtime_id")
-		return
+		return db.AgentRuntime{}, false
 	}
 	if !canUseRuntimeForAgent(member, runtime) {
 		writeError(w, http.StatusForbidden, "this runtime is private; only its owner can create agents on it")
-		return
+		return db.AgentRuntime{}, false
 	}
+	return runtime, true
+}
 
-	name := strings.TrimSpace(req.Name)
+// resolvedServer is one of a template's MCP servers with every withheld value
+// restored, ready to be written.
+type resolvedServer struct {
+	Name   string
+	Config []byte
+}
+
+// templateAgentPlan is one agent template after every check that can fail
+// before the transaction opens: the runtime's vocabulary applied, the avatar
+// accepted, and every withheld MCP value restored. A bad secret path fails the
+// install without having written anything.
+type templateAgentPlan struct {
+	template      *marketplaceAgentManifest
+	name          string
+	avatarURL     pgtype.Text
+	customArgs    []byte
+	thinking      string
+	serviceTier   string
+	maxConcurrent int32
+	servers       []resolvedServer
+	// dropped names the template fields the runtime does not support and
+	// which were therefore left unset, so the response can say so. The names
+	// are bare ("thinking level"); each caller qualifies them for its own
+	// sentence, since a family has to say which member lost what.
+	dropped []string
+}
+
+// planTemplateAgent validates one template against the runtime it will bind
+// to. Errors are written to w; the caller returns on !ok.
+func (h *Handler) planTemplateAgent(
+	w http.ResponseWriter, r *http.Request,
+	runtime db.AgentRuntime, template *marketplaceAgentManifest, name string, secrets map[string]string,
+) (templateAgentPlan, bool) {
+	name = strings.TrimSpace(name)
 	if name == "" {
 		name = template.Name
 	}
 	if name == "" {
 		writeError(w, http.StatusBadRequest, "name is required")
-		return
+		return templateAgentPlan{}, false
 	}
 
 	// A template written for one provider may name a model, effort level or
@@ -452,7 +480,7 @@ func (h *Handler) installMarketplaceAgent(
 
 	avatarURL, ok := h.newAgentAvatar(w, r, template.AvatarURL)
 	if !ok {
-		return
+		return templateAgentPlan{}, false
 	}
 	customArgs, err := json.Marshal(template.CustomArgs)
 	if err != nil || template.CustomArgs == nil {
@@ -463,29 +491,186 @@ func (h *Handler) installMarketplaceAgent(
 		maxConcurrent = 1
 	}
 
-	// Every withheld value is restored before the transaction opens, so a bad
-	// secret path fails the install without having written anything.
-	type resolvedServer struct {
-		Name   string
-		Config []byte
-	}
 	servers := make([]resolvedServer, 0, len(template.McpServers))
 	for _, entry := range template.McpServers {
 		if err := validateWorkspaceMcpServerName(entry.Name); err != nil {
 			writeError(w, http.StatusUnprocessableEntity,
 				fmt.Sprintf("the template's MCP server %q has an unusable name: %s", entry.Name, err.Error()))
-			return
+			return templateAgentPlan{}, false
 		}
-		config, err := restoreMcpEntrySecrets(entry.Config, scopedSecrets(req.Secrets, entry.Name))
+		config, err := restoreMcpEntrySecrets(entry.Config, scopedSecrets(secrets, entry.Name))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("%s: %s", entry.Name, err.Error()))
-			return
+			return templateAgentPlan{}, false
 		}
 		if err := validateWorkspaceMcpServerEntry(config); err != nil {
 			writeError(w, http.StatusUnprocessableEntity, fmt.Sprintf("%s: %s", entry.Name, err.Error()))
-			return
+			return templateAgentPlan{}, false
 		}
 		servers = append(servers, resolvedServer{Name: entry.Name, Config: config})
+	}
+
+	return templateAgentPlan{
+		template:      template,
+		name:          name,
+		avatarURL:     avatarURL,
+		customArgs:    customArgs,
+		thinking:      thinking,
+		serviceTier:   serviceTier,
+		maxConcurrent: maxConcurrent,
+		servers:       servers,
+		dropped:       dropped,
+	}, true
+}
+
+// errMarketplaceAgentNameTaken is the one create failure the installer turns
+// into a conflict rather than a server error: agent names are unique per
+// workspace, and the reader can fix that by choosing another.
+var errMarketplaceAgentNameTaken = errors.New("an agent with this name already exists in this workspace")
+
+// createTemplateAgentInTx materializes one planned template inside the install
+// transaction: the agent, the skills it carries, and the MCP servers it
+// expects, all attached. The error message is what the caller reports; the
+// transaction it runs in is what makes a partial result impossible.
+func (h *Handler) createTemplateAgentInTx(
+	ctx context.Context, r *http.Request, qtx *db.Queries,
+	listing db.MarketplaceListing, version db.MarketplaceListingVersion,
+	files []marketplaceFile, plan templateAgentPlan,
+	wsUUID pgtype.UUID, runtime db.AgentRuntime, userID string,
+	usedSkillNames map[string]bool,
+) (db.Agent, error) {
+	// An installed agent is private to whoever installed it. The template's own
+	// permission targets named members of another workspace and were never
+	// published; starting private is the only answer that cannot over-share.
+	created, err := qtx.CreateAgent(ctx, db.CreateAgentParams{
+		WorkspaceID:        wsUUID,
+		Name:               plan.name,
+		Description:        plan.template.Description,
+		Instructions:       plan.template.Instructions,
+		AvatarUrl:          plan.avatarURL,
+		RuntimeMode:        runtime.RuntimeMode,
+		RuntimeConfig:      []byte("{}"),
+		RuntimeID:          runtime.ID,
+		Visibility:         "private",
+		PermissionMode:     "private",
+		MaxConcurrentTasks: plan.maxConcurrent,
+		OwnerID:            parseUUID(userID),
+		CustomEnv:          []byte("{}"),
+		CustomArgs:         plan.customArgs,
+		Model:              pgtype.Text{String: plan.template.Model, Valid: plan.template.Model != ""},
+		ThinkingLevel:      pgtype.Text{String: plan.thinking, Valid: plan.thinking != ""},
+		ServiceTier:        pgtype.Text{String: plan.serviceTier, Valid: plan.serviceTier != ""},
+	})
+	if err != nil {
+		if isUniqueViolation(err) {
+			return db.Agent{}, errMarketplaceAgentNameTaken
+		}
+		slog.Warn("install marketplace agent failed", append(logger.RequestAttrs(r), "error", err)...)
+		return db.Agent{}, errors.New("failed to install the agent")
+	}
+
+	installedSkills := 0
+	for _, ref := range plan.template.Skills {
+		body, refs := marketplaceSkillFiles(files, ref.Dir+"/", skillContentPath)
+		skillName, err := h.availableSkillName(ctx, qtx, wsUUID, sanitizeNullBytes(ref.Name), usedSkillNames)
+		if err != nil {
+			return db.Agent{}, errors.New("failed to install the template's skills")
+		}
+		skill, err := createSkillWithFilesInTx(ctx, qtx, skillCreateInput{
+			WorkspaceID: wsUUID,
+			CreatorID:   parseUUID(userID),
+			Name:        skillName,
+			Description: ref.Description,
+			Content:     body,
+			Config:      map[string]any{"origin": marketplaceSkillOrigin(listing, version)},
+			Files:       refs,
+		})
+		if err != nil {
+			slog.Warn("install marketplace template skill failed",
+				append(logger.RequestAttrs(r), "error", err, "skill", ref.Name)...)
+			return db.Agent{}, errors.New("failed to install the template's skills")
+		}
+		if err := qtx.AddAgentSkill(ctx, db.AddAgentSkillParams{
+			AgentID: created.ID,
+			SkillID: parseUUID(skill.ID),
+		}); err != nil {
+			return db.Agent{}, errors.New("failed to attach the template's skills")
+		}
+		installedSkills++
+	}
+
+	installedServers := 0
+	for _, server := range plan.servers {
+		name, err := h.availableMcpServerName(ctx, qtx, wsUUID, server.Name)
+		if err != nil {
+			return db.Agent{}, errors.New("failed to install the template's MCP servers")
+		}
+		row, err := qtx.CreateWorkspaceMcpServer(ctx, db.CreateWorkspaceMcpServerParams{
+			WorkspaceID: wsUUID,
+			Name:        name,
+			Config:      server.Config,
+			CreatedBy:   parseUUID(userID),
+		})
+		if err != nil {
+			slog.Warn("install marketplace template mcp server failed",
+				append(logger.RequestAttrs(r), "error", err, "server", server.Name)...)
+			return db.Agent{}, errors.New("failed to install the template's MCP servers")
+		}
+		if err := qtx.AddAgentMcpServer(ctx, db.AddAgentMcpServerParams{
+			AgentID:  created.ID,
+			ServerID: row.ID,
+		}); err != nil {
+			return db.Agent{}, errors.New("failed to attach the template's MCP servers")
+		}
+		installedServers++
+	}
+
+	slog.Info("marketplace template agent installed", append(logger.RequestAttrs(r),
+		"listing_id", uuidToString(listing.ID), "agent_id", uuidToString(created.ID),
+		"skills", installedSkills, "mcp_servers", installedServers)...)
+	return created, nil
+}
+
+// droppedFieldsReason phrases what a runtime could not take from a template.
+// The entries are already qualified when they come from an Agent Family, where
+// several members can each lose a different field.
+func droppedFieldsReason(dropped []string) string {
+	if len(dropped) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("this runtime does not support %s, so %s left unset",
+		strings.Join(dropped, " and "), pluralWas(len(dropped)))
+}
+
+func pluralWas(n int) string {
+	if n == 1 {
+		return "it was"
+	}
+	return "they were"
+}
+
+// installMarketplaceAgent materializes a template: the agent, the skills it
+// carries, and the MCP servers it expects, in one transaction. A partially
+// installed template — an agent whose skills failed to land — would look
+// configured and behave wrongly, so nothing becomes visible until all of it
+// does.
+func (h *Handler) installMarketplaceAgent(
+	w http.ResponseWriter, r *http.Request,
+	listing db.MarketplaceListing, version db.MarketplaceListingVersion,
+	manifest marketplaceManifest, files []marketplaceFile,
+	req MarketplaceInstallRequest, wsUUID pgtype.UUID, member db.Member, userID string,
+) {
+	if manifest.Agent == nil {
+		writeError(w, http.StatusUnprocessableEntity, "the published manifest carries no agent")
+		return
+	}
+	runtime, ok := h.resolveInstallRuntime(w, r, req.RuntimeID, wsUUID, member)
+	if !ok {
+		return
+	}
+	plan, ok := h.planTemplateAgent(w, r, runtime, manifest.Agent, req.Name, req.Secrets)
+	if !ok {
+		return
 	}
 
 	tx, err := h.TxStarter.Begin(r.Context())
@@ -501,95 +686,15 @@ func (h *Handler) installMarketplaceAgent(
 		return
 	}
 
-	// An installed agent is private to whoever installed it. The template's own
-	// permission targets named members of another workspace and were never
-	// published; starting private is the only answer that cannot over-share.
-	created, err := qtx.CreateAgent(r.Context(), db.CreateAgentParams{
-		WorkspaceID:        wsUUID,
-		Name:               name,
-		Description:        template.Description,
-		Instructions:       template.Instructions,
-		AvatarUrl:          avatarURL,
-		RuntimeMode:        runtime.RuntimeMode,
-		RuntimeConfig:      []byte("{}"),
-		RuntimeID:          runtime.ID,
-		Visibility:         "private",
-		PermissionMode:     "private",
-		MaxConcurrentTasks: maxConcurrent,
-		OwnerID:            parseUUID(userID),
-		CustomEnv:          []byte("{}"),
-		CustomArgs:         customArgs,
-		Model:              pgtype.Text{String: template.Model, Valid: template.Model != ""},
-		ThinkingLevel:      pgtype.Text{String: thinking, Valid: thinking != ""},
-		ServiceTier:        pgtype.Text{String: serviceTier, Valid: serviceTier != ""},
-	})
+	created, err := h.createTemplateAgentInTx(r.Context(), r, qtx, listing, version, files, plan,
+		wsUUID, runtime, userID, map[string]bool{})
 	if err != nil {
-		slog.Warn("install marketplace agent failed", append(logger.RequestAttrs(r), "error", err)...)
-		writeError(w, http.StatusInternalServerError, "failed to install the agent")
+		if errors.Is(err, errMarketplaceAgentNameTaken) {
+			writeJSON(w, http.StatusConflict, MarketplaceInstallResult{Status: "conflict", Reason: err.Error()})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
-	}
-
-	installedSkills := 0
-	usedNames := map[string]bool{}
-	for _, ref := range template.Skills {
-		body, refs := marketplaceSkillFiles(files, ref.Dir+"/", skillContentPath)
-		skillName, err := h.availableSkillName(r.Context(), qtx, wsUUID, sanitizeNullBytes(ref.Name), usedNames)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to install the template's skills")
-			return
-		}
-		skill, err := createSkillWithFilesInTx(r.Context(), qtx, skillCreateInput{
-			WorkspaceID: wsUUID,
-			CreatorID:   parseUUID(userID),
-			Name:        skillName,
-			Description: ref.Description,
-			Content:     body,
-			Config:      map[string]any{"origin": marketplaceSkillOrigin(listing, version)},
-			Files:       refs,
-		})
-		if err != nil {
-			slog.Warn("install marketplace template skill failed",
-				append(logger.RequestAttrs(r), "error", err, "skill", ref.Name)...)
-			writeError(w, http.StatusInternalServerError, "failed to install the template's skills")
-			return
-		}
-		if err := qtx.AddAgentSkill(r.Context(), db.AddAgentSkillParams{
-			AgentID: created.ID,
-			SkillID: parseUUID(skill.ID),
-		}); err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to attach the template's skills")
-			return
-		}
-		installedSkills++
-	}
-
-	installedServers := 0
-	for _, server := range servers {
-		name, err := h.availableMcpServerName(r.Context(), qtx, wsUUID, server.Name)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to install the template's MCP servers")
-			return
-		}
-		row, err := qtx.CreateWorkspaceMcpServer(r.Context(), db.CreateWorkspaceMcpServerParams{
-			WorkspaceID: wsUUID,
-			Name:        name,
-			Config:      server.Config,
-			CreatedBy:   parseUUID(userID),
-		})
-		if err != nil {
-			slog.Warn("install marketplace template mcp server failed",
-				append(logger.RequestAttrs(r), "error", err, "server", server.Name)...)
-			writeError(w, http.StatusInternalServerError, "failed to install the template's MCP servers")
-			return
-		}
-		if err := qtx.AddAgentMcpServer(r.Context(), db.AddAgentMcpServerParams{
-			AgentID:  created.ID,
-			ServerID: row.ID,
-		}); err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to attach the template's MCP servers")
-			return
-		}
-		installedServers++
 	}
 
 	if _, err := qtx.CreateMarketplaceInstall(r.Context(), db.CreateMarketplaceInstallParams{
@@ -611,23 +716,241 @@ func (h *Handler) installMarketplaceAgent(
 		return
 	}
 
-	slog.Info("marketplace agent installed", append(logger.RequestAttrs(r),
-		"listing_id", uuidToString(listing.ID), "agent_id", uuidToString(created.ID),
-		"skills", installedSkills, "mcp_servers", installedServers)...)
-
 	workspaceID := uuidToString(wsUUID)
 	resp := h.agentToResponse(created)
 	actorType, actorID := h.resolveActor(r, userID, workspaceID)
 	h.publish(protocol.EventAgentCreated, workspaceID, actorType, actorID, map[string]any{"agent": resp})
 
-	result := MarketplaceInstallResult{
+	writeJSON(w, http.StatusCreated, MarketplaceInstallResult{
 		Status: "created", EntityKind: marketplaceKindAgent, EntityID: uuidToString(created.ID), Agent: &resp,
+		Reason: droppedFieldsReason(plan.dropped),
+	})
+}
+
+// squadMemberSecretKey is the prefix under which an installer supplies a
+// member's withheld values: "<member>/<server>/<path>", where the member is
+// the manifest's Dir without its "agents/" namespace, so a key reads
+// "reviewer/github/env.GITHUB_TOKEN".
+func squadMemberSecretKey(dir string) string {
+	return strings.TrimPrefix(dir, squadAgentDirPrefix)
+}
+
+// availableAgentName finds a free name for a squad member. Agent names are
+// unique per workspace, and a family installed into a workspace that already
+// has a "Reviewer" must neither fail wholesale nor overwrite it: the two are
+// different agents that happen to share a name. Names already claimed by
+// earlier members of the same install are held in used.
+func (h *Handler) availableAgentName(ctx context.Context, qtx *db.Queries, workspaceID pgtype.UUID, name string, used map[string]bool) (string, error) {
+	if name == "" {
+		name = "agent"
 	}
-	if len(dropped) > 0 {
-		result.Reason = fmt.Sprintf("the template's %s is not supported by this runtime and was left unset",
-			strings.Join(dropped, " and "))
+	agents, err := qtx.ListAllAgentsAnyKind(ctx, workspaceID)
+	if err != nil {
+		return "", err
 	}
-	writeJSON(w, http.StatusCreated, result)
+	taken := map[string]bool{}
+	for _, agent := range agents {
+		taken[agent.Name] = true
+	}
+	candidate := name
+	for suffix := 2; taken[candidate] || used[candidate]; suffix++ {
+		candidate = fmt.Sprintf("%s-%d", name, suffix)
+		if suffix > maxImportRenameAttempts {
+			return "", errors.New("no available agent name")
+		}
+	}
+	used[candidate] = true
+	return candidate, nil
+}
+
+// installMarketplaceSquad materializes an Agent Family: every member agent as
+// a template of its own, then the squad that binds them, in one transaction.
+// A family whose members half-landed would route work to agents that do not
+// exist, so nothing becomes visible until all of it does.
+//
+// One runtime serves every member. A family is installed by one person onto
+// the machine they have, and splitting members across runtimes is a decision
+// that can be made afterwards on each agent's page.
+func (h *Handler) installMarketplaceSquad(
+	w http.ResponseWriter, r *http.Request,
+	listing db.MarketplaceListing, version db.MarketplaceListingVersion,
+	manifest marketplaceManifest, files []marketplaceFile,
+	req MarketplaceInstallRequest, wsUUID pgtype.UUID, member db.Member, userID string,
+) {
+	if manifest.Squad == nil {
+		writeError(w, http.StatusUnprocessableEntity, "the published manifest carries no agent family")
+		return
+	}
+	template := manifest.Squad
+	if len(template.Agents) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, "the published agent family carries no agents")
+		return
+	}
+	if len(template.Agents) > maxMarketplaceSquadAgents {
+		writeError(w, http.StatusUnprocessableEntity,
+			fmt.Sprintf("the published agent family carries more than %d agents", maxMarketplaceSquadAgents))
+		return
+	}
+	leaderIndex := -1
+	for i, ref := range template.Agents {
+		if ref.Dir == template.LeaderDir {
+			leaderIndex = i
+			break
+		}
+	}
+	if leaderIndex < 0 {
+		writeError(w, http.StatusUnprocessableEntity, "the published agent family names no leader among its agents")
+		return
+	}
+
+	runtime, ok := h.resolveInstallRuntime(w, r, req.RuntimeID, wsUUID, member)
+	if !ok {
+		return
+	}
+	name := sanitizeNullBytes(strings.TrimSpace(req.Name))
+	if name == "" {
+		name = sanitizeNullBytes(template.Name)
+	}
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	avatarURL := pgtype.Text{}
+	if template.AvatarURL != nil && strings.TrimSpace(*template.AvatarURL) != "" {
+		accepted, ok := h.acceptAvatarURL(w, r, *template.AvatarURL, "")
+		if !ok {
+			return
+		}
+		avatarURL = pgtype.Text{String: accepted, Valid: true}
+	}
+
+	// Every member is planned before the transaction opens, so a bad secret
+	// path on the last member fails the install without having written the
+	// first.
+	plans := make([]templateAgentPlan, 0, len(template.Agents))
+	dropped := []string{}
+	for i := range template.Agents {
+		ref := &template.Agents[i]
+		plan, ok := h.planTemplateAgent(w, r, runtime, &ref.Agent, ref.Agent.Name,
+			scopedSecrets(req.Secrets, squadMemberSecretKey(ref.Dir)))
+		if !ok {
+			return
+		}
+		for _, field := range plan.dropped {
+			dropped = append(dropped, fmt.Sprintf("%s for %q", field, plan.name))
+		}
+		plans = append(plans, plan)
+	}
+
+	tx, err := h.TxStarter.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to install the agent family")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	qtx := h.Queries.WithTx(tx)
+
+	if _, err := qtx.LockWorkspaceForChatSessionCreate(r.Context(), wsUUID); err != nil {
+		writeError(w, http.StatusNotFound, "workspace not found")
+		return
+	}
+
+	usedAgentNames := map[string]bool{}
+	usedSkillNames := map[string]bool{}
+	agents := make([]db.Agent, 0, len(plans))
+	for i := range plans {
+		agentName, err := h.availableAgentName(r.Context(), qtx, wsUUID, sanitizeNullBytes(plans[i].name), usedAgentNames)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to install the agent family's agents")
+			return
+		}
+		plans[i].name = agentName
+		created, err := h.createTemplateAgentInTx(r.Context(), r, qtx, listing, version, files, plans[i],
+			wsUUID, runtime, userID, usedSkillNames)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		agents = append(agents, created)
+	}
+
+	squad, err := qtx.CreateSquad(r.Context(), db.CreateSquadParams{
+		WorkspaceID: wsUUID,
+		Name:        name,
+		Description: template.Description,
+		LeaderID:    agents[leaderIndex].ID,
+		CreatorID:   parseUUID(userID),
+		AvatarUrl:   avatarURL,
+	})
+	if err != nil {
+		slog.Warn("install marketplace squad failed", append(logger.RequestAttrs(r), "error", err)...)
+		writeError(w, http.StatusInternalServerError, "failed to install the agent family")
+		return
+	}
+	if template.Instructions != "" {
+		squad, err = qtx.UpdateSquad(r.Context(), db.UpdateSquadParams{
+			ID:           squad.ID,
+			Instructions: pgtype.Text{String: template.Instructions, Valid: true},
+		})
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to install the agent family")
+			return
+		}
+	}
+	for i, ref := range template.Agents {
+		role := ref.Role
+		if i == leaderIndex && role == "" {
+			role = "leader"
+		}
+		if _, err := qtx.AddSquadMember(r.Context(), db.AddSquadMemberParams{
+			SquadID:    squad.ID,
+			MemberType: "agent",
+			MemberID:   agents[i].ID,
+			Role:       role,
+		}); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to add the agent family's members")
+			return
+		}
+	}
+
+	if _, err := qtx.CreateMarketplaceInstall(r.Context(), db.CreateMarketplaceInstallParams{
+		ListingID:   listing.ID,
+		VersionID:   version.ID,
+		WorkspaceID: wsUUID,
+		EntityKind:  marketplaceKindSquad,
+		EntityID:    squad.ID,
+		InstalledBy: parseUUID(userID),
+	}); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record the install")
+		return
+	}
+	if err := qtx.IncrementMarketplaceInstallCount(r.Context(), listing.ID); err != nil {
+		slog.Warn("increment marketplace install count failed", append(logger.RequestAttrs(r), "error", err)...)
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to install the agent family")
+		return
+	}
+
+	slog.Info("marketplace agent family installed", append(logger.RequestAttrs(r),
+		"listing_id", uuidToString(listing.ID), "squad_id", uuidToString(squad.ID), "agents", len(agents))...)
+
+	workspaceID := uuidToString(wsUUID)
+	actorType, actorID := h.resolveActor(r, userID, workspaceID)
+	for _, agent := range agents {
+		agentResp := h.agentToResponse(agent)
+		h.publish(protocol.EventAgentCreated, workspaceID, actorType, actorID, map[string]any{"agent": agentResp})
+	}
+	resp, err := h.squadToResponseWithPreview(r.Context(), squad)
+	if err != nil {
+		resp = h.squadToResponse(squad)
+	}
+	h.publish(protocol.EventSquadCreated, workspaceID, actorType, actorID, map[string]any{"squad": resp})
+
+	writeJSON(w, http.StatusCreated, MarketplaceInstallResult{
+		Status: "created", EntityKind: marketplaceKindSquad, EntityID: uuidToString(squad.ID), Squad: &resp,
+		Reason: droppedFieldsReason(dropped),
+	})
 }
 
 // scopedSecrets narrows an agent template's flat secret map to one server. The
@@ -678,8 +1001,14 @@ func (h *Handler) availableSkillName(ctx context.Context, qtx *db.Queries, works
 // availableMcpServerName is the same rule for the MCP library, which is unique
 // on (workspace_id, name) for the same reason: the name is what an agent's
 // runtime sees.
+//
+// The read goes through qtx rather than h.Queries because an Agent Family
+// installs several agents in one transaction, and two members may each expect
+// a server called "github". A read on another connection cannot see the one
+// the previous member just wrote, so it would hand out the same name twice and
+// the second write would fail the whole install.
 func (h *Handler) availableMcpServerName(ctx context.Context, qtx *db.Queries, workspaceID pgtype.UUID, name string) (string, error) {
-	servers, err := h.Queries.ListWorkspaceMcpServers(ctx, workspaceID)
+	servers, err := qtx.ListWorkspaceMcpServers(ctx, workspaceID)
 	if err != nil {
 		return "", err
 	}

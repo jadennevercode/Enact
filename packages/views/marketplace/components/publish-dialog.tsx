@@ -9,6 +9,7 @@ import { usePublishMarketplaceListing } from "@enact/core/marketplace";
 import {
   agentListOptions,
   skillListOptions,
+  squadListOptions,
   workspaceMcpServersOptions,
 } from "@enact/core/workspace/queries";
 import { Button } from "@enact/ui/components/ui/button";
@@ -105,6 +106,10 @@ export function PublishDialog({
     ...workspaceMcpServersOptions(wsId),
     enabled: open && kind === "mcp",
   });
+  const squadsQuery = useQuery({
+    ...squadListOptions(wsId),
+    enabled: open && kind === "squad",
+  });
 
   const sources = useMemo(() => {
     if (kind === "skill") {
@@ -119,11 +124,17 @@ export function PublishDialog({
         name: agent.name,
       }));
     }
+    if (kind === "squad") {
+      return (squadsQuery.data ?? []).map((squad) => ({
+        id: squad.id,
+        name: squad.name,
+      }));
+    }
     return (serversQuery.data ?? []).map((server) => ({
       id: server.id,
       name: server.name,
     }));
-  }, [kind, skillsQuery.data, agentsQuery.data, serversQuery.data]);
+  }, [kind, skillsQuery.data, agentsQuery.data, serversQuery.data, squadsQuery.data]);
 
   // Base UI's Select needs a label map so the trigger can render the selected
   // value; it is the single source for those labels.

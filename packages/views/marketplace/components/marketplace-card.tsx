@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowUpCircle, Check } from "lucide-react";
 import type { MarketplaceListing } from "@enact/core/types";
 import { hasMarketplaceUpdate } from "@enact/core/marketplace";
 import { Badge } from "@enact/ui/components/ui/badge";
@@ -11,6 +10,7 @@ import {
   marketplaceKindTone,
   type MarketplaceTab,
 } from "../lib/kind";
+import { InstallStateBadge } from "./install-state-badge";
 
 interface MarketplaceCardProps {
   listing: MarketplaceListing;
@@ -21,15 +21,17 @@ interface MarketplaceCardProps {
  * One listing in the directory.
  *
  * The card answers, in order, the three questions a reader has: what is this,
- * who is accountable for it, and do I already have it. Install count is last
- * and quiet — it is the weakest of the three signals and should not out-shout
- * the publisher's name.
+ * who is accountable for it, and do I already have it. The last is always
+ * stated, in a badge that says "installed" or "not installed" rather than
+ * appearing only in the affirmative — an absent badge is not an answer.
+ * Install count is quiet: it is the weakest of the signals and should not
+ * out-shout the publisher's name.
  */
 export function MarketplaceCard({ listing, onOpen }: MarketplaceCardProps) {
   const { t } = useT("marketplace");
   const kind = listing.kind as MarketplaceTab;
   const Icon = marketplaceKindIcon(kind);
-  const installed = Boolean(listing.installed_version_id);
+  const installed = listing.installed === true || Boolean(listing.installed_version_id);
   const updatable = hasMarketplaceUpdate(listing);
 
   return (
@@ -100,21 +102,15 @@ export function MarketplaceCard({ listing, onOpen }: MarketplaceCardProps) {
         ))}
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
-          {updatable ? (
-            <span className="flex items-center gap-1 text-caption font-medium text-sky-600 dark:text-sky-400">
-              <ArrowUpCircle className="size-3.5" aria-hidden="true" />
-              {t(($) => $.update_available, { version: listing.latest_version })}
-            </span>
-          ) : installed ? (
-            <span className="flex items-center gap-1 text-caption text-muted-foreground">
-              <Check className="size-3.5" aria-hidden="true" />
-              {t(($) => $.installed)}
-            </span>
-          ) : listing.install_count > 0 ? (
+          {!updatable && !installed && listing.install_count > 0 ? (
             <span className="font-mono text-caption tabular-nums text-muted-foreground">
               {t(($) => $.installs, { count: listing.install_count })}
             </span>
           ) : null}
+          <InstallStateBadge
+            installed={installed}
+            updateToVersion={updatable ? listing.latest_version : undefined}
+          />
         </span>
       </span>
     </button>

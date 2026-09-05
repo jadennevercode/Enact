@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { api } from "../api";
 import type {
   MarketplaceInstall,
+  MarketplaceInstalledFilter,
   MarketplaceKind,
   MarketplaceListing,
 } from "../types";
@@ -35,6 +36,12 @@ export interface MarketplaceCatalogFilters {
   includeDeprecated?: boolean;
   /** Restricts the result to listings this workspace published. */
   mine?: boolean;
+  /**
+   * Restricts the result to what this workspace already holds, or to what it
+   * does not. The facet counts for both sides are returned either way, so
+   * choosing one chip does not blank the other's number.
+   */
+  installed?: MarketplaceInstalledFilter;
 }
 
 /**

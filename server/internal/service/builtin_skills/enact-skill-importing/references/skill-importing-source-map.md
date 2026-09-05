@@ -173,7 +173,7 @@ grep -n "func runMarketplaceInstall"                   server/cmd/enact/cmd_mark
 |---|---|
 | Install route `POST /api/marketplace/listings/{id}/install` | `r.Post("/install", h.InstallMarketplaceListing)`, `server/cmd/server/router.go` |
 | Install handler; dispatches on the listing's kind | `InstallMarketplaceListing`, `server/internal/handler/marketplace_install.go` |
-| Result envelope (`status`, `reason`, `entity_kind`, `entity_id`, `skill`, `existing_skill`) | `MarketplaceInstallResult`, same file |
+| Result envelope (`status`, `reason`, `entity_kind`, `entity_id`, `skill`, `agent`, `mcp_server`, `squad`, `existing_skill`) | `MarketplaceInstallResult`, same file |
 | `on_conflict` accepts the same four strategies as import, validated by the same helpers server-side and CLI-side | `validImportOnConflict`, `server/internal/handler/skill.go`; `validSkillImportConflictStrategy`, `server/cmd/enact/cmd_skill.go` |
 | Overwrite stays creator-only, exactly as re-import does | `canOverwriteSkillByLocalImport`, called from `installMarketplaceSkill` |
 | Rename reuses the importer's suffix search | `(*Handler).createRenamedImportedSkill`, `server/internal/handler/skill.go` |
@@ -182,8 +182,14 @@ grep -n "func runMarketplaceInstall"                   server/cmd/enact/cmd_mark
 | An install is a copy: the provenance row records the version taken, nothing follows the listing | `CreateMarketplaceInstall` / `marketplace_install` table, `server/migrations/404_marketplace.up.sql` |
 | `installed_version` vs `latest_version` on a listing card | `marketplaceListingToResponse`, `server/internal/handler/marketplace.go` |
 | Agent template install requires `runtime_id`; a template names no machine | `installMarketplaceAgent`, `server/internal/handler/marketplace_install.go` |
+| Agent Family (`kind = "squad"`) install: every member agent, their skills and MCP servers, and the squad, in one transaction | `installMarketplaceSquad`, `server/internal/handler/marketplace_install.go` |
+| A family binds every member to the one `runtime_id`; members are planned before the transaction opens so a bad secret writes nothing | `resolveInstallRuntime` / `planTemplateAgent`, same file |
+| A family's human members are dropped at publish; the leader is named by `leader_dir` | `snapshotSquadForPublish`, `server/internal/handler/marketplace_publish.go` |
+| A member whose name is taken is suffixed rather than overwriting an existing agent | `availableAgentName`, `server/internal/handler/marketplace_install.go` |
 | Withheld values and their paths (`env.NAME`, `headers.NAME`, `url`) | `required_secrets` in the manifest; `sanitizeMcpEntryForPublish`, `server/internal/handler/marketplace_sanitize.go` |
-| Supplying them at install; an agent template prefixes each with its server's name | `restoreMcpEntrySecrets` / `scopedSecrets`, `server/internal/handler/marketplace_install.go` |
+| Supplying them at install; an agent template prefixes each with its server's name, a family with the member then the server | `restoreMcpEntrySecrets` / `scopedSecrets` / `squadMemberSecretKey`, `server/internal/handler/marketplace_install.go` |
+| `installed` boolean and the `installed` / `not_installed` browse filter and facet | `ListMarketplaceListings`, `server/internal/handler/marketplace.go` |
+| Ontology tab's equivalent of installed: the domain is already projected into a workspace skill | `attachedOntologyDomains`, `server/internal/handler/ontology.go` |
 | Publishing refuses agent actors, which is why there is no `enact marketplace publish` | `requireMarketplacePublisher`, `server/internal/handler/marketplace_publish.go` |
 | CLI `marketplace list` / `get` / `install` | `server/cmd/enact/cmd_marketplace.go` |
-| Handler tests | `server/internal/handler/marketplace_test.go`, `marketplace_sanitize_test.go` |
+| Handler tests | `server/internal/handler/marketplace_test.go`, `marketplace_squad_test.go`, `marketplace_sanitize_test.go` |

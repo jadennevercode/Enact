@@ -1,17 +1,21 @@
-import { Bot, Network, Plug, Sparkles } from "lucide-react";
+import { Bot, Network, Plug, Sparkles, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MarketplaceKind } from "@enact/core/types";
 
 /**
- * The four things the directory shows. Three are listings stored by Enact;
+ * The five things the directory shows. Four are listings stored by Enact;
  * `ontology` is federated from Capability Hub and reached through its own
  * endpoints, so it is a browse tab rather than a `MarketplaceKind`.
+ *
+ * `squad` is an Agent Family. It sits next to `agent` because that is the
+ * order a reader assembles capability in: one agent, then a family of them.
  */
 export type MarketplaceTab = MarketplaceKind | "ontology";
 
 export const MARKETPLACE_TABS: MarketplaceTab[] = [
   "skill",
   "agent",
+  "squad",
   "mcp",
   "ontology",
 ];
@@ -28,6 +32,7 @@ export const MARKETPLACE_TABS: MarketplaceTab[] = [
 const KIND_ICONS: Record<MarketplaceTab, LucideIcon> = {
   skill: Sparkles,
   agent: Bot,
+  squad: Users,
   mcp: Plug,
   ontology: Network,
 };
@@ -44,6 +49,7 @@ export function marketplaceKindIcon(kind: MarketplaceTab): LucideIcon {
 const KIND_TONES: Record<MarketplaceTab, string> = {
   skill: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   agent: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  squad: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
   mcp: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
   ontology: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
 };

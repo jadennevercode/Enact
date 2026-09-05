@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Network } from "lucide-react";
+import type { MarketplaceInstalledFilter } from "@enact/core/types";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { ontologyListOptions } from "@enact/core/workspace/queries";
@@ -13,6 +15,12 @@ import { useLocale, useT } from "../../i18n";
 import { useNavigation } from "../../navigation";
 import { CollectionPageState } from "../../layout/collection-page";
 import { marketplaceKindTone } from "../lib/kind";
+import { InstallStateBadge } from "./install-state-badge";
+
+interface OntologyTabProps {
+  /** Narrows to attached or unattached domains; null shows both. */
+  installedFilter?: MarketplaceInstalledFilter | null;
+}
 
 /**
  * The federated tab.
@@ -22,8 +30,12 @@ import { marketplaceKindTone } from "../lib/kind";
  * This tab exists so a reader looking for capability finds them in the same
  * place as everything else, and then hands off rather than growing a second
  * copy of that page's attach flow here.
+ *
+ * "Attached" is this tab's version of "installed", and it is badged with the
+ * same component the listing cards use: the question is the same one, and a
+ * reader should not have to learn two vocabularies for it inside one page.
  */
-export function OntologyTab() {
+export function OntologyTab({ installedFilter = null }: OntologyTabProps) {
   const { t } = useT("marketplace");
   const { t: tSettings } = useT("settings");
   const locale = useLocale();
@@ -32,6 +44,13 @@ export function OntologyTab() {
   const { push } = useNavigation();
 
   const listQuery = useQuery(ontologyListOptions(wsId));
+
+  const ontologies = useMemo(() => {
+    const all = listQuery.data ?? [];
+    if (installedFilter === null) return all;
+    const wantAttached = installedFilter === "installed";
+    return all.filter((ontology) => ontology.attached === wantAttached);
+  }, [listQuery.data, installedFilter]);
 
   if (listQuery.isPending) {
     return (
@@ -59,18 +78,22 @@ export function OntologyTab() {
     );
   }
 
-  if ((listQuery.data?.length ?? 0) === 0) {
+  if (ontologies.length === 0) {
     return (
       <CollectionPageState
         icon={Network}
-        title={tSettings(($) => $.ontology.empty)}
+        title={
+          installedFilter === null
+            ? tSettings(($) => $.ontology.empty)
+            : t(($) => $.empty_filtered)
+        }
       />
     );
   }
 
   return (
     <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {listQuery.data?.map((ontology) => {
+      {ontologies.map((ontology) => {
         const displayName =
           locale.startsWith("zh") && ontology.nameZh
             ? ontology.nameZh
@@ -127,9 +150,15 @@ export function OntologyTab() {
               <p className="line-clamp-2 min-h-8 text-caption text-muted-foreground">
                 {description}
               </p>
-              <span className="mt-auto flex items-center gap-1 text-caption text-muted-foreground group-hover:text-foreground">
-                {tSettings(($) => $.ontology.title)}
-                <ArrowRight className="size-3.5" aria-hidden="true" />
+              <span className="mt-auto flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1 text-caption text-muted-foreground group-hover:text-foreground">
+                  {tSettings(($) => $.ontology.title)}
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
+                </span>
+                <InstallStateBadge
+                  installed={ontology.attached === true}
+                  className="ml-auto"
+                />
               </span>
             </button>
           </li>

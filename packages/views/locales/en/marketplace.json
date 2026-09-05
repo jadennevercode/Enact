@@ -5,12 +5,14 @@
     "skill": "Skills",
     "agent": "Agents",
     "mcp": "MCP servers",
-    "ontology": "Ontologies"
+    "ontology": "Ontologies",
+    "squad": "Agent Families"
   },
   "kind_singular": {
     "skill": "skill",
     "agent": "agent template",
-    "mcp": "MCP server"
+    "mcp": "MCP server",
+    "squad": "agent family"
   },
   "search_placeholder": "Search the marketplace",
   "all_kinds": "Everything",
@@ -59,7 +61,11 @@
     "select_file": "Select a file to read it.",
     "endpoint": "Connects to {{endpoint}}",
     "requires_secrets": "You will be asked for: {{fields}}",
-    "requires_nothing": "Needs no configuration to install."
+    "requires_nothing": "Needs no configuration to install.",
+    "family_installs_all": "Installing this creates all {{count}} agents, their skills and their MCP servers, and the Agent Family that binds them.",
+    "family_instructions": "How the family coordinates",
+    "family_members": "Agents it brings",
+    "family_leader": "Leader"
   },
   "install": {
     "action": "Install",
@@ -85,7 +91,9 @@
     "renamed": "Installed as \"{{name}}\" to avoid an existing one.",
     "skipped": "Skipped: something with that name already exists.",
     "failed": "The install failed.",
-    "open": "Open it"
+    "open": "Open it",
+    "family_hint": "All {{count}} agents land in this workspace as your own copies. People in the publishing workspace do not travel; add your own afterwards.",
+    "family_runtime_hint": "Every agent in the family binds to this runtime. You can move any of them afterwards."
   },
   "publish": {
     "action": "Publish",
@@ -125,5 +133,6 @@
     "remove_confirm": "Taking a listing down stops anyone new from installing it. Workspaces that already installed it keep their copy.",
     "delete": "Delete draft",
     "new_version": "Publish a new version"
-  }
+  },
+  "not_installed": "Not installed"
 }

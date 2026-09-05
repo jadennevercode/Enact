@@ -171,9 +171,9 @@ for the primary skill content" — only fires on the dedicated single-file endpo
 ## Installing from the Marketplace
 
 The Marketplace holds capability published by workspaces in this deployment:
-skills, agent templates, and MCP server entries. Installing one copies it into
-the current workspace, where it becomes an ordinary skill that can be edited and
-bound like any other.
+skills, agent templates, Agent Families and MCP server entries. Installing one
+copies it into the current workspace, where it becomes an ordinary skill that
+can be edited and bound like any other.
 
 ```bash
 enact marketplace list --kind skill --output json
@@ -181,7 +181,11 @@ enact marketplace get <listing-id> --output json
 enact marketplace install <listing-id> --output json
 ```
 
-Four things to know before reporting a Marketplace install:
+`--installed` and `--not-installed` narrow a list to what this workspace already
+holds, or to what it does not. The `INSTALLED` column reports the version held,
+or `no`.
+
+Five things to know before reporting a Marketplace install:
 
 - **A listing id is not a URL.** `enact skill import --url` rejects it; the
   install route is `POST /api/marketplace/listings/{id}/install`.
@@ -195,6 +199,11 @@ Four things to know before reporting a Marketplace install:
   `marketplace`, which `POST /api/skills/{id}/refresh` deliberately refuses: an
   update is an install of a chosen version, not a re-fetch of whatever a URL
   serves today. Install the newer version instead.
+- **An Agent Family install creates many things at once.** `--kind squad` is a
+  bundle: every member agent, the skills each carries, the MCP servers each
+  expects, and the squad binding them, in one transaction. It is all-or-nothing,
+  so a failure left nothing behind. See the `enact-squads` skill before
+  reporting one.
 
 `enact marketplace install` returns the same envelope shape as skill import,
 plus `entity_kind` and `entity_id` naming what was created:
@@ -203,7 +212,7 @@ plus `entity_kind` and `entity_id` naming what was created:
 {
   "status": "created|updated|conflict|skipped|failed",
   "reason": "...",
-  "entity_kind": "skill|agent|mcp",
+  "entity_kind": "skill|agent|mcp|squad",
   "entity_id": "...",
   "skill": { "...": "SkillWithFilesResponse for an installed skill" },
   "existing_skill": { "id": "...", "name": "...", "can_overwrite": true }
@@ -211,10 +220,13 @@ plus `entity_kind` and `entity_id` naming what was created:
 ```
 
 Two flags exist for the non-skill kinds and are not needed for a skill:
-`--runtime-id` is required to install an agent template, because a template
-names no machine; `--secret path=value` supplies a value the publisher withheld,
-whose paths the listing's manifest lists under `required_secrets`. Read the
-manifest with `enact marketplace get` before installing one of those.
+`--runtime-id` is required to install an agent template or an Agent Family,
+because a template names no machine and a family binds every member to one
+runtime; `--secret path=value` supplies a value the publisher withheld, whose
+paths the listing's manifest lists under `required_secrets`. An agent's paths
+are prefixed with the server name (`github/env.GITHUB_TOKEN`) and a family's
+with the member and then the server (`reviewer/github/env.GITHUB_TOKEN`). Read
+the manifest with `enact marketplace get` before installing one of those.
 
 There is no `enact marketplace publish`. Publishing is an admin decision about
 what leaves the workspace, and the server refuses it for agent actors.

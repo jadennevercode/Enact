@@ -5,12 +5,14 @@
     "skill": "スキル",
     "agent": "エージェント",
     "mcp": "MCP サーバー",
-    "ontology": "オントロジー"
+    "ontology": "オントロジー",
+    "squad": "Agent Family"
   },
   "kind_singular": {
     "skill": "スキル",
     "agent": "エージェントテンプレート",
-    "mcp": "MCP サーバー"
+    "mcp": "MCP サーバー",
+    "squad": "Agent Family"
   },
   "search_placeholder": "マーケットプレイスを検索",
   "all_kinds": "すべて",
@@ -58,7 +60,11 @@
     "select_file": "ファイルを選択すると内容を表示します。",
     "endpoint": "{{endpoint}} に接続します",
     "requires_secrets": "次の入力を求められます：{{fields}}",
-    "requires_nothing": "インストールに設定は不要です。"
+    "requires_nothing": "インストールに設定は不要です。",
+    "family_installs_all": "インストールすると、{{count}} 個のエージェント、そのスキルと MCP サーバー、そしてそれらをまとめる Agent Family がすべて作成されます。",
+    "family_instructions": "連携の方針",
+    "family_members": "含まれるエージェント",
+    "family_leader": "リーダー"
   },
   "install": {
     "action": "インストール",
@@ -84,7 +90,9 @@
     "renamed": "既存のものと重ならないよう「{{name}}」としてインストールしました。",
     "skipped": "スキップしました：その名前のものがすでに存在します。",
     "failed": "インストールに失敗しました。",
-    "open": "開く"
+    "open": "開く",
+    "family_hint": "{{count}} 個のエージェントすべてが、このワークスペースにあなた自身のコピーとして作成されます。公開元のワークスペースのメンバーは引き継がれないため、後から追加してください。",
+    "family_runtime_hint": "Family のすべてのエージェントがこのランタイムにバインドされます。あとから個別に変更できます。"
   },
   "publish": {
     "action": "公開",
@@ -124,5 +132,6 @@
     "remove_confirm": "取り下げると、新たにインストールすることはできなくなります。すでにインストールしたワークスペースのコピーはそのまま残ります。",
     "delete": "ドラフトを削除",
     "new_version": "新しいバージョンを公開"
-  }
+  },
+  "not_installed": "未インストール"
 }

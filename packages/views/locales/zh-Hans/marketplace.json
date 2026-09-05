@@ -5,12 +5,14 @@
     "skill": "Skills",
     "agent": "智能体",
     "mcp": "MCP server",
-    "ontology": "Ontology"
+    "ontology": "Ontology",
+    "squad": "Agent Family"
   },
   "kind_singular": {
     "skill": "skill",
     "agent": "智能体模板",
-    "mcp": "MCP server"
+    "mcp": "MCP server",
+    "squad": "Agent Family"
   },
   "search_placeholder": "在市场中搜索",
   "all_kinds": "全部",
@@ -58,7 +60,11 @@
     "select_file": "选择一个文件查看内容。",
     "endpoint": "连接到 {{endpoint}}",
     "requires_secrets": "安装时需要你提供：{{fields}}",
-    "requires_nothing": "无需任何配置即可安装。"
+    "requires_nothing": "无需任何配置即可安装。",
+    "family_installs_all": "安装后会创建全部 {{count}} 个 Agent、它们的 Skill 和 MCP Server，以及绑定它们的 Agent Family。",
+    "family_instructions": "协作方式",
+    "family_members": "包含的 Agent",
+    "family_leader": "负责人"
   },
   "install": {
     "action": "安装",
@@ -84,7 +90,9 @@
     "renamed": "已安装为 \"{{name}}\"，以避开同名内容。",
     "skipped": "已跳过：同名内容已存在。",
     "failed": "安装失败。",
-    "open": "打开"
+    "open": "打开",
+    "family_hint": "全部 {{count}} 个 Agent 都会作为你自己的副本落到当前工作区。发布方工作区的成员不会一起带过来，安装后自行添加。",
+    "family_runtime_hint": "Family 中的每个 Agent 都会绑定到这个 Runtime，安装后可以单独调整。"
   },
   "publish": {
     "action": "发布",
@@ -124,5 +132,6 @@
     "remove_confirm": "下架之后没有人能再安装它。已经安装过的工作区仍保留自己的副本。",
     "delete": "删除草稿",
     "new_version": "发布新版本"
-  }
+  },
+  "not_installed": "未安装"
 }

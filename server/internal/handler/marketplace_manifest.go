@@ -24,11 +24,14 @@ const (
 	marketplaceKindSkill = "skill"
 	marketplaceKindAgent = "agent"
 	marketplaceKindMcp   = "mcp"
+	// marketplaceKindSquad is an Agent Family: the product name is the
+	// glossary term, the code name is the table it lands in.
+	marketplaceKindSquad = "squad"
 )
 
 func validMarketplaceKind(kind string) bool {
 	switch kind {
-	case marketplaceKindSkill, marketplaceKindAgent, marketplaceKindMcp:
+	case marketplaceKindSkill, marketplaceKindAgent, marketplaceKindMcp, marketplaceKindSquad:
 		return true
 	}
 	return false
@@ -41,6 +44,7 @@ type marketplaceManifest struct {
 	Skill *marketplaceSkillManifest `json:"skill,omitempty"`
 	Agent *marketplaceAgentManifest `json:"agent,omitempty"`
 	Mcp   *marketplaceMcpManifest   `json:"mcp,omitempty"`
+	Squad *marketplaceSquadManifest `json:"squad,omitempty"`
 }
 
 // marketplaceSkillManifest describes a published skill. The SKILL.md body and
@@ -103,6 +107,42 @@ type marketplaceAgentSkillRef struct {
 	Dir string `json:"dir"`
 }
 
+// marketplaceSquadManifest is an Agent Family as published: the squad's own
+// prose, and every agent member as a full agent template of its own, each
+// rooted in its own directory of the version's file set.
+//
+// What is deliberately absent, and why:
+//
+//   - human members — they name people in the publishing workspace, who are
+//     not members of the installing one. The installer adds its own people.
+//   - system_key — marks a squad the product seeded for this workspace; an
+//     installed copy is an ordinary squad.
+//   - leader_id — a row id in another workspace. The leader is named by the
+//     directory of the member it is, and resolved to the agent the install
+//     creates from that directory.
+type marketplaceSquadManifest struct {
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	Instructions string  `json:"instructions"`
+	AvatarURL    *string `json:"avatar_url,omitempty"`
+	// LeaderDir is the Dir of the member that leads. Always one of Agents.
+	LeaderDir string `json:"leader_dir"`
+	// Agents are the members, leader first. Each carries the same template an
+	// agent listing would, so one installer serves both kinds.
+	Agents []marketplaceSquadAgentRef `json:"agents"`
+}
+
+// marketplaceSquadAgentRef is one agent member of a published squad.
+type marketplaceSquadAgentRef struct {
+	// Dir is the prefix under which this member's files were written, e.g.
+	// "agents/reviewer". Its skills live under Dir + "/skills/<skill>/".
+	Dir string `json:"dir"`
+	// Role is the squad_member role the publisher gave it ("leader" for the
+	// leader, free text otherwise).
+	Role  string                   `json:"role"`
+	Agent marketplaceAgentManifest `json:"agent"`
+}
+
 // marketplaceMcpManifest is one MCP server entry as published: the config with
 // every credential removed, and the paths the installer must fill in.
 type marketplaceMcpManifest struct {
@@ -131,6 +171,15 @@ const skillContentPath = "SKILL.md"
 // file set, keeping them from colliding with each other or with a future
 // top-level file.
 const agentSkillDirPrefix = "skills/"
+
+// squadAgentDirPrefix namespaces a squad's member agents the same way; each
+// member's skills then sit under "<member dir>/skills/".
+const squadAgentDirPrefix = "agents/"
+
+// maxMarketplaceSquadAgents bounds how many member agents one squad listing
+// may carry. Every member is a full agent template with its own skills, so an
+// unbounded squad would be an unbounded install transaction.
+const maxMarketplaceSquadAgents = 16
 
 // marketplaceVersionDigest is a sha256 over the canonical manifest and the full
 // file set, so two people can confirm they are looking at the same version.

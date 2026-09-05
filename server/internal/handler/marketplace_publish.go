@@ -123,7 +123,7 @@ func (h *Handler) PublishMarketplaceListing(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if !validMarketplaceKind(req.Kind) {
-		writeError(w, http.StatusBadRequest, "kind must be one of skill, agent, mcp")
+		writeError(w, http.StatusBadRequest, "kind must be one of skill, agent, mcp, squad")
 		return
 	}
 	sourceUUID, ok := parseUUIDOrBadRequest(w, strings.TrimSpace(req.SourceID), "source_id")
@@ -353,6 +353,8 @@ func (h *Handler) buildMarketplaceSnapshot(ctx context.Context, kind string, wor
 		return h.snapshotAgentForPublish(ctx, workspaceID, sourceID, publicFields)
 	case marketplaceKindMcp:
 		return h.snapshotMcpForPublish(ctx, workspaceID, sourceID, publicFields)
+	case marketplaceKindSquad:
+		return h.snapshotSquadForPublish(ctx, workspaceID, sourceID, publicFields)
 	}
 	return marketplaceSnapshot{}, errors.New("unsupported kind")
 }
@@ -461,13 +463,30 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 	if err != nil {
 		return marketplaceSnapshot{}, errMarketplaceSourceNotFound
 	}
+	manifest, files, err := h.agentManifestFor(ctx, workspaceID, agent, agentSkillDirPrefix, publicFields)
+	if err != nil {
+		return marketplaceSnapshot{}, err
+	}
+	return marketplaceSnapshot{
+		Manifest:    marketplaceManifest{Kind: marketplaceKindAgent, Agent: &manifest},
+		Files:       files,
+		DefaultName: agent.Name,
+		DefaultDesc: agent.Description,
+		DefaultSlug: marketplaceSlugify(agent.Name),
+	}, nil
+}
 
+// agentManifestFor turns one agent into its portable template and the files
+// its skills ship, with every skill rooted under skillDirPrefix. An agent
+// listing roots them at "skills/"; a squad member roots them under its own
+// member directory so two members' skills cannot collide.
+func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID, agent db.Agent, skillDirPrefix string, publicFields map[string]bool) (marketplaceAgentManifest, []marketplaceFile, error) {
 	var customArgs []string
 	if len(agent.CustomArgs) > 0 {
 		_ = json.Unmarshal(agent.CustomArgs, &customArgs)
 	}
 	if reason := scanArgsForSecrets(customArgs); reason != "" {
-		return marketplaceSnapshot{}, fmt.Errorf("the agent's custom arguments cannot be published: %s; move the value into the agent's environment", reason)
+		return marketplaceAgentManifest{}, nil, fmt.Errorf("the agent's custom arguments cannot be published: %s; move the value into the agent's environment", reason)
 	}
 
 	manifest := marketplaceAgentManifest{
@@ -508,12 +527,12 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 
 	inline, err := publishableMcpEntries(agent.McpConfig)
 	if err != nil {
-		return marketplaceSnapshot{}, err
+		return marketplaceAgentManifest{}, nil, err
 	}
 	for _, entry := range inline {
 		entryManifest, err := mcpManifestFor(entry.Name, entry.Config, publicFields)
 		if err != nil {
-			return marketplaceSnapshot{}, err
+			return marketplaceAgentManifest{}, nil, err
 		}
 		manifest.McpServers = append(manifest.McpServers, entryManifest)
 		seen[entry.Name] = true
@@ -521,7 +540,7 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 
 	bound, err := h.Queries.ListAgentMcpServers(ctx, agent.ID)
 	if err != nil {
-		return marketplaceSnapshot{}, errors.New("failed to read the agent's MCP servers")
+		return marketplaceAgentManifest{}, nil, errors.New("failed to read the agent's MCP servers")
 	}
 	for _, server := range bound {
 		if seen[server.Name] {
@@ -529,7 +548,7 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 		}
 		entryManifest, err := mcpManifestFor(server.Name, server.Config, publicFields)
 		if err != nil {
-			return marketplaceSnapshot{}, err
+			return marketplaceAgentManifest{}, nil, err
 		}
 		manifest.McpServers = append(manifest.McpServers, entryManifest)
 		seen[server.Name] = true
@@ -537,10 +556,10 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 
 	skills, err := h.Queries.ListAgentSkills(ctx, agent.ID)
 	if err != nil {
-		return marketplaceSnapshot{}, errors.New("failed to read the agent's skills")
+		return marketplaceAgentManifest{}, nil, errors.New("failed to read the agent's skills")
 	}
 	if len(skills) > maxMarketplaceEmbeddedSkills {
-		return marketplaceSnapshot{}, fmt.Errorf("an agent template may carry at most %d skills", maxMarketplaceEmbeddedSkills)
+		return marketplaceAgentManifest{}, nil, fmt.Errorf("an agent template may carry at most %d skills", maxMarketplaceEmbeddedSkills)
 	}
 	usedDirs := map[string]bool{}
 	for _, skill := range skills {
@@ -551,10 +570,10 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 		if skillConfigKind(skill.Config) == "ontology" {
 			continue
 		}
-		dir := agentSkillDirPrefix + uniqueMarketplaceDir(marketplaceSlugify(skill.Name), usedDirs)
+		dir := skillDirPrefix + uniqueMarketplaceDir(marketplaceSlugify(skill.Name), usedDirs)
 		skillFiles, skillManifest, err := h.skillPublishFiles(ctx, skill, dir+"/")
 		if err != nil {
-			return marketplaceSnapshot{}, err
+			return marketplaceAgentManifest{}, nil, err
 		}
 		files = append(files, skillFiles...)
 		manifest.Skills = append(manifest.Skills, marketplaceAgentSkillRef{
@@ -564,12 +583,101 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 		})
 	}
 
+	return manifest, files, nil
+}
+
+// snapshotSquadForPublish reads an Agent Family and every agent member of it,
+// and produces a bundle of agent templates plus the squad that binds them.
+//
+// Human members are dropped rather than published: they name people in this
+// workspace, and an install elsewhere has its own people. The leader is
+// therefore required to be an agent member, which CreateSquad already
+// guarantees, and is named by its member directory so the installer can
+// resolve it to the agent it creates.
+func (h *Handler) snapshotSquadForPublish(ctx context.Context, workspaceID, squadID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
+	squad, err := h.Queries.GetSquadInWorkspace(ctx, db.GetSquadInWorkspaceParams{
+		ID:          squadID,
+		WorkspaceID: workspaceID,
+	})
+	if err != nil {
+		return marketplaceSnapshot{}, errMarketplaceSourceNotFound
+	}
+	if squad.ArchivedAt.Valid {
+		return marketplaceSnapshot{}, errors.New("an archived agent family cannot be published")
+	}
+	members, err := h.Queries.ListSquadMembers(ctx, squad.ID)
+	if err != nil {
+		return marketplaceSnapshot{}, errors.New("failed to read the agent family's members")
+	}
+
+	manifest := marketplaceSquadManifest{
+		Name:         squad.Name,
+		Description:  squad.Description,
+		Instructions: squad.Instructions,
+		Agents:       []marketplaceSquadAgentRef{},
+	}
+	if squad.AvatarUrl.Valid && squad.AvatarUrl.String != "" {
+		avatar := squad.AvatarUrl.String
+		manifest.AvatarURL = &avatar
+	}
+
+	// Leader first, then the rest in membership order, so the manifest reads
+	// the way the squad page does and the installer creates the leader before
+	// it needs its id.
+	ordered := make([]db.SquadMember, 0, len(members))
+	for _, member := range members {
+		if member.MemberType == "agent" && member.MemberID == squad.LeaderID {
+			ordered = append(ordered, member)
+		}
+	}
+	for _, member := range members {
+		if member.MemberType == "agent" && member.MemberID != squad.LeaderID {
+			ordered = append(ordered, member)
+		}
+	}
+	if len(ordered) == 0 || ordered[0].MemberID != squad.LeaderID {
+		return marketplaceSnapshot{}, errors.New("the agent family's leader is not one of its agent members")
+	}
+	if len(ordered) > maxMarketplaceSquadAgents {
+		return marketplaceSnapshot{}, fmt.Errorf("an agent family listing may carry at most %d agents", maxMarketplaceSquadAgents)
+	}
+
+	files := []marketplaceFile{}
+	usedDirs := map[string]bool{}
+	for _, member := range ordered {
+		agent, err := h.Queries.GetAgentInWorkspace(ctx, db.GetAgentInWorkspaceParams{
+			ID:          member.MemberID,
+			WorkspaceID: workspaceID,
+		})
+		if err != nil {
+			return marketplaceSnapshot{}, fmt.Errorf("an agent member of this family no longer exists in this workspace")
+		}
+		dir := squadAgentDirPrefix + uniqueMarketplaceDir(marketplaceSlugify(agent.Name), usedDirs)
+		agentManifest, agentFiles, err := h.agentManifestFor(ctx, workspaceID, agent, dir+"/"+agentSkillDirPrefix, publicFields)
+		if err != nil {
+			return marketplaceSnapshot{}, fmt.Errorf("%s: %w", agent.Name, err)
+		}
+		files = append(files, agentFiles...)
+		role := member.Role
+		if member.MemberID == squad.LeaderID {
+			manifest.LeaderDir = dir
+			if role == "" {
+				role = "leader"
+			}
+		}
+		manifest.Agents = append(manifest.Agents, marketplaceSquadAgentRef{
+			Dir:   dir,
+			Role:  role,
+			Agent: agentManifest,
+		})
+	}
+
 	return marketplaceSnapshot{
-		Manifest:    marketplaceManifest{Kind: marketplaceKindAgent, Agent: &manifest},
+		Manifest:    marketplaceManifest{Kind: marketplaceKindSquad, Squad: &manifest},
 		Files:       files,
-		DefaultName: agent.Name,
-		DefaultDesc: agent.Description,
-		DefaultSlug: marketplaceSlugify(agent.Name),
+		DefaultName: squad.Name,
+		DefaultDesc: squad.Description,
+		DefaultSlug: marketplaceSlugify(squad.Name),
 	}, nil
 }
 

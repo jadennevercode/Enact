@@ -69,6 +69,16 @@ enact squad member remove <squad-id> --member-id <id> --type agent|member
 enact squad member set-role <squad-id> --member-id <id> --member-type agent|member --role <role> --output json
 ```
 
+Marketplace commands, for taking a squad someone else published:
+
+```bash
+enact marketplace list --kind squad --output json
+enact marketplace get <listing-id> --output json
+enact marketplace install <listing-id> --runtime-id <runtime-id> --output json
+```
+
+See "Installing a squad from the Marketplace" below before reporting one.
+
 Squad leader evaluation command:
 
 ```bash
@@ -235,6 +245,37 @@ Do not silently change squad routing, member fan-out, leader briefing, autopilot
 behavior, or comment-trigger behavior without confirmation. These are product
 contract changes with side effects.
 
+## Installing a squad from the Marketplace
+
+A squad listing is a bundle, not a reference. Installing one creates, in a
+single transaction: every agent member, the skills each of them carries, the
+MCP servers each of them expects, and the squad that binds them, with the
+published leader and member roles intact. `entity_kind` in the result is
+`squad` and `entity_id` is the new squad's id.
+
+Five things to know before reporting one:
+
+- **`--runtime-id` is required**, and one runtime binds every member. A
+  published squad names no machine. Individual agents can be rebound afterwards
+  through `enact agent update`.
+- **People do not travel.** The publisher's human members named users of THEIR
+  workspace, so the installed squad has agent members only. Add people with
+  `enact squad member add --type member` afterwards.
+- **Names are suffixed, never overwritten.** A member whose name is already
+  taken in this workspace installs as `<name>-2`. The same holds for its skills
+  and MCP servers. Nothing existing is replaced.
+- **Every installed agent starts private** to whoever installed it, because the
+  template's own permission targets named another workspace's members. A squad
+  whose leader is private still routes work — the owner can invoke it — but
+  other members of this workspace cannot `@` it until its visibility changes.
+- **Withheld values name the member as well as the server**:
+  `--secret reviewer/github/env.GITHUB_TOKEN=...`. Read the manifest with
+  `enact marketplace get` to see which paths a listing requires.
+
+The install is all-or-nothing. If it fails, nothing was created — do not tell
+the user to clean up half a squad, and do not re-run it hoping for a partial
+result.
+
 ## Side effects
 
 These actions can trigger agent work or mutate durable state:
@@ -250,6 +291,8 @@ These actions can trigger agent work or mutate durable state:
 - mentioning a squad;
 - creating or triggering squad-assigned autopilots;
 - recording squad activity with `enact squad activity`;
+- installing a squad listing from the Marketplace (creates agents, skills, MCP
+  servers and the squad in one transaction);
 - deleting/archive squad.
 
 Do not perform side-effecting actions as tests unless the user explicitly
@@ -258,6 +301,9 @@ authorizes them.
 ## Common wrong assumptions
 
 - A squad is not an agent.
+- Installing a squad listing is a copy, not a subscription: a later version of
+  the listing changes nothing until someone installs it. Never describe an
+  installed squad as "synced" with the listing.
 - Squad work routes to `leader_id`, not every member.
 - Squad mention routes to the leader, not every member.
 - Squad assignment routes to the leader, not every member.

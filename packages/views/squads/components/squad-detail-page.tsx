@@ -15,7 +15,7 @@ import { useNavigation } from "../../navigation";
 import { AppLink } from "../../navigation";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { PageHeader } from "../../layout/page-header";
-import { Users, Plus, Trash2, ArrowUpRight, Crown, Loader2, Pencil, FileText, Save } from "lucide-react";
+import { Users, Plus, Trash2, ArrowUpRight, Crown, Loader2, Pencil, FileText, Save, Upload } from "lucide-react";
 import { Button } from "@enact/ui/components/ui/button";
 import { Input } from "@enact/ui/components/ui/input";
 import { Label } from "@enact/ui/components/ui/label";
@@ -52,6 +52,7 @@ import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/acto
 import { ActorAvatar } from "../../common/actor-avatar";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { ContentEditor } from "../../editor/content-editor";
+import { PublishDialog } from "../../marketplace";
 import {
   PickerItem,
   PickerSection,
@@ -65,6 +66,7 @@ import { matchesPinyin } from "../../editor/extensions/pinyin-match";
 
 export function SquadDetailPage() {
   const { t } = useT("squads");
+  const { t: tMarketplace } = useT("marketplace");
   const workspace = useCurrentWorkspace();
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
@@ -117,6 +119,7 @@ export function SquadDetailPage() {
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   const updateSquadMut = useMutation({
     mutationFn: (data: { name?: string; description?: string; instructions?: string; avatar_url?: string; leader_id?: string }) => api.updateSquad(squadId, data),
@@ -211,10 +214,16 @@ export function SquadDetailPage() {
         }
         actions={
           canManage ? (
-            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirmArchive(true)}>
-              <Trash2 className="size-3.5 mr-1" />
-              {t(($) => $.inspector.archive_button)}
-            </Button>
+            <>
+              <Button size="sm" variant="ghost" onClick={() => setPublishOpen(true)}>
+                <Upload className="size-3.5 mr-1" />
+                {tMarketplace(($) => $.publish.action)}
+              </Button>
+              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirmArchive(true)}>
+                <Trash2 className="size-3.5 mr-1" />
+                {t(($) => $.inspector.archive_button)}
+              </Button>
+            </>
           ) : null
         }
       />
@@ -251,6 +260,17 @@ export function SquadDetailPage() {
           setLeaderPending={setLeaderMut.isPending}
         />
       </div>
+
+      <PublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        defaultKind="squad"
+        defaultSourceId={squadId}
+        onPublished={(listingId) => {
+          setPublishOpen(false);
+          push(p.marketplaceListing(listingId));
+        }}
+      />
 
       {showAddMember && (
         <AddMemberDialog

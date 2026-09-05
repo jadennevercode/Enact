@@ -73,6 +73,10 @@ type MarketplaceListingResponse struct {
 	// CanManage is true when the caller may edit, publish to, or take down
 	// this listing, so the client does not have to re-derive the rule.
 	CanManage bool `json:"can_manage"`
+	// Installed is whether this workspace holds a copy of this listing. It is
+	// the same fact InstalledVersionID carries, stated as the boolean every
+	// card and filter reads, so no client has to derive it from a version id.
+	Installed bool `json:"installed"`
 	// InstalledVersion is the version this workspace last installed, empty when
 	// it never has. Drives the "installed" badge and the update prompt.
 	InstalledVersion   string `json:"installed_version,omitempty"`
@@ -119,7 +123,16 @@ type MarketplaceFacets struct {
 	Kinds      map[string]int `json:"kinds"`
 	Categories map[string]int `json:"categories"`
 	Tags       map[string]int `json:"tags"`
+	// Installed counts the visible set by whether this workspace holds a copy,
+	// under the keys "installed" and "not_installed", so the two filter chips
+	// can show their counts before either is chosen.
+	Installed map[string]int `json:"installed"`
 }
+
+const (
+	marketplaceInstalledFilterInstalled    = "installed"
+	marketplaceInstalledFilterNotInstalled = "not_installed"
+)
 
 // MarketplaceInstallResponse is one provenance record: what this workspace
 // took, from where, and at which version.
@@ -300,6 +313,7 @@ func marketplaceListingToResponse(
 		resp.LatestVersionID = uuidToString(listing.LatestVersionID)
 	}
 	if install != nil {
+		resp.Installed = true
 		resp.InstalledVersionID = uuidToString(install.VersionID)
 		resp.InstalledVersion = installedVersion
 	}
@@ -361,6 +375,12 @@ func (h *Handler) ListMarketplaceListings(w http.ResponseWriter, r *http.Request
 	// A publisher managing their own listings asks for drafts explicitly;
 	// browsing never mixes them into the directory.
 	mine := r.URL.Query().Get("mine") == "true"
+	// `installed=true|false` narrows to what this workspace already holds, or
+	// to what it does not. Anything else means no narrowing.
+	installedFilter := strings.TrimSpace(r.URL.Query().Get("installed"))
+	if installedFilter != "true" && installedFilter != "false" {
+		installedFilter = ""
+	}
 
 	visible := make([]db.MarketplaceListing, 0, len(listings))
 	for _, listing := range listings {
@@ -389,10 +409,19 @@ func (h *Handler) ListMarketplaceListings(w http.ResponseWriter, r *http.Request
 		visible = append(visible, listing)
 	}
 
+	// Install state is read before the facets: "installed" is a facet like any
+	// other, counted over the visible set so its chip shows a number before it
+	// is chosen.
+	installState := h.marketplaceInstallState(r.Context(), wsUUID)
+
 	facets := MarketplaceFacets{
 		Kinds:      map[string]int{},
 		Categories: map[string]int{},
 		Tags:       map[string]int{},
+		Installed: map[string]int{
+			marketplaceInstalledFilterInstalled:    0,
+			marketplaceInstalledFilterNotInstalled: 0,
+		},
 	}
 	for _, listing := range visible {
 		facets.Kinds[listing.Kind]++
@@ -402,12 +431,23 @@ func (h *Handler) ListMarketplaceListings(w http.ResponseWriter, r *http.Request
 		for _, t := range listing.Tags {
 			facets.Tags[t]++
 		}
+		if _, installed := installState[uuidToString(listing.ID)]; installed {
+			facets.Installed[marketplaceInstalledFilterInstalled]++
+		} else {
+			facets.Installed[marketplaceInstalledFilterNotInstalled]++
+		}
 	}
 
 	filtered := make([]db.MarketplaceListing, 0, len(visible))
 	for _, listing := range visible {
 		if kind != "" && listing.Kind != kind {
 			continue
+		}
+		if installedFilter != "" {
+			_, installed := installState[uuidToString(listing.ID)]
+			if installed != (installedFilter == "true") {
+				continue
+			}
 		}
 		if category != "" && listing.Category != category {
 			continue
@@ -422,7 +462,6 @@ func (h *Handler) ListMarketplaceListings(w http.ResponseWriter, r *http.Request
 	}
 
 	publishers := h.marketplaceWorkspaceNames(r.Context(), filtered)
-	installState := h.marketplaceInstallState(r.Context(), wsUUID)
 	versionIDs := make([]pgtype.UUID, 0, len(filtered)*2)
 	for _, listing := range filtered {
 		versionIDs = append(versionIDs, listing.LatestVersionID)

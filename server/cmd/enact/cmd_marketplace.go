@@ -46,19 +46,25 @@ var marketplaceInstallCmd = &cobra.Command{
 }
 
 func init() {
-	marketplaceListCmd.Flags().String("kind", "", "Filter by kind: skill, agent, mcp")
+	marketplaceListCmd.Flags().String("kind", "", "Filter by kind: skill, agent, mcp, squad (an Agent Family)")
 	marketplaceListCmd.Flags().String("query", "", "Free-text filter over name, description and tags")
 	marketplaceListCmd.Flags().String("tag", "", "Filter by tag")
 	marketplaceListCmd.Flags().Bool("mine", false, "Only listings this workspace published")
+	marketplaceListCmd.Flags().Bool("installed", false, "Only listings this workspace has installed")
+	marketplaceListCmd.Flags().Bool("not-installed", false, "Only listings this workspace has not installed")
+	marketplaceListCmd.MarkFlagsMutuallyExclusive("installed", "not-installed")
 
 	marketplaceGetCmd.Flags().String("version-id", "", "Read a specific version instead of the latest")
 
 	marketplaceInstallCmd.Flags().String("version-id", "", "Install a specific version instead of the latest")
 	marketplaceInstallCmd.Flags().String("name", "", "Name for the copy in this workspace")
-	marketplaceInstallCmd.Flags().String("runtime-id", "", "Runtime to bind an agent template to (required for kind=agent)")
+	marketplaceInstallCmd.Flags().String("runtime-id", "",
+		"Runtime to bind an agent template, or every member of an Agent Family, to (required for kind=agent and kind=squad)")
 	marketplaceInstallCmd.Flags().String("on-conflict", "fail", "fail | overwrite | rename | skip")
 	marketplaceInstallCmd.Flags().StringArray("secret", nil,
-		"A value the publisher withheld, as path=value (repeatable), e.g. env.GITHUB_TOKEN=ghp_...")
+		"A value the publisher withheld, as path=value (repeatable), e.g. env.GITHUB_TOKEN=ghp_...; "+
+			"prefix with the server name for an agent template (github/env.GITHUB_TOKEN=...) "+
+			"and with the member then the server for an Agent Family (reviewer/github/env.GITHUB_TOKEN=...)")
 
 	marketplaceCmd.AddCommand(marketplaceListCmd)
 	marketplaceCmd.AddCommand(marketplaceGetCmd)
@@ -83,6 +89,12 @@ func runMarketplaceList(cmd *cobra.Command, _ []string) error {
 	}
 	if mine, _ := cmd.Flags().GetBool("mine"); mine {
 		query.Set("mine", "true")
+	}
+	if installed, _ := cmd.Flags().GetBool("installed"); installed {
+		query.Set("installed", "true")
+	}
+	if notInstalled, _ := cmd.Flags().GetBool("not-installed"); notInstalled {
+		query.Set("installed", "false")
 	}
 	path := "/api/marketplace/listings"
 	if encoded := query.Encode(); encoded != "" {
@@ -109,13 +121,19 @@ func runMarketplaceList(cmd *cobra.Command, _ []string) error {
 	headers := []string{"ID", "KIND", "NAME", "VERSION", "PUBLISHER", "INSTALLED"}
 	rows := make([][]string, 0, len(catalog.Listings))
 	for _, listing := range catalog.Listings {
+		// The column says both whether and which: "no" for a listing this
+		// workspace never took, the version it holds otherwise.
+		installed := strVal(listing, "installed_version")
+		if installed == "" {
+			installed = "no"
+		}
 		rows = append(rows, []string{
 			strVal(listing, "id"),
 			strVal(listing, "kind"),
 			strVal(listing, "name"),
 			strVal(listing, "latest_version"),
 			strVal(listing, "publisher_workspace_name"),
-			strVal(listing, "installed_version"),
+			installed,
 		})
 	}
 	cli.PrintTable(os.Stdout, headers, rows)

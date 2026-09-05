@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { TestApiClient } from "./fixtures";
+import { TestApiClient, e2eEmail } from "./fixtures";
 import { waitForPageText } from "./helpers";
 
 // The onboarding column is one measure and everything structural inside it
@@ -52,7 +52,7 @@ test("onboarding — structural blocks match the column width on every step", as
   page,
 }) => {
   const api = new TestApiClient();
-  await api.login(`widths-${Date.now()}@localhost`, "Width Guard");
+  await api.login(e2eEmail(`widths-${Date.now()}`), "Width Guard");
   const token = api.getToken();
 
   await page.addInitScript((t) => localStorage.setItem("enact_token", t), token);
@@ -88,7 +88,7 @@ test("onboarding — the shell survives step changes instead of re-mounting", as
   page,
 }) => {
   const api = new TestApiClient();
-  await api.login(`shell-${Date.now()}@localhost`, "Shell Guard");
+  await api.login(e2eEmail(`shell-${Date.now()}`), "Shell Guard");
 
   await page.addInitScript(
     (t) => localStorage.setItem("enact_token", t),

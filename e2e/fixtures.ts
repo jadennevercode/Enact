@@ -13,6 +13,20 @@ import pg from "pg";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.PORT || "8080"}`;
 const DATABASE_URL = process.env.DATABASE_URL ?? "postgres://enact:enact@localhost:5432/enact?sslmode=disable";
 
+// Registration is domain-gated server-side (handler/auth.go), so every account
+// a test creates has to sit on the allowed domain or /auth/register answers 403.
+// Naming lives next to the code that registers users so the two cannot drift.
+export const E2E_EMAIL_DOMAIN = process.env.E2E_EMAIL_DOMAIN ?? "deloittecn.com.cn";
+
+export function e2eEmail(localPart: string): string {
+  return `${localPart}@${E2E_EMAIL_DOMAIN}`;
+}
+
+// Accounts are generated per run and thrown away with the database, so this is
+// a fixture value rather than a credential. Override it when a deployment
+// enforces a stronger password policy than the server's 8-character floor.
+const E2E_PASSWORD = process.env.E2E_PASSWORD ?? "e2e-Passw0rd!";
+
 interface TestWorkspace {
   id: string;
   name: string;
@@ -53,18 +67,44 @@ export class TestApiClient {
   private createdIssueIds: string[] = [];
   private createdSkillIds: string[] = [];
   private publishedListingIds: string[] = [];
+  private seededRuntimeIds: string[] = [];
+  private seededAgentIds: string[] = [];
+  private seededSquadIds: string[] = [];
   private seededIssueIds: string[] = [];
 
+  /**
+   * Ensure the account exists, then authenticate as it.
+   *
+   * `email-login` is a strict login — it never creates the user — and E2E
+   * emails are minted per run, so the account has to be registered first. A
+   * 409 means an earlier spec in the same run already registered it.
+   */
   async login(email: string, name: string) {
-    const loginRes = await fetch(`${API_BASE}/auth/email-login`, {
+    const registerRes = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, password: E2E_PASSWORD, name: name || "E2E User" }),
     });
-    if (!loginRes.ok) {
-      throw new Error(`email-login failed: ${loginRes.status}`);
+    if (!registerRes.ok && registerRes.status !== 409) {
+      throw new Error(
+        `register failed: ${registerRes.status} ${await registerRes.text()}`,
+      );
     }
-    const data = await loginRes.json();
+
+    let data;
+    if (registerRes.ok) {
+      data = await registerRes.json();
+    } else {
+      const loginRes = await fetch(`${API_BASE}/auth/email-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: E2E_PASSWORD }),
+      });
+      if (!loginRes.ok) {
+        throw new Error(`email-login failed: ${loginRes.status}`);
+      }
+      data = await loginRes.json();
+    }
 
     this.token = data.token;
     this.email = email;
@@ -344,6 +384,59 @@ export class TestApiClient {
       }
       this.publishedListingIds = [];
     }
+
+    // Squads, agents and runtimes are swept last and by direct SQL: an install
+    // creates agents this client never named, so the sweep is by workspace
+    // rather than by remembered id. Order matters — a squad's members and an
+    // agent's bindings carry no foreign key.
+    if (
+      this.workspaceId &&
+      (this.seededRuntimeIds.length > 0 ||
+        this.seededAgentIds.length > 0 ||
+        this.seededSquadIds.length > 0)
+    ) {
+      const client = new pg.Client(DATABASE_URL);
+      await client.connect();
+      try {
+        await client.query(
+          `DELETE FROM squad_member WHERE squad_id IN (SELECT id FROM squad WHERE workspace_id = $1)`,
+          [this.workspaceId],
+        );
+        await client.query(`DELETE FROM squad WHERE workspace_id = $1`, [
+          this.workspaceId,
+        ]);
+        await client.query(
+          `DELETE FROM agent_skill WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`,
+          [this.workspaceId],
+        );
+        await client.query(
+          `DELETE FROM agent_mcp_server WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`,
+          [this.workspaceId],
+        );
+        await client.query(
+          `DELETE FROM workspace_mcp_server WHERE workspace_id = $1`,
+          [this.workspaceId],
+        );
+        await client.query(
+          `DELETE FROM skill_file WHERE skill_id IN (SELECT id FROM skill WHERE workspace_id = $1)`,
+          [this.workspaceId],
+        );
+        await client.query(`DELETE FROM skill WHERE workspace_id = $1`, [
+          this.workspaceId,
+        ]);
+        await client.query(`DELETE FROM agent WHERE workspace_id = $1`, [
+          this.workspaceId,
+        ]);
+        await client.query(`DELETE FROM agent_runtime WHERE workspace_id = $1`, [
+          this.workspaceId,
+        ]);
+      } finally {
+        await client.end();
+      }
+      this.seededRuntimeIds = [];
+      this.seededAgentIds = [];
+      this.seededSquadIds = [];
+    }
   }
 
   // --- Marketplace ---------------------------------------------------------
@@ -377,6 +470,117 @@ export class TestApiClient {
       listing: { id: string; name: string };
       version: { id: string; version: string };
     };
+  }
+
+  /**
+   * Seeds a runtime row directly.
+   *
+   * A runtime is a machine that registered itself through the daemon, so there
+   * is no API to create one and an agent cannot exist without it. The row is
+   * inserted here and swept in cleanup.
+   */
+  async seedRuntime(name: string): Promise<string> {
+    const workspaceId = await this.requireWorkspaceId();
+    const userId = await this.requireUserId();
+    const client = new pg.Client(DATABASE_URL);
+    await client.connect();
+    try {
+      const result = await client.query<{ id: string }>(
+        `INSERT INTO agent_runtime
+           (workspace_id, name, runtime_mode, provider, status, device_info,
+            metadata, last_seen_at, visibility, owner_id)
+         VALUES ($1, $2, 'cloud', 'claude', 'online', '', '{}'::jsonb, now(), 'private', $3)
+         RETURNING id`,
+        [workspaceId, name, userId],
+      );
+      const id = result.rows[0]?.id;
+      if (!id) throw new Error("seed runtime returned no id");
+      this.seededRuntimeIds.push(id);
+      return id;
+    } finally {
+      await client.end();
+    }
+  }
+
+  async createAgent(body: Record<string, unknown>) {
+    const res = await this.authedFetch("/api/agents", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`create agent failed: ${res.status} ${await res.text()}`);
+    }
+    const agent = (await res.json()) as { id: string; name: string };
+    this.seededAgentIds.push(agent.id);
+    return agent;
+  }
+
+  async createSquad(body: Record<string, unknown>) {
+    const res = await this.authedFetch(`/api/squads`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`create squad failed: ${res.status} ${await res.text()}`);
+    }
+    const squad = (await res.json()) as { id: string; name: string };
+    this.seededSquadIds.push(squad.id);
+    return squad;
+  }
+
+  async addSquadMember(squadId: string, body: Record<string, unknown>) {
+    const res = await this.authedFetch(
+      `/api/squads/${squadId}/members`,
+      { method: "POST", body: JSON.stringify(body) },
+    );
+    if (!res.ok) {
+      throw new Error(`add squad member failed: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
+  }
+
+  async listSquads(): Promise<{ id: string; name: string }[]> {
+    const res = await this.authedFetch(`/api/squads`);
+    if (!res.ok) throw new Error(`list squads failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listSquadMembers(
+    squadId: string,
+  ): Promise<{ member_type: string; member_id: string; role: string }[]> {
+    const res = await this.authedFetch(`/api/squads/${squadId}/members`);
+    if (!res.ok) throw new Error(`list squad members failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listAgents(): Promise<{ id: string; name: string }[]> {
+    const res = await this.authedFetch("/api/agents");
+    if (!res.ok) throw new Error(`list agents failed: ${res.status}`);
+    return res.json();
+  }
+
+  private async requireWorkspaceId(): Promise<string> {
+    if (!this.workspaceId) {
+      throw new Error("workspace not set up yet");
+    }
+    return this.workspaceId;
+  }
+
+  private async requireUserId(): Promise<string> {
+    if (!this.email) throw new Error("not logged in yet");
+    const client = new pg.Client(DATABASE_URL);
+    await client.connect();
+    try {
+      const result = await client.query<{ id: string }>(
+        `SELECT id FROM "user" WHERE email = $1`,
+        [this.email],
+      );
+      const id = result.rows[0]?.id;
+      if (!id) throw new Error(`cannot resolve E2E user ${this.email}`);
+      return id;
+    } finally {
+      await client.end();
+    }
   }
 
   async listSkills(): Promise<{ id: string; name: string }[]> {

@@ -1,11 +1,13 @@
 ---
 title: 市场
-description: 发布一个 skill、智能体模板或 MCP server，让其他工作区安装一份副本 —— 也可以安装他们已经发布的内容。
+description: 发布一个 skill、智能体模板、Agent Family 或 MCP server，让其他工作区安装一份副本 —— 也可以安装他们已经发布的内容。
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-市场是当前部署里各个工作区已发布能力的目录：[skills](/skills)、智能体模板和 MCP server 条目。安装其中一项，会在你自己的工作区里放上一份**副本**，之后你可以像编辑自己写的内容一样编辑它。
+市场是当前部署里各个工作区已发布能力的目录：[skills](/skills)、智能体模板、Agent Family 和 MCP server 条目。安装其中一项，会在你自己的工作区里放上一份**副本**，之后你可以像编辑自己写的内容一样编辑它。
+
+目录里的每一项都会针对你的工作区标注**已安装**或**未安装**，并且可以按这两种状态筛选。已经引入的 Agent Family，和单个 skill 一样会显示为已安装。
 
 ## 可以发布什么
 
@@ -13,7 +15,10 @@ import { Callout } from "fumadocs-ui/components/callout";
 |---|---|---|
 | **Skill** | `SKILL.md` 和全部参考文件 | 没有 —— skill 就是一段文字，按写好的样子发布 |
 | **智能体模板** | 名称、描述、指令、模型和思考强度设置、它附带的 skill、它需要的 MCP server | 它的环境变量、运行时绑定、运行时配置，以及谁有权调用它 |
+| **Agent Family** | Family 的描述和协作指令，以及每一个智能体成员的完整模板 —— 各自带着自己的 skill 和 MCP server | 里面的人类成员，以及负责人的行 ID；负责人通过"是哪一个成员"来标识 |
 | **MCP server** | 移除全部凭据后的服务条目 | `env` 和请求头的值；URL 也一样，除非你标记为按原样发布 |
+
+一个 Agent Family 最多带 16 个智能体，每个智能体最多带 32 个 skill。人类成员会被丢弃而不是发布：他们指向的是你工作区里的人，而不是别人工作区里的人。安装这个 Family 的人自己添加。
 
 <Callout type="warn">
 发布永远不会从你的浏览器上传内容。你指定自己工作区里的一个实体，由服务器读取它、剥离每一个带凭据的字段，再保存结果。正是这一点让这套隐去机制值得信赖。
@@ -21,7 +26,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 ## 发布
 
-从侧边栏打开市场并选择**发布**，也可以使用 skill 页面上的发布操作、智能体菜单里的发布操作，或**设置 → MCP** 中某一行的发布操作。
+从侧边栏打开市场并选择**发布**，也可以使用 skill 页面上的发布操作、智能体菜单里的发布操作、Agent Family 页面上的发布操作，或**设置 → MCP** 中某一行的发布操作。
 
 除了元数据，你还要决定两件事：
 
@@ -36,13 +41,19 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 ## 安装
 
-打开一个条目，就能看到安装后会创建什么 —— 智能体模板会列出它附带的 skill 和需要的 MCP server —— 然后选择**安装**。
+打开一个条目，就能看到安装后会创建什么 —— 智能体模板会列出它附带的 skill 和需要的 MCP server，Agent Family 则会完整列出每一个成员智能体 —— 然后选择**安装**。
 
 表单只会问那些条目本身无法知道的内容：
 
 - **在本工作区中的名称。**留空则沿用发布时的名称。
-- **一个运行时**，针对智能体模板。模板不指定具体机器，所以要从你自己的运行时里挑一个。如果这个模板是为另一个提供方编写的，该运行时不支持的设置会保持未设置，而不会阻止安装。
-- **发布方未公开的值**，如果这个条目有的话。
+- **一个运行时**，针对智能体模板或 Agent Family。模板不指定具体机器，所以要从你自己的运行时里挑一个；Family 会把每一个成员都绑定到它上面，装完之后可以单独调整。如果这个模板是为另一个提供方编写的，该运行时不支持的设置会保持未设置，而不会阻止安装。
+- **发布方未公开的值**，如果这个条目有的话。Family 的这类值除了服务名还带成员名，因为两个成员可能各自需要一个同名的服务。
+
+### 一键引入 Agent Family
+
+安装一个 Family 是一次动作，把它需要的一切都创建出来：每一个成员智能体、各自附带的 skill、各自需要的 MCP server，以及绑定它们的 Family，负责人和角色都与发布时一致。要么全部落地，要么一个都不落地 —— 成员只装了一半的 Family，会把工作派给并不存在的智能体。
+
+如果某个成员的名称在你的工作区里已被占用，它会以带后缀的名称安装，而不会替换你已有的东西。安装出来的每个智能体默认都是私有的，装完之后再给需要被团队使用的那些设置可见性。
 
 如果名称已被占用，你会看到和导入 skill 时一样的几个选择：用另一个名称安装，或者替换已有的那个。替换仅限被替换 skill 的原始创建者。
 
@@ -64,12 +75,15 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 ## Ontologies
 
-市场的第四个标签页列出 ontology。它们不是条目：它们由 Capability Hub 提供，并附加到智能体上，而不是复制进工作区。这个标签页的存在，是为了让各种能力在同一个地方就能找到；附加关系的管理在 [Ontologies](/skills) 页面进行。
+市场的最后一个标签页列出 ontology。它们不是条目：它们由 Capability Hub 提供，并附加到智能体上，而不是复制进工作区。这个标签页的存在，是为了让各种能力在同一个地方就能找到；附加关系的管理在 [Ontologies](/skills) 页面进行。
+
+已经被你的工作区附加的 ontology，会和其他内容一样标注为**已安装**，已安装/未安装的筛选在这个标签页同样有效。
 
 ## 使用 CLI
 
 ```bash
 enact marketplace list --kind skill --output json
+enact marketplace list --not-installed --output json
 enact marketplace get <listing-id> --output json
 enact marketplace install <listing-id> --output json
 
@@ -78,7 +92,17 @@ enact marketplace install <listing-id> \
   --runtime-id <runtime-id> \
   --secret env.GITHUB_TOKEN=... \
   --output json
+
+# Agent Family 的 kind 是 squad。它把每个成员都绑定到同一个运行时，
+# 被隐去的值除了服务名还带成员名。
+enact marketplace list --kind squad --output json
+enact marketplace install <listing-id> \
+  --runtime-id <runtime-id> \
+  --secret reviewer/github/env.GITHUB_TOKEN=... \
+  --output json
 ```
+
+`enact marketplace list` 的 `INSTALLED` 列会显示你持有的版本，或者 `no`；`--installed` / `--not-installed` 可以把结果收窄到其中一侧。
 
 没有发布命令。发布是管理员对什么可以离开这个工作区做出的决定，API 会拒绝来自智能体的调用。
 
@@ -87,7 +111,7 @@ enact marketplace install <listing-id> \
 | 操作 | 谁可以做 |
 |---|---|
 | 浏览和打开条目 | 任何工作区成员 |
-| 安装 skill 或智能体模板 | 任何工作区成员 |
+| 安装 skill、智能体模板或 Agent Family | 任何工作区成员 |
 | 安装 MCP server | 工作区 owner 或 admin |
 | 发布、编辑、弃用或下架条目 | 发布方工作区的 owner 或 admin |
 

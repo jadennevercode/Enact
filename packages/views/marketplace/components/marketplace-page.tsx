@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Search, Store, Upload } from "lucide-react";
-import type { MarketplaceListing } from "@enact/core/types";
+import type {
+  MarketplaceInstalledFilter,
+  MarketplaceListing,
+} from "@enact/core/types";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { marketplaceCatalogOptions } from "@enact/core/marketplace";
@@ -26,6 +29,7 @@ import {
   tabAsKind,
   type MarketplaceTab,
 } from "../lib/kind";
+import { InstalledFilterChips } from "./installed-filter-chips";
 import { MarketplaceCard } from "./marketplace-card";
 import { OntologyTab } from "./ontology-tab";
 import { PublishDialog } from "./publish-dialog";
@@ -33,10 +37,14 @@ import { PublishDialog } from "./publish-dialog";
 /**
  * The directory.
  *
- * Four tabs, of which three list Enact's own listings and the fourth reads
+ * Five tabs, of which four list Enact's own listings and the fifth reads
  * Capability Hub's ontology catalog. They sit side by side because that is how
  * a reader thinks about them — "what capability can I get" — even though only
- * three of them are rows in this product's database.
+ * four of them are rows in this product's database.
+ *
+ * The installed filter spans every tab, ontologies included: "do I already
+ * have this" is the same question whether the answer is an install record or
+ * an attached domain.
  */
 export function MarketplacePage() {
   const { t } = useT("marketplace");
@@ -48,6 +56,8 @@ export function MarketplacePage() {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [mine, setMine] = useState(false);
+  const [installedFilter, setInstalledFilter] =
+    useState<MarketplaceInstalledFilter | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
 
   const kind = tabAsKind(tab);
@@ -57,6 +67,7 @@ export function MarketplacePage() {
       q: query.trim() || undefined,
       tag: tag ?? undefined,
       mine: mine || undefined,
+      installed: installedFilter ?? undefined,
     }),
     // The federated tab does not read this endpoint at all.
     enabled: wsId !== "" && kind !== null,
@@ -81,6 +92,23 @@ export function MarketplacePage() {
   };
 
   const counts = catalog?.facets.kinds ?? {};
+
+  // The installed counts come from whichever tab is open: the server's facets
+  // for a listing kind, the attached flags for the federated one. Both are
+  // counted over the whole visible set, so choosing a chip never changes the
+  // other chip's number.
+  const installedCounts = useMemo(() => {
+    if (kind === null) {
+      const ontologies = ontologyQuery.data ?? [];
+      const attached = ontologies.filter((entry) => entry.attached).length;
+      return { installed: attached, not_installed: ontologies.length - attached };
+    }
+    const facets = catalog?.facets.installed ?? {};
+    return {
+      installed: facets.installed,
+      not_installed: facets.not_installed,
+    };
+  }, [kind, ontologyQuery.data, catalog]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -138,46 +166,56 @@ export function MarketplacePage() {
             })}
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            {kind !== null ? (
+              <div className="relative min-w-0 flex-1 sm:max-w-sm">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t(($) => $.search_placeholder)}
+                  className="h-8 pl-8"
+                />
+              </div>
+            ) : null}
+            <InstalledFilterChips
+              value={installedFilter}
+              counts={installedCounts}
+              onChange={setInstalledFilter}
+            />
+            {kind !== null ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={mine ? "secondary" : "ghost"}
+                onClick={() => setMine((value) => !value)}
+              >
+                {t(($) => $.mine)}
+              </Button>
+            ) : null}
+            {tag || query || installedFilter ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setTag(null);
+                  setQuery("");
+                  setInstalledFilter(null);
+                }}
+              >
+                {t(($) => $.clear_filters)}
+              </Button>
+            ) : null}
+          </div>
+
           {kind === null ? (
-            <OntologyTab />
+            <OntologyTab installedFilter={installedFilter} />
           ) : (
             <>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative min-w-0 flex-1 sm:max-w-sm">
-                  <Search
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t(($) => $.search_placeholder)}
-                    className="h-8 pl-8"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={mine ? "secondary" : "ghost"}
-                  onClick={() => setMine((value) => !value)}
-                >
-                  {t(($) => $.mine)}
-                </Button>
-                {tag || query ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setTag(null);
-                      setQuery("");
-                    }}
-                  >
-                    {t(($) => $.clear_filters)}
-                  </Button>
-                ) : null}
-              </div>
-
               {tags.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map(([name, count]) => (
@@ -229,7 +267,7 @@ export function MarketplacePage() {
                   title={
                     mine
                       ? t(($) => $.empty_mine)
-                      : query || tag
+                      : query || tag || installedFilter
                         ? t(($) => $.empty_filtered)
                         : t(($) => $.empty)
                   }
