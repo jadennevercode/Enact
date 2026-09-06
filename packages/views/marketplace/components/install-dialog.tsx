@@ -66,6 +66,7 @@ export function InstallDialog({
   const [error, setError] = useState<string | null>(null);
 
   const manifest = listing.version?.manifest;
+  const prerequisites = manifest?.prerequisites ?? [];
   // An Agent Family names no machine either, and binds every member to the one
   // the installer picks, so both kinds ask the same question here.
   const needsRuntime = listing.kind === "agent" || listing.kind === "squad";
@@ -209,6 +210,22 @@ export function InstallDialog({
           </div>
         ) : (
           <div className="flex flex-col gap-4">
+            {prerequisites.length > 0 ? (
+              <div className="flex flex-col gap-1.5 rounded-md border border-surface-border bg-surface-raised/40 px-3 py-2.5">
+                <p className="text-caption font-medium">
+                  {t(($) => $.install.prerequisites_title)}
+                </p>
+                <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
+                  {prerequisites.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span aria-hidden="true">•</span>
+                      <span className="min-w-0 break-words">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="marketplace-install-name">
                 {t(($) => $.install.name_label)}

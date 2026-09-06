@@ -238,6 +238,12 @@ export interface MarketplaceSquadManifest {
 
 export interface MarketplaceManifest {
   kind: MarketplaceKind;
+  /**
+   * Conditions the installing side has to meet before a copy will run — an
+   * interpreter on the runtime host, people added to a family. Publisher prose;
+   * the UI states it before the install and shows nothing when it is empty.
+   */
+  prerequisites?: string[];
   skill?: MarketplaceSkillManifest;
   agent?: MarketplaceAgentManifest;
   mcp?: MarketplaceMcpManifest;

@@ -320,4 +320,41 @@ describe("MarketplaceListingPage", () => {
     // Frontmatter is the skill's own metadata; the header already states it.
     expect(screen.queryByText(/name: review-checklist/)).toBeNull();
   });
+
+  // Prerequisites are the conditions an install cannot satisfy on the reader's
+  // behalf. They are worth nothing after the install, so the page states them
+  // whether or not the reader opens the install dialog.
+  it("states a listing's prerequisites", async () => {
+    const base = makeListing();
+    const version = base.version as { manifest: Record<string, unknown> };
+    listingRef.current = makeListing({
+      version: {
+        ...version,
+        manifest: {
+          ...version.manifest,
+          prerequisites: [
+            "The runtime host needs python3.",
+            "Add the people who own the decision points.",
+          ],
+        },
+      },
+    });
+
+    render(<MarketplaceListingPage listingId="listing-1" />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByRole("heading", { name: "Before you install" }),
+    ).toBeTruthy();
+    expect(screen.getByText("The runtime host needs python3.")).toBeTruthy();
+    expect(
+      screen.getByText("Add the people who own the decision points."),
+    ).toBeTruthy();
+  });
+
+  it("shows no prerequisites section for a listing that declares none", async () => {
+    render(<MarketplaceListingPage listingId="listing-1" />, { wrapper: Wrapper });
+
+    expect(await screen.findByText("Review Checklist")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Before you install" })).toBeNull();
+  });
 });

@@ -113,6 +113,7 @@ export function MarketplaceListingPage({ listingId }: MarketplaceListingPageProp
   const kind = listing.kind as MarketplaceKind;
   const Icon = marketplaceKindIcon(kind);
   const manifest = listing.version?.manifest;
+  const prerequisites = manifest?.prerequisites ?? [];
   const installed = listing.installed === true || Boolean(listing.installed_version_id);
   const updatable = hasMarketplaceUpdate(listing);
   const installable =
@@ -278,6 +279,30 @@ export function MarketplaceListingPage({ listingId }: MarketplaceListingPageProp
               ) : null}
             </div>
           </header>
+
+          {prerequisites.length > 0 ? (
+            <section
+              aria-labelledby="marketplace-prerequisites-heading"
+              className="flex flex-col gap-2 rounded-md border border-surface-border bg-surface-raised/40 px-4 py-3"
+            >
+              <h2
+                id="marketplace-prerequisites-heading"
+                className="text-caption font-medium text-muted-foreground"
+              >
+                {t(($) => $.detail.prerequisites)}
+              </h2>
+              <ul className="flex flex-col gap-1.5 text-body">
+                {prerequisites.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span aria-hidden="true" className="text-muted-foreground">
+                      •
+                    </span>
+                    <span className="min-w-0 break-words">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {!listing.version ? (
             <p className="rounded-md border border-dashed px-4 py-6 text-center text-body text-muted-foreground">

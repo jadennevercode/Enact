@@ -3289,6 +3289,10 @@ export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
  */
 export const MarketplaceManifestSchema = z.object({
   kind: z.string().optional().default("skill"),
+  // What has to hold on the installing side before a copy will run: an
+  // interpreter on the runtime host, people added to a family. Publisher prose,
+  // shown before the install; a listing that declares none shows nothing.
+  prerequisites: z.array(z.string()).optional().default([]),
 }).loose();
 
 export const MarketplaceListingSchema = z.object({
@@ -3322,7 +3326,7 @@ export const MarketplaceVersionSchema = z.object({
   changelog: z.string().optional().default(""),
   digest: z.string().optional().default(""),
   size_bytes: z.number().optional().default(0),
-  manifest: MarketplaceManifestSchema.optional().default({ kind: "skill" }),
+  manifest: MarketplaceManifestSchema.optional().default({ kind: "skill", prerequisites: [] }),
   published_by: z.string().nullable().optional().default(null),
   created_at: z.string().optional().default(""),
 }).loose();
