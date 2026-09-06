@@ -50,6 +50,9 @@ server/enact
 # Test artifacts
 test-results/
 apps/web/test-results/
+# Screenshot specs write here. Images are for looking at during review, never
+# committed — a checked-in screenshot is a fixture nobody updates.
+shots-setup/
 
 # context (agent workspace)
 .context
@@ -78,3 +81,9 @@ data/
 # Python (agent tooling)
 __pycache__/
 *.pyc
+
+# separate projects and scratch that happen to live under this checkout
+/ProjectIntelligenceSpace /
+/intelligence-space-proposals/
+/.codex/
+/_shot.cjs

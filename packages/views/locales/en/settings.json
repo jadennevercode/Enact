@@ -215,10 +215,6 @@
         "label": "Go to Issues",
         "description": "Open the issue list."
       },
-      "goProjects": {
-        "label": "Go to Projects",
-        "description": "Open the project list."
-      },
       "goAutopilots": {
         "label": "Go to Autopilot",
         "description": "Open workspace automations."
@@ -228,8 +224,8 @@
         "description": "Open the agent list."
       },
       "goSquads": {
-        "label": "Go to Squads",
-        "description": "Open the squad list."
+        "label": "Go to Agent Families",
+        "description": "Open the agent family list."
       },
       "goUsage": {
         "label": "Go to Usage",
@@ -275,7 +271,6 @@
       "priority": "Priority",
       "assignee": "Assignee",
       "labels": "Labels",
-      "project": "Project",
       "due_date": "Due date",
       "start_date": "Start date"
     }
@@ -315,7 +310,7 @@
       "notifications": "Notifications",
       "tokens": "API Tokens",
       "general": "General",
-      "repositories": "Repositories",
+      "resources": "Resources",
       "github": "GitHub",
       "integrations": "Integrations",
       "labs": "Labs",
@@ -687,7 +682,45 @@
     "deleting": "Deleting...",
     "toast_delete_failed": "Failed to delete workspace",
     "confirm_cancel": "Cancel",
-    "confirm_action": "Confirm"
+    "confirm_action": "Confirm",
+    "profile": {
+      "section": "Project profile",
+      "section_description": "What this project is. Every agent run starts with it, and the Marketplace ranks capability against it.",
+      "summary_label": "Summary",
+      "summary_placeholder": "One or two sentences: what this project is and who it serves.",
+      "domain_label": "Domain",
+      "domain_placeholder": "logistics, clinical trials, developer tooling…",
+      "stack_label": "Stack",
+      "stack_hint": "Comma separated. Matched against what listings say they are for.",
+      "stack_placeholder": "go, typescript, postgres",
+      "languages_label": "Working languages",
+      "languages_placeholder": "zh, en",
+      "typical_work_label": "Typical work",
+      "typical_work_hint": "What this workspace brings here. Drives what gets recommended.",
+      "constraints_label": "Constraints",
+      "constraints_hint": "Anything a run must respect: review requirements, environments, compliance.",
+      "constraints_placeholder": "Production changes need a second reviewer.",
+      "repo_brief_label": "Repository",
+      "repo_brief_hint": "Written by the run that read your repository. Edited by re-running the analysis, not here.",
+      "save": "Save profile",
+      "saving": "Saving…",
+      "discard": "Discard changes",
+      "saved": "Project profile saved.",
+      "save_failed": "Could not save the project profile.",
+      "typical_work": {
+        "ship_code": "Ship code",
+        "review_code": "Review code",
+        "plan_product": "Plan product",
+        "research": "Research",
+        "write_docs": "Write docs",
+        "automate_ops": "Automate ops",
+        "data_analysis": "Analyze data",
+        "knowledge_modeling": "Model knowledge",
+        "design": "Design",
+        "support": "Support",
+        "compliance": "Compliance"
+      }
+    }
   },
   "delete_workspace_dialog": {
     "title": "Delete workspace",
@@ -742,7 +775,7 @@
     "feature_auto_link_label": "Auto-link issues and PRs",
     "feature_auto_link_description": "Match PR titles, bodies, and branch names against issue identifiers and create the link automatically.",
     "section_repositories": "Repositories",
-    "repositories_shortcut_label": "Repository URLs live in the Repositories tab",
+    "repositories_shortcut_label": "Repository URLs live in the Resources tab",
     "repositories_shortcut_link": "Manage repositories →",
     "toast_failed": "Failed to update GitHub settings"
   },
@@ -1090,49 +1123,6 @@
     "connect_cancel": "Cancel",
     "connect_success_toast": "Telegram bot connected",
     "connect_failed_toast": "Could not connect the Telegram bot"
-  },
-  "repositories": {
-    "section_title": "Repositories",
-    "description": "Git repositories associated with this workspace. Agents use these to clone and work on code.",
-    "url_placeholder": "https://git.example.com/org/repo.git or git@git.example.com:org/repo.git",
-    "url_empty": "(empty URL)",
-    "description_placeholder": "Description (e.g. Go backend + Next.js frontend)",
-    "add": "Add repository",
-    "connect_github": "Connect GitHub",
-    "choose_from_github": "Choose from GitHub",
-    "github_not_configured": "GitHub connection is not configured for this deployment.",
-    "github_browse_not_configured": "Repository browsing requires GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.",
-    "github_connect_failed": "Could not connect GitHub. Try again.",
-    "github_picker_title": "Choose GitHub repositories",
-    "github_picker_description": "Select repositories to add to this workspace. Existing manual entries stay unchanged.",
-    "github_account": "GitHub account",
-    "github_search_placeholder": "Search loaded repositories",
-    "github_loading": "Loading repositories…",
-    "github_load_failed": "Could not load repositories from GitHub. Check the installation access and try again.",
-    "github_empty": "This installation has no accessible repositories.",
-    "github_no_search_results": "No loaded repositories match this search.",
-    "github_private": "Private",
-    "github_archived": "Archived",
-    "github_added": "Added",
-    "github_load_more": "Load more",
-    "github_selected_count": "{{count}} selected",
-    "github_cancel": "Cancel",
-    "github_import": "Add repositories",
-    "complete_manual_entry_first": "Complete or remove the empty manual repository before importing.",
-    "save": "Save",
-    "saving": "Saving...",
-    "saved_hint": "All changes saved",
-    "empty": "No repositories yet.",
-    "edit_aria": "Edit repository",
-    "cancel_aria": "Cancel edit",
-    "delete_aria": "Delete repository",
-    "delete_confirm_title": "Delete repository?",
-    "delete_confirm_description": "This repository will be removed from the workspace immediately.",
-    "delete_confirm_cancel": "Cancel",
-    "delete_confirm_action": "Delete repository",
-    "manage_hint": "Only admins and owners can manage repositories.",
-    "toast_saved": "Repositories saved",
-    "toast_save_failed": "Failed to save repositories"
   },
   "desktop": {
     "tabs": {

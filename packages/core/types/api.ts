@@ -1,6 +1,5 @@
 import type { Issue, IssueMetadata, IssueStatus, IssueStatusCategory, IssuePriority, IssueAssigneeType } from "./issue";
 import type { MemberRole } from "./workspace";
-import type { Project } from "./project";
 
 // Issue API
 export interface CreateIssueRequest {
@@ -11,7 +10,6 @@ export interface CreateIssueRequest {
   assignee_type?: IssueAssigneeType;
   assignee_id?: string;
   parent_issue_id?: string;
-  project_id?: string;
   /** Ordered stage (>= 1) grouping this sub-issue under its parent. */
   stage?: number;
   start_date?: string;
@@ -41,7 +39,6 @@ export interface UpdateIssueRequest {
   start_date?: string | null;
   due_date?: string | null;
   parent_issue_id?: string | null;
-  project_id?: string | null;
   /** Ordered stage (>= 1); null clears it (unstaged). */
   stage?: number | null;
   /** Attachment IDs to bind to this issue alongside the description update.
@@ -70,7 +67,6 @@ export interface MoveIssueRequest
     | "assignee_type"
     | "assignee_id"
     | "parent_issue_id"
-    | "project_id"
   > {
   before_id: string | null;
   after_id: string | null;
@@ -132,13 +128,10 @@ export interface ListIssuesParams {
    */
   assignee_types?: IssueAssigneeType[];
   creator_id?: string;
-  project_id?: string;
   /** Actor-aware table facets. OR within each field. */
   assignee_filters?: IssueActorRef[];
   include_no_assignee?: boolean;
   creator_filters?: IssueActorRef[];
-  project_ids?: string[];
-  include_no_project?: boolean;
   label_ids?: string[];
   /** Restrict the window to root issues instead of filtering loaded pages. */
   top_level_only?: boolean;
@@ -166,9 +159,8 @@ export interface ListIssuesParams {
   open_only?: boolean;
   /**
    * Restrict the result to issues with at least one of `start_date` /
-   * `due_date` set. Used by the Project Gantt view so it doesn't have to
-   * page through every issue on the project just to discard the unscheduled
-   * majority on the client.
+   * `due_date` set, so a schedule view does not have to page through every
+   * issue just to discard the unscheduled majority on the client.
    */
   scheduled?: boolean;
   date_field?: "created_at" | "updated_at";
@@ -204,7 +196,6 @@ export interface ListGroupedIssuesParams {
   assignee_id?: string;
   assignee_ids?: string[];
   creator_id?: string;
-  project_id?: string;
   /** See `ListIssuesParams.involves_user_id` — same semantics. */
   involves_user_id?: string;
   /** JSONB containment filter on `issue.metadata`. AND across keys. */
@@ -215,8 +206,6 @@ export interface ListGroupedIssuesParams {
   assignee_filters?: IssueActorRef[];
   include_no_assignee?: boolean;
   creator_filters?: IssueActorRef[];
-  project_ids?: string[];
-  include_no_project?: boolean;
   label_ids?: string[];
   group_assignee_type?: IssueAssigneeType | "none";
   group_assignee_id?: string;
@@ -261,7 +250,6 @@ export interface GroupedIssuesResponse {
 // state such as collapsed groups/parents.
 export type IssueTableScope =
   | { kind: "workspace"; assignee_types?: IssueAssigneeType[] }
-  | { kind: "project"; project_id: string; assignee_types?: IssueAssigneeType[] }
   | { kind: "assignee"; actor: IssueActorRef }
   | { kind: "creator"; actor: IssueActorRef }
   | { kind: "my"; relation: "assigned" | "created" | "involved" | "any" };
@@ -272,8 +260,6 @@ export interface IssueTableFilters {
   assignees?: IssueActorRef[];
   include_no_assignee?: boolean;
   creators?: IssueActorRef[];
-  project_ids?: string[];
-  include_no_project?: boolean;
   label_ids?: string[];
   properties?: Record<string, string[]>;
   date?: {
@@ -326,11 +312,10 @@ export type IssueTableGroupSpec =
    */
   | { kind: "status_category" }
   | { kind: "assignee" }
-  | { kind: "project" }
   | { kind: "parent" }
   | {
       kind: "compound";
-      primary: "assignee" | "project" | "parent";
+      primary: "assignee" | "parent";
       /** `status_category` folds custom statuses into their category's cell. */
       secondary: "status" | "status_category";
       /** Optional visible secondary buckets. When present, the server pages
@@ -358,7 +343,6 @@ export interface IssueTableParentRef {
 export type IssueTableGroupValue =
   | { kind: "status"; status: string }
   | { kind: "assignee"; actor: IssueTableActorRef | null }
-  | { kind: "project"; project_id: string | null }
   | {
       kind: "parent";
       parent_id: string | null;
@@ -428,7 +412,6 @@ export type IssueTableFacetSpec =
   | { kind: "priority" }
   | { kind: "assignee" }
   | { kind: "creator" }
-  | { kind: "project" }
   | { kind: "label" }
   | { kind: "property"; property_id: string }
   /** Agents running issue work inside this surface. `key` is the agent id,
@@ -494,16 +477,6 @@ export interface SearchIssueResult extends Issue {
 
 export interface SearchIssuesResponse {
   issues: SearchIssueResult[];
-  total: number;
-}
-
-export interface SearchProjectResult extends Project {
-  match_source: "title" | "description";
-  matched_snippet?: string;
-}
-
-export interface SearchProjectsResponse {
-  projects: SearchProjectResult[];
   total: number;
 }
 

@@ -41,7 +41,7 @@ export const STATUS_CATEGORIES: IssueStatusCategory[] = [
 /**
  * The categories that get a section in mobile's grouped issue lists —
  * `cancelled` excluded, which is a documented mobile divergence (see
- * `components/project/project-related-issues.tsx`).
+ * the workspace-wide issues list).
  *
  * These are CATEGORIES, not status keys: a workspace's custom statuses live
  * inside their category's section rather than adding one of their own. Grouping

@@ -1,0 +1,102 @@
+# define/evidence-snapshots/es-NNNN/manifest.yaml
+#
+# 一个快照 = 一次登记动作的结果。快照写完就不再改；材料换了版本就开 es-NNNN+1。
+# 每条 sources 记录对应 inputs/evidence/ 下的一份材料。
+#
+# 检查项 evidence_manifest_complete 逐条核这些字段；evidence_confirmed 核
+# human_confirmation_status 与 confirmed_by。字段名不能改——脚本按名字取值。
+# 例子取自 evals/fixtures/journal-reversal/。
+
+snapshot_id: es-0001                  # 与目录名一致
+created_at: "2026-09-03T10:00:00+08:00"
+created_by: DE1                       # 谁做的这次登记
+note: 首次登记，覆盖手册、政策、流程图、术语表、样本数据五份材料
+
+sources:
+  - evidence_id: ev.001               # 本工作区内唯一；FAGC 的 source_ids 引用它
+    title: 总账操作手册 · 第 6 章 · 错误分录处理
+    origin: inputs/evidence/process-general-ledger-ch6.md   # 相对工作区的路径，或 URL + 访问日期
+    owner: FSSC 总账主管                # 这份材料在业务上归谁，冲突裁决时要找他
+    source_version: "2025-11"          # 材料自己的版本/日期，不是登记日期
+    source_digest: "sha256:0f3c…"      # 原件哈希。它变了，下面的抽取就要重判
+    classification: internal           # public | internal | confidential | restricted
+    language: zh                       # 中英混排写 zh-en；原始短语一律不翻译
+    format: markdown                   # markdown | pdf | docx | pptx | xlsx | csv | image | bpmn | url
+    extraction_path: native            # native | structured | vision —— 见 references/extraction-paths.md
+    model_version: n/a                 # vision/structured 路径必填其一，native 写 n/a
+    prompt_or_schema_version: v1       # 抽取用的表结构或提示版本
+    extraction_file: extractions/ev.001.md   # 带锚点的抽取正文放这里
+    anchors:                           # 至少一条。每条同时要 location 与 exact_snippet
+      - location: "§6.2/3"             # 页/区域、节号、表/行/单元格、图区，任选其一但要能回到原处
+        exact_snippet: "金额大于等于 50,000 元：由财务控制（Controller）审批。"
+      - location: "§6.3"
+        exact_snippet: "在软关账（soft close）期间，经财务控制批准后仍可冲销"
+    uncertainty: low                   # low | medium | high，加一句为什么
+    known_limitations: 只覆盖第 6 章，未包含第 7 章的调整分录流程
+    high_risk_content:                 # 见 references/high-risk-content.md；没有就写 []
+      - "金额阈值 50,000 未说明是否含税、何种币种"
+    human_confirmation_status: confirmed   # unreviewed | corrected | confirmed
+    confirmed_by: DE1                  # confirmed 或 corrected 时必填，否则 evidence_confirmed 不过
+    confirmed_at: "2026-09-03T10:20:00+08:00"
+    reuse_valid_for_current_source: true   # true | false | unknown；source_digest 变了就重判
+    retention_or_residency_notes: 内部资料，不进提交包
+
+  - evidence_id: ev.002
+    title: 期末关账政策 v4 · 第 3 节
+    origin: inputs/evidence/reversal-policy-v4.md
+    owner: 集团财务政策部
+    source_version: "v4 · 生效 2025-04-01"
+    source_digest: "sha256:a91b…"
+    classification: internal
+    language: zh
+    format: markdown
+    extraction_path: native
+    model_version: n/a
+    prompt_or_schema_version: v1
+    extraction_file: extractions/ev.002.md
+    anchors:
+      - location: "§3.2"
+        exact_snippet: "进入软关账后，任何已过账分录不得冲销。"
+      - location: "§3.3"
+        exact_snippet: "本政策未对「金额」是否含税、是原币还是本位币作出说明。"
+    uncertainty: low
+    known_limitations: 只有第 3 节；政策自身注明与手册 §6.3 存在未裁决的分歧
+    high_risk_content:
+      - "与 ev.001 §6.3 就软关账能否冲销直接冲突"
+    human_confirmation_status: confirmed
+    confirmed_by: DE1
+    confirmed_at: "2026-09-03T10:24:00+08:00"
+    reuse_valid_for_current_source: true
+    retention_or_residency_notes: 内部资料，不进提交包
+
+  # 图片、扫描件、流程图导出走 vision 路径。换路径要在这里写清楚，
+  # 因为它改变了这条证据能被信任到什么程度。
+  - evidence_id: ev.003
+    title: 冲销流程图（Visio 导出文字说明）
+    origin: inputs/evidence/flow-diagram-notes.md
+    owner: 月结流程 owner
+    source_version: "2025-11（制作人未署名）"
+    source_digest: "sha256:c47e…"
+    classification: internal
+    language: zh
+    format: bpmn
+    extraction_path: vision
+    model_version: claude-opus-5
+    prompt_or_schema_version: diagram-v1
+    extraction_file: extractions/ev.003.md
+    anchors:
+      - location: "图/判断节点「审批通过?」否分支"
+        exact_snippet: "否 →（图上此处连线断开，没有指向任何节点）"
+      - location: "图/右下角孤立方框"
+        exact_snippet: "标签为「复核」，没有任何连线进出"
+    uncertainty: high
+    known_limitations: 图为二手文字说明，未见原始 Visio 文件；制作人不详，无法追问
+    high_risk_content:
+      - "审批否决分支的连线断开——异常路径缺终点"
+      - "「复核」方框未接入流程，与政策 §3.4 的职责分离要求关系不明"
+      - "回滚之后的去向图上未画"
+    human_confirmation_status: confirmed
+    confirmed_by: PO1
+    confirmed_at: "2026-09-03T10:31:00+08:00"
+    reuse_valid_for_current_source: true
+    retention_or_residency_notes: 内部资料，不进提交包

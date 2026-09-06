@@ -6,8 +6,6 @@ import (
 
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/middleware"
 	"github.com/enact-ai/enact/server/internal/service"
 	"github.com/enact-ai/enact/server/internal/util"
@@ -15,6 +13,8 @@ import (
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/plugincontract"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // The Action API is what a plugin surface reaches through the host bridge.
@@ -283,7 +283,7 @@ type patchPluginIssueRequest struct {
 
 // PatchPluginIssue — PATCH /api/v1/plugin/issues/{id}
 //
-// Title and description only. Status, priority, assignee, parent, project and
+// Title and description only. Status, priority, assignee, parent and
 // stage each carry dispatch, catalog or hierarchy semantics — a status change
 // can start an agent run, and custom statuses resolve through a per-workspace
 // catalog — and duplicating those rules here would give a plugin a second,
@@ -319,7 +319,6 @@ func (h *Handler) PatchPluginIssue(w http.ResponseWriter, r *http.Request) {
 		StartDate:     issue.StartDate,
 		DueDate:       issue.DueDate,
 		ParentIssueID: issue.ParentIssueID,
-		ProjectID:     issue.ProjectID,
 		Stage:         issue.Stage,
 	}
 	if req.Title != nil {

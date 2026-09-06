@@ -1,10 +1,10 @@
 import { expect, type Page } from "@playwright/test";
-import { TestApiClient } from "./fixtures";
+import { TestApiClient, e2eEmail } from "./fixtures";
 
 const DEFAULT_E2E_NAME = "E2E User";
 const E2E_WORKER = process.env.TEST_PARALLEL_INDEX ?? process.env.TEST_WORKER_INDEX ?? "0";
 const E2E_RUN_ID = process.env.E2E_RUN_ID ?? `${Date.now().toString(36)}-${process.pid.toString(36)}`;
-const DEFAULT_E2E_EMAIL = `e2e-${E2E_WORKER}-${E2E_RUN_ID}@enact.ai`;
+const DEFAULT_E2E_EMAIL = e2eEmail(`e2e-${E2E_WORKER}-${E2E_RUN_ID}`);
 const DEFAULT_E2E_WORKSPACE = `e2e-workspace-${E2E_WORKER}-${E2E_RUN_ID}`;
 
 async function waitForIssuesPage(page: Page) {

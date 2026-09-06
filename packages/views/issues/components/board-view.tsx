@@ -18,7 +18,6 @@ import type {
   Issue,
   IssueAssigneeType,
   IssueStatusCategory,
-  Project,
   IssueProperty,
 } from "@enact/core/types";
 import { useViewStore } from "@enact/core/issues/stores/view-store-context";
@@ -58,7 +57,6 @@ import {
   issueMatchesGroup,
   getMoveUpdates,
   propertyGroupId,
-  projectGroupId,
 } from "../utils/drag-utils";
 
 function isStatusGroup(
@@ -67,66 +65,11 @@ function isStatusGroup(
   return group.status !== undefined;
 }
 
-interface ProjectColumnLabels {
-  noProject: string;
-  /** A project id the projects query cannot resolve — deleted, or not visible
-   *  to this member. Shares the Table's wording so one board column and one
-   *  table group row never describe the same project differently. */
-  unavailableProject: string;
-}
-
-interface BuildGroupsContext extends ProjectColumnLabels {
+interface BuildGroupsContext {
   getActorName: (type: string, id: string) => string;
   groupingProperty: IssueProperty | null;
-  projectMap: Map<string, Project> | undefined;
   noAssigneeLabel: string;
   noValueLabel: string;
-}
-
-/**
- * One project column. Shared by the client fallback (columns derived from
- * loaded cards) and the server path (columns derived from group descriptors)
- * so the two can never describe the same project differently.
- */
-function projectColumn(
-  id: string,
-  projectId: string | null,
-  projectMap: Map<string, Project> | undefined,
-  labels: ProjectColumnLabels,
-  totalCount?: number,
-): BoardColumnGroup {
-  const project = projectId ? projectMap?.get(projectId) ?? null : null;
-  return {
-    id,
-    title: projectId
-      ? project?.title ?? labels.unavailableProject
-      : labels.noProject,
-    projectId,
-    project,
-    totalCount,
-    createData: { project_id: projectId },
-  };
-}
-
-/**
- * Keep the "No project" column present as a drop target — clearing a card's
- * project by dragging has to stay possible even in a workspace where every
- * card currently has one. A board with no columns at all is left alone: that
- * is the surface's empty state, not a board missing one column.
- */
-function withNoProjectColumn(
-  columns: BoardColumnGroup[],
-  projectMap: Map<string, Project> | undefined,
-  labels: ProjectColumnLabels,
-): BoardColumnGroup[] {
-  if (columns.length === 0) return columns;
-  if (columns.some((column) => column.projectId === null)) return columns;
-  // No-project sorts first server-side, so it is always in the first page of
-  // descriptors when it exists — an absent one cannot arrive with a later page.
-  return [
-    projectColumn(projectGroupId(null), null, projectMap, labels, 0),
-    ...columns,
-  ];
 }
 
 function buildGroups(
@@ -136,10 +79,8 @@ function buildGroups(
   {
     getActorName,
     groupingProperty,
-    projectMap,
     noAssigneeLabel,
     noValueLabel,
-    ...projectLabels
   }: BuildGroupsContext,
 ): BoardColumnGroup[] {
   if (grouping === "status") {
@@ -171,26 +112,6 @@ function buildGroups(
       propertyOptionId: null,
     });
     return columns;
-  }
-
-  // Project board: one column per project the loaded cards reference, plus the
-  // "No project" column. Ordering mirrors the server's group order (no-project
-  // first, then project title) so the client fallback and the paged server
-  // columns cannot disagree.
-  if (grouping === "project") {
-    const columns = new Map<string, BoardColumnGroup>();
-    for (const issue of issues) {
-      const projectId = issue.project_id ?? null;
-      const id = projectGroupId(projectId);
-      if (columns.has(id)) continue;
-      columns.set(id, projectColumn(id, projectId, projectMap, projectLabels));
-    }
-    const ordered = Array.from(columns.values()).toSorted((a, b) => {
-      if (a.projectId === null) return b.projectId === null ? 0 : -1;
-      if (b.projectId === null) return 1;
-      return a.title.localeCompare(b.title);
-    });
-    return withNoProjectColumn(ordered, projectMap, projectLabels);
   }
 
   const groups = new Map<string, BoardColumnGroup>();
@@ -248,8 +169,6 @@ function BoardViewImpl({
   hiddenStatuses,
   onMoveIssue,
   childProgressMap = EMPTY_PROGRESS_MAP,
-  projectMap,
-  projectId,
   onCreateIssue,
   statusPagination,
   groupBranches,
@@ -259,9 +178,6 @@ function BoardViewImpl({
   hiddenStatuses: IssueStatusCategory[];
   onMoveIssue: (issueId: string, updates: DragMoveUpdates, onSettled?: () => void) => void;
   childProgressMap?: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
-  /** When set, the per-column "+" pre-fills the project on the create form. */
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   statusPagination?: IssueStatusPagination;
   groupBranches?: IssueGroupBranches;
@@ -362,34 +278,6 @@ function BoardViewImpl({
     }
     return undefined;
   }, [getActorName, groupBranches, grouping, t]);
-  const projectColumnLabels = useMemo<ProjectColumnLabels>(
-    () => ({
-      noProject: t(($) => $.swimlane.no_project),
-      unavailableProject: t(($) => $.table.value_unavailable),
-    }),
-    [t],
-  );
-  const hydratedProjectGroups = useMemo<BoardColumnGroup[] | undefined>(() => {
-    if (grouping !== "project" || !groupBranches?.enabled) return undefined;
-    const columns = groupBranches.descriptors.flatMap(
-      (descriptor): BoardColumnGroup[] =>
-        descriptor.value.kind === "project"
-          ? [
-              projectColumn(
-                // The descriptor key, not our own: it is what `groupPagination`
-                // is keyed by. `projectGroupId` reproduces it exactly, which is
-                // what lets cards bucket into these columns at all.
-                descriptor.key,
-                descriptor.value.project_id ?? null,
-                projectMap,
-                projectColumnLabels,
-                descriptor.count,
-              ),
-            ]
-          : [],
-    );
-    return withNoProjectColumn(columns, projectMap, projectColumnLabels);
-  }, [groupBranches, grouping, projectColumnLabels, projectMap]);
   const groupPagination = useMemo(() => {
     if (!groupBranches?.enabled) return undefined;
     const grouped = new Map<string, IssueGroupPageState[]>();
@@ -436,21 +324,18 @@ function BoardViewImpl({
     () => {
       const built =
         hydratedAssigneeGroups ??
-        hydratedProjectGroups ??
         buildGroups(issues, visibleStatuses, grouping, {
           getActorName,
           groupingProperty,
-          projectMap,
           noAssigneeLabel: t(($) => $.filters.no_assignee),
           noValueLabel: t(($) => $.board.no_value),
-          ...projectColumnLabels,
         });
       return built.map((group) => ({
         ...group,
         totalCount: groupPagination?.[group.id]?.total ?? group.totalCount,
       }));
     },
-    [hydratedAssigneeGroups, hydratedProjectGroups, issues, visibleStatuses, grouping, getActorName, groupingProperty, projectMap, projectColumnLabels, groupPagination, t],
+    [hydratedAssigneeGroups, issues, visibleStatuses, grouping, getActorName, groupingProperty, groupPagination, t],
   );
   const groupIds = useMemo(
     () => new Set(groups.map((group) => group.id)),
@@ -719,9 +604,7 @@ function BoardViewImpl({
                 issueIds={columns[group.id] ?? EMPTY_IDS}
                 issueMap={issueMapRef.current}
                 childProgressMap={childProgressMap}
-                projectMap={projectMap}
                 page={statusPagination?.[group.status]}
-                projectId={projectId}
                 onCreateIssue={onCreateIssue}
                 sortLabel={sortLabel}
               />
@@ -733,9 +616,7 @@ function BoardViewImpl({
                   issueIds={columns[group.id] ?? EMPTY_IDS}
                   issueMap={issueMapRef.current}
                   childProgressMap={childProgressMap}
-                  projectMap={projectMap}
                   page={groupPagination[group.id]!}
-                  projectId={projectId}
                   onCreateIssue={onCreateIssue}
                   sortLabel={sortLabel}
                 />
@@ -746,8 +627,6 @@ function BoardViewImpl({
                   issueIds={columns[group.id] ?? EMPTY_IDS}
                   issueMap={issueMapRef.current}
                   childProgressMap={childProgressMap}
-                  projectMap={projectMap}
-                  projectId={projectId}
                   onCreateIssue={onCreateIssue}
                   totalCount={group.totalCount}
                   sortLabel={sortLabel}
@@ -780,11 +659,6 @@ function BoardViewImpl({
             <BoardCardContent
               issue={activeIssue}
               childProgress={childProgressMap.get(activeIssue.id)}
-              project={
-                activeIssue.project_id
-                  ? projectMap?.get(activeIssue.project_id)
-                  : undefined
-              }
             />
           </div>
         ) : null}
@@ -799,9 +673,7 @@ const ServerPaginatedBoardColumn = memo(function ServerPaginatedBoardColumn({
   issueIds,
   issueMap,
   childProgressMap,
-  projectMap,
   page,
-  projectId,
   onCreateIssue,
   sortLabel,
 }: {
@@ -809,9 +681,7 @@ const ServerPaginatedBoardColumn = memo(function ServerPaginatedBoardColumn({
   issueIds: string[];
   issueMap: Map<string, Issue>;
   childProgressMap?: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   page?: IssueStatusPageState | IssueGroupPageState;
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   sortLabel?: string | null;
 }) {
@@ -831,9 +701,7 @@ const ServerPaginatedBoardColumn = memo(function ServerPaginatedBoardColumn({
       issueIds={issueIds}
       issueMap={issueMap}
       childProgressMap={childProgressMap}
-      projectMap={projectMap}
       totalCount={page?.total ?? group.totalCount}
-      projectId={projectId}
       onCreateIssue={onCreateIssue}
       sortLabel={sortLabel}
       footer={footer}

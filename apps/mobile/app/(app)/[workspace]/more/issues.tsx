@@ -16,7 +16,7 @@
  *   - Independent filter store (`useIssuesViewStore`) so workspace-level
  *     filters don't bleed into the per-user view.
  *
- * Filters beyond status/priority (assignee / project / label / creator)
+ * Filters beyond status/priority (assignee / label / creator)
  * are deferred — power-user features with non-trivial picker cost; ship
  * after the parity-critical scope tabs land.
  */

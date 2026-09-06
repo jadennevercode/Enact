@@ -13,7 +13,6 @@ import {
   type TabLabelKey,
 } from "@enact/core/paths";
 import { issueDetailOptions } from "@enact/core/issues/queries";
-import { projectDetailOptions } from "@enact/core/projects/queries";
 import { autopilotDetailOptions } from "@enact/core/autopilots/queries";
 import {
   skillDetailOptions,
@@ -30,7 +29,6 @@ import {
 } from "@enact/core/inbox/queries";
 import { cn } from "@enact/ui/lib/utils";
 import { StatusIcon } from "../issues/components";
-import { ProjectIcon } from "../projects/components/project-icon";
 import { ActorAvatar } from "../common/actor-avatar";
 import { getInboxDisplayTitle } from "../inbox/components/inbox-display";
 import { useT } from "../i18n";
@@ -43,7 +41,7 @@ import { ROUTE_ICON_COMPONENTS } from "./route-icon-components";
  *
  * Cache-only reads: every query in `useTabEntityData` is `enabled: false`. It
  * observes whatever the pages/directory already loaded and re-renders when that
- * data changes, so an open tab's icon/title stay in sync (project renamed,
+ * data changes, so an open tab's icon/title stay in sync (issue renamed,
  * issue status changed, chat session retitled) without amplifying requests. A
  * resource that has not loaded yet renders a stable type fallback until its
  * page fills the cache.
@@ -62,7 +60,6 @@ const NONE = "__tab_presentation_none__";
 // the live data loads. Flow/unknown/attachment always use their type label.
 const PENDING_RESOURCE_KEYS: ReadonlySet<TabLabelKey> = new Set<TabLabelKey>([
   "issue",
-  "project",
   "autopilot",
   "agent",
   "member",
@@ -113,10 +110,6 @@ function useTabEntityData(subject: TabSubject, wsId: string): TabEntityData {
       enabled: false,
     }).data ?? rawIssue;
 
-  const project = useQuery({
-    ...projectDetailOptions(wsId, subject.kind === "project" ? subject.id : NONE),
-    enabled: false,
-  }).data;
   const autopilot = useQuery({
     ...autopilotDetailOptions(
       wsId,
@@ -145,9 +138,6 @@ function useTabEntityData(subject: TabSubject, wsId: string): TabEntityData {
           status: issue.status,
         };
       }
-      break;
-    case "project":
-      if (project) data.project = { icon: project.icon, title: project.title };
       break;
     case "autopilot":
       if (autopilot) data.autopilot = { title: autopilot.autopilot.title };
@@ -289,9 +279,6 @@ export function ResourceLeadingVisual({
           className="size-3.5"
         />
       );
-      break;
-    case "project-icon":
-      inner = <ProjectIcon project={{ icon: visual.icon }} size="sm" />;
       break;
     case "actor":
       inner = (

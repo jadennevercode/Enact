@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { render, renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { issueDetailOptions } from "@enact/core/issues/queries";
-import { projectDetailOptions } from "@enact/core/projects/queries";
 import { chatSessionsOptions } from "@enact/core/chat/queries";
 import {
   inboxListOptions,
@@ -59,11 +58,6 @@ function seed(qc: QueryClient) {
     title: "Crash",
     status: "todo",
   } as never);
-  qc.setQueryData(projectDetailOptions("ws1", "p1").queryKey, {
-    id: "p1",
-    icon: "🚀",
-    title: "Apollo",
-  } as never);
   qc.setQueryData(chatSessionsOptions("ws1").queryKey, [
     { id: "s1", title: "Deploy plan", status: "active" },
     { id: "s2", title: "  ", status: "active" },
@@ -113,13 +107,6 @@ describe("useTabPresentation — live from cache", () => {
       // custom status key itself. (ENA-6243)
       visual: { kind: "issue-status", status: "in_progress", category: "in_progress" },
       title: "ENA-1: Fix login",
-    });
-  });
-
-  it("project: own icon + title", () => {
-    expect(presentationOf("/acme/projects/p1")).toEqual({
-      visual: { kind: "project-icon", icon: "🚀" },
-      title: "Apollo",
     });
   });
 
@@ -231,13 +218,6 @@ describe("useTabPresentation — pending / fallback", () => {
 });
 
 describe("ResourceLeadingVisual", () => {
-  it("renders a project icon with its emoji", () => {
-    const { getByText } = render(
-      <ResourceLeadingVisual visual={{ kind: "project-icon", icon: "🚀" }} />,
-    );
-    expect(getByText("🚀")).toBeTruthy();
-  });
-
   it("renders a status glyph for an issue", () => {
     const { container } = render(
       <ResourceLeadingVisual visual={{ kind: "issue-status", status: "done" }} />,

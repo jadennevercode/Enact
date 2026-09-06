@@ -12,6 +12,17 @@ export interface RuntimeWorkloadSummary {
 
 export interface RuntimeMachine {
   id: string;
+  /**
+   * The server-owned machine id, when the backend supplied one. This is the
+   * handle for machine-level writes — renaming the host, reading which
+   * workspaces it serves — because those act on the machine row itself rather
+   * than on any one workspace's projection of it.
+   *
+   * `null` for cloud machines, for runtimes registered by an older server, and
+   * for client-synthesized placeholder machines. A caller that needs to write
+   * must fall back to the per-workspace runtime path when this is null.
+   */
+  serverMachineId: string | null;
   daemonId: string | null;
   title: string;
   subtitle: string | null;
@@ -129,6 +140,9 @@ function placeholderLocalMachine(
   const daemonId = options.localDaemonId ?? null;
   return {
     id: daemonId ? `local:${daemonId}` : "local:placeholder",
+    // A placeholder stands in for a daemon the server has not seen, so there
+    // is no machine row to address yet.
+    serverMachineId: null,
     daemonId,
     title: options.localMachineName ?? "This machine",
     subtitle: null,
@@ -250,6 +264,11 @@ function finalizeRuntimeMachine(
 
   return {
     id: draft.id,
+    // Every runtime in a group shares one machine_id by construction — it is
+    // the grouping key whenever it is present — so reading it off any member
+    // is well defined. Falls back to null for cloud runtimes and for rows an
+    // older server registered, where the group was formed by inference.
+    serverMachineId: runtimes.find((r) => r.machine_id)?.machine_id ?? null,
     daemonId: draft.daemonId,
     title,
     subtitle,
@@ -270,7 +289,20 @@ function finalizeRuntimeMachine(
   };
 }
 
+// The machine a runtime belongs to.
+//
+// The server now owns machine identity (migration 412): `machine_id` is the
+// same value in every workspace the host is registered in, so it is the only
+// key here that is authoritative rather than inferred. Prefer it whenever the
+// backend supplies it.
+//
+// The fallbacks below stay for two reasons, and are not dead code: a runtime
+// registered by an older server has no machine_id until its daemon re-registers,
+// and cloud runtimes have no host at all. They are guesses — daemon_id is a
+// good one, a hostname parsed out of a display string much less so — which is
+// exactly why the server-supplied id wins when present.
 function runtimeMachineId(runtime: AgentRuntime): string {
+  if (runtime.machine_id) return `machine:${runtime.machine_id}`;
   if (runtime.daemon_id) return `${runtime.runtime_mode}:${runtime.daemon_id}`;
   const deviceName = runtimeDeviceName(runtime);
   if (deviceName) return `${runtime.runtime_mode}:device:${deviceName}`;

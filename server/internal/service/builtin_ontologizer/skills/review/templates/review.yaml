@@ -1,0 +1,100 @@
+# 审阅记录 · reviews/review-r<NNNN>.yaml
+#
+# 一个 revision 一份。它不属于封存目录，可以反复写；被审的 revision 一个字节都不动。
+# 检查它的是 review_binary、defer_has_owner、reject_has_reason。
+#
+# review_binary 要求：四轮 passes 都 done；candidate 里每个声明都在 items 里出现；
+# 每条 items 的 disposition 属于 accept/comment/direct_edit/defer/reject。
+
+revision: r0002                 # 被审的 revision id
+reviewed_at: 2026-09-03T14:20:00+08:00
+reviewers:                      # 记录角色，哪怕只有一个人（shared/roles.md）
+  - { name: 张明, role: DE }
+  - { name: 李工, role: OE }
+  - { name: 王琳, role: PO }
+
+# 四轮，顺序固定：evidence → process → mapping → ontology。
+# status 只有走完那一轮才写 done；四轮都 done 之前 review_binary 不通过。
+passes:
+  evidence:
+    status: done
+    notes: 5 条 fact 的 anchor 都能定位；软关账那组冲突保持 disputed，没有被合并
+  process:
+    status: done
+    notes: 审批不通过的分支在流程图上没有终点，已开 chg.002
+  mapping:
+    status: done
+    notes: 无 unmapped；aln.003 的 confidence 是 medium，PO 认了
+  ontology:
+    status: done
+    notes: 无重复概念；rel.reverses 的 1:1 是系统限制不是业务规则，已开 chg.001
+
+# 每个对象一条。少一个 review_binary 就不通过。
+items:
+  # --- accept：对象和它的 trace 在当前范围下都够了 ---
+  - object_id: ent.journal_entry
+    object_kind: entity
+    layer: ontology              # 在哪一轮下的结论
+    disposition: accept
+    reviewer: DE1
+    note: 定义写了"纸质凭证不属于本类"，与术语表一致
+
+  # --- comment：需要解释或变更，close-out 时变成一条变更请求 ---
+  - object_id: rel.reverses
+    object_kind: relationship
+    layer: ontology
+    disposition: comment
+    reviewer: DE1
+    note: 基数 1:1 的依据是手册 §6.2"只能被冲销一次"，政策 v4 未提。这是系统限制还是业务规则？
+    requested_change_id: chg.001   # 与 history/comments.yaml 里的 change_id 对上
+
+  # --- direct_edit：只记录改法，由 revise 在新 revision 落地 ---
+  - object_id: attr.journal_entry.amount
+    object_kind: attribute
+    layer: ontology
+    disposition: direct_edit
+    reviewer: DE1
+    intended_edit:
+      field: unit_or_format
+      from: 本位币，不含税（假设）
+      to: 本位币，含税
+      note: 政策 §3.3 没说，但共享中心一直按含税口径执行；这条要同时改 asm.001
+    requested_change_id: chg.003
+
+  # --- defer：owner + rationale + target_revision，三样缺一不可 ---
+  - object_id: ent.close_period
+    object_kind: entity
+    layer: ontology
+    disposition: defer
+    reviewer: OO1
+    owner: OO1
+    rationale: 软关账能否冲销这条政策部与共享中心尚未正式裁决，等裁决后再定义期间状态语义
+    target_revision: next
+
+  # --- reject：reject_reason 必须是四类之一 ---
+  - object_id: con.single_reversal
+    object_kind: constraint
+    layer: ontology
+    disposition: reject
+    reviewer: OE1
+    reject_reason: semantically_wrong    # unsupported | duplicate | out_of_scope | semantically_wrong
+    note: 这是 ERP 的实现限制，不是会计规则；应移到 policy 层，不该当作 constraint
+
+  # --- 证据轮里定位不到出处的 claim，用 reject + unsupported ---
+  - object_id: evt.reversal_approved
+    object_kind: event
+    layer: evidence
+    disposition: comment
+    reviewer: PO1
+    note: 参与者只写了 ent.journal_entry，审批人这个参与者缺失；流程图上有，process_ir 里没有
+    requested_change_id: chg.002
+
+# close-out 汇总。三样都写出来，空的也要写出来——空结果是结论。
+summary:
+  by_disposition: { accept: 1, comment: 2, direct_edit: 1, defer: 1, reject: 1 }
+  unsupported_claims: []        # 证据轮里定位不到出处的说法
+  orphaned_locators: []         # 上一版的 comment 指向本版已不存在的对象
+  next_revision_scope:
+    - chg.001 关系基数的依据要问清楚
+    - chg.002 process_ir 补审批人参与者
+    - chg.003 金额口径改含税，同步改 asm.001

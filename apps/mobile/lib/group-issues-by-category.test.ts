@@ -19,7 +19,6 @@ function issue(id: string, status: string, statusCategory?: string): Issue {
     creator_type: "member",
     creator_id: "user-1",
     parent_issue_id: null,
-    project_id: null,
     position: 0,
     stage: null,
     start_date: null,

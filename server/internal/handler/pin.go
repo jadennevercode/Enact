@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
 )
 
 // PinnedItemResponse carries pin metadata only. Title / status / identifier /
 // icon are intentionally NOT included — clients derive them from their own
-// issue / project query cache so that an `issue:updated` event flows naturally
+// issue query cache so that an `issue:updated` event flows naturally
 // into the sidebar without needing a cross-entity invalidate on `pinKeys`.
 type PinnedItemResponse struct {
 	ID          string  `json:"id"`
@@ -67,7 +67,7 @@ func (h *Handler) ListPins(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Capability opt-in: clients built before saved views classified every
-	// non-issue pin as a project pin, fetched its detail, got 404, and
+	// non-issue pin as an issue pin, fetched its detail, got 404, and
 	// permanently auto-unpinned it. Exposing item_type=view through the old
 	// contract would let an old Desktop DESTROY the user's view pins just by
 	// opening the sidebar — so view rows only ship to clients that declare
@@ -96,8 +96,8 @@ func (h *Handler) CreatePin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.ItemType != "issue" && req.ItemType != "project" && req.ItemType != "view" {
-		writeError(w, http.StatusBadRequest, "item_type must be 'issue', 'project' or 'view'")
+	if req.ItemType != "issue" && req.ItemType != "view" {
+		writeError(w, http.StatusBadRequest, "item_type must be 'issue' or 'view'")
 		return
 	}
 	if req.ItemID == "" {
@@ -121,13 +121,6 @@ func (h *Handler) CreatePin(w http.ResponseWriter, r *http.Request) {
 			ID: itemUUID, WorkspaceID: wsUUID,
 		}); err != nil {
 			writeError(w, http.StatusNotFound, "issue not found")
-			return
-		}
-	case "project":
-		if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-			ID: itemUUID, WorkspaceID: wsUUID,
-		}); err != nil {
-			writeError(w, http.StatusNotFound, "project not found")
 			return
 		}
 	case "view":

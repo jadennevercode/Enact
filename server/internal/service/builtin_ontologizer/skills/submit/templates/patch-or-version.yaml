@@ -1,0 +1,50 @@
+# 版本性质决定 · releases/rel-<NNNN>/patch-or-version.yaml
+#
+# patch_version_human 查五样：selection ∈ {patch, version}、decided_by: human、
+# rationale、target_version、decided_at。
+#
+# 这是整套流程里唯一一个**不给推荐**的决策点。系统摆证据，人做选择。
+# 流程 §12.2 与 §19.2：Ontologizer 不自动判断 semantic impact，也不自动选择。
+# 给出推荐等于替人做了这个判断——而后果（下游消费者要不要改）只有他知道。
+
+selection: patch                    # patch | version
+decided_by: human                   # 只能是 human。写 system 直接不通过
+decider_role: OO                    # 谁以什么身份拍的板（shared/roles.md）
+decided_at: 2026-09-03T17:05:00+08:00
+target_version: 1.1.0
+rationale: >-
+  constraint 转 policy 有 replaced_by，下游可以改指而不是重新对接；
+  本季度没有做全量升级的窗口。
+
+# 摆给人看的三样证据。它们是事实陈述，不是结论——
+# 这里不出现"因此建议选 Patch"这样的话，连"看起来是兼容的"也不出现。
+evidence:
+  semantic_diff: revisions/r0003/semantic-diff.yaml
+  diff_summary: { added: 1, removed: 1, changed: 1, unaffected: 7 }
+
+  removed_objects:                  # 最该被看到的一类
+    - object_id: con.single_reversal
+      replaced_by: pol.single_reversal
+      removal_rationale: null
+
+  authorization_impacting_changes: []   # diff 里标了 true 的 changed，逐条列
+  authorization_impacting_note: >-
+    标记是保守判定（盯 classification/owner/source/target/cardinality/datatype 六个字段），
+    标了不等于一定动了授权边界。
+
+  scope_preview:
+    cross_scope_references: 1
+    classified_field_exposure: 1
+    overlapping_members: 0
+
+  migration_material: releases/rel-0001/package/migration.md
+  append_only_feasible: false
+  append_only_note: >-
+    append-only 写不出 constraint → policy 这条替换，只能写成新增 pol.single_reversal
+    并保留 con.single_reversal。这是事实陈述：下游有没有人引用那条 constraint，
+    以及保留它要不要紧，由人判断。
+
+# 未决项也要摆出来。有未决项时不要把某个选项做成默认。
+open_items:
+  - chg.002 延后给 PO1，目标版本 next
+  - cq.001 状态 unsupported，等政策部对软关账的裁决

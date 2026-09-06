@@ -9,11 +9,10 @@ export type IssuesScope = "all" | "members" | "agents";
 
 /**
  * Page identity for the assignee-type tab. Every surface remembers its own
- * tab — the Issues page under "issues", each project page under
- * `project:<id>` — so switching tabs inside one project never drags the
- * Issues page (or another project) along with it.
+ * tab under its own key, so switching tabs on one page never drags another
+ * along with it.
  */
-export type IssuesScopePageKey = "issues" | `project:${string}`;
+export type IssuesScopePageKey = "issues";
 
 interface IssuesScopeState {
   scopes: Partial<Record<IssuesScopePageKey, IssuesScope>>;
@@ -29,11 +28,11 @@ export const useIssuesScopeStore = create<IssuesScopeState>()(
     }),
     {
       name: "enact_issues_scope",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => createWorkspaceAwareStorage(defaultStorage)),
       migrate: (persisted, version) => {
         // v0 stored one tab shared by every page; carry it over as the
-        // Issues page's tab and let project pages start fresh on "all".
+        // Issues page's tab and let other pages start fresh on "all".
         if (version === 0) {
           const legacy = (persisted as { scope?: IssuesScope } | undefined)
             ?.scope;
@@ -42,6 +41,20 @@ export const useIssuesScopeStore = create<IssuesScopeState>()(
               legacy === "members" || legacy === "agents"
                 ? { issues: legacy }
                 : {},
+          } as IssuesScopeState;
+        }
+        // v1 keyed per-project pages as `project:<id>`. Projects are gone, so
+        // those entries address nothing — drop them rather than carry keys the
+        // page-key type can no longer express.
+        if (version === 1) {
+          const scopes = (persisted as IssuesScopeState | undefined)?.scopes;
+          if (!scopes || typeof scopes !== "object") {
+            return { scopes: {} } as IssuesScopeState;
+          }
+          return {
+            scopes: Object.fromEntries(
+              Object.entries(scopes).filter(([key]) => !key.startsWith("project:")),
+            ),
           } as IssuesScopeState;
         }
         return persisted as IssuesScopeState;

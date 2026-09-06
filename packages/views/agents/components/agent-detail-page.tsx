@@ -12,6 +12,7 @@ import {
   Plus,
   Server,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -64,6 +65,10 @@ import { VisibilityBadge } from "./visibility-badge";
 import { AgentOverviewPane, type DetailTab } from "./agent-overview-pane";
 import { ExpandableDescription } from "../../common/expandable-description";
 import { useT, useTimeAgo } from "../../i18n";
+import {
+  MARKETPLACE_PUBLISHING_ENABLED,
+  PublishDialog,
+} from "../../marketplace";
 
 interface AgentDetailPageProps {
   agentId: string;
@@ -125,6 +130,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
   } = useAgentPermissions(agent, wsId);
 
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   // One-shot channel: the inspector's compact Lark status row asks the
   // overview pane to focus a tab. The pane clears it after consuming.
@@ -354,6 +360,13 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
         onArchive={
           agent.system_key ? undefined : () => setConfirmArchive(true)
         }
+        onPublish={
+          !MARKETPLACE_PUBLISHING_ENABLED ||
+          agent.system_key ||
+          !canEdit.allowed
+            ? undefined
+            : () => setPublishOpen(true)
+        }
       />
 
       {!canEdit.allowed && (
@@ -419,6 +432,19 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
         />
       </div>
 
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind="agent"
+          defaultSourceId={agentId}
+          onPublished={(listingId) => {
+            setPublishOpen(false);
+            navigation.push(paths.marketplaceListing(listingId));
+          }}
+        />
+      ) : null}
+
       {confirmArchive && (
         <Dialog
           open
@@ -477,6 +503,7 @@ function DetailHeader({
   onDm,
   onAssign,
   onArchive,
+  onPublish,
 }: {
   agent: Agent;
   runtime: AgentRuntime | null;
@@ -493,11 +520,16 @@ function DetailHeader({
   /** Absent for Enact's built-in agents, which the server refuses to
    *  archive — the menu hides the action rather than offering a failure. */
   onArchive?: () => void;
+  /** Publishes this agent as a template. Absent for built-in agents, whose
+   *  instructions ship in the binary and are not this workspace's to give
+   *  away. */
+  onPublish?: () => void;
 }) {
   const { t } = useT("agents");
+  const { t: tMarketplace } = useT("marketplace");
   const timeAgo = useTimeAgo();
   const isArchived = !!agent.archived_at;
-  const hasMoreActions = !!onArchive;
+  const hasMoreActions = !!onArchive || !!onPublish;
 
   return (
     <header className="shrink-0 border-b bg-background px-4 pb-5 pt-3 sm:px-6">
@@ -590,6 +622,12 @@ function DetailHeader({
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-auto">
+                  {onPublish && (
+                    <DropdownMenuItem onClick={onPublish}>
+                      <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                      {tMarketplace(($) => $.publish.action)}
+                    </DropdownMenuItem>
+                  )}
                   {onArchive && (
                     <DropdownMenuItem variant="destructive" onClick={onArchive}>
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />

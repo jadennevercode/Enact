@@ -1,10 +1,5 @@
 export type MemberRole = "owner" | "admin" | "member";
 
-export interface WorkspaceRepo {
-  url: string;
-  description?: string;
-}
-
 export interface Workspace {
   id: string;
   name: string;
@@ -12,7 +7,6 @@ export interface Workspace {
   description: string | null;
   context: string | null;
   settings: Record<string, unknown>;
-  repos: WorkspaceRepo[];
   issue_prefix: string;
   avatar_url: string | null;
   created_at: string;

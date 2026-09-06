@@ -62,7 +62,8 @@
     "source_runtime_unknown": "From a runtime",
     "source_clawhub": "From ClawHub",
     "source_skills_sh": "From Skills.sh",
-    "source_github": "From GitHub"
+    "source_github": "From GitHub",
+    "source_marketplace": "Marketplace"
   },
   "actions": {
     "row_menu": "Actions",
@@ -135,6 +136,7 @@
       "origin_clawhub": "Imported · ClawHub",
       "origin_skills_sh": "Imported · Skills.sh",
       "origin_github": "Imported · GitHub",
+      "origin_marketplace": "Installed · Marketplace",
       "origin_workspace": "Created manually"
     },
     "conflict_banner": {
@@ -369,5 +371,22 @@
     "markdown_placeholder": "Write markdown content...",
     "raw_placeholder": "File content...",
     "raw_aria": "Plain text content of {{path}}"
+  },
+  "versions": {
+    "title": "Versions",
+    "current": "Current",
+    "restore": "Restore",
+    "restore_confirm": "Restore this version? The current text is kept in the history, so this can be undone.",
+    "empty": "No version history yet.",
+    "source": {
+      "backfill": "Recorded when history began",
+      "manual": "Edited here",
+      "import": "Imported",
+      "refresh": "Refreshed from source",
+      "retrospect": "Applied by a retrospect",
+      "rollback": "Restored",
+      "seed": "Provisioned by Enact"
+    },
+    "number": "v{{version}}"
   }
 }

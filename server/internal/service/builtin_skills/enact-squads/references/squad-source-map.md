@@ -274,11 +274,49 @@ the view gate `canAccessPrivateAgent`):
 - NOTE: the child-done wake does NOT use this gate anymore — see "Child-done
   Parent Trigger" above (ENA-4063).
 
+## Marketplace: publishing and installing a squad
+
+Source:
+
+```text
+server/migrations/439_marketplace_squad_kind.up.sql       # kind/entity_kind gain 'squad'
+server/internal/handler/marketplace_manifest.go           # marketplaceSquadManifest, squadAgentDirPrefix
+server/internal/handler/marketplace_publish.go            # snapshotSquadForPublish, agentManifestFor
+server/internal/handler/marketplace_install.go            # installMarketplaceSquad, planTemplateAgent
+packages/core/types/marketplace.ts                        # MarketplaceSquadManifest
+packages/views/marketplace/components/marketplace-listing-page.tsx  # SquadOverview
+```
+
+Key facts:
+
+- `marketplace_listing.kind` and `marketplace_install.entity_kind` accept
+  `'squad'` as of migration 439; an install record for a family names the squad
+  row, not its members.
+- Publish (`snapshotSquadForPublish`) walks `squad_member` and keeps only
+  `member_type = 'agent'`. Human members are dropped: they name users of the
+  publishing workspace. The leader must be one of the agent members, and is
+  identified in the manifest by `leader_dir` rather than by row id.
+- Each member is snapshotted through `agentManifestFor`, the same function an
+  agent listing uses, with its skills rooted under
+  `agents/<member>/skills/<skill>/` so two members' skills cannot collide.
+- Limits: `maxMarketplaceSquadAgents` (16) members per family,
+  `maxMarketplaceEmbeddedSkills` (32) skills per member.
+- An archived squad cannot be published.
+- Install (`installMarketplaceSquad`) plans every member before opening the
+  transaction, so a bad secret path on the last member writes nothing. Inside
+  one transaction it creates each agent (with skills and MCP servers attached),
+  then the squad, then the membership rows, then the install record.
+- One `runtime_id` binds every member. `availableAgentName` suffixes a member
+  whose name is taken rather than overwriting the existing agent.
+- Secret keys are `<member>/<server>/<path>`, resolved by `squadMemberSecretKey`
+  plus `scopedSecrets`.
+
 ## Tests
 
 Relevant test groups:
 
 ```text
+server/internal/handler/marketplace_squad_test.go
 server/internal/handler/squad_assign_trigger_test.go
 server/internal/handler/squad_comment_trigger_test.go
 server/internal/handler/squad_briefing_test.go

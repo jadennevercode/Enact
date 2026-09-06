@@ -79,7 +79,7 @@ export function AssigneePickerBody({ value, query, onChange }: Props) {
   );
   const listRef = useScrollToTopOnChange(query);
   const { colorScheme } = useColorScheme();
-  // Tint color for the checkmark accessory. Project uses a monochrome
+  // Tint color for the checkmark accessory. The picker uses a monochrome
   // shadcn palette where `primary` is the canonical tint (near-black light /
   // near-white dark); matches Apple HIG's "tintColor" semantics for
   // selection accessories.

@@ -27,33 +27,32 @@ describe("IssueTab", () => {
   it("renders a switch per field with the persisted selection", () => {
     renderWithI18n(<IssueTab />);
 
-    // 3 quick create fields + 7 manual create fields.
+    // 2 quick create fields + 6 manual create fields.
     const switches = screen.getAllByRole("switch");
-    expect(switches).toHaveLength(10);
+    expect(switches).toHaveLength(8);
 
-    // Quick create defaults to project only.
-    const [quickProject, quickPriority, quickDueDate] = switches;
-    expect(quickProject).toBeChecked();
-    expect(quickPriority).not.toBeChecked();
+    // Quick create defaults to priority only.
+    const [quickPriority, quickDueDate] = switches;
+    expect(quickPriority).toBeChecked();
     expect(quickDueDate).not.toBeChecked();
 
     // Manual create defaults to the classic toolbar; dates start hidden.
-    const manual = switches.slice(3);
-    for (const s of manual.slice(0, 5)) expect(s).toBeChecked();
+    const manual = switches.slice(2);
+    for (const s of manual.slice(0, 4)) expect(s).toBeChecked();
+    expect(manual[4]).not.toBeChecked();
     expect(manual[5]).not.toBeChecked();
-    expect(manual[6]).not.toBeChecked();
   });
 
   it("persists enabling a quick create field", async () => {
     const user = userEvent.setup();
     renderWithI18n(<IssueTab />);
 
-    const [, quickPriority] = screen.getAllByRole("switch");
-    await user.click(quickPriority!);
+    const [, quickDueDate] = screen.getAllByRole("switch");
+    await user.click(quickDueDate!);
 
     expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual([
-      "project",
       "priority",
+      "due_date",
     ]);
   });
 
@@ -61,16 +60,15 @@ describe("IssueTab", () => {
     const user = userEvent.setup();
     renderWithI18n(<IssueTab />);
 
-    // Manual section starts at index 3; labels is its 4th row (index 6 overall).
-    const manualLabels = screen.getAllByRole("switch")[6];
+    // Manual section starts at index 2; labels is its 4th row (index 5 overall).
+    const manualLabels = screen.getAllByRole("switch")[5];
     await user.click(manualLabels!);
 
     expect(useIssueCreateSettingsStore.getState().manualCreateFields).toEqual([
       "status",
       "priority",
       "assignee",
-      "project",
     ]);
-    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["project"]);
+    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["priority"]);
   });
 });

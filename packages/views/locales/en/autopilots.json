@@ -92,9 +92,6 @@
     "field_agent": "Agent",
     "field_created_by": "Created by",
     "field_output_mode": "Output Mode",
-    "field_project": "Project",
-    "no_project": "No project",
-    "project_unavailable": "Project unavailable",
     "field_prompt": "Prompt",
     "field_subscribers": "Subscribers",
     "field_subscribers_none": "None",
@@ -283,9 +280,7 @@
     "section_agent": "Agent",
     "section_assignee": "Assignee",
     "select_agent": "Select agent",
-    "select_assignee": "Select agent or squad",
-    "section_project": "Project",
-    "no_project": "No project",
+    "select_assignee": "Select agent or agent family",
     "section_output_mode": "Output mode",
     "section_subscribers": "Subscribers",
     "subscribers_hint": "Auto-subscribed to every issue this autopilot creates",
@@ -316,7 +311,7 @@
     "schedule_empty": "No schedule — this autopilot only runs when triggered manually.",
     "schedule_add": "Add schedule",
     "error_title_required": "Enter a name for this autopilot.",
-    "error_assignee_required": "Choose the agent or squad that will run this autopilot.",
+    "error_assignee_required": "Choose the agent or agent family that will run this autopilot.",
     "output_modes": {
       "create_issue": {
         "label": "Create issue",
@@ -415,13 +410,13 @@
     }
   },
   "agent_picker": {
-    "filter_placeholder": "Filter agents or squads...",
+    "filter_placeholder": "Filter agents or agent families...",
     "select_agent": "Select agent",
-    "select_assignee": "Select agent or squad",
+    "select_assignee": "Select agent or agent family",
     "agents_group": "Agents",
-    "squads_group": "Squads",
+    "squads_group": "Agent Families",
     "agent_runtime_required": "Bind a runtime before selecting this agent",
-    "squad_runtime_required": "Bind a runtime to this squad's leader before selecting it"
+    "squad_runtime_required": "Bind a runtime to this agent family's leader before selecting it"
   },
   "timezone_picker": {
     "search_placeholder": "Search timezone..."

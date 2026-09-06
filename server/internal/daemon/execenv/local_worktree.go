@@ -574,7 +574,7 @@ func resolveGitRoot(dir string) (string, error) {
 	root, err := runGitTrimmed(dir, "rev-parse", "--show-toplevel")
 	if err != nil || root == "" {
 		return "", fmt.Errorf("execenv: local_directory %q is not a git repository, "+
-			"but its project resource is set to execution_mode=worktree; "+
+			"but its workspace resource is set to execution_mode=worktree; "+
 			"initialise a repository there or switch the resource back to in_place", dir)
 	}
 	// EvalSymlinks so the root matches the path git reports from inside the

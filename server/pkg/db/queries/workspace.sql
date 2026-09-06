@@ -1,7 +1,12 @@
 -- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
-       w.created_at, w.updated_at, w.context, w.repos,
+       w.created_at, w.updated_at, w.context,
        w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
+       -- Dead: nothing reads sdlc_defaults_version since the bundle stopped
+       -- being force-provisioned. The column and this projection stay until a
+       -- release has shipped that does not select it — dropping a column the
+       -- running binary still reads takes /api/workspaces down until every
+       -- replica has restarted. Drop both in a follow-up.
        w.sdlc_defaults_version
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
@@ -12,7 +17,7 @@ ORDER BY w.created_at ASC;
 -- Daemons only need the membership set and display name to discover which
 -- workspaces should have local runtimes. Keep this projection intentionally
 -- narrow so the periodic consistency check never reads UI-only JSON/text
--- columns such as settings, repos, or context.
+-- columns such as settings or context.
 SELECT w.id, w.name
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
@@ -45,46 +50,11 @@ INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: ListWorkspacesNeedingSDLCDefaults :many
--- Returns one stable owner and the best currently-online runtime for each
--- workspace that has not received the current product-owned SDLC bundle.
--- Codex is preferred because the shipped portfolio was authored and verified
--- against Codex; another online runtime is still a usable portable fallback.
-SELECT
-    w.id AS workspace_id,
-    owner.user_id AS owner_id,
-    runtime.id AS runtime_id
-FROM workspace w
-JOIN LATERAL (
-    SELECT m.user_id
-    FROM member m
-    WHERE m.workspace_id = w.id
-    ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.id ASC
-    LIMIT 1
-) owner ON TRUE
-LEFT JOIN LATERAL (
-    SELECT ar.id
-    FROM agent_runtime ar
-    WHERE ar.workspace_id = w.id AND ar.status = 'online'
-    ORDER BY (ar.provider = 'codex') DESC,
-             ar.last_seen_at DESC NULLS LAST,
-             ar.created_at ASC,
-             ar.id ASC
-    LIMIT 1
-) runtime ON TRUE
-WHERE w.sdlc_defaults_version < $1
-ORDER BY w.created_at ASC, w.id ASC;
-
--- name: SetWorkspaceSDLCDefaultsVersion :exec
-UPDATE workspace
-SET sdlc_defaults_version = $2,
-    updated_at = now()
-WHERE id = $1;
-
--- name: AcquireSDLCDefaultsLock :exec
-SELECT pg_advisory_xact_lock(
-    hashtext('enact-sdlc-defaults:' || sqlc.arg('workspace_id')::uuid::text)
-);
+-- name: AcquireCatalogLock :exec
+-- One catalog per deployment, so the key is constant rather than per-workspace:
+-- the lock has to be held before the catalog workspace is known, since finding
+-- or creating it is the part two booting replicas would race on.
+SELECT pg_advisory_xact_lock(hashtext('enact-catalog'));
 
 -- name: UpdateWorkspace :one
 UPDATE workspace SET
@@ -92,12 +62,30 @@ UPDATE workspace SET
     description = COALESCE(sqlc.narg('description'), description),
     context = COALESCE(sqlc.narg('context'), context),
     settings = COALESCE(sqlc.narg('settings'), settings),
-    repos = COALESCE(sqlc.narg('repos'), repos),
     issue_prefix = COALESCE(sqlc.narg('issue_prefix'), issue_prefix),
     avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url),
     updated_at = now()
 WHERE id = $1
 RETURNING *;
+
+-- name: UpdateWorkspaceProfile :one
+-- The profile is replaced whole, never merged. It is authored in one act — a
+-- form submit, or a confirmed interview — and a field the author cleared has
+-- to actually clear, which a jsonb merge would silently keep.
+UPDATE workspace SET
+    profile = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING *;
+
+-- name: ListWorkspacesWithProfile :many
+-- Every workspace that has said what it is, for the recommender's pass over
+-- the directory. Sequential by design: one row per workspace is a cardinality
+-- where an index costs a write per update and saves nothing.
+SELECT id, name, slug, profile
+FROM workspace
+WHERE profile <> '{}'::jsonb
+ORDER BY id ASC;
 
 -- name: IncrementIssueCounter :one
 UPDATE workspace SET issue_counter = issue_counter + 1
@@ -149,6 +137,13 @@ ws_skills AS (
 ),
 cleared_agent_label_assignments AS (
     DELETE FROM agent_to_label WHERE agent_id IN (SELECT id FROM ws_agents)
+),
+cleared_agent_resources AS (
+    -- agent_resource (knowledge base bindings) carries no FK to either agent
+    -- or workspace_resource, per the repo's no-foreign-key rule, so nothing
+    -- cascades it away. Both of its parents live in this workspace, so reach
+    -- it through the agents.
+    DELETE FROM agent_resource WHERE agent_id IN (SELECT id FROM ws_agents)
 ),
 cleared_skill_label_assignments AS (
     DELETE FROM skill_to_label WHERE skill_id IN (SELECT id FROM ws_skills)
@@ -209,6 +204,12 @@ cleared_issue_properties AS (
 ),
 cleared_quick_actions AS (
     DELETE FROM quick_action WHERE workspace_id = $1
+),
+cleared_recommendation_decisions AS (
+    -- marketplace_recommendation_decision (migration 449) carries no FK, for
+    -- the same reason the marketplace tables do not. Sweep it here so a
+    -- workspace's dismissals commit or roll back with the workspace row.
+    DELETE FROM marketplace_recommendation_decision WHERE workspace_id = $1
 ),
 ws_mcp_servers AS (
     SELECT id FROM workspace_mcp_server WHERE workspace_id = $1

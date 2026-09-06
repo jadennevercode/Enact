@@ -6,8 +6,6 @@
     "refresh": "Refresh"
   },
   "filter": {
-    "project_label": "Project",
-    "all_projects": "All projects",
     "period_label": "Period"
   },
   "kpi": {

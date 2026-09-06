@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -21,78 +22,99 @@ func newRepoRegistryTestCmd(serverURL string) *cobra.Command {
 	cmd.Flags().String("output", "json", "")
 	_ = cmd.Flags().Set("server-url", serverURL)
 	_ = cmd.Flags().Set("workspace-id", "ws-1")
+	// The repo commands reach the API through cmd.Context(); cobra only fills
+	// it in during Execute, which these tests bypass.
+	cmd.SetContext(context.Background())
 	return cmd
 }
 
-func TestRunRepoAddAppendsAndDedupes(t *testing.T) {
-	initialRepos := []workspaceRepo{{URL: "https://git.example.com/web.git"}}
-	var patched []workspaceRepo
-	patchCount := 0
+// resourceRow is the shape `GET /api/resources` returns for one row; the repo
+// commands are a view over those, so the fake server speaks resources.
+func resourceRow(id, url, label string) map[string]any {
+	row := map[string]any{
+		"id":            id,
+		"resource_type": "github_repo",
+		"resource_ref":  map[string]any{"url": url},
+	}
+	if label != "" {
+		row["label"] = label
+	}
+	return row
+}
 
+// repoResourceServer serves a mutable resource list and records the writes the
+// command makes against it.
+type repoResourceServer struct {
+	rows    []map[string]any
+	posted  []map[string]any
+	puts    map[string]map[string]any
+	deleted []string
+}
+
+func newRepoResourceServer(t *testing.T, rows ...map[string]any) (*httptest.Server, *repoResourceServer) {
+	t.Helper()
+	state := &repoResourceServer{rows: rows, puts: map[string]map[string]any{}}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/workspaces/ws-1":
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: initialRepos})
-		case r.Method == http.MethodPatch && r.URL.Path == "/api/workspaces/ws-1":
-			patchCount++
-			var body struct {
-				Repos []workspaceRepo `json:"repos"`
-			}
+		decode := func() map[string]any {
+			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode patch body: %v", err)
+				t.Fatalf("decode %s %s: %v", r.Method, r.URL.Path, err)
 			}
-			patched = body.Repos
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: body.Repos})
+			return body
+		}
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/resources":
+			json.NewEncoder(w).Encode(map[string]any{"resources": state.rows})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/resources":
+			body := decode()
+			state.posted = append(state.posted, body)
+			json.NewEncoder(w).Encode(map[string]any{"id": "new-resource"})
+		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/resources/"):
+			state.puts[strings.TrimPrefix(r.URL.Path, "/api/resources/")] = decode()
+			json.NewEncoder(w).Encode(map[string]any{"id": "updated"})
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/resources/"):
+			state.deleted = append(state.deleted, strings.TrimPrefix(r.URL.Path, "/api/resources/"))
+			w.WriteHeader(http.StatusNoContent)
 		default:
 			http.NotFound(w, r)
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
+	return srv, state
+}
+
+func TestRunRepoAddAttachesOnlyTheRepositoriesNotAlreadyThere(t *testing.T) {
+	srv, state := newRepoResourceServer(t,
+		resourceRow("r-web", "https://git.example.com/web.git", ""))
 
 	cmd := newRepoRegistryTestCmd(srv.URL)
+	// Already attached, so it must not be posted again.
 	if err := cmd.Flags().Set("url", "https://git.example.com/web.git"); err != nil {
 		t.Fatal(err)
 	}
-	err := runRepoAdd(cmd, []string{
+	// The same new URL twice: the command de-duplicates its own input.
+	if err := runRepoAdd(cmd, []string{
 		"https://git.example.com/api.git",
 		"https://git.example.com/api.git",
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatalf("runRepoAdd: %v", err)
 	}
-	if patchCount != 1 {
-		t.Fatalf("patchCount = %d, want 1", patchCount)
+
+	if len(state.posted) != 1 {
+		t.Fatalf("expected exactly one POST, got %d: %v", len(state.posted), state.posted)
 	}
-	if len(patched) != 2 {
-		t.Fatalf("patched repos = %+v, want 2 entries", patched)
+	ref, _ := state.posted[0]["resource_ref"].(map[string]any)
+	if got := ref["url"]; got != "https://git.example.com/api.git" {
+		t.Errorf("posted url = %v, want the new repository", got)
 	}
-	if patched[0].URL != "https://git.example.com/web.git" || patched[1].URL != "https://git.example.com/api.git" {
-		t.Fatalf("unexpected patched repos: %+v", patched)
+	if got := state.posted[0]["resource_type"]; got != "github_repo" {
+		t.Errorf("resource_type = %v, want github_repo", got)
 	}
 }
 
-func TestRunRepoAddUpdatesDescriptionForExistingRepo(t *testing.T) {
-	initialRepos := []workspaceRepo{{URL: "https://git.example.com/web.git", Description: "old"}}
-	var patched []workspaceRepo
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/workspaces/ws-1":
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: initialRepos})
-		case r.Method == http.MethodPatch && r.URL.Path == "/api/workspaces/ws-1":
-			var body struct {
-				Repos []workspaceRepo `json:"repos"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode patch body: %v", err)
-			}
-			patched = body.Repos
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: body.Repos})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer srv.Close()
+func TestRunRepoAddSetsTheDescriptionOfAnAlreadyAttachedRepository(t *testing.T) {
+	srv, state := newRepoResourceServer(t,
+		resourceRow("r-web", "https://git.example.com/web.git", "old"))
 
 	cmd := newRepoRegistryTestCmd(srv.URL)
 	if err := cmd.Flags().Set("description", "new"); err != nil {
@@ -101,92 +123,94 @@ func TestRunRepoAddUpdatesDescriptionForExistingRepo(t *testing.T) {
 	if err := runRepoAdd(cmd, []string{"https://git.example.com/web.git"}); err != nil {
 		t.Fatalf("runRepoAdd: %v", err)
 	}
-	if len(patched) != 1 || patched[0].Description != "new" {
-		t.Fatalf("patched repos = %+v, want updated description", patched)
+
+	if len(state.posted) != 0 {
+		t.Fatalf("an attached repository must not be re-posted: %v", state.posted)
+	}
+	// The description lives in the resource's label.
+	if got := state.puts["r-web"]["label"]; got != "new" {
+		t.Errorf("PUT label = %v, want the new description", got)
 	}
 }
 
-func TestRunRepoAddRejectsDescriptionForMultipleRepos(t *testing.T) {
-	cmd := newRepoRegistryTestCmd("http://127.0.0.1:0")
+func TestRunRepoAddRejectsOneDescriptionForSeveralRepositories(t *testing.T) {
+	srv, state := newRepoResourceServer(t)
+
+	cmd := newRepoRegistryTestCmd(srv.URL)
 	if err := cmd.Flags().Set("description", "shared"); err != nil {
 		t.Fatal(err)
 	}
-	err := runRepoAdd(cmd, []string{"https://git.example.com/a.git", "https://git.example.com/b.git"})
+	err := runRepoAdd(cmd, []string{
+		"https://git.example.com/api.git",
+		"https://git.example.com/web.git",
+	})
 	if err == nil {
-		t.Fatal("expected error")
+		t.Fatal("expected an error, got nil")
 	}
-	if !strings.Contains(err.Error(), "--description") {
-		t.Fatalf("error = %q, want description guidance", err)
+	if !strings.Contains(err.Error(), "single repository") {
+		t.Errorf("error = %v, want it to explain the single-repository rule", err)
+	}
+	if len(state.posted) != 0 {
+		t.Errorf("nothing may be written when the request is rejected: %v", state.posted)
 	}
 }
 
-func TestRunRepoRemoveDeletesExistingRepos(t *testing.T) {
-	initialRepos := []workspaceRepo{
-		{URL: "https://git.example.com/web.git"},
-		{URL: "https://git.example.com/api.git"},
-		{URL: "https://git.example.com/mobile.git"},
-	}
-	var patched []workspaceRepo
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/workspaces/ws-1":
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: initialRepos})
-		case r.Method == http.MethodPatch && r.URL.Path == "/api/workspaces/ws-1":
-			var body struct {
-				Repos []workspaceRepo `json:"repos"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode patch body: %v", err)
-			}
-			patched = body.Repos
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1", Repos: body.Repos})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer srv.Close()
+func TestRunRepoRemoveDeletesTheResourceBehindTheURL(t *testing.T) {
+	srv, state := newRepoResourceServer(t,
+		resourceRow("r-web", "https://git.example.com/web.git", ""),
+		resourceRow("r-api", "https://git.example.com/api.git", ""))
 
 	cmd := newRepoRegistryTestCmd(srv.URL)
-	if err := cmd.Flags().Set("url", "https://git.example.com/mobile.git"); err != nil {
-		t.Fatal(err)
-	}
-	if err := runRepoRemove(cmd, []string{"https://git.example.com/web.git"}); err != nil {
+	if err := runRepoRemove(cmd, []string{"https://git.example.com/api.git"}); err != nil {
 		t.Fatalf("runRepoRemove: %v", err)
 	}
-	if len(patched) != 1 || patched[0].URL != "https://git.example.com/api.git" {
-		t.Fatalf("patched repos = %+v, want only api repo", patched)
+
+	if len(state.deleted) != 1 || state.deleted[0] != "r-api" {
+		t.Fatalf("deleted = %v, want just the api repository's resource id", state.deleted)
 	}
 }
 
-func TestRunRepoRemoveRejectsMissingRepoWithoutPatch(t *testing.T) {
-	patchCount := 0
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/workspaces/ws-1":
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{
-				ID:    "ws-1",
-				Repos: []workspaceRepo{{URL: "https://git.example.com/web.git"}},
-			})
-		case r.Method == http.MethodPatch && r.URL.Path == "/api/workspaces/ws-1":
-			patchCount++
-			json.NewEncoder(w).Encode(repoWorkspaceResponse{ID: "ws-1"})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer srv.Close()
+func TestRunRepoRemoveReportsAnUnattachedURLAndTouchesNothing(t *testing.T) {
+	srv, state := newRepoResourceServer(t,
+		resourceRow("r-web", "https://git.example.com/web.git", ""))
 
 	cmd := newRepoRegistryTestCmd(srv.URL)
 	err := runRepoRemove(cmd, []string{"https://git.example.com/missing.git"})
 	if err == nil {
-		t.Fatal("expected error")
+		t.Fatal("expected an error naming the URL that is not attached")
 	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Fatalf("error = %q, want not found", err)
+	if !strings.Contains(err.Error(), "missing.git") {
+		t.Errorf("error = %v, want it to name the missing repository", err)
 	}
-	if patchCount != 0 {
-		t.Fatalf("patchCount = %d, want 0", patchCount)
+	if len(state.deleted) != 0 {
+		t.Errorf("nothing may be deleted: %v", state.deleted)
+	}
+}
+
+// Only github_repo resources are repositories; a local directory sharing the
+// workspace must not show up in `enact repo list` or be removable through it.
+func TestRepoCommandsIgnoreNonRepositoryResources(t *testing.T) {
+	srv, state := newRepoResourceServer(t,
+		map[string]any{
+			"id":            "r-dir",
+			"resource_type": "local_directory",
+			"resource_ref":  map[string]any{"daemon_id": "d1", "path": "/tmp/x"},
+		},
+		resourceRow("r-web", "https://git.example.com/web.git", ""))
+
+	client, err := newAPIClient(newRepoRegistryTestCmd(srv.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	repos, err := listRepoResources(t.Context(), client)
+	if err != nil {
+		t.Fatalf("listRepoResources: %v", err)
+	}
+	if len(repos) != 1 || repos[0].URL != "https://git.example.com/web.git" {
+		t.Fatalf("repos = %+v, want only the github_repo row", repos)
+	}
+	if len(state.deleted) != 0 {
+		t.Errorf("listing must not write: %v", state.deleted)
 	}
 }
 

@@ -1,0 +1,84 @@
+# define/project-charter.yaml —— 项目章程。整个流程的第一份交付物。
+# 填满这些字段，charter_complete 这项检查就能过；带 ← 的行是必填。
+# 校验：python3 <pkg>/scripts/validate.py <ws> --check charter_complete
+
+slug: journal-reversal
+# ← 一句话问题陈述：这个本体要回答的那个业务问题。不是"梳理总账语义"，
+#   而是"一条分录能不能冲销、该谁批、按什么顺序做"。写不出一句话，说明范围还没想清。
+problem_statement: 财务助手需要判断一条日记账分录能不能冲销、该谁批、按什么顺序做。
+
+# 业务目标：做成了以后什么会变好。非必填，但没有它就没法解释为什么值得做。
+business_goal: 把冲销的业务语义整理成系统可读的结构，减少月结争论与 1.5 天的平均延误。
+
+# ← 三位负责人。可以是同一个人，但三个身份要分别写清楚——
+#   决策日志里记的是身份，不是姓名，半年后靠它解释一个决定是谁以什么立场拍的。
+owners:
+  domain: FSSC 总账主管            # DE 领域专家：证据是否足够由他决定
+  ontology: 数据平台组架构师        # OO 本体负责人：多数决策点的最终责任人
+  process: 月结流程 owner           # PO 流程负责人：流程步骤、事件、生命周期由他确认
+
+scope:
+  # ← 至少一条。写具体做什么，不要写"相关的一切"
+  in_scope:
+    - 总账域中与分录冲销相关的分录、状态、审批与职责分离规则
+    - 冲销申请从提交到过账的流程步骤与异常路径
+  # ← 至少一条。说不出不做什么，就没有边界。
+  #   这一栏在证据登记阶段决定"这份材料要不要收"，空着后面会漫无边际。
+  out_of_scope:
+    - 应付、应收、固定资产
+    - 海外主体
+    - 报表口径与合并抵消
+  time_range: 2025 财年至今                          # ← 时间维
+  organisational_range: 集团本部 + 华东两家工厂        # ← 组织维
+  data_granularity: 单条分录（journal line 不展开）    # ← 数据粒度维
+
+# ← 版本基线。三项都要有值；模型没记录就写 unrecorded，不要编一个。
+pins:
+  spec_version: '0.2'
+  skill_pack_version: 0.1.0
+  model: claude-opus-5
+
+# ← V1 规模检查。六项都要有值，verdict 必须是 within 或 over。
+#   超限不阻断任何事，它只是让人在开工前做一次显式选择。上限见 references/scale-check.md。
+scale_check:
+  collections: 2                    # 数据集合数（表/数据集），上限 5
+  documents: 5                      # 文档数，上限 10
+  sample_rows: 4000                 # 样本行数，上限 10000
+  process_steps: 24                 # 流程步骤数，上限 100
+  entity_types_estimate: 12         # 实体类型估算，上限 25
+  relationship_types_estimate: 14   # 关系类型估算，上限 25
+  estimated: true                   # 这些数是估的就写 true，并在 basis 里说清怎么估的
+  basis: inputs/evidence 下 5 个文件；CSV 样本 6 行，月均 4 万条按抽样 4000 估
+  verdict: within                   # ← within 或 over
+  over_limits: []                   # 超了哪几项，within 时留空
+  chosen_response: null             # over 时人选的应对：split_bounded_contexts | phase_delivery | upper_level_model
+
+# ← 3–10 条初始问题草稿，每条必须有 question、persona、decision。
+#   写不出"谁在什么决策点上问这个"，它就不是业务问题，是字段查询。
+#   这里只是草稿；正式登记与批准归 evaluate。
+competency_questions_draft:
+  - id: cq.001
+    question: 某条已过账的分录现在能不能冲销
+    persona: 总账会计                  # 谁问
+    decision: 是否发起冲销申请          # 他拿这个答案去做什么决定
+    capability: filter                # 可选：retrieve/relate/filter/aggregate/trace/lifecycle
+    origin: sow                       # 可选：sow | interview | drafted（drafted 需人确认）
+  - id: cq.002
+    question: 这条分录的冲销该由谁审批
+    persona: 总账主管
+    decision: 把审批任务派给谁
+    capability: relate
+    origin: sow
+  - id: cq.003
+    question: 软关账期间提交的冲销申请按哪条规则处理
+    persona: 月结流程 owner
+    decision: 决定是否放行
+    capability: lifecycle
+    origin: drafted
+
+# 可选：从材料里抽出来但还没被人确认的推断，逐条列出来让人过目。
+# 推断不得静默写成事实——这是整套流程最想防住的一件事。
+inferences_pending_confirmation:
+  - field: owners.ontology
+    inferred: 数据平台组架构师
+    basis: SOW「技术对口：数据平台组」，没有点名到人

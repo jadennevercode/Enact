@@ -148,6 +148,19 @@ never cancels tasks now. `CancelTasksForIssue` fires only from the issue-deletio
 paths (`DeleteIssue` / `BatchDeleteIssues`), where the owning issue row is going
 away, so no task is left orphaned.
 
+## Retrospect sub-issue on a finished issue
+
+| Behavior | Source |
+|---|---|
+| Files the sub-issue from the `EventIssueUpdated` listener, so single update, batch update and the GitHub webhook are all covered | `server/cmd/server/retrospect_listeners.go` (`registerRetrospectListeners`) |
+| Fires only on the transition INTO a done category, both sides resolved through `issuestatus.Effective` | `server/internal/service/retrospect.go` (`finishedNow`) |
+| Requires a live Retrospect Agent: `system_key='retrospect'`, not archived, runtime bound; otherwise `ErrNoRetrospectAgent` and nothing is logged | `server/internal/service/retrospect.go` (`liveRetrospectAgent`) |
+| Requires agent work: an issue with no rows in `ListTasksByIssue` is skipped | `server/internal/service/retrospect.go` (`MaybeFileForFinishedIssue`) |
+| Never retrospects a retrospect: `origin_type='retrospect'` returns early | `server/internal/service/retrospect.go` (`MaybeFileForFinishedIssue`); `server/migrations/441_issue_origin_retrospect.up.sql` |
+| Once per issue: the guarantee is the partial unique index, the `GetIssueByOrigin` lookup is only a pre-check | `server/migrations/442_issue_origin_retrospect_index.up.sql`; `isRetrospectDuplicate` in `server/internal/service/retrospect.go` |
+| Sub-issue shape: `Retrospect: <parent title>`, parent = the finished issue, `todo`, priority `low`, assigned to the agent, created in the finished issue's member creator's name | `server/internal/service/retrospect.go` (`retrospectBrief`, `retrospectCreator`) |
+| Proposal waits on a human reply; a status change, silence, or an agent's comment is explicitly not agreement | `server/internal/service/builtin_agents/retrospect/INSTRUCTIONS.md` |
+
 ## Ownership-only assignment and duplicate-run awareness
 
 | Behavior | Source |
@@ -221,3 +234,13 @@ grep -n 'qualifyingIdents\|reference_only\|ReferenceOnly' internal/handler/githu
 grep -n 'prevIssue.Status == "backlog"\|func (h \*Handler) shouldEnqueueAgentTask' internal/handler/issue.go
 grep -n 'func notifyParentOfChildDone'       internal/handler/issue_child_done.go
 ```
+
+## Artifacts
+
+- `ListIssueArtifacts` (`server/internal/handler/artifact.go`) serves `GET /api/issues/{id}/artifacts`; `ListChatSessionArtifacts` in the same file serves `GET /api/chat/sessions/{sessionId}/artifacts`. Both are registered in `server/cmd/server/router.go` beside the listing they sit next to (`/attachments` and `/messages`).
+- The issue scope resolves its path param through `loadIssueForUser` (`server/internal/handler/handler.go`), so an identifier works and a foreign issue is a 404. The chat scope uses `gatePublicChatSessionForUser` (`server/internal/handler/chat.go`), the same gate as the transcript.
+- `ListArtifactsByIssue` (`server/pkg/db/queries/attachment.sql`) is the one-level-deep walk: `i.id = $2 OR i.parent_issue_id = $2`, with `COALESCE(a.issue_id, c.issue_id)` following the comment edge. The join is INNER, so a chat upload cannot reach an issue listing. `ORDER BY (i.id = $2) DESC` puts the issue's own rows ahead of its children's.
+- `ListArtifactsByChatSession` filters on `a.chat_session_id` and LEFT-joins the owner issue, which is normally NULL — the handler then omits all four `owner_issue_*` fields rather than synthesising `ENA-0`.
+- `?limit=` is clamped by `artifactLimit` (default 500, max 2000) and the response's `truncated` flag reports that the cap was hit. Both listings share `writeArtifacts` in the same file.
+- Deletion has no artifact endpoint of its own: it reuses `DELETE /api/attachments/{id}` (`server/internal/handler/file.go`), which allows the uploader or a workspace owner/admin and publishes `issue_attachments:changed`.
+- The client side derives folders and version chains in `packages/core/artifacts/artifact-tree.ts` (`buildArtifactScope`); nothing about grouping lives on the server.

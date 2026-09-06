@@ -166,16 +166,6 @@ export function ChatPage() {
     setComposingNew(true);
   };
 
-  const changeProjectContext = (projectId: string | null) => {
-    if (projectId === c.activeProjectId) return;
-    c.handleProjectChange(projectId);
-    // Removing a project stays in the current conversation. Choosing a
-    // project for an existing conversation starts a clean session, and a
-    // compact layout must stay in the compose pane after activeSessionId is
-    // cleared.
-    if (!c.currentSession || projectId !== null) setComposingNew(true);
-  };
-
   // URL → new chat: `?agent=<id>` is the deep link used by "DM" entry points
   // (e.g. the agent detail page) to land on a fresh compose bound to that
   // agent. The permission-filtered agent list loads async, so the intent is
@@ -228,7 +218,6 @@ export function ChatPage() {
       <ChatThreadList
         sessions={c.sessions}
         agents={c.agents}
-        projects={c.projects}
         activeSessionId={c.activeSessionId}
         onSelectSession={handleSelect}
         onArchive={handleArchive}
@@ -331,11 +320,6 @@ export function ChatPage() {
         agentAccessRevoked={c.isAgentAccessRevoked}
         agentRuntimeRequired={!c.isAgentRuntimeBound}
         agentName={c.activeAgent?.name}
-        projects={c.projects}
-        projectId={c.activeProjectId}
-        projectContextUnsupported={c.projectContextUnsupported}
-        onProjectChange={changeProjectContext}
-        isProjectUpdating={c.isProjectUpdating}
         focusRequest={c.focusInputRequest}
       />
     </div>

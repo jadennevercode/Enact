@@ -477,7 +477,6 @@ func init() {
 	issueListCmd.Flags().String("priority", "", "Filter by priority")
 	issueListCmd.Flags().String("assignee", "", "Filter by assignee name (member, agent, or squad; fuzzy match)")
 	issueListCmd.Flags().String("assignee-id", "", "Filter by assignee UUID — member, agent, or squad (mutually exclusive with --assignee)")
-	issueListCmd.Flags().String("project", "", "Filter by project ID")
 	issueListCmd.Flags().StringSlice("metadata", nil, "Filter by metadata key=value (repeatable; combined with AND). Value is JSON-parsed: 'true'/'false' → bool, numbers → number, otherwise string. Wrap as '\"42\"' to force a string when the value would otherwise sniff as a number.")
 	issueListCmd.Flags().Int("limit", 50, "Maximum number of issues to return")
 	issueListCmd.Flags().Int("offset", 0, "Number of issues to skip (for pagination)")
@@ -505,7 +504,6 @@ func init() {
 	issueCreateCmd.Flags().String("assignee-id", "", "Assignee UUID — member, agent, or squad (mutually exclusive with --assignee)")
 	issueCreateCmd.Flags().String("parent", "", "Parent issue ID")
 	issueCreateCmd.Flags().Int("stage", 0, "Stage ordinal (>=1) grouping this sub-issue into an ordered barrier group under its parent; omit for unstaged. The parent assignee is woken only when every sub-issue in a stage finishes.")
-	issueCreateCmd.Flags().String("project", "", "Project ID")
 	issueCreateCmd.Flags().String("start-date", "", "Start date (calendar day, YYYY-MM-DD)")
 	issueCreateCmd.Flags().String("due-date", "", "Due date (calendar day, YYYY-MM-DD)")
 	issueCreateCmd.Flags().Bool("allow-duplicate", false, "Allow creating an issue even when an active duplicate exists")
@@ -523,7 +521,6 @@ func init() {
 	issueUpdateCmd.Flags().String("priority", "", "New priority")
 	issueUpdateCmd.Flags().String("assignee", "", "New assignee name (member, agent, or squad; fuzzy match)")
 	issueUpdateCmd.Flags().String("assignee-id", "", "New assignee UUID — member, agent, or squad (mutually exclusive with --assignee)")
-	issueUpdateCmd.Flags().String("project", "", "Project ID")
 	issueUpdateCmd.Flags().String("start-date", "", "New start date (calendar day, YYYY-MM-DD; pass empty string to clear)")
 	issueUpdateCmd.Flags().String("due-date", "", "New due date (calendar day, YYYY-MM-DD)")
 	issueUpdateCmd.Flags().String("parent", "", "Parent issue ID (use --parent \"\" to clear)")
@@ -647,13 +644,6 @@ func runIssueList(cmd *cobra.Command, _ []string) error {
 	}
 	if v, _ := cmd.Flags().GetInt("offset"); v > 0 {
 		params.Set("offset", fmt.Sprintf("%d", v))
-	}
-	if v, _ := cmd.Flags().GetString("project"); v != "" {
-		project, err := resolveProjectID(ctx, client, v)
-		if err != nil {
-			return err
-		}
-		params.Set("project_id", project.ID)
 	}
 	if mdFlags, _ := cmd.Flags().GetStringSlice("metadata"); len(mdFlags) > 0 {
 		filter, err := buildMetadataFilterQueryParam(mdFlags)
@@ -1163,13 +1153,6 @@ func runIssueCreate(cmd *cobra.Command, _ []string) error {
 		}
 		body["parent_issue_id"] = parent.ID
 	}
-	if v, _ := cmd.Flags().GetString("project"); v != "" {
-		project, err := resolveProjectID(ctx, client, v)
-		if err != nil {
-			return fmt.Errorf("resolve project: %w", err)
-		}
-		body["project_id"] = project.ID
-	}
 	if cmd.Flags().Changed("stage") {
 		stage, _ := cmd.Flags().GetInt("stage")
 		if stage < 1 {
@@ -1337,18 +1320,6 @@ func runIssueUpdate(cmd *cobra.Command, args []string) error {
 	}
 	if priorityChanged {
 		body["priority"] = priorityFlag
-	}
-	if cmd.Flags().Changed("project") {
-		v, _ := cmd.Flags().GetString("project")
-		if v == "" {
-			body["project_id"] = nil
-		} else {
-			project, err := resolveProjectID(ctx, client, v)
-			if err != nil {
-				return fmt.Errorf("resolve project: %w", err)
-			}
-			body["project_id"] = project.ID
-		}
 	}
 	if cmd.Flags().Changed("start-date") {
 		v, _ := cmd.Flags().GetString("start-date")
@@ -1633,11 +1604,7 @@ func runIssueReorder(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Scope the column to the issue's own project (when it has one) so the
-	// computed position lands relative to the project board the issue lives on,
-	// not a blend of every project's issues in this status.
-	projectID := strVal(target, "project_id")
-	column, err := fetchIssueColumn(ctx, client, wsID, projectID, status)
+	column, err := fetchIssueColumn(ctx, client, wsID, status)
 	if err != nil {
 		return fmt.Errorf("list %s column: %w", status, err)
 	}
@@ -1748,19 +1715,14 @@ func fetchIssue(ctx context.Context, client *cli.APIClient, id string) (map[stri
 // fetchIssueColumn returns every issue in a status column ordered by position
 // ascending, paginating through the list endpoint so columns larger than one
 // page (the server caps a page at 100) still produce a complete, correctly
-// ordered set. A non-empty projectID scopes the column to that project,
-// matching a project board; an empty projectID lists the whole workspace
-// column.
-func fetchIssueColumn(ctx context.Context, client *cli.APIClient, workspaceID, projectID, status string) ([]map[string]any, error) {
+// ordered set.
+func fetchIssueColumn(ctx context.Context, client *cli.APIClient, workspaceID, status string) ([]map[string]any, error) {
 	var all []map[string]any
 	offset := 0
 	for {
 		params := url.Values{}
 		params.Set("workspace_id", workspaceID)
 		params.Set("status", status)
-		if projectID != "" {
-			params.Set("project_id", projectID)
-		}
 		params.Set("sort", "position")
 		params.Set("limit", "100")
 		params.Set("offset", fmt.Sprintf("%d", offset))
@@ -2534,9 +2496,8 @@ type assigneeMatch struct {
 
 // assigneeKinds is the set of entity types a given flag is allowed to resolve
 // to. Issue assignees accept all three (`issueAssigneeKinds`), while
-// project lead and issue subscribers are member-or-agent only
-// (`memberOrAgentKinds`) — the DB CHECK on `project.lead_type` and the
-// `isWorkspaceEntity` switch in the subscriber handler both reject `squad`,
+// issue subscribers are member-or-agent only (`memberOrAgentKinds`) — the
+// `isWorkspaceEntity` switch in the subscriber handler rejects `squad`,
 // so resolving to (squad, ...) for those callers would surface as a 500 /
 // 403 instead of a clean CLI-side resolution error (ENA-2165 follow-up).
 type assigneeKinds struct {
@@ -2682,7 +2643,7 @@ func resolveAssignee(ctx context.Context, client *cli.APIClient, name string, ki
 	// resolve here too for issue-assignee callers — otherwise a user saying
 	// "assign to <SquadName>" silently falls through and the autopilot
 	// prompt emits "Unrecognized assignee: <SquadName>" (ENA-2165). Callers
-	// whose target schema is member-or-agent only (project lead, subscriber)
+	// whose target schema is member-or-agent only (subscriber)
 	// must opt out via `kinds.squad = false`.
 	if kinds.squad {
 		fetchAttempts++

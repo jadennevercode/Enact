@@ -1,0 +1,98 @@
+# define/interview-state.yaml
+#
+# 访谈过程本身的记录：问了什么、谁答的、答案原话、哪些是系统先猜的。
+# 没有专门的检查项核它，但 revision.py new 会把它的 digest 冻进 revision，
+# 所以它是"这一版是照着哪次谈话生成的"这句话的唯一凭据。
+#
+# 一轮最多 5 题。选择题优先，每个选项后面写清楚选了会怎样。
+# 已经在章程、证据登记里回答过的，不重新问——把 evidence_refs 标上就行。
+# 见 references/asking-well.md。例子取自 evals/fixtures/journal-reversal/。
+
+version: 1
+subject: 日记账冲销语义
+participants:
+  - { name: DE1, role: DE, title: FSSC 总账主管 }
+  - { name: PO1, role: PO, title: 月结流程 owner }
+
+rounds:
+  - round: 1
+    at: "2026-09-03T13:30:00+08:00"
+    focus: [goal, boundary, users_and_decisions]
+    asked_because: 章程有边界但没有写清楚谁在什么时候做什么决定
+    questions:
+      - id: q.101
+        readiness_ref: users_and_decisions
+        question: 「这条分录能不能冲销」这个判断，实际是谁在什么时候做？
+        kind: open
+        answer: 总账会计在发现错账时判断，判断依据是状态、期间和有没有被冲销过。
+        answered_by: DE1
+
+      - id: q.102
+        readiness_ref: boundary
+        question: 冲销申请单要不要建成对象？
+        kind: choice                    # 选择题优先：候选 + 每项后果
+        options:
+          - value: 建成实体
+            consequence: 三条记录（申请、审批、冲销分录）能挂到同一个单号上，可追溯到人
+          - value: 只当成分录的属性
+            consequence: 模型更小，但审批记录无处可挂，cq.005 追溯责任答不了
+        answer: 建成实体
+        answered_by: DE1
+        note: 直接产生 mc.002
+
+  - round: 2
+    at: "2026-09-03T14:00:00+08:00"
+    focus: [core_objects, key_processes_and_events, exceptions_and_lifecycle]
+    asked_because: 证据里有五步流程但没有说异常路径的终点
+    questions:
+      - id: q.201
+        readiness_ref: core_objects
+        question: 我们从材料里读出的核心对象是「分录、冲销分录、审批人、期间」，对吗？
+        kind: confirm_inference          # 系统先猜，请人确认——猜的内容必须原样摆出来
+        inferred: [分录, 冲销分录, 审批人, 期间]
+        answer: >-
+          分录、冲销分录、冲销申请单、会计期间、原因代码、员工。
+          「审批人」不是对象，是员工在一次申请里的角色。
+        answered_by: DE1
+        outcome: corrected               # answered | corrected | skipped
+        note: readiness.core_objects 随之从 inferred 变为 corrected
+
+      - id: q.202
+        readiness_ref: exceptions_and_lifecycle
+        question: 流程图上「审批通过?」的否分支断了，被否决之后走到哪里？
+        kind: open
+        asked_because: ev.003 高风险内容：连线断开，缺终点
+        answer: 退回制单人，可以改申请再提交，也可以撤销申请。图画漏了。
+        answered_by: PO1
+        outcome: answered
+        writes_back_to: fagc             # 访谈答案补上了证据缺口，回写一条 fact 并标明来源为访谈
+
+  - round: 3
+    at: "2026-09-03T14:15:00+08:00"
+    focus: [terminology_ambiguity, data_granularity]
+    asked_because: 术语表自己说了三处不确定，粒度只需确认不需要重问
+    questions:
+      - id: q.301
+        readiness_ref: terminology_ambiguity
+        question: 总部的「财务控制」和工厂的「财务经理」，冲销审批权限等同吗？
+        kind: open
+        answer: 不确定，要查授权表。先按等同处理。
+        answered_by: DE1
+        outcome: answered
+        raises_assumption: asm.002       # 答案本身是个假设，就在 FAGC 里开一条
+
+      - id: q.302
+        readiness_ref: data_granularity
+        question: 粒度还按章程写的「单条分录，line 不展开」吗？
+        kind: confirm_recorded            # 已经记录过的，只确认不重问
+        recorded_answer_ref: define/project-charter.yaml#scope.data_granularity
+        answer: 是，本轮不改。
+        answered_by: DE1
+        outcome: skipped
+        rationale: 章程已定，无新信息，不重复登记
+
+open_threads:                             # 谈了但没谈完的，留在这里，不要假装闭合
+  - id: th.001
+    topic: 软关账口径由谁裁决
+    blocked_on: ud.001
+    owner: OO1

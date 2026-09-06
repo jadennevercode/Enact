@@ -62,7 +62,6 @@ const ISSUE = {
   status: "todo",
   priority: "medium",
   workspace_id: "workspace-1",
-  project_id: null,
   parent_issue_id: null,
   assignee_id: null,
   assignee_type: null,

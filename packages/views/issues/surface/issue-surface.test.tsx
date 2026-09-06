@@ -104,7 +104,7 @@ vi.mock("@enact/core/paths", async () => {
   };
 });
 
-function makeIssue(id: string, title: string, projectId: string): Issue {
+function makeIssue(id: string, title: string): Issue {
   return {
     id,
     workspace_id: "ws-1",
@@ -119,7 +119,6 @@ function makeIssue(id: string, title: string, projectId: string): Issue {
     creator_type: "member",
     creator_id: "user-1",
     parent_issue_id: null,
-    project_id: projectId,
     position: 1,
     stage: null,
     start_date: null,
@@ -136,10 +135,10 @@ function never<T>() {
   return new Promise<T>(() => {});
 }
 
-function projectSurface(projectId: string) {
+function actorSurface(actorId: string) {
   return (
     <IssueSurface
-      scope={{ type: "project", projectId }}
+      scope={{ type: "actor", actorType: "member", actorId, relation: "assigned" }}
       modes={["list"]}
       renderHeader={() => null}
       renderLoading={() => <div data-testid="surface-loading" />}
@@ -157,9 +156,9 @@ describe("IssueSurface — scope switch loading semantics", () => {
     // p1 answers immediately with one issue; p2 stays in flight forever so
     // the test can observe the in-between state after switching.
     const listIssues = vi.fn((params?: ListIssuesParams) => {
-      if (params?.project_id === "p2") return never<ListIssuesResponse>();
+      if (params?.assignee_id === "p2") return never<ListIssuesResponse>();
       const issues =
-        params?.status === "todo" ? [makeIssue("i1", "P1 issue", "p1")] : [];
+        params?.status === "todo" ? [makeIssue("i1", "A1 issue")] : [];
       return Promise.resolve({ issues, total: issues.length });
     });
     setApiInstance({
@@ -170,7 +169,6 @@ describe("IssueSurface — scope switch loading semantics", () => {
       listIssues,
       ...statusTableMethodsFromLegacy(listIssues),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() => never<AgentTask[]>()),
       getChildIssueProgress: vi.fn(() => never()),
     } as unknown as ApiClient);
@@ -184,47 +182,47 @@ describe("IssueSurface — scope switch loading semantics", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows loading — not the previous project's issues — while the next project is fetching", async () => {
+  it("shows loading — not the previous scope's issues — while the next scope is fetching", async () => {
     // Regression: the list queries use `placeholderData: keepPreviousData` to
     // keep sort/filter changes flicker-free WITHIN one surface. Without a
     // scope-keyed remount, that placeholder leaks ACROSS surfaces: switching
-    // pinned projects kept rendering project A's cards (isLoading=false, so
-    // no skeleton either) until project B's response landed — the "click does
+    // pinned scopes kept rendering scope A's cards (isLoading=false, so
+    // no skeleton either) until scope B's response landed — the "click does
     // nothing, then it snaps" bug.
     const { rerender } = render(
-      <QueryClientProvider client={qc}>{projectSurface("p1")}</QueryClientProvider>,
+      <QueryClientProvider client={qc}>{actorSurface("p1")}</QueryClientProvider>,
     );
 
-    await screen.findByText("P1 issue");
+    await screen.findByText("A1 issue");
 
     rerender(
-      <QueryClientProvider client={qc}>{projectSurface("p2")}</QueryClientProvider>,
+      <QueryClientProvider client={qc}>{actorSurface("p2")}</QueryClientProvider>,
     );
 
     // The switch must be honest: p2 has no data yet, so the surface is
     // loading — p1's cards must not impersonate p2.
     expect(screen.getByTestId("surface-loading")).toBeInTheDocument();
-    expect(screen.queryByText("P1 issue")).not.toBeInTheDocument();
+    expect(screen.queryByText("A1 issue")).not.toBeInTheDocument();
   });
 
-  it("shows a cached project instantly on switch-back (no loading flash)", async () => {
+  it("shows a cached scope instantly on switch-back (no loading flash)", async () => {
     const { rerender } = render(
-      <QueryClientProvider client={qc}>{projectSurface("p1")}</QueryClientProvider>,
+      <QueryClientProvider client={qc}>{actorSurface("p1")}</QueryClientProvider>,
     );
-    await screen.findByText("P1 issue");
+    await screen.findByText("A1 issue");
 
     rerender(
-      <QueryClientProvider client={qc}>{projectSurface("p2")}</QueryClientProvider>,
+      <QueryClientProvider client={qc}>{actorSurface("p2")}</QueryClientProvider>,
     );
     expect(screen.getByTestId("surface-loading")).toBeInTheDocument();
 
     // Back to p1: its cache is warm, so the list renders immediately from
     // cache — remounting must not degrade the instant-switch path.
     rerender(
-      <QueryClientProvider client={qc}>{projectSurface("p1")}</QueryClientProvider>,
+      <QueryClientProvider client={qc}>{actorSurface("p1")}</QueryClientProvider>,
     );
     await waitFor(() =>
-      expect(screen.getByText("P1 issue")).toBeInTheDocument(),
+      expect(screen.getByText("A1 issue")).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("surface-loading")).not.toBeInTheDocument();
   });
@@ -250,7 +248,7 @@ describe("IssueSurface — scope switch loading semantics", () => {
 
     const listIssues = vi.fn((params?: ListIssuesParams) => {
       const issues =
-        params?.status === "todo" ? [makeIssue("i1", "WS1 issue", "p1")] : [];
+        params?.status === "todo" ? [makeIssue("i1", "WS1 issue")] : [];
       return Promise.resolve({ issues, total: issues.length });
     });
     setApiInstance({
@@ -261,7 +259,6 @@ describe("IssueSurface — scope switch loading semantics", () => {
       listIssues,
       ...statusTableMethodsFromLegacy(listIssues),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() => never<AgentTask[]>()),
       getChildIssueProgress: vi.fn(() => never()),
     } as unknown as ApiClient);
@@ -321,14 +318,14 @@ describe("IssueSurface — table pagination ownership", () => {
     const { getIssueSurfaceViewStore } = await import(
       "@enact/core/issues/stores/surface-view-store"
     );
-    const store = getIssueSurfaceViewStore("project:pt");
+    const store = getIssueSurfaceViewStore("actor:member:pt:assigned");
     store.getState().setViewMode("table");
     if (!store.getState().agentRunningFilter) {
       store.getState().toggleAgentRunningFilter();
     }
 
     const runningIssues = Array.from({ length: 250 }, (_, index) => ({
-      ...makeIssue(`run-${index}`, `Running ${index}`, "pt"),
+      ...makeIssue(`run-${index}`, `Running ${index}`),
       status: "in_progress" as const,
     }));
     const listIssueTableRows = vi.fn(() => never());
@@ -341,7 +338,6 @@ describe("IssueSurface — table pagination ownership", () => {
       listIssueTableRows,
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() =>
         Promise.resolve(
           runningIssues.map((issue, index) => ({
@@ -373,7 +369,7 @@ describe("IssueSurface — table pagination ownership", () => {
     render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pt" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pt", relation: "assigned" }}
           modes={["table"]}
           renderHeader={() => null}
           renderLoading={() => <div data-testid="surface-loading" />}
@@ -406,10 +402,10 @@ describe("IssueSurface — table pagination ownership", () => {
     const { getIssueSurfaceViewStore } = await import(
       "@enact/core/issues/stores/surface-view-store"
     );
-    const store = getIssueSurfaceViewStore("project:pt-pages");
+    const store = getIssueSurfaceViewStore("actor:member:pt-pages:assigned");
     store.getState().setViewMode("table");
-    const first = makeIssue("page-1", "First cursor row", "pt-pages");
-    const second = makeIssue("page-2", "Second cursor row", "pt-pages");
+    const first = makeIssue("page-1", "First cursor row");
+    const second = makeIssue("page-2", "Second cursor row");
     const listIssueTableRows = vi.fn((request: IssueTableRowsRequest) =>
       Promise.resolve(
         request.page?.cursor == null
@@ -442,7 +438,6 @@ describe("IssueSurface — table pagination ownership", () => {
       listIssueTableRows,
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => Promise.resolve([])),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
@@ -481,7 +476,7 @@ describe("IssueSurface — table pagination ownership", () => {
     render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pt-pages" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pt-pages", relation: "assigned" }}
           modes={["table"]}
           renderHeader={() => null}
           batchToolbar="never"
@@ -501,9 +496,9 @@ describe("IssueSurface — table pagination ownership", () => {
     const { getIssueSurfaceViewStore } = await import(
       "@enact/core/issues/stores/surface-view-store"
     );
-    const store = getIssueSurfaceViewStore("project:pt-batch");
+    const store = getIssueSurfaceViewStore("actor:member:pt-batch:assigned");
     store.getState().setViewMode("table");
-    const issue = makeIssue("table-selected", "Loaded Table issue", "pt-batch");
+    const issue = makeIssue("table-selected", "Loaded Table issue");
 
     setApiInstance({
       // The board pages by category, so every surface stub answers the catalog
@@ -524,7 +519,6 @@ describe("IssueSurface — table pagination ownership", () => {
       ),
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => Promise.resolve([])),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
@@ -536,7 +530,7 @@ describe("IssueSurface — table pagination ownership", () => {
     const { container } = render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pt-batch" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pt-batch", relation: "assigned" }}
           modes={["table"]}
           renderHeader={() => null}
           batchToolbar="always"
@@ -557,12 +551,11 @@ describe("IssueSurface — table pagination ownership", () => {
     const { getIssueSurfaceViewStore } = await import(
       "@enact/core/issues/stores/surface-view-store"
     );
-    const store = getIssueSurfaceViewStore("project:pt-sort-transition");
+    const store = getIssueSurfaceViewStore("actor:member:pt-sort-transition:assigned");
     store.getState().setViewMode("table");
     const issue = makeIssue(
       "table-sort-placeholder",
       "Table row kept during sort",
-      "pt-sort-transition",
     );
     const listIssueTableRows = vi.fn((request: IssueTableRowsRequest) =>
       request.query.sort.field === "position"
@@ -586,7 +579,6 @@ describe("IssueSurface — table pagination ownership", () => {
       listIssueTableRows,
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => Promise.resolve([])),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
@@ -598,7 +590,7 @@ describe("IssueSurface — table pagination ownership", () => {
     render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pt-sort-transition" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pt-sort-transition", relation: "assigned" }}
           modes={["table"]}
           renderHeader={() => null}
           batchToolbar="never"
@@ -616,13 +608,12 @@ describe("IssueSurface — table pagination ownership", () => {
     const { getIssueSurfaceViewStore } = await import(
       "@enact/core/issues/stores/surface-view-store"
     );
-    const store = getIssueSurfaceViewStore("project:pt-collapsed-batch");
+    const store = getIssueSurfaceViewStore("actor:member:pt-collapsed-batch:assigned");
     store.getState().setViewMode("table");
     store.getState().setTableGrouping("status");
     const issue = makeIssue(
       "table-collapsed-selected",
       "Selected issue in collapsed group",
-      "pt-collapsed-batch",
     );
 
     vi.stubGlobal(
@@ -682,7 +673,6 @@ describe("IssueSurface — table pagination ownership", () => {
       ),
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => Promise.resolve([])),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
@@ -694,7 +684,7 @@ describe("IssueSurface — table pagination ownership", () => {
     const { container } = render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pt-collapsed-batch" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pt-collapsed-batch", relation: "assigned" }}
           modes={["table"]}
           renderHeader={() => null}
           batchToolbar="always"
@@ -750,7 +740,6 @@ describe("IssueSurface — filtered empty state", () => {
       listIssues,
       ...statusTableMethodsFromLegacy(listIssues),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() => never<AgentTask[]>()),
       getWorkspaceWorkingAgents: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => never()),
@@ -770,7 +759,7 @@ describe("IssueSurface — filtered empty state", () => {
     return (
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "pf" }}
+          scope={{ type: "actor", actorType: "member", actorId: "pf", relation: "assigned" }}
           modes={["list"]}
           renderHeader={() => null}
           batchToolbar="never"
@@ -780,19 +769,19 @@ describe("IssueSurface — filtered empty state", () => {
   }
 
   it("says the filters hid everything instead of offering to create the first issue", async () => {
-    const store = getIssueSurfaceViewStore("project:pf");
+    const store = getIssueSurfaceViewStore("actor:member:pf:assigned");
     act(() => store.getState().toggleAgentRunningFilter());
 
     render(filteredSurface());
 
     await screen.findByText("filtered_empty.title");
     expect(screen.getByText("filtered_empty.hint")).toBeInTheDocument();
-    // The project's own "nothing linked yet" copy would be a lie here.
-    expect(screen.queryByText("detail.empty_issues_title")).toBeNull();
+    // The surface's own "nothing yet" copy would be a lie here.
+    expect(screen.queryByText("surface.empty_title")).toBeNull();
   });
 
   it("clears exactly the filters it blamed, then hands the surface back", async () => {
-    const store = getIssueSurfaceViewStore("project:pf");
+    const store = getIssueSurfaceViewStore("actor:member:pf:assigned");
     act(() => store.getState().toggleAgentRunningFilter());
 
     render(filteredSurface());
@@ -803,14 +792,14 @@ describe("IssueSurface — filtered empty state", () => {
     );
 
     expect(store.getState().agentRunningFilter).toBe(false);
-    await screen.findByText("detail.empty_issues_title");
+    await screen.findByText("surface.empty_title");
     expect(screen.queryByText("filtered_empty.title")).toBeNull();
   });
 
   it("keeps the unfiltered empty state when no filter is active", async () => {
     render(filteredSurface());
 
-    await screen.findByText("detail.empty_issues_title");
+    await screen.findByText("surface.empty_title");
     expect(screen.queryByText("filtered_empty.title")).toBeNull();
   });
 });
@@ -837,7 +826,6 @@ describe("IssueSurface — status catalog failure", () => {
         return tableMethods.listIssueTableRows(request);
       }),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() => never<AgentTask[]>()),
       getChildIssueProgress: vi.fn(() => never()),
     } as unknown as ApiClient);
@@ -884,13 +872,13 @@ describe("IssueSurface — status catalog failure", () => {
         : Promise.resolve({ statuses: [QA_ENTRY], categories: [], total: 1 });
     });
 
-    const store = getIssueSurfaceViewStore("project:cat-fail");
+    const store = getIssueSurfaceViewStore("actor:member:cat-fail:assigned");
     act(() => store.getState().toggleStatusFilter("qa"));
 
     render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "cat-fail" }}
+          scope={{ type: "actor", actorType: "member", actorId: "cat-fail", relation: "assigned" }}
           modes={["list"]}
           renderHeader={() => null}
           renderLoading={() => <div data-testid="surface-loading" />}
@@ -928,13 +916,13 @@ describe("IssueSurface — status catalog failure", () => {
         : Promise.reject(new Error("refetch failed"));
     });
 
-    const store = getIssueSurfaceViewStore("project:cat-stale");
+    const store = getIssueSurfaceViewStore("actor:member:cat-stale:assigned");
     act(() => store.getState().toggleStatusFilter("qa"));
 
     render(
       <QueryClientProvider client={qc}>
         <IssueSurface
-          scope={{ type: "project", projectId: "cat-stale" }}
+          scope={{ type: "actor", actorType: "member", actorId: "cat-stale", relation: "assigned" }}
           modes={["list"]}
           renderHeader={() => null}
           renderLoading={() => <div data-testid="surface-loading" />}

@@ -497,8 +497,8 @@ function statusCategoryPatch(status: IssueStatus | undefined): Partial<Issue> {
 }
 
 /**
- * Update an issue's editable fields (status / priority / assignee / due_date /
- * project_id / etc). Predictable fields merge optimistically into the detail
+ * Update an issue's editable fields (status / priority / assignee / due_date
+ * / etc). Predictable fields merge optimistically into the detail
  * cache; description stays authoritative because the server resolves it
  * against description_base and hidden channel-media markers. Settle invalidates
  * the my-issues list so a status change re-buckets the SectionList in
@@ -680,8 +680,7 @@ export function useCreateIssue() {
  * authoritative server state. On error we restore the snapshot.
  */
 /**
- * Delete an issue. Mirrors `useDeleteProject` (mutations/projects.ts:103-128)
- * but the cache surface is wider:
+ * Delete an issue. The cache surface is wide:
  *   - issueKeys.list(wsId)             — workspace-wide flat list
  *   - issueKeys.myList(wsId, ...)      — three scopes × N filter combos
  *

@@ -68,11 +68,6 @@ vi.mock("../issues/components/issue-mention-card", () => ({
   ),
 }));
 
-vi.mock("../projects/components/project-chip", () => ({
-  ProjectChip: ({ projectId }: { projectId: string }) => (
-    <span data-testid="project-chip">{projectId}</span>
-  ),
-}));
 
 vi.mock("../editor/link-hover-card", () => ({
   useLinkHover: () => ({}),

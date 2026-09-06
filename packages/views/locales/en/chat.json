@@ -26,12 +26,7 @@
     "runtime_required_toast": "Message not sent — bind a runtime to this agent first",
     "attachment_bind_failed_toast": "Message sent, but files were not attached. Please try again in a moment.",
     "add_tooltip": "Add",
-    "upload_file": "Image or files",
-    "project_context": "Project context",
-    "change_project_context": "Change project context",
-    "remove_project_context": "Remove project context",
-    "no_projects": "No projects yet",
-    "project_context_unsupported": "Project description won't apply — this agent's daemon needs an upgrade"
+    "upload_file": "Image or files"
   },
   "queue": {
     "title_one": "{{count}} queued message",
@@ -142,7 +137,7 @@
   "empty_state": {
     "first_time_title": "Chat with your agents",
     "first_time_intro": "✨ They know your workspace —",
-    "first_time_pillars": "issues, projects, skills",
+    "first_time_pillars": "issues, agents, skills",
     "first_time_pillars_suffix": ".",
     "first_time_actions": "Ask for a summary, plan your day, or hand off a quick task.",
     "returning_title_named": "Hi, I'm {{name}}",
@@ -160,8 +155,8 @@
     "cta": "Start",
     "board": {
       "title": "Get a board up in minutes",
-      "desc": "Tell me the goal — I'll create the project, split the issues, and set priorities.",
-      "prompt": "Turn our current goals into a project board"
+      "desc": "Tell me the goal — I'll split it into issues and set priorities.",
+      "prompt": "Turn our current goals into an issue board"
     },
     "delegate": {
       "title": "Hand me one thing first",
@@ -227,11 +222,11 @@
     "unarchive": "Unarchive",
     "archived_title": "Archived",
     "pinned_segment": "Pinned",
-    "no_project_segment": "No project",
     "row_actions_aria": "Chat actions"
   },
   "header": {
     "view_profile": "View agent profile",
+    "artifacts": "Artifacts",
     "rename": "Rename chat",
     "archive": "Archive chat",
     "unarchive": "Unarchive chat",

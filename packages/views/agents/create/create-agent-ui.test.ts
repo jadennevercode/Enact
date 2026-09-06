@@ -37,6 +37,7 @@ vi.mock("../../i18n", () => ({
           modes: {
             blank: { title: string; description: string };
             ai: { title: string; description: string };
+            retrospect: { title: string; description: string };
           };
           create_and_open: string;
           create_and_add: string;
@@ -64,6 +65,10 @@ vi.mock("../../i18n", () => ({
             ai: {
               title: "Build with AI",
               description: "Describe the outcome you want.",
+            },
+            retrospect: {
+              title: "Retrospect Agent",
+              description: "Enact's built-in reviewer.",
             },
           },
           create_and_open: "Create and open",
@@ -298,5 +303,44 @@ describe("Agent creation method chooser", () => {
       "href",
       "/acme/agents/new/ai",
     );
+  });
+
+  it("omits the Retrospect Agent where there is no workspace to configure", () => {
+    // The onboarding chooser has no runtime to bind and no finished work to
+    // review, so the card must not appear there — same reason the marketplace
+    // card is optional.
+    render(
+      createElement(NavigationProvider, {
+        value: TEST_NAVIGATION,
+        children: createElement(CreateMethodChooser, {
+          blankHref: "/acme/agents/new/manual",
+          aiHref: "/acme/agents/new/ai",
+        }),
+      }),
+    );
+
+    expect(screen.queryByText("Retrospect Agent")).not.toBeInTheDocument();
+  });
+
+  it("opens the Retrospect Agent setup instead of navigating", () => {
+    const onRetrospect = vi.fn();
+    render(
+      createElement(NavigationProvider, {
+        value: TEST_NAVIGATION,
+        children: createElement(CreateMethodChooser, {
+          blankHref: "/acme/agents/new/manual",
+          aiHref: "/acme/agents/new/ai",
+          onRetrospect,
+        }),
+      }),
+    );
+
+    const card = screen.getByText("Retrospect Agent").closest("button");
+    // A real button, not an anchor: the setup happens in a dialog on this
+    // screen, and a link here would be a link to nowhere.
+    expect(card).not.toBeNull();
+    expect(screen.getByText("Retrospect Agent").closest("a")).toBeNull();
+    fireEvent.click(card as HTMLButtonElement);
+    expect(onRetrospect).toHaveBeenCalledTimes(1);
   });
 });

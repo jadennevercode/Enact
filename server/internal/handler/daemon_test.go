@@ -13,9 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/daemonws"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
@@ -25,6 +22,9 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
 	"github.com/enact-ai/enact/server/pkg/remotemcp"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestLogClaimEndpointSlowIncludesPayloadFields(t *testing.T) {
@@ -93,15 +93,29 @@ func (s *popRecordingLocalSkillImportStore) PopPending(ctx context.Context, runt
 	return s.LocalSkillImportStore.PopPending(ctx, runtimeID)
 }
 
-func setHandlerTestWorkspaceRepos(t *testing.T, repos []map[string]string) {
+// setHandlerTestWorkspaceRepoResources attaches repositories to the fixture
+// workspace. They live in workspace_resource as github_repo rows — migration
+// 438 folded the old `workspace.repos` column into that table so one workspace
+// names its repositories in exactly one place. What the column called
+// `description` is the resource's `label`.
+func setHandlerTestWorkspaceRepoResources(t *testing.T, repos []map[string]string) {
 	t.Helper()
-	data, err := json.Marshal(repos)
-	if err != nil {
-		t.Fatalf("marshal repos: %v", err)
+	for i, repo := range repos {
+		ref, err := json.Marshal(map[string]string{"url": strings.TrimSpace(repo["url"])})
+		if err != nil {
+			t.Fatalf("marshal repo ref: %v", err)
+		}
+		var label any
+		if desc := strings.TrimSpace(repo["description"]); desc != "" {
+			label = desc
+		}
+		dbfx.Exec(t,
+			`INSERT INTO workspace_resource (workspace_id, resource_type, resource_ref, label, position)
+			 VALUES ($1, 'github_repo', $2, $3, $4)`,
+			testWorkspaceID, ref, label, i)
 	}
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, data, testWorkspaceID)
 	t.Cleanup(func() {
-		dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte("[]"), testWorkspaceID)
+		dbfx.Exec(t, `DELETE FROM workspace_resource WHERE workspace_id = $1 AND resource_type = 'github_repo'`, testWorkspaceID)
 	})
 }
 
@@ -1484,7 +1498,7 @@ func TestGetDaemonWorkspaceRepos_WithDaemonToken(t *testing.T) {
 		t.Skip("database not available")
 	}
 
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
+	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
 		{"url": "git@example.com:team/api.git", "description": "API"},
 		{"url": "  git@example.com:team/web.git  ", "description": " Web "},
 	})
@@ -1529,7 +1543,7 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 		t.Skip("database not available")
 	}
 
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
+	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
 		{"url": "git@example.com:team/api.git", "description": "API"},
 		{"url": "git@example.com:team/web.git", "description": "Web"},
 	})
@@ -1548,13 +1562,20 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 
 	version1 := getReposVersion()
 
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte(`[{"url":"git@example.com:team/web.git","description":"frontend"},{"url":"git@example.com:team/api.git","description":"backend"}]`), testWorkspaceID)
+	// Same two URLs, reordered and re-described. The version hashes the URL
+	// set, so neither should move it.
+	dbfx.Exec(t, `UPDATE workspace_resource SET position = 1 - position, label = 'rewritten'
+	              WHERE workspace_id = $1 AND resource_type = 'github_repo'`, testWorkspaceID)
 	version2 := getReposVersion()
 	if version1 != version2 {
 		t.Fatalf("expected repos_version to ignore order/description changes, got %s vs %s", version1, version2)
 	}
 
-	dbfx.Exec(t, `UPDATE workspace SET repos = $1 WHERE id = $2`, []byte(`[{"url":"git@example.com:team/api.git","description":"backend"},{"url":"git@example.com:team/mobile.git","description":"mobile"}]`), testWorkspaceID)
+	// A different URL set must move it.
+	dbfx.Exec(t, `UPDATE workspace_resource
+	                 SET resource_ref = '{"url":"git@example.com:team/mobile.git"}'::jsonb
+	               WHERE workspace_id = $1 AND resource_type = 'github_repo'
+	                 AND resource_ref->>'url' = 'git@example.com:team/web.git'`, testWorkspaceID)
 	version3 := getReposVersion()
 	if strings.EqualFold(version2, version3) {
 		t.Fatalf("expected repos_version to change when URL set changes, got %s", version3)
@@ -1964,224 +1985,6 @@ func TestStartTask_AutopilotRunOnlyTask_ResolvesWorkspace(t *testing.T) {
 	dbfx.QueryRow(t, `SELECT status FROM agent_task_queue WHERE id = $1`, taskID).Scan(&status)
 	if status != "running" {
 		t.Fatalf("expected task status 'running' after StartTask, got %q", status)
-	}
-}
-
-// ClaimTaskByRuntime must surface the issue's project github_repo resources
-// as resp.Repos and hide the workspace-bound repos. Without this the agent
-// would see two repo lists in the meta-skill and have no signal about which
-// belongs to the current issue.
-func TestClaimTask_ProjectGithubReposOverrideWorkspaceRepos(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-
-	// Workspace repos: two of them, neither matches the project repo URL.
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
-		{"url": "https://github.com/example/workspace-repo-a", "description": "ws a"},
-		{"url": "https://github.com/example/workspace-repo-b", "description": "ws b"},
-	})
-
-	// Project + project_resource(github_repo) with a URL that is NOT in the
-	// workspace's repos list.
-	projectID := dbfx.Project(t, "Claim project repo override")
-
-	const projectRepoURL = "https://github.com/example/project-only-repo"
-	const projectRepoRef = "release/v2"
-	dbfx.Exec(t, `
-		INSERT INTO project_resource (
-			project_id, workspace_id, resource_type, resource_ref, position
-		) VALUES ($1, $2, 'github_repo', $3::jsonb, 0)
-	`, projectID, testWorkspaceID, `{"url":"`+projectRepoURL+`","ref":"`+projectRepoRef+`"}`)
-
-	// Agent + runtime + queued task in this project.
-	var agentID, runtimeID string
-	dbfx.QueryRow(t,
-		`SELECT id, runtime_id FROM agent WHERE workspace_id = $1 LIMIT 1`,
-		testWorkspaceID,
-	).Scan(&agentID, &runtimeID)
-
-	issueID := dbfx.Issue(t, "project repo override", testutil.Cols{
-		"project_id": projectID,
-		"priority":   "medium",
-		"number":     88001,
-	})
-
-	dbfx.Task(t, agentID, testutil.Cols{
-		"runtime_id": runtimeID,
-		"issue_id":   issueID,
-	})
-
-	req := newDaemonTokenRequest("POST", "/api/daemon/runtimes/"+runtimeID+"/claim", nil, testWorkspaceID, "test-claim-project-repos")
-	req = withURLParam(req, "runtimeId", runtimeID)
-	w := testutil.Call(t, testHandler.ClaimTaskByRuntime, req).Want(http.StatusOK)
-
-	var resp struct {
-		Task *struct {
-			Repos            []RepoData            `json:"repos"`
-			ProjectID        string                `json:"project_id"`
-			ProjectResources []ProjectResourceData `json:"project_resources"`
-		} `json:"task"`
-	}
-	w.JSON(&resp)
-	if resp.Task == nil {
-		t.Fatal("expected task in response")
-	}
-	if resp.Task.ProjectID != projectID {
-		t.Errorf("project_id = %q, want %q", resp.Task.ProjectID, projectID)
-	}
-	if len(resp.Task.Repos) != 1 || resp.Task.Repos[0].URL != projectRepoURL {
-		t.Fatalf("expected resp.Repos to contain only the project repo URL, got %+v", resp.Task.Repos)
-	}
-	if resp.Task.Repos[0].Ref != projectRepoRef {
-		t.Fatalf("project repo ref = %q, want %q", resp.Task.Repos[0].Ref, projectRepoRef)
-	}
-	for _, r := range resp.Task.Repos {
-		if strings.HasSuffix(r.URL, "workspace-repo-a") || strings.HasSuffix(r.URL, "workspace-repo-b") {
-			t.Errorf("workspace repo %q leaked into resp.Repos despite project override", r.URL)
-		}
-	}
-	if len(resp.Task.ProjectResources) != 1 {
-		t.Errorf("expected 1 project_resources entry, got %d", len(resp.Task.ProjectResources))
-	}
-}
-
-// When an issue belongs to a project that has a description, the claim handler
-// must surface that description as project_description so the daemon can inject
-// it into the brief. This is the handler-side boundary the execenv tests can't
-// cover: if this assignment regresses, the description silently stops reaching
-// the agent while the execenv rendering tests still pass.
-func TestClaimTask_ProjectDescriptionInjected(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-
-	const projectDescription = "Always write copy in British English. Ship behind a feature flag."
-	projectID := dbfx.Project(t, "Claim project description", testutil.Cols{
-		"description": projectDescription,
-	})
-
-	var agentID, runtimeID string
-	dbfx.QueryRow(t,
-		`SELECT id, runtime_id FROM agent WHERE workspace_id = $1 LIMIT 1`,
-		testWorkspaceID,
-	).Scan(&agentID, &runtimeID)
-
-	issueID := dbfx.Issue(t, "project description", testutil.Cols{
-		"project_id": projectID,
-		"priority":   "medium",
-		"number":     88002,
-	})
-
-	dbfx.Task(t, agentID, testutil.Cols{
-		"runtime_id": runtimeID,
-		"issue_id":   issueID,
-	})
-
-	req := newDaemonTokenRequest("POST", "/api/daemon/runtimes/"+runtimeID+"/claim", nil, testWorkspaceID, "test-claim-project-desc")
-	req = withURLParam(req, "runtimeId", runtimeID)
-	w := testutil.Call(t, testHandler.ClaimTaskByRuntime, req).Want(http.StatusOK)
-
-	var resp struct {
-		Task *struct {
-			ProjectID          string `json:"project_id"`
-			ProjectDescription string `json:"project_description"`
-		} `json:"task"`
-	}
-	w.JSON(&resp)
-	if resp.Task == nil {
-		t.Fatal("expected task in response")
-	}
-	if resp.Task.ProjectID != projectID {
-		t.Errorf("project_id = %q, want %q", resp.Task.ProjectID, projectID)
-	}
-	if resp.Task.ProjectDescription != projectDescription {
-		t.Errorf("project_description = %q, want %q", resp.Task.ProjectDescription, projectDescription)
-	}
-}
-
-// The quick-create path resolves its project from the task context JSONB
-// (not an issue row), so its project_description wiring is a separate branch
-// in the claim handler and needs its own boundary assertion.
-func TestClaimTask_QuickCreateInjectsProjectDescription(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-
-	ctx := context.Background()
-	agentID, runtimeID, daemonID := createRuntimeGuardAgent(t, ctx)
-
-	const projectDescription = "Use the design system tokens; never hardcode colors."
-	projectID := dbfx.Project(t, "Quick-create project description", testutil.Cols{
-		"description": projectDescription,
-	})
-
-	quickContext, _ := json.Marshal(map[string]any{
-		"type":         "quick_create",
-		"prompt":       "create a follow-up issue",
-		"requester_id": testUserID,
-		"workspace_id": testWorkspaceID,
-		"project_id":   projectID,
-	})
-	dbfx.Exec(t, `
-		INSERT INTO agent_task_queue (agent_id, runtime_id, status, priority, context)
-		VALUES ($1, $2, 'queued', 2, $3)
-	`, agentID, runtimeID, quickContext)
-
-	task := claimTaskForRuntimeGuard(t, runtimeID, daemonID)
-	if task.ProjectID != projectID {
-		t.Errorf("quick-create project_id = %q, want %q", task.ProjectID, projectID)
-	}
-	if task.ProjectDescription != projectDescription {
-		t.Errorf("quick-create project_description = %q, want %q", task.ProjectDescription, projectDescription)
-	}
-}
-
-// When the issue's project has no github_repo resources, the claim handler
-// must fall back to workspace repos (the pre-override behavior).
-func TestClaimTask_ProjectWithoutRepos_FallsBackToWorkspaceRepos(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-
-	setHandlerTestWorkspaceRepos(t, []map[string]string{
-		{"url": "https://github.com/example/workspace-fallback", "description": "ws"},
-	})
-
-	projectID := dbfx.Project(t, "Claim project without repos")
-
-	var agentID, runtimeID string
-	dbfx.QueryRow(t,
-		`SELECT id, runtime_id FROM agent WHERE workspace_id = $1 LIMIT 1`,
-		testWorkspaceID,
-	).Scan(&agentID, &runtimeID)
-
-	issueID := dbfx.Issue(t, "no project repos", testutil.Cols{
-		"project_id": projectID,
-		"priority":   "medium",
-		"number":     88002,
-	})
-
-	dbfx.Task(t, agentID, testutil.Cols{
-		"runtime_id": runtimeID,
-		"issue_id":   issueID,
-	})
-
-	req := newDaemonTokenRequest("POST", "/api/daemon/runtimes/"+runtimeID+"/claim", nil, testWorkspaceID, "test-claim-fallback")
-	req = withURLParam(req, "runtimeId", runtimeID)
-	w := testutil.Call(t, testHandler.ClaimTaskByRuntime, req).Want(http.StatusOK)
-
-	var resp struct {
-		Task *struct {
-			Repos []RepoData `json:"repos"`
-		} `json:"task"`
-	}
-	w.JSON(&resp)
-	if resp.Task == nil {
-		t.Fatal("expected task in response")
-	}
-	if len(resp.Task.Repos) != 1 || !strings.HasSuffix(resp.Task.Repos[0].URL, "workspace-fallback") {
-		t.Fatalf("expected workspace fallback repo, got %+v", resp.Task.Repos)
 	}
 }
 
@@ -2601,8 +2404,6 @@ type claimRuntimeGuardTask struct {
 	QuickCreateAttachmentIDs      []string `json:"quick_create_attachment_ids"`
 	QuickCreatePriority           string   `json:"quick_create_priority"`
 	QuickCreateDueDate            string   `json:"quick_create_due_date"`
-	ProjectID                     string   `json:"project_id"`
-	ProjectDescription            string   `json:"project_description"`
 }
 
 func claimTaskForRuntimeGuard(t *testing.T, runtimeID, daemonID string) *claimRuntimeGuardTask {

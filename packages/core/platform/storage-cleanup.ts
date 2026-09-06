@@ -22,7 +22,6 @@ const WORKSPACE_SCOPED_KEYS = [
   "enact_issues_scope",
   "enact_my_issues_view",
   "enact:chat:selectedAgentId",
-  "enact:chat:selectedProjectId",
   "enact:chat:activeSessionId",
   "enact:chat:expanded",
   "enact_navigation",

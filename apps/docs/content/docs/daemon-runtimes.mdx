@@ -12,7 +12,11 @@ Enact records and coordinates the work; connected computers execute it. The **da
 - The **daemon** is the Enact background process running on one computer. It connects to the server, discovers local tools, claims tasks, and reports results back.
 - A **runtime** represents one concrete execution environment available to a workspace. It corresponds to one computer plus one AI coding tool — or one custom runtime profile — on that computer.
 
+- A **machine** is the computer itself. It belongs to the person running the daemon, not to any workspace.
+
 For example, a computer has both Claude Code and Codex installed and is connected to two workspaces. The daemon registers Claude Code and Codex runtimes for each workspace. Restarting the daemon updates the existing records; it does not keep creating new runtimes for the same combination.
+
+Those four runtime records all point at the **same machine**. Anything true of the computer itself — its name, the CLI version it reports, whether it is online — is stored once, so renaming it once shows the new name in every workspace. Anything that belongs to a workspace does not travel with it: private/public visibility is still set per workspace, so sharing a machine with one team never shares it with another.
 
 ## Execution location and data boundaries
 
@@ -95,6 +99,23 @@ Only workspace owners and admins can create, edit, or delete custom runtime prof
 4. Fill in the name, command, and fixed arguments, then save.
 
 The profile is shared across the workspace. Each connected computer looks up the command on its own; only computers that can resolve it on `PATH` register the corresponding runtime. Creating a profile does not install the command, and it does not sign other members in to the tool.
+
+### Your profiles follow you
+
+A custom runtime profile describes a command **on your own computer**, resolved by your daemon on your own `PATH`. It belongs to you, not to a workspace.
+
+So **once you have configured it, it is there in every workspace you join, whatever role you hold**. Nothing to retype, nobody to ask. Your daemon offers it in every workspace you belong to.
+
+Nobody else sees your profile unless it is published into a workspace you share.
+
+### Publishing one to a team
+
+When a team standardises on an in-house wrapper and wants **every member's** computer to register it, publish the profile into the workspace:
+
+- **Publishing** requires being both the profile's owner and an owner or admin of the target workspace. Nobody can pull your profile into their own workspace; you have to hand it over. After that each member's daemon looks the command up on their own `PATH` — it registers only where it resolves, and everyone still runs on their own machine.
+- **Editing** stays open to the owners and admins of a workspace while theirs is the only one using the profile. Once it reaches a second workspace, only the profile's owner may change it, because an edit is felt by everyone running on it.
+- **Disabling** has two switches. Each workspace has its own, which affects only that workspace and applies to the owner there too; the owner has a global one that retires the definition everywhere. A daemon registers the runtime only when both are on.
+- **Removing** a profile from a workspace withdraws it from that workspace only. **An admin cannot delete someone else's definition** — that would destroy a colleague's tool configuration in every other workspace they belong to. Only the owner deletes it, and only once no workspace publishes it any more.
 
 The command field takes an executable and arguments, not a shell script. Plain arguments, quotes, and backslash escapes work; pipes, redirects, `&&`, `;`, backticks, and environment variable expansion do not. When you need those behaviors, put them in a wrapper script and use that script as the command.
 

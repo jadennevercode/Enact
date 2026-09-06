@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@enact/core/i18n/react";
-import type { Agent, ChatSession, Project } from "@enact/core/types";
+import type { Agent, ChatSession } from "@enact/core/types";
 import enChat from "../../locales/en/chat.json";
 import enIssues from "../../locales/en/issues.json";
 
@@ -65,7 +65,6 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 import { ChatThreadList } from "./chat-thread-list";
-import { useChatSegmentCollapseStore } from "@enact/core/chat";
 
 const TEST_RESOURCES = { en: { chat: enChat, issues: enIssues } };
 
@@ -96,27 +95,6 @@ const sessions: ChatSession[] = [
   makeSession({ id: "s3", updated_at: "2026-07-08T01:00:00Z" }),
 ];
 
-function makeProject(id: string, title: string): Project {
-  return {
-    id,
-    workspace_id: "ws-1",
-    title,
-    description: null,
-    icon: null,
-    status: "in_progress",
-    priority: "medium",
-    lead_type: null,
-    lead_id: null,
-    start_date: null,
-    due_date: null,
-    created_at: new Date(0).toISOString(),
-    updated_at: new Date(0).toISOString(),
-    issue_count: 0,
-    done_count: 0,
-    resource_count: 0,
-  };
-}
-
 function renderList(
   activeSessionId: string | null,
   {
@@ -124,7 +102,6 @@ function renderList(
     onSelectSession = vi.fn(),
     renderedSessions = sessions,
     renderedAgents = [agent],
-    renderedProjects = [] as Project[],
   } = {},
 ) {
   render(
@@ -132,7 +109,6 @@ function renderList(
       <ChatThreadList
         sessions={renderedSessions}
         agents={renderedAgents}
-        projects={renderedProjects}
         activeSessionId={activeSessionId}
         onSelectSession={onSelectSession}
         onArchive={onArchive}
@@ -331,124 +307,5 @@ describe("ChatThreadList row keyboard semantics", () => {
     );
 
     expect(onSelectSession).not.toHaveBeenCalled();
-  });
-});
-
-// Grouping/ordering rules themselves live in packages/core/chat/segments.test.ts.
-// This suite covers the wiring: headers render, folding hides rows, the fold
-// state comes from the shared store, and the archived view opts out.
-describe("ChatThreadList project segments", () => {
-  const alpha = makeProject("p-alpha", "Alpha Project");
-  const beta = makeProject("p-beta", "Beta Project");
-
-  const segmented: ChatSession[] = [
-    makeSession({ id: "s1", project_id: alpha.id, updated_at: "2026-07-08T04:00:00Z" }),
-    makeSession({ id: "s2", project_id: beta.id, updated_at: "2026-07-08T03:00:00Z" }),
-    makeSession({ id: "s3", project_id: alpha.id, updated_at: "2026-07-08T02:00:00Z" }),
-    makeSession({ id: "s4", updated_at: "2026-07-08T01:00:00Z" }),
-  ];
-
-  const header = (name: RegExp) => screen.getByRole("button", { name });
-
-  beforeEach(() => {
-    useChatSegmentCollapseStore.setState({ collapsedSegmentIds: [] });
-  });
-
-  it("renders one expanded header per project, with its chat count", () => {
-    renderList(null, { renderedSessions: segmented, renderedProjects: [alpha, beta] });
-
-    expect(header(/Alpha Project/)).toHaveAttribute("aria-expanded", "true");
-    expect(header(/Alpha Project/)).toHaveTextContent("2");
-    expect(header(/Beta Project/)).toHaveTextContent("1");
-    expect(header(new RegExp(enChat.list.no_project_segment))).toHaveTextContent("1");
-  });
-
-  it("puts each chat inside its own project's group", () => {
-    renderList(null, { renderedSessions: segmented, renderedProjects: [alpha, beta] });
-
-    const alphaGroup = screen.getByRole("group", { name: "Alpha Project" });
-    expect(alphaGroup).toHaveTextContent("Chat s1");
-    expect(alphaGroup).toHaveTextContent("Chat s3");
-    expect(alphaGroup).not.toHaveTextContent("Chat s2");
-
-    const noProject = screen.getByRole("group", { name: enChat.list.no_project_segment });
-    expect(noProject).toHaveTextContent("Chat s4");
-  });
-
-  it("lifts pinned chats out of their project into a leading Pinned segment", () => {
-    renderList(null, {
-      renderedSessions: [
-        makeSession({ id: "p1", project_id: alpha.id, pinned: true }),
-        makeSession({ id: "s1", project_id: alpha.id }),
-      ],
-      renderedProjects: [alpha],
-    });
-
-    const pinned = screen.getByRole("group", { name: enChat.list.pinned_segment });
-    expect(pinned).toHaveTextContent("Chat p1");
-    expect(screen.getByRole("group", { name: "Alpha Project" })).not.toHaveTextContent(
-      "Chat p1",
-    );
-  });
-
-  it("folds a segment away on click and restores it on a second click", () => {
-    renderList(null, { renderedSessions: segmented, renderedProjects: [alpha, beta] });
-
-    fireEvent.click(header(/Alpha Project/));
-
-    expect(header(/Alpha Project/)).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Chat s1")).not.toBeInTheDocument();
-    expect(screen.queryByText("Chat s3")).not.toBeInTheDocument();
-    // Folding one segment must not touch its neighbours.
-    expect(screen.getByText("Chat s2")).toBeInTheDocument();
-
-    fireEvent.click(header(/Alpha Project/));
-    expect(screen.getByText("Chat s1")).toBeInTheDocument();
-  });
-
-  it("reads the fold state from the shared store, so it survives a remount", () => {
-    useChatSegmentCollapseStore.setState({ collapsedSegmentIds: [alpha.id] });
-    renderList(null, { renderedSessions: segmented, renderedProjects: [alpha, beta] });
-
-    expect(header(/Alpha Project/)).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Chat s1")).not.toBeInTheDocument();
-  });
-
-  it("surfaces unread replies hidden inside a folded segment", () => {
-    useChatSegmentCollapseStore.setState({ collapsedSegmentIds: [alpha.id] });
-    renderList(null, {
-      renderedSessions: [
-        makeSession({ id: "s1", project_id: alpha.id, unread_count: 2, has_unread: true }),
-        makeSession({ id: "s3", project_id: alpha.id, unread_count: 3, has_unread: true }),
-      ],
-      renderedProjects: [alpha],
-    });
-
-    const badge = screen.getByLabelText(enChat.session_history.row_subtitle.new_reply);
-    expect(badge).toHaveTextContent("5");
-  });
-
-  it("stays a flat list when no chat has project context", () => {
-    renderList(null, { renderedProjects: [alpha, beta] });
-
-    expect(screen.queryByRole("group")).not.toBeInTheDocument();
-    expect(screen.getByText("Chat s1")).toBeInTheDocument();
-  });
-
-  it("keeps the archived view flat", () => {
-    renderList(null, {
-      renderedSessions: [
-        makeSession({ id: "s1", project_id: alpha.id }),
-        makeSession({ id: "arch", project_id: beta.id, status: "archived" }),
-      ],
-      renderedProjects: [alpha, beta],
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: new RegExp(enChat.list.archived_title) }),
-    );
-
-    expect(screen.getByText("Chat arch")).toBeInTheDocument();
-    expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
 });

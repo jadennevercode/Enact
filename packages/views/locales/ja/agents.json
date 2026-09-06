@@ -258,7 +258,8 @@
     "discard_dialog_title": "保存していない変更を破棄しますか？",
     "discard_dialog_description": "このタブに保存していない変更があります。今移動すると変更は破棄されます。",
     "discard_keep": "編集を続ける",
-    "discard_confirm": "変更を破棄"
+    "discard_confirm": "変更を破棄",
+    "knowledge": "ナレッジ"
   },
   "create_dialog": {
     "title_create": "エージェントを作成",
@@ -298,7 +299,7 @@
     "cancel": "キャンセル",
     "create_failed_toast": "エージェントを作成できませんでした",
     "skill_attach_failed_toast": "エージェントは作成されましたが、スキルを追加できませんでした: {{error}}",
-    "squad_join_failed_toast": "エージェント \"{{name}}\" は作成されましたが、スクワッドに参加できませんでした: {{error}}。メンバーから手動で追加できます。",
+    "squad_join_failed_toast": "エージェント \"{{name}}\" は作成されましたが、エージェントファミリーに参加できませんでした: {{error}}。メンバーから手動で追加できます。",
     "instructions": {
       "label": "指示",
       "placeholder_blank": "クリックして指示を作成...",
@@ -525,12 +526,12 @@
       "dialog_empty": "利用可能なオントロジーはすべて割り当て済みです。",
       "dialog_cancel": "キャンセル",
       "version": "バージョン {{version}}",
-    "adding": "追加中…",
-    "status_enabled": "有効",
-    "status_paused": "一時停止",
-    "remove_confirm_title": "オントロジーを削除しますか？",
-    "remove_confirm_description": "このエージェントから {{name}} を削除しますか？CapHub の共有オントロジーと他のエージェントへの割り当てには影響しません。",
-    "remove_confirm_action": "オントロジーを削除"
+      "adding": "追加中…",
+      "status_enabled": "有効",
+      "status_paused": "一時停止",
+      "remove_confirm_title": "オントロジーを削除しますか？",
+      "remove_confirm_description": "このエージェントから {{name}} を削除しますか？CapHub の共有オントロジーと他のエージェントへの割り当てには影響しません。",
+      "remove_confirm_action": "オントロジーを削除"
     },
     "skills": {
       "assigned_title": "エージェントに割り当て済み",
@@ -631,6 +632,23 @@
       "started_prefix": "{{when}} に開始",
       "dispatched_prefix": "{{when}} にディスパッチ",
       "queued_prefix": "{{when}} に待機開始"
+    },
+    "knowledge": {
+      "title": "ナレッジベース",
+      "description": "このエージェントがコンテキストとして読む文書のリポジトリ。ブリーフには全文書の索引が載り、作業に必要なものだけを開きます。先に設定 → リソースでリポジトリを追加してください。",
+      "add_button": "紐付ける",
+      "add_title": "ナレッジベースを紐付ける",
+      "add_description": "このワークスペースにあり、まだこのエージェントが読んでいないナレッジベース。",
+      "attach_button": "紐付ける",
+      "empty": "このエージェントはナレッジベースを読んでいません。",
+      "none_available": "紐付けられるナレッジベースがありません。設定 → リソースで追加してください。",
+      "loading": "ナレッジベースを読み込んでいます…",
+      "remove_tooltip": "このエージェントから外す",
+      "delivery_commit": "直接コミット",
+      "delivery_pull_request": "プルリクエスト",
+      "toast_attached": "ナレッジベースを紐付けました",
+      "toast_removed": "紐付けを解除しました",
+      "toast_failed": "ナレッジベースを更新できませんでした"
     }
   },
   "char_counter": {
@@ -816,7 +834,7 @@
   },
   "creation_studio": {
     "title": "エージェントを作成",
-    "squad_title": "このスクワッド用のエージェントを作成",
+    "squad_title": "このエージェントファミリー用のエージェントを作成",
     "duplicate_title": "{{name}} を複製",
     "back": "戻る",
     "eyebrow": "エージェント作成",
@@ -833,13 +851,24 @@
         "description": "すべての項目を自分で設定します。エージェントの動作が明確に決まっている場合に最適です。"
       },
       "template": {
-        "title": "テンプレートを使用",
-        "description": "整理された指示とスキルを基に、ワークスペースに合わせて詳細を調整します。"
+        "title": "テンプレートから",
+        "description": "公開されたエージェントテンプレートをインストールして調整します。指示、スキル、MCP サーバーが設定済みで届きます。"
       },
       "ai": {
         "title": "AI で作成",
         "description": "期待する成果を説明すると、Agent Builder が重要な質問を行い、下書きをリアルタイムで作成します。"
+      },
+      "retrospect": {
+        "title": "振り返りエージェント",
+        "description": "Enact に組み込まれた振り返り役です。完了した仕事を読み、スキル・エージェント・エージェントファミリーの変更を提案し、チームが学んだことを書き残します。"
       }
+    },
+    "retrospect": {
+      "dialog_title": "振り返りエージェントをどこで実行しますか？",
+      "dialog_description": "振り返りに使うランタイムを選んでください。設定後は、エージェントが関わったタスクが完了するたびに、その下に振り返りのタスクが自動で作成されます。設定の変更は必ずコメントとして提案し、誰かの同意を待ちます。",
+      "cancel": "キャンセル",
+      "confirm": "エージェントを設定",
+      "failed": "振り返りエージェントを設定できませんでした。"
     },
     "sections": {
       "identity": "基本情報",
@@ -887,7 +916,7 @@
       "empty_description": "役割、ワークフロー、出力、制約を説明してください。右側に最初の下書きが表示されます。",
       "prompt_review": "フロントエンドの Pull Request をレビュー",
       "prompt_research": "競合を調査して結果を要約",
-      "prompt_assistant": "チームのプロジェクト計画と文章作成を支援",
+      "prompt_assistant": "チームの計画づくりと仕様の執筆を手伝ってください",
       "thinking": "下書きを更新中…",
       "placeholder": "必要なエージェントを説明…",
       "send": "メッセージを送信"
@@ -897,7 +926,7 @@
     "duplicate_env_notice": "指示、スキル、コマンド引数がコピーされます。環境変数、MCP サーバー、マシンローカルのランタイム設定はコピーされません。",
     "duplicate_runtime_reset_notice": "元のランタイムが利用できないため、このコピーは別のランタイムで実行されます。モデル・思考レベル・速度は選択したランタイムでのみ有効なため、クリアされました。",
     "create_and_open": "作成して開く",
-    "create_and_add": "作成してスクワッドに追加",
+    "create_and_add": "作成してエージェントファミリーに追加",
     "creating": "エージェントを作成中…",
     "create_failed": "エージェントを作成できませんでした。",
     "name_conflict": "同じ名前のエージェントがすでに存在します。",

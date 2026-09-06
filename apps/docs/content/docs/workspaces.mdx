@@ -5,18 +5,23 @@ description: A workspace is the boundary that keeps teams, work, and agent confi
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-A workspace is Enact's top-level boundary. Members, issues, projects, agents, skills, and task history all belong to one workspace and are fully isolated from every other.
+A workspace is Enact's top-level boundary. Members, issues, agents, skills, resources, and task history all belong to one workspace and are fully isolated from every other.
+
+A workspace *is* the project. There is no grouping layer between it and an issue: the team, the work, the code the agents run against, and the files they produce all sit at this one level. A second body of work with a different team, a different repository set, or a different context gets a second workspace.
 
 ## What a workspace contains
 
 | Category | Contents |
 |---|---|
-| **Work** | Issues, projects, comments, attachments, task history |
+| **Work** | Issues, comments, attachments, artifacts, task history |
 | **Team** | Members, roles, invitations |
 | **Agents** | Agent configuration, skills, runtimes, automations |
+| **Code** | Linked GitHub repositories and local directories |
 | **Shared settings** | Context, labels, custom properties, integrations |
 
 **Context** is provided to every agent in the workspace — the place for team background, product conventions, and long-lived requirements. One-off task requirements belong in the corresponding issue.
+
+**Resources** are provided the same way: the repositories and local directories every run works in. See [Resources](/resources).
 
 ## Create a workspace
 
@@ -53,5 +58,7 @@ Only an `owner` can delete a workspace. Deletion permanently removes all of its 
 ## Next steps
 
 - [Members and roles](/members-roles) — invite members and manage roles.
+- [Resources](/resources) — the repositories and directories agents run against.
+- [Artifacts](/artifacts) — the files runs produce, kept on the issue or chat that produced them.
 - [Issues](/issues) — the basic unit of work in a workspace.
 - [Agents](/agents) — agent identity and configuration.

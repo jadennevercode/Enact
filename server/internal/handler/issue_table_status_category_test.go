@@ -18,18 +18,21 @@ import (
 // in its category's column, count toward it, and be reachable through the
 // paginated row query — the exact path where the first cut of the UI dropped
 // every custom-status card on the floor.
-func seedStatusCategoryFixture(t *testing.T) (projectID, customKey string) {
+// The fixture's issues are isolated from everything else in the shared
+// workspace by a label of their own — the table query filters on it, so the
+// group counts below are about these four rows and nothing else.
+func seedStatusCategoryFixture(t *testing.T) (labelID, customKey string) {
 	t.Helper()
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
 	customKey = fmt.Sprintf("qa_%d", suffix)
 
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
+		INSERT INTO issue_label (workspace_id, name, color)
+		VALUES ($1, $2, '#ef4444')
 		RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Status category %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
+	`, testWorkspaceID, fmt.Sprintf("Status category %d", suffix)).Scan(&labelID); err != nil {
+		t.Fatalf("create label: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
 		INSERT INTO issue_status (workspace_id, key, name, description, category, color, position)
@@ -38,8 +41,9 @@ func seedStatusCategoryFixture(t *testing.T) (projectID, customKey string) {
 		t.Fatalf("create custom status: %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		_, _ = testPool.Exec(context.Background(),
+			`DELETE FROM issue WHERE id IN (SELECT issue_id FROM issue_to_label WHERE label_id = $1)`, labelID)
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue_label WHERE id = $1`, labelID)
 		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue_status WHERE workspace_id = $1 AND key = $2`, testWorkspaceID, customKey)
 	})
 
@@ -57,32 +61,36 @@ func seedStatusCategoryFixture(t *testing.T) (projectID, customKey string) {
 	}
 	// Two on the custom status, one on the built-in it behaves as, one elsewhere.
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id)
-		VALUES
-			($1, 'cat-a', $2,           'none', 'member', $3, 1, $4,     $5),
-			($1, 'cat-b', $2,           'none', 'member', $3, 2, $4 + 1, $5),
-			($1, 'cat-c', 'in_review',  'none', 'member', $3, 3, $4 + 2, $5),
-			($1, 'cat-d', 'todo',       'none', 'member', $3, 4, $4 + 3, $5)
-	`, testWorkspaceID, customKey, testUserID, firstNumber, projectID); err != nil {
+		WITH seeded AS (
+			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number)
+			VALUES
+				($1, 'cat-a', $2,           'none', 'member', $3, 1, $4),
+				($1, 'cat-b', $2,           'none', 'member', $3, 2, $4 + 1),
+				($1, 'cat-c', 'in_review',  'none', 'member', $3, 3, $4 + 2),
+				($1, 'cat-d', 'todo',       'none', 'member', $3, 4, $4 + 3)
+			RETURNING id
+		)
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $5 FROM seeded
+	`, testWorkspaceID, customKey, testUserID, firstNumber, labelID); err != nil {
 		t.Fatalf("seed issues: %v", err)
 	}
-	return projectID, customKey
+	return labelID, customKey
 }
 
-func statusCategoryQuery(projectID string) issueTableQuerySpec {
+func statusCategoryQuery(labelID string) issueTableQuerySpec {
 	return issueTableQuerySpec{
-		Scope:   issueTableScope{Kind: "project", ProjectID: projectID},
-		Filters: issueTableFiltersRequest{},
+		Scope:   issueTableScope{Kind: "workspace"},
+		Filters: issueTableFiltersRequest{LabelIDs: []string{labelID}},
 		Sort:    issueTableSortRequest{Field: "title", Direction: "asc"},
 	}
 }
 
 func TestIssueTableStatusCategoryGroupsFoldCustomStatuses(t *testing.T) {
-	projectID, _ := seedStatusCategoryFixture(t)
+	labelID, _ := seedStatusCategoryFixture(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{Kind: "status_category"},
 		Page:  issueTablePageRequest{Limit: 100},
 	}))
@@ -114,12 +122,12 @@ func TestIssueTableStatusCategoryGroupsFoldCustomStatuses(t *testing.T) {
 }
 
 func TestIssueTableStatusCategoryRowsReturnCustomStatusIssues(t *testing.T) {
-	projectID, customKey := seedStatusCategoryFixture(t)
+	labelID, customKey := seedStatusCategoryFixture(t)
 
 	groupKey := statusCategoryGroupKey("in_review")
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableRows(w, newRequest(http.MethodPost, "/api/issues/table/rows", issueTableRowsRequest{
-		Query:    statusCategoryQuery(projectID),
+		Query:    statusCategoryQuery(labelID),
 		Group:    issueTableGroupSpec{Kind: "status_category"},
 		GroupKey: &groupKey,
 		Page:     issueTablePageRequest{Limit: 50},
@@ -157,14 +165,14 @@ func TestIssueTableStatusCategoryRowsReturnCustomStatusIssues(t *testing.T) {
 }
 
 func TestIssueTableCompoundStatusCategoryCellsFoldCustomStatuses(t *testing.T) {
-	projectID, customKey := seedStatusCategoryFixture(t)
+	labelID, customKey := seedStatusCategoryFixture(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{
 			Kind:      "compound",
-			Primary:   "project",
+			Primary:   "parent",
 			Secondary: "status_category",
 		},
 		Page: issueTablePageRequest{Limit: 100},
@@ -177,7 +185,7 @@ func TestIssueTableCompoundStatusCategoryCellsFoldCustomStatuses(t *testing.T) {
 		t.Fatalf("decode groups: %v", err)
 	}
 	if len(groups.Groups) != 1 {
-		t.Fatalf("groups = %d, want 1 project lane", len(groups.Groups))
+		t.Fatalf("groups = %d, want 1 parent lane", len(groups.Groups))
 	}
 
 	cells := map[string]int64{}
@@ -197,10 +205,10 @@ func TestIssueTableCompoundStatusCategoryCellsFoldCustomStatuses(t *testing.T) {
 	cellKey := compoundCellGroupKey(groups.Groups[0].Key, "in_review", true)
 	rowsRecorder := httptest.NewRecorder()
 	testHandler.ListIssueTableRows(rowsRecorder, newRequest(http.MethodPost, "/api/issues/table/rows", issueTableRowsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{
 			Kind:      "compound",
-			Primary:   "project",
+			Primary:   "parent",
 			Secondary: "status_category",
 		},
 		GroupKey: &cellKey,
@@ -223,15 +231,16 @@ func TestIssueTableCompoundStatusCategoryCellsFoldCustomStatuses(t *testing.T) {
 func TestIssueTableStatusCategoryMatchesStatusWithoutCustomStatuses(t *testing.T) {
 	ctx := context.Background()
 	suffix := time.Now().UnixNano()
-	var projectID string
+	var labelID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, fmt.Sprintf("Status category parity %d", suffix)).Scan(&projectID); err != nil {
-		t.Fatalf("create project: %v", err)
+		INSERT INTO issue_label (workspace_id, name, color) VALUES ($1, $2, '#22c55e') RETURNING id
+	`, testWorkspaceID, fmt.Sprintf("Status category parity %d", suffix)).Scan(&labelID); err != nil {
+		t.Fatalf("create label: %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE project_id = $1`, projectID)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id = $1`, projectID)
+		_, _ = testPool.Exec(context.Background(),
+			`DELETE FROM issue WHERE id IN (SELECT issue_id FROM issue_to_label WHERE label_id = $1)`, labelID)
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue_label WHERE id = $1`, labelID)
 	})
 	var firstNumber int
 	if err := testPool.QueryRow(ctx, `
@@ -243,10 +252,14 @@ func TestIssueTableStatusCategoryMatchesStatusWithoutCustomStatuses(t *testing.T
 		t.Fatalf("reserve issue numbers: %v", err)
 	}
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number, project_id)
-		VALUES ($1, 'parity-a', 'todo', 'none', 'member', $2, 1, $3, $4),
-		       ($1, 'parity-b', 'done', 'none', 'member', $2, 2, $3 + 1, $4)
-	`, testWorkspaceID, testUserID, firstNumber, projectID); err != nil {
+		WITH seeded AS (
+			INSERT INTO issue (workspace_id, title, status, priority, creator_type, creator_id, position, number)
+			VALUES ($1, 'parity-a', 'todo', 'none', 'member', $2, 1, $3),
+			       ($1, 'parity-b', 'done', 'none', 'member', $2, 2, $3 + 1)
+			RETURNING id
+		)
+		INSERT INTO issue_to_label (issue_id, label_id) SELECT id, $4 FROM seeded
+	`, testWorkspaceID, testUserID, firstNumber, labelID); err != nil {
 		t.Fatalf("seed issues: %v", err)
 	}
 
@@ -254,7 +267,7 @@ func TestIssueTableStatusCategoryMatchesStatusWithoutCustomStatuses(t *testing.T
 		t.Helper()
 		w := httptest.NewRecorder()
 		testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-			Query: statusCategoryQuery(projectID),
+			Query: statusCategoryQuery(labelID),
 			Group: issueTableGroupSpec{Kind: kind},
 			Page:  issueTablePageRequest{Limit: 100},
 		}))
@@ -335,12 +348,12 @@ func withCountingCatalog(t *testing.T) *countingCatalogQuerier {
 // cut ran ExpandCategories AND CustomKeyCategories per resolve — two reads
 // where one suffices, i.e. 14 catalog reads behind one board load instead of 7.
 func TestIssueTableStatusCategoryReadsCatalogOncePerRequest(t *testing.T) {
-	projectID, _ := seedStatusCategoryFixture(t)
+	labelID, _ := seedStatusCategoryFixture(t)
 	counter := withCountingCatalog(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{Kind: "status_category"},
 		Page:  issueTablePageRequest{Limit: 100},
 	}))
@@ -361,15 +374,15 @@ func TestIssueTableStatusCategoryReadsCatalogOncePerRequest(t *testing.T) {
 }
 
 func TestIssueTableCompoundStatusCategoryReadsCatalogOncePerRequest(t *testing.T) {
-	projectID, _ := seedStatusCategoryFixture(t)
+	labelID, _ := seedStatusCategoryFixture(t)
 	counter := withCountingCatalog(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{
 			Kind:      "compound",
-			Primary:   "project",
+			Primary:   "parent",
 			Secondary: "status_category",
 		},
 		Page: issueTablePageRequest{Limit: 100},
@@ -389,12 +402,12 @@ func TestIssueTableCompoundStatusCategoryReadsCatalogOncePerRequest(t *testing.T
 // category contract, so a default board pays nothing for this feature. This
 // pins the SERVER half — plain `status` grouping reads no catalog at all.
 func TestIssueTableStatusGroupingReadsNoCatalog(t *testing.T) {
-	projectID, _ := seedStatusCategoryFixture(t)
+	labelID, _ := seedStatusCategoryFixture(t)
 	counter := withCountingCatalog(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{Kind: "status"},
 		Page:  issueTablePageRequest{Limit: 100},
 	}))
@@ -413,11 +426,11 @@ func TestIssueTableStatusGroupingReadsNoCatalog(t *testing.T) {
 // which failed the WHOLE grouped response: one custom status made "group by
 // status" 500 for the entire workspace.
 func TestIssueTableStatusGroupingCarriesCustomStatusGroups(t *testing.T) {
-	projectID, customKey := seedStatusCategoryFixture(t)
+	labelID, customKey := seedStatusCategoryFixture(t)
 
 	w := httptest.NewRecorder()
 	testHandler.ListIssueTableGroups(w, newRequest(http.MethodPost, "/api/issues/table/groups", issueTableGroupsRequest{
-		Query: statusCategoryQuery(projectID),
+		Query: statusCategoryQuery(labelID),
 		Group: issueTableGroupSpec{Kind: "status"},
 		Page:  issueTablePageRequest{Limit: 100},
 	}))
@@ -444,7 +457,7 @@ func TestIssueTableStatusGroupingCarriesCustomStatusGroups(t *testing.T) {
 	groupKey := "status:" + customKey
 	rowsRecorder := httptest.NewRecorder()
 	testHandler.ListIssueTableRows(rowsRecorder, newRequest(http.MethodPost, "/api/issues/table/rows", issueTableRowsRequest{
-		Query:    statusCategoryQuery(projectID),
+		Query:    statusCategoryQuery(labelID),
 		Group:    issueTableGroupSpec{Kind: "status"},
 		GroupKey: &groupKey,
 		Page:     issueTablePageRequest{Limit: 50},
@@ -466,9 +479,9 @@ func TestIssueTableStatusGroupingCarriesCustomStatusGroups(t *testing.T) {
 // Validating that list against the 7 built-ins 400s the entire request, so the
 // board, list and table all error out instead of filtering.
 func TestIssueTableFiltersAcceptCustomStatusKeys(t *testing.T) {
-	projectID, customKey := seedStatusCategoryFixture(t)
+	labelID, customKey := seedStatusCategoryFixture(t)
 
-	query := statusCategoryQuery(projectID)
+	query := statusCategoryQuery(labelID)
 	query.Filters = issueTableFiltersRequest{Statuses: []string{customKey}}
 
 	w := httptest.NewRecorder()

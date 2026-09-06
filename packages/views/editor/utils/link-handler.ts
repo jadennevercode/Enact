@@ -23,7 +23,6 @@ import type { LinkClickIntent } from "../../navigation/click-intent";
 const WORKSPACE_ROUTE_SEGMENTS = new Set([
   "usage",
   "issues",
-  "projects",
   "autopilots",
   "agents",
   "chat",
@@ -32,6 +31,7 @@ const WORKSPACE_ROUTE_SEGMENTS = new Set([
   "runtimes",
   "ontologies",
   "skills",
+  "marketplace",
   "settings",
 ]);
 
@@ -92,19 +92,19 @@ export function toInternalAppPath(
   return `${target.pathname}${target.search}${target.hash}`;
 }
 
-/** An in-app entity page addressed by a link — the two kinds that have a chip. */
+/** An in-app entity page addressed by a link — the one kind that has a chip. */
 export interface WorkspaceEntityRef {
-  kind: "issue" | "project";
+  kind: "issue";
   /**
-   * Entity id, decoded from the path. A UUID for either kind, or — for an
-   * issue only — a bare identifier (`ENA-123`). Callers dispatch on the shape
-   * with `isIssueIdentifier`: an identifier still has to be resolved to a real
-   * issue before it can be rendered as a chip.
+   * Entity id, decoded from the path. A UUID, or a bare identifier
+   * (`ENA-123`). Callers dispatch on the shape with `isIssueIdentifier`: an
+   * identifier still has to be resolved to a real issue before it can be
+   * rendered as a chip.
    */
   id: string;
   /**
    * Workspace slug the link names, or `null` for the slug-less legacy form
-   * (`/projects/<uuid>`), which `openLink` resolves against the current
+   * (`/issues/<uuid>`), which `openLink` resolves against the current
    * workspace. A caller that renders workspace-scoped data MUST compare a
    * non-null slug against the current one — the entity itself is only
    * resolvable inside the workspace that owns it.
@@ -114,27 +114,26 @@ export interface WorkspaceEntityRef {
 
 const ENTITY_ROUTE_SEGMENTS: Record<string, WorkspaceEntityRef["kind"]> = {
   issues: "issue",
-  projects: "project",
 };
 
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
- * Does this path segment address one entity of `kind`?
+ * Does this path segment address one issue?
  *
- * A project is only ever addressed by UUID — it has no shorthand. An issue has
- * both, and the identifier form is the one that matters most: `copyLink` and
- * `openInNewTab` both build `paths.issueDetail(identifier || id)`, and the
- * issue route rewrites a UUID URL back to the identifier, so `ENA-123` is what
- * a user actually copies out of the app or the address bar. Accepting only the
- * UUID here would leave the shape people really paste as a raw URL.
+ * An issue has two addressable forms, and the identifier is the one that
+ * matters most: `copyLink` and `openInNewTab` both build
+ * `paths.issueDetail(identifier || id)`, and the issue route rewrites a UUID
+ * URL back to the identifier, so `ENA-123` is what a user actually copies out
+ * of the app or the address bar. Accepting only the UUID here would leave the
+ * shape people really paste as a raw URL.
  *
  * Identifier-shaped ids are candidates, not hits: the caller resolves one
  * against the current workspace and keeps the plain link when it misses.
  */
-function isEntityId(kind: WorkspaceEntityRef["kind"], id: string): boolean {
-  return UUID_RE.test(id) || (kind === "issue" && isIssueIdentifier(id));
+function isEntityId(id: string): boolean {
+  return UUID_RE.test(id) || isIssueIdentifier(id);
 }
 
 function decodeSegment(segment: string): string | null {
@@ -187,7 +186,7 @@ function toSameOriginPath(
 }
 
 /**
- * Parse a link that addresses exactly one issue or project page on this
+ * Parse a link that addresses exactly one issue page on this
  * deployment; `null` for everything else — external URLs, list pages, deeper
  * routes, and links carrying a query string or fragment.
  *
@@ -233,7 +232,7 @@ export function parseWorkspaceEntityLink(
   }
 
   const kind = route ? ENTITY_ROUTE_SEGMENTS[route] : undefined;
-  if (!kind || !id || !isEntityId(kind, id)) return null;
+  if (!kind || !id || !isEntityId(id)) return null;
   return { kind, id, slug };
 }
 

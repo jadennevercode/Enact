@@ -113,29 +113,6 @@ export function handoffSupported(detected: string | undefined | null): boolean {
   return meetsMinCliVersion(detected, MIN_HANDOFF_CLI_VERSION);
 }
 
-/**
- * First release whose daemon renders the chat session's project context
- * (description + resources) into the run brief (PR #5765, ships in v0.4.10).
- * Older daemons still receive and honor the project's repos — the server
- * pre-extracts those into the generic `repos` claim field — but silently skip
- * the Project Context section, so the durable description never reaches the
- * agent. SOFT gate: selecting a project always works; the UI only warns.
- *
- * Frontend-only constant: unlike handoff there is no server preview endpoint
- * computing this, so there is no server twin to keep in lockstep with.
- */
-export const MIN_CHAT_PROJECT_CONTEXT_CLI_VERSION = "0.4.10";
-
-/**
- * Whether a daemon-reported CLI version is new enough to inject a chat
- * session's project description into the run brief. Same degrade rules as
- * `handoffSupported`: missing / unparsable / below-minimum are `false`,
- * dev-built daemons (git-describe shape) always pass.
- */
-export function chatProjectContextSupported(detected: string | undefined | null): boolean {
-  return meetsMinCliVersion(detected, MIN_CHAT_PROJECT_CONTEXT_CLI_VERSION);
-}
-
 function meetsMinCliVersion(detected: string | undefined | null, minimum: string): boolean {
   const current = (detected ?? "").trim();
   if (!current) return false;
@@ -172,8 +149,8 @@ type RuntimeCapabilityRow = {
  * outlives the upgrade that fixed it (#7113).
  *
  * So the client stopped trying. The server is asked instead — it knows its own
- * version by construction — at every write path (create project, add resource,
- * update resource) and again at claim time, which is the gate that actually
+ * version by construction — at every write path (add resource, update
+ * resource) and again at claim time, which is the gate that actually
  * keeps agents out of the user's working copy (ENA-5707). This function only
  * decides whether to PRESELECT parallel mode, where a wrong guess costs a
  * radio button, not a blocked user or a misleading instruction.

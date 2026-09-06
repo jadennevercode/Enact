@@ -62,7 +62,8 @@
     "source_runtime_unknown": "ランタイムから",
     "source_clawhub": "ClawHub から",
     "source_skills_sh": "Skills.sh から",
-    "source_github": "GitHub から"
+    "source_github": "GitHub から",
+    "source_marketplace": "マーケットプレイス"
   },
   "actions": {
     "row_menu": "操作",
@@ -127,6 +128,7 @@
       "origin_clawhub": "インポート済み · ClawHub",
       "origin_skills_sh": "インポート済み · Skills.sh",
       "origin_github": "インポート済み · GitHub",
+      "origin_marketplace": "インストール済み · マーケットプレイス",
       "origin_workspace": "手動で作成"
     },
     "conflict_banner": {
@@ -353,5 +355,22 @@
     "markdown_placeholder": "Markdown の内容を記述...",
     "raw_placeholder": "ファイルの内容...",
     "raw_aria": "{{path}} のプレーンテキスト"
+  },
+  "versions": {
+    "title": "バージョン",
+    "current": "現在",
+    "restore": "復元",
+    "restore_confirm": "このバージョンに戻しますか？現在の内容は履歴に残るので、元に戻せます。",
+    "empty": "バージョン履歴はまだありません。",
+    "source": {
+      "backfill": "履歴の記録開始時に保存",
+      "manual": "ここで編集",
+      "import": "インポート",
+      "refresh": "ソースから更新",
+      "retrospect": "振り返りから採用",
+      "rollback": "復元",
+      "seed": "Enact が用意"
+    },
+    "number": "v{{version}}"
   }
 }

@@ -22,8 +22,6 @@ export type TabSubject =
   | { kind: "page"; page: WorkspacePageKey }
   /** A single issue detail. */
   | { kind: "issue"; id: string }
-  /** A single project detail. */
-  | { kind: "project"; id: string }
   /** A single autopilot detail. */
   | { kind: "autopilot"; id: string }
   /** An agent / member / squad detail (has an avatar identity). */
@@ -77,11 +75,11 @@ export function parseTabSubject(url: string): TabSubject {
 
   switch (segment) {
     case "issues":
+      // `/issues/:id/artifacts` stays the issue's own subject: the files are
+      // part of the issue, so opening them must not spawn a second tab.
       return id ? { kind: "issue", id } : { kind: "page", page: "issues" };
     case "my-issues":
       return { kind: "page", page: "myIssues" };
-    case "projects":
-      return id ? { kind: "project", id } : { kind: "page", page: "projects" };
     case "autopilots":
       return id ? { kind: "autopilot", id } : { kind: "page", page: "autopilots" };
     case "agents":
@@ -105,7 +103,10 @@ export function parseTabSubject(url: string): TabSubject {
         archived: query.get("view") === "archived",
       };
     case "chat":
-      return { kind: "chat", sessionId: query.get("session") || null };
+      // A session is addressed by query param (`/chat?session=`) but its
+      // artifacts by path (`/chat/:id/artifacts`); both are the same subject,
+      // so the files open in the session's tab rather than a new one.
+      return { kind: "chat", sessionId: id || query.get("session") || null };
     case "runtimes":
       if (!id) return { kind: "page", page: "runtimes" };
       // `/runtimes/:machineId/runtime/:runtimeId` — nested runtime.
@@ -143,8 +144,6 @@ export function tabSubjectKey(subject: TabSubject): string {
       return `page:${subject.page}`;
     case "issue":
       return `issue:${subject.id}`;
-    case "project":
-      return `project:${subject.id}`;
     case "autopilot":
       return `autopilot:${subject.id}`;
     case "actor":

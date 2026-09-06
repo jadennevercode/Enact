@@ -10,9 +10,11 @@ import { clearWorkspaceStorage } from "../platform/storage-cleanup";
 import { defaultStorage } from "../platform/storage";
 import { getCurrentWsId, getCurrentSlug } from "../platform/workspace-storage";
 import { issueKeys } from "../issues/queries";
-import { projectKeys } from "../projects/queries";
+import { artifactKeys } from "../artifacts/queries";
+import { workspaceResourceKeys } from "../resources/queries";
 import { pinKeys } from "../pins/queries";
 import { autopilotKeys } from "../autopilots/queries";
+import { skillVersionKeys } from "../skills/queries";
 import { runtimeKeys } from "../runtimes/queries";
 import { labelKeys } from "../labels/queries";
 import { propertyKeys } from "../properties/queries";
@@ -342,7 +344,6 @@ export async function applyChatQuickActionsToCache(
 type ChatSessionUpdatedPayload = {
   chat_session_id: string;
   title?: string;
-  project_id?: string | null;
   pinned?: boolean;
   status?: "active" | "archived";
   updated_at?: string;
@@ -377,7 +378,6 @@ export function applyChatSessionUpdatedToCache(
         ? {
             ...s,
             title: payload.title ?? s.title,
-            ...("project_id" in payload ? { project_id: payload.project_id } : {}),
             pinned: payload.pinned ?? s.pinned,
             status: payload.status ?? s.status,
             updated_at: payload.updated_at ?? s.updated_at,
@@ -648,7 +648,7 @@ function invalidateWorkspaceScopedQueries(qc: QueryClient): void {
     qc.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) });
     qc.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
     qc.invalidateQueries({ queryKey: workspaceKeys.invitations(wsId) });
-    qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
+    qc.invalidateQueries({ queryKey: workspaceResourceKeys.all(wsId) });
     qc.invalidateQueries({ queryKey: runtimeKeys.all(wsId) });
     qc.invalidateQueries({ queryKey: autopilotKeys.all(wsId) });
     qc.invalidateQueries({ queryKey: agentTaskSnapshotKeys.all(wsId) });
@@ -786,11 +786,16 @@ export function useRealtimeSync(
       },
       skill: () => {
         const wsId = getCurrentWsId();
-        if (wsId) qc.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
+        if (!wsId) return;
+        qc.invalidateQueries({ queryKey: workspaceKeys.skills(wsId) });
+        // A skill's content moved, so its version history did too.
+        qc.invalidateQueries({ queryKey: skillVersionKeys.all(wsId) });
       },
-      project: () => {
+      workspace_resource: () => {
         const wsId = getCurrentWsId();
-        if (wsId) qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
+        if (wsId) {
+          qc.invalidateQueries({ queryKey: workspaceResourceKeys.all(wsId) });
+        }
       },
       squad: () => {
         const wsId = getCurrentWsId();
@@ -998,7 +1003,6 @@ export function useRealtimeSync(
         onIssueUpdated(qc, wsId, issue, {
           assigneeChanged: payload.assignee_changed,
           statusChanged: payload.status_changed,
-          projectChanged: payload.project_changed,
         });
         if (issue.status) {
           onInboxIssueStatusChanged(qc, wsId, issue.id, issue.status);
@@ -1035,7 +1039,14 @@ export function useRealtimeSync(
       if (!issue_id) return;
       qc.invalidateQueries({ queryKey: issueKeys.attachments(issue_id) });
       const wsId = getCurrentWsId();
-      if (wsId) onIssueAuxiliaryRevision(qc, wsId, issue_id, issue_revision);
+      if (wsId) {
+        // Invalidate every artifact listing, not just this issue's: a parent's
+        // listing carries its children's files, so a child's change moves the
+        // parent too. At most one listing is mounted at a time, so the wide
+        // key costs one refetch rather than a fan-out.
+        qc.invalidateQueries({ queryKey: artifactKeys.all(wsId) });
+        onIssueAuxiliaryRevision(qc, wsId, issue_id, issue_revision);
+      }
     });
 
     const unsubIssueMetadataChanged = ws.on("issue_metadata:changed", (p) => {
@@ -1460,6 +1471,14 @@ export function useRealtimeSync(
       // work: they ignore the extra fields and rely on the invalidate
       // below, which keeps the old behavior alive.
       applyChatDoneToCache(qc, payload);
+      // A finished run is when the agent's files land, so the session's
+      // artifact listing is stale from here.
+      const artifactWsId = getCurrentWsId();
+      if (artifactWsId && payload.chat_session_id) {
+        qc.invalidateQueries({
+          queryKey: artifactKeys.chatSession(artifactWsId, payload.chat_session_id),
+        });
+      }
       // NOTE: the pending aggregate is left to the task:completed / task:failed
       // handlers (which carry the task_id needed to remove the right entry).
       // chat:done no longer invalidates it, so a chatty session doesn't refetch

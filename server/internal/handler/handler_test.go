@@ -90,9 +90,23 @@ func TestMain(m *testing.M) {
 	}
 	dbfx = testutil.New(pool, testWorkspaceID, testUserID)
 
+	// The marketplace tables carry no foreign keys, so dropping the fixture
+	// workspace does not take its listings with it: a publish fixture that
+	// fails to remove its own rows leaves them in the developer's database,
+	// public and visible in every workspace's Marketplace. That is how ~200
+	// mp-* listings accumulated before this check existed.
+	before := marketplaceRowCount(ctx, pool)
+
 	code := m.Run()
 	if err := cleanupHandlerTestFixture(context.Background(), pool); err != nil {
 		fmt.Printf("Failed to clean up handler test fixture: %v\n", err)
+		if code == 0 {
+			code = 1
+		}
+	}
+	if after := marketplaceRowCount(context.Background(), pool); after != before {
+		fmt.Printf("marketplace fixtures leaked rows: %d before, %d after\n", before, after)
+		fmt.Printf("a cleanup registered with t.Cleanup must use context.Background(); t.Context() is cancelled before cleanups run\n")
 		if code == 0 {
 			code = 1
 		}
@@ -165,6 +179,36 @@ func setupHandlerTestFixture(ctx context.Context, pool *pgxpool.Pool) (string, s
 	}
 
 	return userID, workspaceID, nil
+}
+
+// marketplaceRowCount totals the four marketplace tables, ignoring the catalog
+// workspace. The product's own listings are seeded and re-seeded by tests in
+// cmd/server, which `go test ./...` runs in parallel with this package — their
+// rows appearing or vanishing mid-run says nothing about whether a fixture here
+// cleaned up after itself.
+//
+// It reports -1 rather than failing the suite when the query errors: a database
+// that cannot answer it has already broken every test that matters.
+func marketplaceRowCount(ctx context.Context, pool *pgxpool.Pool) int64 {
+	var total int64
+	if err := pool.QueryRow(ctx, `
+		WITH catalog AS (SELECT id FROM workspace WHERE slug = 'enact'),
+		     listings AS (
+		         SELECT id FROM marketplace_listing
+		         WHERE workspace_id NOT IN (SELECT id FROM catalog)
+		     )
+		SELECT (SELECT count(*) FROM listings)
+		     + (SELECT count(*) FROM marketplace_listing_version
+		        WHERE listing_id IN (SELECT id FROM listings))
+		     + (SELECT count(*) FROM marketplace_listing_file
+		        WHERE version_id IN (SELECT v.id FROM marketplace_listing_version v
+		                             WHERE v.listing_id IN (SELECT id FROM listings)))
+		     + (SELECT count(*) FROM marketplace_install
+		        WHERE listing_id IN (SELECT id FROM listings))
+	`).Scan(&total); err != nil {
+		return -1
+	}
+	return total
 }
 
 func cleanupHandlerTestFixture(ctx context.Context, pool *pgxpool.Pool) error {
@@ -633,184 +677,17 @@ func TestCreateIssueRejectsCrossWorkspaceParent(t *testing.T) {
 	}
 }
 
-// TestCreateIssueRejectsCrossWorkspaceProject mirrors the parent test for
-// the project workspace boundary. Same reasoning: future create entries
-// (Lark /issue, MCP, API keys) must inherit this guard from the service
-// without re-implementing it.
-func TestCreateIssueRejectsCrossWorkspaceProject(t *testing.T) {
-
-	otherWorkspaceID := dbfx.Insert(t, "workspace", testutil.Cols{
-		"name":         "Cross-workspace project test",
-		"slug":         "xwp-project-test",
-		"description":  "Foreign workspace",
-		"issue_prefix": "XWP",
-	})
-
-	foreignProjectID := dbfx.Project(t, "Foreign project", testutil.Cols{
-		"workspace_id": otherWorkspaceID,
-	})
-
-	req := newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":      "Should be rejected",
-		"project_id": foreignProjectID,
-	})
-	w := testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusBadRequest)
-	if !strings.Contains(w.Body.String(), "project not found in this workspace") {
-		t.Fatalf("CreateIssue with foreign project: expected boundary error message, got %s", w.Body.String())
-	}
-
-	var count int
-	dbfx.QueryRow(t,
-		`SELECT COUNT(*) FROM issue WHERE workspace_id = $1 AND title = $2`,
-		testWorkspaceID, "Should be rejected",
-	).Scan(&count)
-	if count != 0 {
-		t.Fatalf("rejected create still wrote a row (count=%d) — service-layer boundary check failed", count)
-	}
-}
-
-func TestCreateSubIssueInheritsParentProject(t *testing.T) {
-	var projectID, parentID, childID string
-	defer func() {
-		for _, issueID := range []string{childID, parentID} {
-			if issueID == "" {
-				continue
-			}
-			req := newRequest("DELETE", "/api/issues/"+issueID, nil)
-			req = withURLParam(req, "id", issueID)
-			testHandler.DeleteIssue(httptest.NewRecorder(), req)
-		}
-		if projectID != "" {
-			req := newRequest("DELETE", "/api/projects/"+projectID, nil)
-			req = withURLParam(req, "id", projectID)
-			testHandler.DeleteProject(httptest.NewRecorder(), req)
-		}
-	}()
-
-	req := newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "Sub-issue inheritance project",
-	})
-	w := testutil.Call(t, testHandler.CreateProject, req).Want(http.StatusCreated)
-	var project ProjectResponse
-	json.NewDecoder(w.Body).Decode(&project)
-	projectID = project.ID
-
-	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":      "Parent with project",
-		"project_id": projectID,
-	})
-	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
-	var parent IssueResponse
-	json.NewDecoder(w.Body).Decode(&parent)
-	parentID = parent.ID
-	if parent.ProjectID == nil || *parent.ProjectID != projectID {
-		t.Fatalf("CreateIssue parent: expected project_id %q, got %v", projectID, parent.ProjectID)
-	}
-
-	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":           "Child without explicit project",
-		"parent_issue_id": parentID,
-	})
-	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
-	var child IssueResponse
-	json.NewDecoder(w.Body).Decode(&child)
-	childID = child.ID
-
-	if child.ParentIssueID == nil || *child.ParentIssueID != parentID {
-		t.Fatalf("CreateIssue child: expected parent_issue_id %q, got %v", parentID, child.ParentIssueID)
-	}
-	if child.ProjectID == nil || *child.ProjectID != projectID {
-		t.Fatalf("CreateIssue child: expected inherited project_id %q, got %v", projectID, child.ProjectID)
-	}
-}
-
-func TestCreateSubIssueUsesExplicitProjectOverParentProject(t *testing.T) {
-	var parentProjectID, childProjectID, parentID, childID string
-	defer func() {
-		for _, issueID := range []string{childID, parentID} {
-			if issueID == "" {
-				continue
-			}
-			req := newRequest("DELETE", "/api/issues/"+issueID, nil)
-			req = withURLParam(req, "id", issueID)
-			testHandler.DeleteIssue(httptest.NewRecorder(), req)
-		}
-		for _, projectID := range []string{childProjectID, parentProjectID} {
-			if projectID == "" {
-				continue
-			}
-			req := newRequest("DELETE", "/api/projects/"+projectID, nil)
-			req = withURLParam(req, "id", projectID)
-			testHandler.DeleteProject(httptest.NewRecorder(), req)
-		}
-	}()
-
-	req := newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "Parent project",
-	})
-	w := testutil.Call(t, testHandler.CreateProject, req).Want(http.StatusCreated)
-	var parentProject ProjectResponse
-	json.NewDecoder(w.Body).Decode(&parentProject)
-	parentProjectID = parentProject.ID
-
-	req = newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "Child explicit project",
-	})
-	w = testutil.Call(t, testHandler.CreateProject, req).Want(http.StatusCreated)
-	var childProject ProjectResponse
-	json.NewDecoder(w.Body).Decode(&childProject)
-	childProjectID = childProject.ID
-
-	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":      "Parent with project",
-		"project_id": parentProjectID,
-	})
-	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
-	var parent IssueResponse
-	json.NewDecoder(w.Body).Decode(&parent)
-	parentID = parent.ID
-	if parent.ProjectID == nil || *parent.ProjectID != parentProjectID {
-		t.Fatalf("CreateIssue parent: expected project_id %q, got %v", parentProjectID, parent.ProjectID)
-	}
-
-	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
-		"title":           "Child with explicit project",
-		"parent_issue_id": parentID,
-		"project_id":      childProjectID,
-	})
-	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
-	var child IssueResponse
-	json.NewDecoder(w.Body).Decode(&child)
-	childID = child.ID
-
-	if child.ParentIssueID == nil || *child.ParentIssueID != parentID {
-		t.Fatalf("CreateIssue child: expected parent_issue_id %q, got %v", parentID, child.ParentIssueID)
-	}
-	if child.ProjectID == nil || *child.ProjectID != childProjectID {
-		t.Fatalf("CreateIssue child: expected explicit project_id %q, got %v", childProjectID, child.ProjectID)
-	}
-}
-
 func TestCreateIssueRejectsActiveDuplicate(t *testing.T) {
 	ctx := context.Background()
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	var projectID, parentID, issueID, duplicateID string
+	var parentID, issueID, duplicateID string
 	defer func() {
 		for _, id := range []string{duplicateID, issueID, parentID} {
 			if id != "" {
 				testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, id)
 			}
 		}
-		if projectID != "" {
-			testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectID)
-		}
 	}()
-
-	dbfx.QueryRow(t, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id
-	`, testWorkspaceID, "Duplicate guard project "+suffix).Scan(&projectID)
 
 	req := newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title": "Duplicate guard parent " + suffix,
@@ -825,7 +702,6 @@ func TestCreateIssueRejectsActiveDuplicate(t *testing.T) {
 		"title":           title,
 		"status":          "in_progress",
 		"parent_issue_id": parentID,
-		"project_id":      projectID,
 	})
 	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
 	var original IssueResponse
@@ -835,7 +711,6 @@ func TestCreateIssueRejectsActiveDuplicate(t *testing.T) {
 	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title":           "  sh-pm-synth-01   synthesize recommendation-to-shortlist planning outputs " + suffix + "  ",
 		"parent_issue_id": parentID,
-		"project_id":      projectID,
 	})
 	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusConflict)
 	var conflict struct {
@@ -857,7 +732,6 @@ func TestCreateIssueRejectsActiveDuplicate(t *testing.T) {
 	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title":           title,
 		"parent_issue_id": parentID,
-		"project_id":      projectID,
 		"allow_duplicate": true,
 	})
 	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusCreated)
@@ -871,7 +745,6 @@ func TestCreateIssueRejectsActiveDuplicate(t *testing.T) {
 	req = newRequest("POST", "/api/issues?workspace_id="+testWorkspaceID, map[string]any{
 		"title":           title,
 		"parent_issue_id": parentID,
-		"project_id":      projectID,
 	})
 	w = testutil.Call(t, testHandler.CreateIssue, req).Want(http.StatusConflict)
 	w.JSON(&conflict)
@@ -1148,205 +1021,6 @@ func TestAutopilotCreatedIssueCreatorIsAssigneeAgent(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("did not receive issue:created event")
-	}
-}
-
-func TestAutopilotCreateIssueAssociatesConfiguredProject(t *testing.T) {
-	ctx := context.Background()
-	title := fmt.Sprintf("Autopilot project issue %d", time.Now().UnixNano())
-	var autopilotID, issueID, projectID string
-	defer func() {
-		if issueID != "" {
-			testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, issueID)
-		}
-		if autopilotID != "" {
-			testPool.Exec(ctx, `DELETE FROM autopilot WHERE id = $1`, autopilotID)
-		}
-		if projectID != "" {
-			testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectID)
-		}
-	}()
-
-	dbfx.QueryRow(t, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id::text
-	`, testWorkspaceID, "Autopilot project target").Scan(&projectID)
-
-	var agentID string
-	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
-
-	req := newRequest("POST", "/api/autopilots?workspace_id="+testWorkspaceID, map[string]any{
-		"title":                "Project-linked autopilot",
-		"assignee_id":          agentID,
-		"execution_mode":       "create_issue",
-		"issue_title_template": title,
-		"project_id":           projectID,
-	})
-	w := testutil.Call(t, testHandler.CreateAutopilot, req).Want(http.StatusCreated)
-	var autopilot AutopilotResponse
-	w.JSON(&autopilot)
-	autopilotID = autopilot.ID
-	if autopilot.ProjectID == nil || *autopilot.ProjectID != projectID {
-		t.Fatalf("autopilot project_id = %v, want %q", autopilot.ProjectID, projectID)
-	}
-
-	queries := db.New(testPool)
-	ap, err := queries.GetAutopilot(ctx, parseUUID(autopilotID))
-	if err != nil {
-		t.Fatalf("GetAutopilot: %v", err)
-	}
-	run, err := testHandler.AutopilotService.DispatchAutopilot(ctx, ap, pgtype.UUID{}, "manual", nil)
-	if err != nil {
-		t.Fatalf("DispatchAutopilot: %v", err)
-	}
-	if run == nil || !run.IssueID.Valid {
-		t.Fatalf("dispatch run = %+v, want linked issue", run)
-	}
-	issueID = uuidToString(run.IssueID)
-
-	var issueProjectID *string
-	dbfx.QueryRow(t, `
-		SELECT project_id::text
-		FROM issue
-		WHERE id = $1
-	`, issueID).Scan(&issueProjectID)
-	if issueProjectID == nil || *issueProjectID != projectID {
-		t.Fatalf("created issue project_id = %v, want %q", issueProjectID, projectID)
-	}
-}
-
-func TestAutopilotDispatchUsesCurrentProjectBinding(t *testing.T) {
-	ctx := context.Background()
-	title := fmt.Sprintf("Autopilot stale project issue %d", time.Now().UnixNano())
-	var autopilotID, issueID, projectAID, projectBID string
-	defer func() {
-		if issueID != "" {
-			testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, issueID)
-		}
-		if autopilotID != "" {
-			testPool.Exec(ctx, `DELETE FROM autopilot WHERE id = $1`, autopilotID)
-		}
-		if projectAID != "" {
-			testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectAID)
-		}
-		if projectBID != "" {
-			testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectBID)
-		}
-	}()
-
-	dbfx.QueryRow(t, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id::text
-	`, testWorkspaceID, "Autopilot stale project A").Scan(&projectAID)
-	dbfx.QueryRow(t, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id::text
-	`, testWorkspaceID, "Autopilot stale project B").Scan(&projectBID)
-
-	var agentID string
-	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
-
-	req := newRequest("POST", "/api/autopilots?workspace_id="+testWorkspaceID, map[string]any{
-		"title":                "Stale-project autopilot",
-		"assignee_id":          agentID,
-		"execution_mode":       "create_issue",
-		"issue_title_template": title,
-		"project_id":           projectAID,
-	})
-	w := testutil.Call(t, testHandler.CreateAutopilot, req).Want(http.StatusCreated)
-	var created AutopilotResponse
-	w.JSON(&created)
-	autopilotID = created.ID
-
-	queries := db.New(testPool)
-	ap, err := queries.GetAutopilot(ctx, parseUUID(autopilotID))
-	if err != nil {
-		t.Fatalf("GetAutopilot: %v", err)
-	}
-
-	req = newRequest("PATCH", "/api/autopilots/"+autopilotID+"?workspace_id="+testWorkspaceID, map[string]any{
-		"project_id": projectBID,
-	})
-	req = withURLParam(req, "id", autopilotID)
-	w = testutil.Call(t, testHandler.UpdateAutopilot, req).Want(http.StatusOK)
-
-	run, err := testHandler.AutopilotService.DispatchAutopilot(ctx, ap, pgtype.UUID{}, "manual", nil)
-	if err != nil {
-		t.Fatalf("DispatchAutopilot: %v", err)
-	}
-	if run == nil || !run.IssueID.Valid {
-		t.Fatalf("dispatch run = %+v, want linked issue", run)
-	}
-	issueID = uuidToString(run.IssueID)
-
-	var issueProjectID *string
-	dbfx.QueryRow(t, `
-		SELECT project_id::text
-		FROM issue
-		WHERE id = $1
-	`, issueID).Scan(&issueProjectID)
-	if issueProjectID == nil || *issueProjectID != projectBID {
-		t.Fatalf("created issue project_id = %v, want refreshed %q", issueProjectID, projectBID)
-	}
-}
-
-func TestUpdateAutopilotCanSetAndClearProject(t *testing.T) {
-	ctx := context.Background()
-	var autopilotID, projectID string
-	defer func() {
-		if autopilotID != "" {
-			testPool.Exec(ctx, `DELETE FROM autopilot WHERE id = $1`, autopilotID)
-		}
-		if projectID != "" {
-			testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectID)
-		}
-	}()
-
-	dbfx.QueryRow(t, `
-		INSERT INTO project (workspace_id, title)
-		VALUES ($1, $2)
-		RETURNING id::text
-	`, testWorkspaceID, "Autopilot update project target").Scan(&projectID)
-
-	var agentID string
-	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
-
-	req := newRequest("POST", "/api/autopilots?workspace_id="+testWorkspaceID, map[string]any{
-		"title":          "Project update autopilot",
-		"assignee_id":    agentID,
-		"execution_mode": "create_issue",
-	})
-	w := testutil.Call(t, testHandler.CreateAutopilot, req).Want(http.StatusCreated)
-	var created AutopilotResponse
-	w.JSON(&created)
-	autopilotID = created.ID
-	if created.ProjectID != nil {
-		t.Fatalf("new autopilot project_id = %v, want nil", created.ProjectID)
-	}
-
-	req = newRequest("PATCH", "/api/autopilots/"+autopilotID+"?workspace_id="+testWorkspaceID, map[string]any{
-		"project_id": projectID,
-	})
-	req = withURLParam(req, "id", autopilotID)
-	w = testutil.Call(t, testHandler.UpdateAutopilot, req).Want(http.StatusOK)
-	var updated AutopilotResponse
-	w.JSON(&updated)
-	if updated.ProjectID == nil || *updated.ProjectID != projectID {
-		t.Fatalf("updated project_id = %v, want %q", updated.ProjectID, projectID)
-	}
-
-	req = newRequest("PATCH", "/api/autopilots/"+autopilotID+"?workspace_id="+testWorkspaceID, map[string]any{
-		"project_id": nil,
-	})
-	req = withURLParam(req, "id", autopilotID)
-	w = testutil.Call(t, testHandler.UpdateAutopilot, req).Want(http.StatusOK)
-	var cleared AutopilotResponse
-	w.JSON(&cleared)
-	if cleared.ProjectID != nil {
-		t.Fatalf("cleared project_id = %v, want nil", cleared.ProjectID)
 	}
 }
 

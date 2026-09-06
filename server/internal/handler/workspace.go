@@ -15,7 +15,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/logger"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
-	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/workspacesetup"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
 	"github.com/go-chi/chi/v5"
@@ -101,7 +101,6 @@ type WorkspaceResponse struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	Settings    any     `json:"settings"`
-	Repos       any     `json:"repos"`
 	IssuePrefix string  `json:"issue_prefix"`
 	AvatarURL   *string `json:"avatar_url"`
 	CreatedAt   string  `json:"created_at"`
@@ -109,33 +108,55 @@ type WorkspaceResponse struct {
 }
 
 func (h *Handler) workspaceToResponse(w db.Workspace) WorkspaceResponse {
-	var settings any
-	if w.Settings != nil {
-		json.Unmarshal(w.Settings, &settings)
-	}
-	if settings == nil {
-		settings = map[string]any{}
-	}
-	var repos any
-	if w.Repos != nil {
-		json.Unmarshal(w.Repos, &repos)
-	}
-	if repos == nil {
-		repos = []any{}
-	}
 	return WorkspaceResponse{
 		ID:          uuidToString(w.ID),
 		Name:        w.Name,
 		Slug:        w.Slug,
 		Description: textToPtr(w.Description),
 		Context:     textToPtr(w.Context),
-		Settings:    settings,
-		Repos:       repos,
+		Settings:    decodeWorkspaceSettings(w.Settings),
 		IssuePrefix: w.IssuePrefix,
 		AvatarURL:   h.resolveAvatarURLPtr(textToPtr(w.AvatarUrl)),
 		CreatedAt:   timestampToString(w.CreatedAt),
 		UpdatedAt:   timestampToString(w.UpdatedAt),
 	}
+}
+
+// listWorkspaceRowToResponse renders a row from the workspace switcher's
+// narrow projection.
+//
+// ListWorkspaces deliberately does not read `profile`: a repository brief is
+// allowed to be several kilobytes, and the switcher renders a name. Paying
+// that on every sidebar load, once per workspace the member belongs to, to
+// avoid the mapping below would be the wrong trade.
+func (h *Handler) listWorkspaceRowToResponse(w db.ListWorkspacesRow) WorkspaceResponse {
+	return WorkspaceResponse{
+		ID:          uuidToString(w.ID),
+		Name:        w.Name,
+		Slug:        w.Slug,
+		Description: textToPtr(w.Description),
+		Context:     textToPtr(w.Context),
+		Settings:    decodeWorkspaceSettings(w.Settings),
+		IssuePrefix: w.IssuePrefix,
+		AvatarURL:   h.resolveAvatarURLPtr(textToPtr(w.AvatarUrl)),
+		CreatedAt:   timestampToString(w.CreatedAt),
+		UpdatedAt:   timestampToString(w.UpdatedAt),
+	}
+}
+
+// decodeWorkspaceSettings reads the settings blob, answering `{}` for anything
+// unreadable. The column is owner-editable JSON that predates any schema for
+// it, so a null, an empty column, or a value that is not an object all have to
+// render as "no settings" rather than as a failed workspace read.
+func decodeWorkspaceSettings(raw []byte) any {
+	var settings any
+	if raw != nil {
+		json.Unmarshal(raw, &settings)
+	}
+	if settings == nil {
+		settings = map[string]any{}
+	}
+	return settings
 }
 
 type MemberResponse struct {
@@ -170,7 +191,7 @@ func (h *Handler) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]WorkspaceResponse, len(workspaces))
 	for i, ws := range workspaces {
-		resp[i] = h.workspaceToResponse(ws)
+		resp[i] = h.listWorkspaceRowToResponse(ws)
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -197,6 +218,13 @@ type CreateWorkspaceRequest struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	IssuePrefix *string `json:"issue_prefix"`
+	// Language selects the copy the setup checklist and its welcome inbox item
+	// are written in. The server has no other way to know: a workspace has no
+	// language of its own, the creator's locale lives in a cookie the API
+	// never sees, and a member who reads Chinese should not be met by an
+	// English explanation of what Enact is. Unknown or absent falls back to
+	// English rather than failing the create.
+	Language string `json:"language"`
 }
 
 func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -293,13 +321,27 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Product-owned SDLC skills, roles, and squad are part of the workspace
-	// invariant. Keep provisioning in this transaction so a newly visible
-	// workspace is never missing part of the portable delivery system.
-	if err := service.EnsureSDLCDefaultsInTx(r.Context(), qtx, ws.ID, parseUUID(userID), pgtype.UUID{}); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to seed SDLC defaults: "+err.Error())
+	// The SDLC delivery system is deliberately NOT seeded here. It is published
+	// to the Marketplace by the deployment's own catalog workspace, and a team
+	// that wants it installs the Agent Family on purpose. Nine agents and ten
+	// skills nobody asked for are a worse first workspace than an empty one.
+
+	// The setup checklist and its welcome inbox item, in the same transaction
+	// so a workspace is never visible without the thing that explains it. This
+	// is not agent work and starts no run: the four issues are a person's
+	// list, assigned to the member who just created the workspace.
+	if err := h.seedWorkspaceSetupInTx(
+		r.Context(), qtx, ws, parseUUID(userID), workspacesetup.NormalizeLanguage(req.Language),
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to seed the setup checklist: "+err.Error())
 		return
 	}
+
+	// The Retrospect Agent is deliberately NOT seeded here. It is opt-in: a
+	// workspace gets one when someone configures it (POST /api/agents/retrospect),
+	// and having one is what turns the retrospect loop on. Seeding it would
+	// bind a runtime nobody chose and start filing sub-issues under work in
+	// every workspace, including the ones that only ever wanted a tracker.
 
 	// NOTE: CreateWorkspace deliberately does NOT mark the user as
 	// onboarded. The `onboarded_at` flag is owned by CompleteOnboarding
@@ -332,7 +374,6 @@ type UpdateWorkspaceRequest struct {
 	Description *string `json:"description"`
 	Context     *string `json:"context"`
 	Settings    any     `json:"settings"`
-	Repos       any     `json:"repos"`
 	IssuePrefix *string `json:"issue_prefix"`
 	AvatarURL   *string `json:"avatar_url"`
 }
@@ -340,42 +381,6 @@ type UpdateWorkspaceRequest struct {
 type workspaceRepoRef struct {
 	URL         string `json:"url"`
 	Description string `json:"description,omitempty"`
-}
-
-func validateAndNormalizeWorkspaceRepos(value any) ([]byte, error) {
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	var repos []workspaceRepoRef
-	if err := json.Unmarshal(raw, &repos); err != nil {
-		return nil, fmt.Errorf("repos must be an array of repository objects: %w", err)
-	}
-
-	normalized := make([]workspaceRepoRef, 0, len(repos))
-	seen := make(map[string]struct{}, len(repos))
-	for i, repo := range repos {
-		repo.URL = strings.TrimSpace(repo.URL)
-		repo.Description = strings.TrimSpace(repo.Description)
-		if repo.URL == "" {
-			return nil, fmt.Errorf("repos[%d]: url is required", i)
-		}
-		if !isValidGitRepoURL(repo.URL) {
-			return nil, fmt.Errorf("repos[%d]: url must be a valid http(s) or ssh git URL", i)
-		}
-		if _, ok := seen[repo.URL]; ok {
-			continue
-		}
-		seen[repo.URL] = struct{}{}
-		normalized = append(normalized, repo)
-	}
-
-	out, err := json.Marshal(normalized)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (h *Handler) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -411,14 +416,6 @@ func (h *Handler) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 	if req.Settings != nil {
 		s, _ := json.Marshal(req.Settings)
 		params.Settings = s
-	}
-	if req.Repos != nil {
-		reposJSON, err := validateAndNormalizeWorkspaceRepos(req.Repos)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		params.Repos = reposJSON
 	}
 	if req.IssuePrefix != nil {
 		prefix, ok := normalizeIssuePrefix(*req.IssuePrefix)
@@ -1277,7 +1274,7 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			run:  func() error { return qtx.DeleteWorkspaceIssueRoots(ctx, requester.WorkspaceID) },
 		},
 		{
-			// issue_status carries no foreign key by project rule, so its rows
+			// issue_status carries no foreign key by repo rule, so its rows
 			// are swept explicitly. Placed after the issue deletes so no issue
 			// row outlives the catalog its status key resolves against.
 			// (ENA-6243)
@@ -1311,12 +1308,18 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			run:  func() error { return qtx.DeleteWorkspacePluginData(ctx, requester.WorkspaceID) },
 		},
 		{
+			// Runs after skills so a listing's own workspace is torn down in
+			// the same pass as the entities it published from.
+			name: "delete marketplace data",
+			run:  func() error { return qtx.DeleteWorkspaceMarketplaceData(ctx, requester.WorkspaceID) },
+		},
+		{
 			name: "delete agents",
 			run:  func() error { return qtx.DeleteWorkspaceAgents(ctx, requester.WorkspaceID) },
 		},
 		{
-			name: "delete runtimes and projects",
-			run:  func() error { return qtx.DeleteWorkspaceRuntimesAndProjects(ctx, requester.WorkspaceID) },
+			name: "delete runtimes",
+			run:  func() error { return qtx.DeleteWorkspaceRuntimes(ctx, requester.WorkspaceID) },
 		},
 		{
 			name: "delete administration data",

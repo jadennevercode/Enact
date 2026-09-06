@@ -67,10 +67,9 @@ WHERE atq.issue_id = $1;
 
 -- name: ListDashboardUsageDaily :many
 -- Daily per-(date, provider, model) token aggregates for the workspace, served
--- from the UTC-bucketed `task_usage_hourly` table and
--- sliced to calendar days under the caller-supplied @tz. Optionally
--- scoped to a single project via sqlc.narg('project_id'). Powers the
--- workspace dashboard's daily cost chart.
+-- from the UTC-bucketed `task_usage_hourly` table and sliced to calendar
+-- days under the caller-supplied @tz. Powers the workspace dashboard's
+-- daily cost chart.
 -- The viewer's tz is applied here at query time, so a viewer in
 -- Asia/Shanghai gets their "today" cut at +08 and one in
 -- America/Los_Angeles gets theirs at -08 against the same UTC rows.
@@ -100,7 +99,6 @@ SELECT
 FROM task_usage_hourly
 WHERE workspace_id = $1
   AND bucket_hour >= sqlc.arg('since')::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR project_id = sqlc.narg('project_id'))
 GROUP BY DATE(bucket_hour AT TIME ZONE sqlc.arg('tz')::text), LOWER(provider), model
 ORDER BY DATE(bucket_hour AT TIME ZONE sqlc.arg('tz')::text) DESC, LOWER(provider), model;
 
@@ -136,13 +134,11 @@ SELECT
 FROM task_usage_hourly
 WHERE workspace_id = $1
   AND bucket_hour >= @since::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR project_id = sqlc.narg('project_id'))
 GROUP BY agent_id, LOWER(provider), model
 ORDER BY agent_id, LOWER(provider), model;
 
 -- name: ListDashboardRunTimeDaily :many
--- Daily per-date run time + task counts for the workspace, optionally
--- scoped to a single project. Powers the workspace dashboard's "Time"
+-- Daily per-date run time + task counts for the workspace. Powers the workspace dashboard's "Time"
 -- and "Tasks" metrics on the same toggle as Tokens / Cost. Bucketed by
 -- completed_at (terminal time) sliced into calendar days under the
 -- caller-supplied @tz — same Viewing-tz treatment as ListDashboardUsageDaily
@@ -178,13 +174,11 @@ WHERE a.workspace_id = $1
   AND atq.started_at IS NOT NULL
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= sqlc.arg('since')::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR i.project_id = sqlc.narg('project_id'))
 GROUP BY DATE(atq.completed_at AT TIME ZONE sqlc.arg('tz')::text)
 ORDER BY DATE(atq.completed_at AT TIME ZONE sqlc.arg('tz')::text) DESC;
 
 -- name: ListDashboardAgentRunTime :many
--- Per-agent total task run time and task count for the workspace, optionally
--- scoped to a single project. Counts only terminal runs (completed, failed,
+-- Per-agent total task run time and task count for the workspace. Counts only terminal runs (completed, failed,
 -- or cancelled) with both started_at and completed_at populated — queued/
 -- running tasks have no finite duration. Anchored on completed_at so the
 -- window matches the token cost window (which is anchored on tu.created_at,
@@ -214,13 +208,11 @@ WHERE a.workspace_id = $1
   AND atq.started_at IS NOT NULL
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= @since::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR i.project_id = sqlc.narg('project_id'))
 GROUP BY atq.agent_id
 ORDER BY total_seconds DESC;
 
 -- name: ListDashboardFailuresDaily :many
--- Daily per-(date, failure_reason) terminal-task counts for the workspace,
--- optionally scoped to a single project. Powers the workspace dashboard's
+-- Daily per-(date, failure_reason) terminal-task counts for the workspace. Powers the workspace dashboard's
 -- "Errors" trend and the errors-by-class breakdown.
 --
 -- Shape note: this returns EVERY terminal task, not just the failures. The
@@ -255,7 +247,6 @@ WHERE a.workspace_id = $1
   AND atq.status IN ('completed', 'failed')
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= sqlc.arg('since')::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR i.project_id = sqlc.narg('project_id'))
 GROUP BY 1, 2
 ORDER BY 1 DESC, 2;
 
@@ -282,6 +273,5 @@ WHERE a.workspace_id = $1
   AND atq.status IN ('completed', 'failed')
   AND atq.completed_at IS NOT NULL
   AND atq.completed_at >= @since::timestamptz
-  AND (sqlc.narg('project_id')::uuid IS NULL OR i.project_id = sqlc.narg('project_id'))
 GROUP BY atq.agent_id, 2
 ORDER BY atq.agent_id, 2;

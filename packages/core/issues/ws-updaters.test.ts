@@ -18,7 +18,6 @@ import {
 } from "./ws-updaters";
 import { issueKeys } from "./queries";
 import { labelKeys } from "../labels/queries";
-import { projectKeys } from "../projects/queries";
 import type {
   AgentActivityBucket,
   AgentRunCount,
@@ -40,7 +39,6 @@ const ISSUE_ID = "issue-1";
 const OTHER_ISSUE_ID = "issue-2";
 const PARENT_ISSUE_ID = "parent-1";
 const AGENT_ID = "agent-1";
-const PROJECT_ID = "project-1";
 
 const labelA: Label = {
   id: "label-a",
@@ -74,7 +72,6 @@ const baseIssue: Issue = {
   creator_type: "member",
   creator_id: "user-1",
   parent_issue_id: null,
-  project_id: null,
   position: 0,
   stage: null,
   start_date: null,
@@ -229,25 +226,6 @@ describe("onIssueLabelsChanged", () => {
       qc.getQueryData<IssueTableRowsResponse>(tableRowKey)?.rows[0]?.issue
         .labels,
     ).toEqual([labelB]);
-  });
-
-  it("patches the Project Gantt cache so label filters react in place", () => {
-    const PROJECT_ID = "project-1";
-    qc.setQueryData<Issue[]>(issueKeys.projectGantt(WS_ID, PROJECT_ID), [
-      baseIssue,
-      otherIssue,
-    ]);
-
-    onIssueLabelsChanged(qc, WS_ID, ISSUE_ID, [labelB]);
-
-    const gantt = qc.getQueryData<Issue[]>(
-      issueKeys.projectGantt(WS_ID, PROJECT_ID),
-    );
-    expect(gantt?.find((i) => i.id === ISSUE_ID)?.labels).toEqual([labelB]);
-    // Other issues in the same cache must not have their labels mutated.
-    expect(gantt?.find((i) => i.id === OTHER_ISSUE_ID)?.labels).toEqual([
-      labelA,
-    ]);
   });
 
   it("defers label-filtered flat-window invalidation until commit", () => {
@@ -493,50 +471,6 @@ describe("auxiliary issue activity ordering", () => {
   });
 });
 
-describe("project progress invalidation", () => {
-  let qc: QueryClient;
-
-  beforeEach(() => {
-    qc = new QueryClient();
-    qc.setQueryData(projectKeys.list(WS_ID), [
-      {
-        id: PROJECT_ID,
-        workspace_id: WS_ID,
-        title: "Project",
-        description: null,
-        icon: null,
-        status: "in_progress",
-        priority: "none",
-        lead_type: null,
-        lead_id: null,
-        issue_count: 1,
-        done_count: 0,
-        resource_count: 0,
-        created_at: "2025-01-01T00:00:00Z",
-        updated_at: "2025-01-01T00:00:00Z",
-      },
-    ]);
-  });
-
-  it("invalidates project queries when an issue status changes", () => {
-    onIssueUpdated(qc, WS_ID, {
-      id: ISSUE_ID,
-      status: "done",
-    });
-
-    expectInvalidated(qc, projectKeys.list(WS_ID));
-  });
-
-  it("invalidates project queries when a project issue is created", () => {
-    onIssueCreated(qc, WS_ID, {
-      ...baseIssue,
-      project_id: PROJECT_ID,
-    });
-
-    expectInvalidated(qc, projectKeys.list(WS_ID));
-  });
-});
-
 describe("onIssueCreated — carries the label snapshot into list cache", () => {
   it("keeps the created issue's labels so members other than the creator render it already labeled", () => {
     // The backend now attaches labels in the create transaction and echoes
@@ -636,72 +570,6 @@ describe("onIssueUpdated — position move is surgical, not a list refetch", () 
     expectInvalidated(qc, myAllListKey);
   });
 
-  it("moves the card out of the old project's list and flags the loaded target list (legacy diff fallback, no server flag)", () => {
-    // issueA.project_id is null; moving it into project-9 must reconcile both
-    // ends. No server flag here — this exercises the legacy cache-diff
-    // fallback that keeps a new frontend working against an older backend.
-    const targetKey = issueKeys.myListSorted(
-      WS_ID,
-      "project:project-9",
-      { project_id: "project-9" },
-      undefined,
-    );
-    qc.setQueryData<ListIssuesCache>(targetKey, makeListCache());
-
-    onIssueUpdated(qc, WS_ID, { ...issueA, project_id: "project-9" });
-
-    // Never hard-inserted (its page/slot is server knowledge) — the loaded
-    // target list is refetched instead.
-    expect(
-      qc.getQueryData<ListIssuesCache>(targetKey)?.byStatus.todo?.issues,
-    ).toEqual([]);
-    expectInvalidated(qc, targetKey);
-  });
-
-  it("drops the card from the old project's list on a server project_changed flag even when the cached project_id already matches", () => {
-    // Reproduces the drift state behind ENA-3669: the detail cache already
-    // carries the NEW project (e.g. a local optimistic write), so a cache
-    // diff would compute projectChanged=false — the authoritative server
-    // flag must still drive the membership reconcile for any list where the
-    // card lingers.
-    const moved: Issue = { ...issueA, project_id: "project-9" };
-    const oldProjectKey = issueKeys.myListSorted(
-      WS_ID,
-      "project:project-1",
-      { project_id: "project-1" },
-      undefined,
-    );
-    qc.setQueryData<Issue>(issueKeys.detail(WS_ID, moved.id), moved);
-    qc.setQueryData<ListIssuesCache>(oldProjectKey, makeListCache(moved));
-
-    onIssueUpdated(qc, WS_ID, moved, { projectChanged: true });
-
-    expect(
-      qc.getQueryData<ListIssuesCache>(oldProjectKey)?.byStatus.todo?.issues,
-    ).toEqual([]);
-  });
-
-  it("does NOT touch project lists when the server flag says project_changed=false (flag overrides the legacy diff)", () => {
-    // No detail/list cache for the issue, so the legacy diff would resolve
-    // oldProjectId=null and fire on the non-null incoming project_id. An explicit
-    // false flag from the server is authoritative and must suppress that.
-    const projectKey = issueKeys.myListSorted(
-      WS_ID,
-      "project:project-9",
-      { project_id: "project-9" },
-      undefined,
-    );
-    qc.setQueryData<ListIssuesCache>(projectKey, makeListCache());
-
-    onIssueUpdated(
-      qc,
-      WS_ID,
-      { ...issueA, project_id: "project-9" },
-      { projectChanged: false },
-    );
-
-    expect(qc.getQueryState(projectKey)?.isInvalidated).toBe(false);
-  });
 });
 
 // A board column header shows `byStatus[status].total`. On a status change the
@@ -1060,37 +928,3 @@ describe("onIssueDeleted", () => {
   });
 });
 
-// Regression coverage for the Project Gantt cache. The Gantt view rides its
-// own dedicated cache (server-filtered to `scheduled=true`); every WS-driven
-// path that can shift Gantt membership has to invalidate the prefix or the
-// timeline goes stale.
-describe("project gantt cache invalidation", () => {
-  const PROJECT_ID = "project-1";
-  let qc: QueryClient;
-
-  beforeEach(() => {
-    qc = new QueryClient();
-    qc.setQueryData<Issue[]>(
-      issueKeys.projectGantt(WS_ID, PROJECT_ID),
-      [baseIssue],
-    );
-  });
-
-  it("invalidates the project Gantt cache on issue:created", () => {
-    onIssueCreated(qc, WS_ID, otherIssue);
-    expectInvalidated(qc, issueKeys.projectGantt(WS_ID, PROJECT_ID));
-  });
-
-  it("invalidates the project Gantt cache on issue:updated", () => {
-    onIssueUpdated(qc, WS_ID, {
-      id: ISSUE_ID,
-      start_date: "2026-01-01T00:00:00Z",
-    });
-    expectInvalidated(qc, issueKeys.projectGantt(WS_ID, PROJECT_ID));
-  });
-
-  it("invalidates the project Gantt cache on issue:deleted", () => {
-    onIssueDeleted(qc, WS_ID, ISSUE_ID);
-    expectInvalidated(qc, issueKeys.projectGantt(WS_ID, PROJECT_ID));
-  });
-});

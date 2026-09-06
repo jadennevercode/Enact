@@ -19,7 +19,6 @@ describe("paths.workspace() shape", () => {
         "root",
         "usage",
         "issues",
-        "projects",
         "autopilots",
         "agents",
         "newAgent",
@@ -32,8 +31,11 @@ describe("paths.workspace() shape", () => {
         "runtimes",
         "ontologies",
         "skills",
+        "marketplace",
         "squads",
         "settings",
+        "settingsResources",
+        "settingsWorkspace",
       ]),
     );
   });
@@ -45,7 +47,6 @@ describe("paths.workspace() shape", () => {
     const expectedSegments: Array<[string, string]> = [
       ["usage", "usage"],
       ["issues", "issues"],
-      ["projects", "projects"],
       ["autopilots", "autopilots"],
       ["agents", "agents"],
       ["newAgent", "agents/new"],
@@ -58,8 +59,13 @@ describe("paths.workspace() shape", () => {
       ["runtimes", "runtimes"],
       ["ontologies", "ontologies"],
       ["skills", "skills"],
+      ["marketplace", "marketplace"],
       ["squads", "squads"],
       ["settings", "settings"],
+      ["settingsResources", "settings/resources"],
+      // A tab of the settings page rather than a page of its own, so its
+      // "segment" carries the query that selects the tab.
+      ["settingsWorkspace", "settings?tab=workspace"],
     ];
     const wsAsAny = ws as unknown as Record<string, () => string>;
     for (const [method, segment] of expectedSegments) {

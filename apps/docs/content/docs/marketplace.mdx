@@ -1,0 +1,234 @@
+---
+title: Marketplace
+description: Publish a skill, agent template, Agent Family, or MCP server so other workspaces can install a copy — and install what they have published.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+The Marketplace is a directory of capability you can install: [skills](/skills),
+agent templates, Agent Families, and MCP server entries. Installing one puts a
+**copy** in your own workspace, which you then edit like anything you wrote
+yourself.
+
+<Callout>
+Publishing is currently curated. The directory is filled by your deployment —
+the AI-SDLC delivery system ships in it — and
+the publish and manage actions are not shown in the app. The API still accepts a
+publish from a workspace owner or admin, which is how the deployment's own
+listings get there.
+</Callout>
+
+## What ships in it
+
+| Listing | What it is |
+|---|---|
+| **AI-SDLC Delivery** | An Agent Family of nine roles — intake, explore, contract, build, QA, release, operate, learn, and the orchestrator that judges across records — with the ten `sdlc-*` skills they run on |
+
+Each member agent and each skill is also listed on its own, for a team that
+wants one piece rather than the whole family.
+
+Every item in the directory is labelled **Installed** or **Not installed** for
+your workspace, and you can filter by either. An Agent Family that you already
+took shows as installed the same way a single skill does.
+
+## What you can publish
+
+| Kind | What travels | What does not |
+|---|---|---|
+| **Skill** | `SKILL.md` and every reference file | Nothing — a skill is prose, published as written |
+| **Agent template** | Name, description, instructions, model and effort settings, the skills it carries, the MCP servers it expects | Its environment variables, its runtime binding, its runtime configuration, and who was allowed to invoke it |
+| **Agent Family** | The family's description and coordination instructions, and every agent member as a full template — each with its own skills and MCP servers | The people in it, and the leader's row id; the leader is identified by which member it is |
+| **MCP server** | The server entry with every credential removed | `env` and header values, and the URL unless you mark it public |
+
+An Agent Family carries at most 16 agents, and each of those at most 32 skills.
+People are dropped rather than published: they name members of your workspace,
+who are not members of anyone else's. Whoever installs the family adds their own.
+
+<Callout type="warn">
+Publishing never uploads content from your browser. You name one of your own
+entities and the server reads it, strips every credential-bearing field, and
+stores the result. That is what makes the redaction trustworthy.
+</Callout>
+
+## Publishing
+
+The publish and manage actions are not shown in the app while the directory is
+curated. What follows describes the publish the API still performs — it is what
+the deployment's own catalog goes through, and what returns to the UI when
+publishing opens up.
+
+A publish chooses two things beyond the metadata:
+
+- **Who can see it.** `This workspace only` is an internal team library. `Public`
+  reaches every workspace in the deployment. Start internal and make it public
+  when you are ready — both install the same way.
+- **A version.** A published version is never overwritten. Publishing again under
+  the same handle adds a version to the same listing, so the link keeps working
+  and the history stays in one place. Re-publishing an existing version string is
+  refused.
+
+### Values the publisher withholds
+
+For an MCP server, `env` values, header values and the URL are replaced with
+empty values and listed in the manifest as **required secrets**. Whoever installs
+the listing supplies their own. If a particular value is genuinely not a
+credential — a public endpoint, say — you can mark it to be published as written.
+
+A credential written inline in a server's `command` or `args`, or in an agent's
+custom arguments, **fails the publish** rather than being redacted. Rewriting a
+process invocation silently would be worse than a refusal; move the value into
+the server's environment and publish again.
+
+## Installing
+
+Open a listing to see what installing would create — an agent template lists the
+skills it brings and the MCP servers it expects, and an Agent Family lists every
+member agent in full — then choose **Install**.
+
+The form asks only for what the listing cannot know:
+
+- **A name in your workspace.** Leave it blank to keep the published one.
+- **A runtime**, for an agent template or an Agent Family. A template names no
+  machine, so you pick one of yours; a family binds every member to it, and you
+  can move any of them afterwards. If the template was written for a different
+  provider, settings your runtime does not support are left unset rather than
+  blocking the install.
+- **The withheld values**, if the listing has any. A family's are keyed by the
+  member as well as the server, since two members can expect a server of the
+  same name.
+
+### Installing an Agent Family
+
+Installing a family is one act that creates everything it needs: every member
+agent, the skills each of them carries, the MCP servers each of them expects,
+and the family that binds them, with the published leader and roles intact. It
+either all lands or none of it does — a family whose members half-arrived would
+route work to agents that do not exist.
+
+Members whose names are already taken in your workspace are installed under a
+suffixed name rather than replacing what you have. Each installed agent starts
+private to you, so give the ones your team should reach the visibility they
+need afterwards.
+
+If the name is already taken, you are offered the same choices a skill import
+gives you: install under a different name, or replace the existing one. Replacing
+is limited to the original creator of the skill being replaced.
+
+## An install is a copy, not a subscription
+
+Nothing about an installed skill or agent follows the listing afterwards. Editing
+your copy is safe, and a new version of the listing changes nothing until someone
+installs it.
+
+The Marketplace remembers which version you took, so a listing you already have
+shows **Update to vX** when a newer one is published. Taking the update is an
+install of that version, made deliberately.
+
+<Callout>
+An installed skill is not refreshable from the skill page. "Update from source"
+re-downloads whatever a URL serves today; a marketplace update is an install of a
+version you chose. Use the listing.
+</Callout>
+
+## Taking a listing down
+
+A publishing workspace can **deprecate** a listing, which hides it from browsing
+while leaving it installable for anyone who already depends on it, or **take it
+down**, which stops new installs entirely. Both are API actions while publishing
+is curated.
+
+Neither touches a workspace that already installed it. Their copy is theirs.
+
+## Recommended for this project
+
+Above the directory, the Marketplace ranks what you could install against what
+your workspace says its project is — its stack, its domain, and the kinds of
+work it brings here. Fill that in under **Settings → Workspace**, or ask Mika in
+chat and she will ask a few questions and write it for you.
+
+Every recommendation states why it is there: the value from your profile that
+matched, and where it matched. A tag the publisher chose counts for more than a
+mention in a paragraph, and popularity is capped so a listing everyone has
+installed cannot dominate a ranking that is supposed to be about your project.
+
+Some results say **not about this project**. Those are what the deployment
+ships, shown because nothing better matched. They are labelled rather than
+hidden, so an empty rail never means "there is nothing for you".
+
+The ranking is computed fresh every time you open the page, against the
+directory as it is at that moment — so something published this afternoon
+reaches a workspace that was set up this morning.
+
+**Not this one** turns a recommendation down for the version you were shown.
+Publishing a new version of that listing puts it back in front of you, because
+a new version is a different proposition.
+
+<Callout>
+Nothing about this ranking involves a model. It is a scoring pass over listing
+metadata, which is why it is fast, free, and why every result can tell you what
+it matched on. Ask Mika when you want judgement on top of it — which of these
+to install, and what to change afterwards.
+</Callout>
+
+## Prerequisites
+
+A listing can declare what must be true on your side before the copy works:
+host tooling, a plugin, a directory layout. Nothing checks them — the condition
+is on your machine, not the server's — so they are shown before you install and
+nothing more.
+
+Read them. An Agent Family whose skills shell out to an engine installed on the
+publisher's host will arrive describing commands your machine does not have.
+
+## Ontologies
+
+The Marketplace's last tab lists ontologies. These are not listings: they are
+served by Capability Hub and attached to an agent rather than copied into a
+workspace. The tab is there so capability is discoverable in one place; managing
+an attachment happens on the [Ontologies](/skills) page.
+
+An ontology your workspace has already attached is labelled **Installed** like
+anything else, and the installed filter applies to this tab too.
+
+## From the CLI
+
+```bash
+enact marketplace list --kind skill --output json
+enact marketplace list --not-installed --output json
+enact marketplace recommend --output json
+enact marketplace get <listing-id> --output json
+enact marketplace install <listing-id> --output json
+
+# An agent template needs a runtime, and any withheld values.
+enact marketplace install <listing-id> \
+  --runtime-id <runtime-id> \
+  --secret env.GITHUB_TOKEN=... \
+  --output json
+
+# An Agent Family is kind=squad. It binds every member to one runtime, and its
+# withheld values name the member as well as the server.
+enact marketplace list --kind squad --output json
+enact marketplace install <listing-id> \
+  --runtime-id <runtime-id> \
+  --secret reviewer/github/env.GITHUB_TOKEN=... \
+  --output json
+```
+
+`enact marketplace list` reports `INSTALLED` per row — the version you hold, or
+`no` — and `--installed` / `--not-installed` narrow the listing to one side.
+
+There is no publish command. Publishing is an administrator's decision about what
+leaves the workspace, and the API refuses it for agent callers. The deployment's
+own listings are published by the server at startup, from the workspace that
+holds them.
+
+## Permissions
+
+| Action | Who |
+|---|---|
+| Browse and open listings | Any workspace member |
+| Install a skill, agent template or Agent Family | Any workspace member |
+| Install an MCP server | Workspace owner or admin |
+| Publish, edit, deprecate or take down a listing | Owner or admin of the publishing workspace, over the API — no UI while publishing is curated |
+
+Agents can browse and install. They cannot publish.

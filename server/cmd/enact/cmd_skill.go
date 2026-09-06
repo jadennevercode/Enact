@@ -77,6 +77,13 @@ var skillSearchCmd = &cobra.Command{
 	RunE:  runSkillSearch,
 }
 
+var skillVersionsCmd = &cobra.Command{
+	Use:   "versions <skill-id>",
+	Short: "List the version history of a skill",
+	Args:  exactArgs(1),
+	RunE:  runSkillVersions,
+}
+
 // Skill file subcommands.
 
 var skillFilesCmd = &cobra.Command{
@@ -114,6 +121,7 @@ func init() {
 	skillCmd.AddCommand(skillImportCmd)
 	skillCmd.AddCommand(skillRefreshCmd)
 	skillCmd.AddCommand(skillSearchCmd)
+	skillCmd.AddCommand(skillVersionsCmd)
 	skillCmd.AddCommand(skillFilesCmd)
 
 	skillFilesCmd.AddCommand(skillFilesListCmd)
@@ -158,6 +166,9 @@ func init() {
 
 	// skill search
 	skillSearchCmd.Flags().String("output", "json", "Output format: table or json")
+
+	// skill versions
+	skillVersionsCmd.Flags().String("output", "table", "Output format: table or json")
 
 	// skill files list
 	skillFilesListCmd.Flags().String("output", "table", "Output format: table or json")
@@ -632,6 +643,44 @@ func runSkillSearch(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// runSkillVersions lists the snapshots a skill has had. The version bodies are
+// deliberately not in this response — a version list is read to pick a version,
+// then `enact skill get` reads the one that was picked.
+func runSkillVersions(cmd *cobra.Command, args []string) error {
+	client, err := newAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := cli.APIContext(context.Background())
+	defer cancel()
+
+	var result map[string]any
+	if err := client.GetJSON(ctx, "/api/skills/"+args[0]+"/versions", &result); err != nil {
+		return fmt.Errorf("list skill versions: %w", err)
+	}
+
+	output, _ := cmd.Flags().GetString("output")
+	if output == "json" {
+		return cli.PrintJSON(os.Stdout, result)
+	}
+
+	versions := nestedList(result, "versions")
+	headers := []string{"VERSION", "SOURCE", "SUMMARY", "CURRENT", "CREATED_AT"}
+	rows := make([][]string, 0, len(versions))
+	for _, v := range versions {
+		rows = append(rows, []string{
+			strVal(v, "version"),
+			strVal(v, "source"),
+			strVal(v, "summary"),
+			strVal(v, "is_current"),
+			strVal(v, "created_at"),
+		})
+	}
+	cli.PrintTable(os.Stdout, headers, rows)
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Skill file subcommands
 // ---------------------------------------------------------------------------
@@ -724,4 +773,18 @@ func runSkillFilesDelete(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Skill file deleted: %s\n", args[1])
 	return nil
+}
+
+// nestedList reads a JSON array of objects out of a decoded response body,
+// skipping anything that is not an object. A response that drifts is rendered
+// short rather than crashing the command.
+func nestedList(m map[string]any, key string) []map[string]any {
+	raw, _ := m[key].([]any)
+	out := make([]map[string]any, 0, len(raw))
+	for _, item := range raw {
+		if obj, ok := item.(map[string]any); ok {
+			out = append(out, obj)
+		}
+	}
+	return out
 }

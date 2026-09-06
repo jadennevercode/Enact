@@ -28,7 +28,7 @@ const issueViewBodyMaxBytes = 128 * 1024
 const issueViewsPerOwnerMax = 100
 
 var (
-	validIssueViewScopeTypes        = []string{"workspace", "my", "project"}
+	validIssueViewScopeTypes        = []string{"workspace", "my"}
 	validIssueViewMyVariants        = []string{"assigned", "created", "involved", "any"}
 	validIssueViewWorkspaceVariants = []string{"members", "agents"}
 	validIssueViewVisibilities      = []string{"private", "workspace"}
@@ -36,8 +36,8 @@ var (
 
 // validateIssueViewVariant returns the pgtype value for a scope_variant
 // input under the given scope_type, or ok=false when the pairing is
-// invalid. Workspace and project variants are optional assignee-type
-// narrowing (NULL = the unrestricted All tab); my variants are required.
+// invalid. Workspace variants are optional assignee-type narrowing
+// (NULL = the unrestricted All tab); my variants are required.
 func validateIssueViewVariant(scopeType string, variant *string) (pgtype.Text, bool) {
 	switch scopeType {
 	case "my":
@@ -45,7 +45,7 @@ func validateIssueViewVariant(scopeType string, variant *string) (pgtype.Text, b
 			return pgtype.Text{}, false
 		}
 		return pgtype.Text{String: *variant, Valid: true}, true
-	default: // workspace, project
+	default: // workspace
 		if variant == nil || *variant == "" || *variant == "all" {
 			return pgtype.Text{}, true
 		}
@@ -185,24 +185,6 @@ func (h *Handler) CreateIssueView(w http.ResponseWriter, r *http.Request) {
 	}
 	var scopeID pgtype.UUID
 	switch req.ScopeType {
-	case "project":
-		if req.ScopeID == nil {
-			writeError(w, http.StatusBadRequest, "scope_id is required for project views")
-			return
-		}
-		projUUID, ok := parseUUIDOrBadRequest(w, *req.ScopeID, "scope_id")
-		if !ok {
-			return
-		}
-		// The project must exist in this workspace — a view on a foreign or
-		// deleted project would be unreachable and could leak across tenants.
-		if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-			ID: projUUID, WorkspaceID: wsUUID,
-		}); err != nil {
-			writeError(w, http.StatusNotFound, "project not found")
-			return
-		}
-		scopeID = projUUID
 	case "my":
 		// My Issues is a per-user perspective; sharing it is meaningless.
 		req.Visibility = "private"

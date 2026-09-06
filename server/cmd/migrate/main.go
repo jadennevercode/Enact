@@ -251,6 +251,44 @@ var concurrentIndexCleanups = map[string]string{
 	"396_plugin_package_file_path_index":                        "idx_plugin_package_file_path",
 	"397_plugin_installation_package_version_index":             "idx_plugin_installation_package_version",
 	"403_squad_system_identity":                                 "squad_system_identity_unique",
+	"405_marketplace_listing_slug_index":                        "idx_marketplace_listing_slug",
+	"406_marketplace_listing_browse_index":                      "idx_marketplace_listing_browse",
+	"407_marketplace_listing_workspace_index":                   "idx_marketplace_listing_workspace",
+	"408_marketplace_listing_version_unique_index":              "idx_marketplace_listing_version_unique",
+	"409_marketplace_listing_version_listing_index":             "idx_marketplace_listing_version_listing",
+	"410_marketplace_listing_file_path_index":                   "idx_marketplace_listing_file_path",
+	"411_marketplace_install_workspace_index":                   "idx_marketplace_install_workspace",
+	// Cross-workspace runtimes (migrations 412-419). The machine unique index
+	// is the arbiter the registration upsert conflicts on and the publication
+	// unique index is the arbiter the publish upsert conflicts on, so an
+	// INVALID leftover from an interrupted build would not merely slow a query
+	// down — it would break ON CONFLICT for daemon registration and profile
+	// publishing outright.
+	"413_machine_daemon_id_index":                   "idx_machine_daemon_id",
+	"414_machine_owner_index":                       "idx_machine_owner",
+	"415_agent_runtime_machine_index":               "idx_agent_runtime_machine",
+	"417_runtime_profile_workspace_unique_index":    "idx_runtime_profile_workspace_unique",
+	"418_runtime_profile_workspace_workspace_index": "idx_runtime_profile_workspace_workspace",
+	"419_runtime_profile_owner_index":               "idx_runtime_profile_owner",
+	"421_skill_version_unique_index":                "idx_skill_version_skill_version",
+	"423_lesson_workspace_number_index":             "idx_lesson_workspace_number",
+	"424_lesson_workspace_status_index":             "idx_lesson_workspace_status",
+	"425_lesson_target_skill_index":                 "idx_lesson_target_skill",
+	"426_lesson_event_lesson_index":                 "idx_lesson_event_lesson",
+	"428_retrospective_workspace_status_index":      "idx_retrospective_workspace_status",
+	"429_retrospective_issue_unique_index":          "idx_retrospective_issue_scope",
+	"430_retrospective_task_index":                  "idx_retrospective_task",
+	"433_workspace_resource_unique_index":           "uq_workspace_resource_key",
+	"434_workspace_resource_position_index":         "idx_workspace_resource_workspace",
+	// The retrospect sub-issue's once-only guarantee. An INVALID leftover from
+	// an interrupted build would not merely slow a query down — the insert
+	// relies on this index to reject a second retrospect on the same issue, so
+	// a broken one would let duplicates through.
+	"443_issue_origin_retrospect_index":             "idx_issue_origin_retrospect",
+	"445_agent_resource_resource_index":             "idx_agent_resource_resource",
+	"449_issue_origin_workspace_setup_index":        "idx_issue_origin_workspace_setup",
+	"450_issue_origin_repo_analysis_index":          "idx_issue_origin_repo_analysis",
+	"452_marketplace_recommendation_decision_index": "idx_marketplace_recommendation_decision_unique",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction
@@ -272,6 +310,7 @@ var concurrentDownIndexCleanups = map[string]string{
 	"371_comment_content_search_index_strategy":             "idx_comment_content_trgm",
 	"375_drop_issue_last_activity_index":                    "idx_issue_workspace_last_activity",
 	"391_drop_agent_task_queue_dispatched_prepare_index":    "idx_agent_task_queue_dispatched_prepare",
+	"436_drop_task_usage_project_index":                     "idx_task_usage_hourly_workspace_project_time",
 }
 
 var preMigrationHooks = func() map[string]preMigrationHook {

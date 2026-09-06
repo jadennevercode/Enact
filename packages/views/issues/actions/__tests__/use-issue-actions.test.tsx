@@ -126,7 +126,6 @@ const mockIssue: Issue = {
   parent_issue_id: null,
   start_date: null,
   due_date: null,
-  project_id: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 } as Issue;
@@ -323,10 +322,9 @@ describe("useIssueActions", () => {
     });
   });
 
-  it("openCreateSubIssue seeds the parent's project and assignee so the sub-issue inherits them", () => {
+  it("openCreateSubIssue seeds the parent's assignee so the sub-issue inherits it", () => {
     const parentIssue = {
       ...mockIssue,
-      project_id: "project-1",
       assignee_type: "agent",
       assignee_id: "agent-1",
     } as Issue;
@@ -339,7 +337,6 @@ describe("useIssueActions", () => {
     expect(mockOpenModal).toHaveBeenLastCalledWith("create-issue", {
       parent_issue_id: "issue-1",
       parent_issue_identifier: "TES-1",
-      project_id: "project-1",
       assignee_type: "agent",
       assignee_id: "agent-1",
     });
@@ -348,7 +345,6 @@ describe("useIssueActions", () => {
   it("openCreateSubIssue omits assignee when the parent has none", () => {
     const parentIssue = {
       ...mockIssue,
-      project_id: "project-1",
       assignee_type: null,
       assignee_id: null,
     } as Issue;
@@ -361,7 +357,6 @@ describe("useIssueActions", () => {
     expect(mockOpenModal).toHaveBeenLastCalledWith("create-issue", {
       parent_issue_id: "issue-1",
       parent_issue_identifier: "TES-1",
-      project_id: "project-1",
     });
   });
 

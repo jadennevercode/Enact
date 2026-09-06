@@ -1,0 +1,92 @@
+# Access Scope 声明 · releases/rel-<NNNN>/access-scopes.yaml
+#
+# 字段对齐流程附录 G。检查它的是 scopes_cover_or_unscoped、scopes_no_principals、
+# scope_refs_resolve。
+#
+# 一句话：它声明受治理的资源边界，不授予任何人访问权。谁能访问由外部平台的
+# principal assignment 决定，不由这个文件决定。
+#
+# 绝对不能出现的键（scopes_no_principals 递归扫全文件，嵌在第三层也会被抓到）：
+#   users user groups group roles role entitlements entitlement
+#   assignments assignment grants grant principals principal members_users acl
+# accountable_owner 是问责人，不是被授权人，可以写。
+
+release: rel-0001
+bundle_revision: r0003            # 候选 revision；scope_refs_resolve 拿它解析成员 id
+
+# 必须原样带这句，一个字都不能改。scopes_cover_or_unscoped 在这里找
+# "do not grant access"。它存在是因为这个文件长得很像权限配置。
+warning: >-
+  Access scopes define governed resource boundaries.
+  They do not grant access to users or groups.
+
+# 至少两个。一个 scope 等于没有 scope——它没划出任何边界。
+scopes:
+  - scope_key: gl_core                    # bundle-local，稳定；改展示名不换 key
+    display_name: 总账核心
+    description: 分录、会计期间及其属性。面向总账日常查询与对账（这里用自然语言说明面向谁，不要做成结构化的键）
+    accountable_owner: OO1
+    lifecycle_status: active              # active | deprecated | draft
+    member_declaration_ids:               # 稳定 declaration id，不用 label、不用画布位置
+      - ent.journal_entry
+      - ent.close_period
+      - rel.belongs_to_period
+      - attr.journal_entry.amount
+      - attr.journal_entry.status
+    governed_surfaces:                    # 附录 G。这一组描述边界暴露什么面，不描述给谁
+      discover: true
+      reference: true
+      retrieve: true
+      read: true
+      aggregate: true
+      evidence_trace_exposure: false      # 追溯链是否随查询暴露
+      policy_approved_field_groups: [financial]
+    intended_capability_metadata: 总账查询与月结对账
+    overlap_policy_reference: null        # 有重叠成员时指向允许它的治理政策
+    cross_scope_references: []
+    classified_field_exposure:
+      - declaration_id: attr.journal_entry.amount
+        classification: financial
+
+  - scope_key: gl_reversal
+    display_name: 冲销
+    description: 冲销分录、reverses 关系、审批事件与分录生命周期
+    accountable_owner: OO1
+    lifecycle_status: active
+    member_declaration_ids:
+      - ent.reversal_entry
+      - rel.reverses
+      - evt.reversal_approved
+      - lc.journal_entry
+    governed_surfaces:
+      discover: true
+      reference: true
+      retrieve: true
+      read: true
+      aggregate: false
+      evidence_trace_exposure: false
+      policy_approved_field_groups: []
+    intended_capability_metadata: 冲销申请的合规判断与审批派发
+    overlap_policy_reference: null
+    cross_scope_references:               # 关系两端落在不同 scope，要预览出来
+      - declaration_id: ent.journal_entry
+        in_scope: gl_core
+        via: rel.reverses
+        note: 冲销要指向原分录；一端可见另一端不可见时会漏信息
+    classified_field_exposure: []
+
+# 顶层的这个键才是 scopes_cover_or_unscoped 读的那个。
+# 附录 G 里还有一个 intentionally_unscoped_declarations，写了也行，但只有这个算数。
+# access-relevant = entity/relationship/attribute/event/lifecycle/metric/capability/binding；
+# constraint 与 policy 是关于资源的规则，不是资源，不算。
+intentionally_unscoped: []
+intentionally_unscoped_rationale: {}      # 列进去的每一条都该有理由；检查不管，人要看
+
+# 全部 scope 的成员合起来（重叠的出现两次，不去重），排序，换行连接，取摘要：
+#   import sys; sys.path.insert(0, "<pkg>/shared/lib"); import digest
+#   digest.text_digest("\n".join(sorted(all_members)))
+# 对不上的意思很具体：成员在批准之后被改过。改成员就要重算，
+# 而重算意味着上一次 access_scope_review 的批准失效了。
+membership_digest: sha256:<重算>
+
+release_manifest_reference: releases/rel-0001/submission-manifest.yaml

@@ -36,13 +36,6 @@ vi.mock("@enact/core/workspace/queries", () => ({
   }),
 }));
 
-vi.mock("@enact/core/projects/queries", () => ({
-  projectListOptions: (wsId: string) => ({
-    queryKey: ["projects", wsId],
-    queryFn: async () => [],
-  }),
-}));
-
 vi.mock("@enact/core/autopilots/queries", () => ({
   cronPreviewOptions: (wsId: string, expr: string, tz: string) => ({
     queryKey: ["cron-preview", wsId, expr, tz],
@@ -98,10 +91,6 @@ vi.mock("./subscriber-multi-select", () => ({
   SubscriberMultiSelect: () => <div data-testid="subscriber-multi-select" />,
 }));
 
-vi.mock("../../projects/components/project-picker", () => ({
-  ProjectPicker: ({ triggerRender }: { triggerRender: React.ReactElement }) => triggerRender,
-}));
-
 vi.mock("../pickers/timezone-picker", () => ({
   TimezonePicker: ({ value }: { value: string }) => <div data-testid="timezone-picker">{value}</div>,
 }));
@@ -118,7 +107,7 @@ function renderCreateDialog() {
 }
 
 const createButton = () => screen.getByRole("button", { name: "Create autopilot" });
-const assigneeTrigger = () => screen.getByRole("button", { name: /Select agent or squad/ });
+const assigneeTrigger = () => screen.getByRole("button", { name: /Select agent or agent family/ });
 
 describe("AutopilotDialog required-field feedback", () => {
   beforeEach(() => {
@@ -154,7 +143,7 @@ describe("AutopilotDialog required-field feedback", () => {
     await user.click(createButton());
 
     expect(
-      await screen.findByText("Choose the agent or squad that will run this autopilot."),
+      await screen.findByText("Choose the agent or agent family that will run this autopilot."),
     ).toBeInTheDocument();
     // The title error clears itself the moment the field is filled — no second
     // submit needed to retire an error the user has already fixed.
@@ -171,14 +160,14 @@ describe("AutopilotDialog required-field feedback", () => {
 
     await user.type(screen.getByLabelText("title"), "Daily digest");
     await user.click(createButton());
-    await screen.findByText("Choose the agent or squad that will run this autopilot.");
+    await screen.findByText("Choose the agent or agent family that will run this autopilot.");
 
     await user.click(assigneeTrigger());
     await user.click(await screen.findByRole("button", { name: /Scout/ }));
 
     await waitFor(() => {
       expect(
-        screen.queryByText("Choose the agent or squad that will run this autopilot."),
+        screen.queryByText("Choose the agent or agent family that will run this autopilot."),
       ).not.toBeInTheDocument();
     });
 

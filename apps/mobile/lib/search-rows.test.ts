@@ -1,9 +1,6 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
-import type {
-  Issue,
-  SearchIssueResult,
-  SearchProjectResult,
-} from "@enact/core/types";
+import type { Issue, SearchIssueResult } from "@enact/core/types";
 import { buildSearchRows } from "./search-rows";
 
 function issue(
@@ -19,17 +16,6 @@ function issue(
   } as SearchIssueResult;
 }
 
-function project(
-  partial: Partial<SearchProjectResult> & { id: string },
-): SearchProjectResult {
-  return {
-    id: partial.id,
-    title: partial.title ?? "Untitled",
-    status: partial.status ?? "in_progress",
-    match_source: partial.match_source ?? "title",
-  } as SearchProjectResult;
-}
-
 /** Header titles and row keys, top to bottom — what the user actually sees. */
 const shape = (rows: ReturnType<typeof buildSearchRows>) =>
   rows.map((r) => (r.kind === "header" ? `#${r.title}` : r.key));
@@ -39,7 +25,6 @@ describe("buildSearchRows", () => {
     const rows = buildSearchRows({
       query: "  ",
       issues: [],
-      projects: [],
       recentIssues: [{ id: "r1" } as Issue, { id: "r2" } as Issue],
     });
     expect(shape(rows)).toEqual(["#Recent", "r-r1", "r-r2"]);
@@ -47,29 +32,13 @@ describe("buildSearchRows", () => {
 
   it("returns nothing when there is neither a query nor recent history", () => {
     expect(
-      buildSearchRows({ query: "", issues: [], projects: [], recentIssues: [] }),
+      buildSearchRows({ query: "", issues: [], recentIssues: [] }),
     ).toEqual([]);
   });
 
-  // ENA-5824 regression: this screen renders every project before every issue,
-  // so a cancelled project used to be the first row even next to a live issue.
-  it("puts a cancelled project below a live issue instead of first", () => {
-    const rows = buildSearchRows({
-      query: "search",
-      issues: [issue({ id: "i-live", title: "search live", status: "in_progress" })],
-      projects: [project({ id: "p-dead", title: "search dead", status: "cancelled" })],
-      recentIssues: [],
-    });
-
-    expect(shape(rows)).toEqual([
-      "#Issues",
-      "i-i-live",
-      "#Cancelled",
-      "p-p-dead",
-    ]);
-  });
-
-  it("keeps live rows of both types above every cancelled row", () => {
+  // ENA-5824: cancelled work sinks into a trailing section rather than keeping
+  // its server rank among live rows.
+  it("puts a cancelled issue below every live issue", () => {
     const rows = buildSearchRows({
       query: "search",
       issues: [
@@ -77,22 +46,15 @@ describe("buildSearchRows", () => {
         issue({ id: "i-live", number: 2, title: "search b", status: "todo" }),
         issue({ id: "i-done", number: 3, title: "search c", status: "done" }),
       ],
-      projects: [
-        project({ id: "p-dead", title: "search p1", status: "cancelled" }),
-        project({ id: "p-live", title: "search p2", status: "planned" }),
-      ],
       recentIssues: [],
     });
 
     expect(shape(rows)).toEqual([
-      "#Projects",
-      "p-p-live",
       "#Issues",
       // 'done' stays live — only cancelled work is demoted.
       "i-i-live",
       "i-i-done",
       "#Cancelled",
-      "p-p-dead",
       "i-i-dead",
     ]);
   });
@@ -101,7 +63,6 @@ describe("buildSearchRows", () => {
     const rows = buildSearchRows({
       query: "ENA-7",
       issues: [issue({ id: "i-hit", number: 7, identifier: "ENA-7", status: "cancelled" })],
-      projects: [],
       recentIssues: [],
     });
 
@@ -112,9 +73,8 @@ describe("buildSearchRows", () => {
     const rows = buildSearchRows({
       query: "search",
       issues: [issue({ id: "i1", status: "todo" })],
-      projects: [project({ id: "p1", status: "completed" })],
       recentIssues: [],
     });
-    expect(shape(rows)).toEqual(["#Projects", "p-p1", "#Issues", "i-i1"]);
+    expect(shape(rows)).toEqual(["#Issues", "i-i1"]);
   });
 });

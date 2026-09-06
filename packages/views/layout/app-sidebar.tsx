@@ -77,10 +77,8 @@ import { useConfigStore } from "@enact/core/config";
 import { pinListOptions } from "@enact/core/pins/queries";
 import { useDeletePin, useReorderPins } from "@enact/core/pins/mutations";
 import { issueDetailOptions } from "@enact/core/issues/queries";
-import { projectDetailOptions } from "@enact/core/projects/queries";
 import type { PinnedItem } from "@enact/core/types";
 import { useLogout } from "../auth";
-import { ProjectIcon } from "../projects/components/project-icon";
 import { routeIconForPath } from "./route-icon-components";
 import { useT } from "../i18n";
 import {
@@ -90,8 +88,8 @@ import { ShortcutKeycaps } from "../common/shortcut-keycaps";
 import { useAppForeground } from "../common/use-app-foreground";
 
 // Top-level nav items stay active when the user is on a child route
-// (e.g. "Projects" stays lit on /:slug/projects/:id). Pinned items keep
-// strict equality elsewhere — a pinned project shouldn't highlight on
+// (e.g. "Issues" stays lit on /:slug/issues/:id). Pinned items keep
+// strict equality elsewhere — a pinned issue shouldn't highlight on
 // sub-pages of itself.
 function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
@@ -116,7 +114,6 @@ type NavKey =
   | "chat"
   | "myIssues"
   | "issues"
-  | "projects"
   | "autopilots"
   | "agents"
   | "squads"
@@ -124,6 +121,7 @@ type NavKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "marketplace"
   | "settings";
 
 // Static schema (key only) — labels resolved at render via useT("layout"),
@@ -133,7 +131,6 @@ type NavLabelKey =
   | "chat"
   | "my_issues"
   | "issues"
-  | "projects"
   | "autopilots"
   | "agents"
   | "squads"
@@ -141,6 +138,7 @@ type NavLabelKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "marketplace"
   | "settings";
 
 // Nav icons are NOT declared here: they are derived from each item's
@@ -154,7 +152,6 @@ const personalNav: { key: NavKey; labelKey: NavLabelKey }[] = [
 
 const workspaceNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "issues", labelKey: "issues" },
-  { key: "projects", labelKey: "projects" },
   { key: "autopilots", labelKey: "autopilots" },
   { key: "agents", labelKey: "agents" },
   { key: "squads", labelKey: "squads" },
@@ -165,6 +162,7 @@ const configureNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "runtimes", labelKey: "runtimes" },
   { key: "ontologies", labelKey: "ontologies" },
   { key: "skills", labelKey: "skills" },
+  { key: "marketplace", labelKey: "marketplace" },
   { key: "settings", labelKey: "settings" },
 ];
 
@@ -176,7 +174,7 @@ function DraftDot() {
 
 /**
  * Presentational pin row. The `label` and `iconNode` are computed by the
- * parent `PinRow` from cached issue / project detail queries — keeping
+ * parent `PinRow` from cached issue / view detail queries — keeping
  * this component dumb means the dnd-kit / navigation wiring lives in
  * one place and the data flow is explicit.
  */
@@ -266,7 +264,7 @@ function SortablePinItem({
 
 /**
  * Smart wrapper that resolves a pin's display data (label + status/icon)
- * from the issue / project detail query cache. Both queries are declared
+ * from the issue / view detail query cache. Both queries are declared
  * unconditionally with `enabled` gates so the hook order stays stable
  * regardless of `pin.item_type`.
  *
@@ -295,10 +293,6 @@ function PinRow({
     ...issueDetailOptions(wsId, pin.item_id),
     enabled: isIssue,
   });
-  const projectQuery = useQuery({
-    ...projectDetailOptions(wsId, pin.item_id),
-    enabled: pin.item_type === "project",
-  });
   const viewQuery = useQuery({
     ...issueViewDetailOptions(wsId, pin.item_id),
     enabled: isView,
@@ -311,12 +305,12 @@ function PinRow({
     // every view pin — auto-unpinning would permanently delete them all.
     // A deleted view's row simply hides instead.
     if (isView) return;
-    const err = isIssue ? issueQuery.error : projectQuery.error;
+    const err = issueQuery.error;
     if (err instanceof ApiError && err.status === 404 && !triggeredRef.current) {
       triggeredRef.current = true;
       onUnpin();
     }
-  }, [isIssue, isView, issueQuery.error, onUnpin, projectQuery.error]);
+  }, [isView, issueQuery.error, onUnpin]);
 
   const activeViewByContainer = useActiveIssueViewStore((s) => s.active);
   if (isView) {
@@ -325,29 +319,18 @@ function PinRow({
     const view = viewQuery.data;
     // One resolved scope drives the path AND the container key so an
     // unrecognised scope_type from a newer backend degrades coherently.
-    const scopeType: "workspace" | "my" | "project" =
-      view.scope_type === "my"
-        ? "my"
-        : view.scope_type === "project" && view.scope_id
-          ? "project"
-          : "workspace";
-    const viewPath =
-      scopeType === "my"
-        ? p.myIssues()
-        : scopeType === "project"
-          ? p.projectDetail(view.scope_id!)
-          : p.issues();
+    const scopeType: "workspace" | "my" =
+      view.scope_type === "my" ? "my" : "workspace";
+    const viewPath = scopeType === "my" ? p.myIssues() : p.issues();
     const containerKey = issueViewContainerKey(wsId, {
       scope_type: scopeType,
-      scope_id: scopeType === "project" ? view.scope_id : null,
+      scope_id: null,
     });
     return (
       <SortablePinItem
         pin={pin}
         // ?view= keeps a web reload on the view for the surfaces that mount
-        // the URL-sync hook (/issues, /my-issues). Project pages don't sync
-        // yet — there the query is inert and reload falls back to the plain
-        // page; click-through activation still works everywhere.
+        // the URL-sync hook (/issues, /my-issues).
         href={`${viewPath}?view=${view.id}`}
         pathname={pathname}
         onUnpin={onUnpin}
@@ -363,43 +346,24 @@ function PinRow({
     );
   }
 
-  if (isIssue) {
-    if (issueQuery.isPending) return <PinSkeleton />;
-    if (issueQuery.isError || !issueQuery.data) return null;
-    const issue = issueQuery.data;
-    const label = issue.title;
-    const iconNode = (
-      /* Override parent [&_svg]:size-4 — pinned items need smaller icons to match sm size */
-      <StatusIcon
-        status={issue.status}
-        category={issueStatusCategory(issue) ?? undefined}
-        className="!size-3.5 shrink-0"
-      />
-    );
-    return (
-      <SortablePinItem
-        pin={pin}
-        href={href}
-        pathname={pathname}
-        onUnpin={onUnpin}
-        label={label}
-        iconNode={iconNode}
-      />
-    );
-  }
-
-  if (projectQuery.isPending) return <PinSkeleton />;
-  if (projectQuery.isError || !projectQuery.data) return null;
-  const project = projectQuery.data;
-  const iconNode = <ProjectIcon project={project} size="sm" />;
+  if (issueQuery.isPending) return <PinSkeleton />;
+  if (issueQuery.isError || !issueQuery.data) return null;
+  const issue = issueQuery.data;
   return (
     <SortablePinItem
       pin={pin}
       href={href}
       pathname={pathname}
       onUnpin={onUnpin}
-      label={project.title}
-      iconNode={iconNode}
+      label={issue.title}
+      iconNode={
+        /* Override parent [&_svg]:size-4 — pinned items need smaller icons to match sm size */
+        <StatusIcon
+          status={issue.status}
+          category={issueStatusCategory(issue) ?? undefined}
+          className="!size-3.5 shrink-0"
+        />
+      }
     />
   );
 }
@@ -516,11 +480,9 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
     (pin: PinnedItem) =>
       pin.item_type === "issue"
         ? p.issueDetail(pin.item_id)
-        : pin.item_type === "project"
-          ? p.projectDetail(pin.item_id)
-          // Views know their target only after their detail loads — the row
-          // resolves its own href; this placeholder never renders as a link.
-          : "",
+        // Views know their target only after their detail loads — the row
+        // resolves its own href; this placeholder never renders as a link.
+        : "",
     [p],
   );
 

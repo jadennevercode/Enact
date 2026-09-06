@@ -24,6 +24,16 @@ const TEST_RESOURCES = { en: { common: enCommon, agents: enAgents } };
 // The DM tests exercise the header action wiring plus the real permission
 // rules (via auth + member fixtures); the tabbed body and avatar/presence
 // widgets are irrelevant weight, so they're stubbed.
+// The publish dialog belongs to the marketplace surface and is exercised
+// there; this file is about the agent detail page. Mocking it keeps the page's own
+// tests from having to stand up the three list queries the form loads.
+vi.mock("../../marketplace", () => ({
+  PublishDialog: () => null,
+  // Matches the shipped value: publishing is hidden, so these suites assert the
+  // page as a user sees it today.
+  MARKETPLACE_PUBLISHING_ENABLED: false,
+}));
+
 vi.mock("./agent-overview-pane", () => ({
   AgentOverviewPane: ({
     agent,
@@ -441,6 +451,19 @@ describe("AgentDetailPage DM button", () => {
     expect(
       screen.queryByLabelText("Agent actions"),
     ).not.toBeInTheDocument();
+  });
+
+  it("treats the Retrospect Agent as a built-in, exactly like Mika", async () => {
+    // The gate reads `system_key`, not a list of known keys, so a second
+    // built-in inherits Mika's treatment for free. This pins that: the server
+    // refuses to archive or publish either of them, and hard-coding "mika"
+    // here would leave the Retrospect Agent offering both and failing.
+    agentsRef.current = [{ ...baseAgent, system_key: "retrospect" }];
+    membersRef.current = [{ user_id: "user-1", role: "admin" }];
+    renderPage();
+
+    await screen.findByRole("button", { name: "Assign work" });
+    expect(screen.queryByLabelText("Agent actions")).not.toBeInTheDocument();
   });
 
   it("keeps the more-actions trigger for an editable non-system agent", async () => {

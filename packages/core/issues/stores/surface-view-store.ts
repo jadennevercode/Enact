@@ -5,8 +5,10 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { createWorkspaceAwareStorage, registerForWorkspaceRehydration } from "../../platform/workspace-storage";
 import { defaultStorage } from "../../platform/storage";
 import {
+  ISSUE_VIEW_STORE_VERSION,
   type IssueViewState,
   mergeViewStatePersisted,
+  migrateViewStatePersisted,
   viewStorePersistOptions,
   viewStoreSlice,
 } from "./view-store";
@@ -71,6 +73,23 @@ const issueSurfaceViewRegistryStore = createStore<IssueSurfaceViewRegistryState>
     }),
     {
       name: ISSUE_SURFACE_VIEW_STORAGE_KEY,
+      // This registry holds one view-state payload per surface, so it carries
+      // the same version as the store those payloads come from and runs the
+      // shared migration over every entry.
+      version: ISSUE_VIEW_STORE_VERSION,
+      migrate: (persisted: unknown) => {
+        if (!persisted || typeof persisted !== "object") return persisted;
+        const surfaces = (persisted as { surfaces?: unknown }).surfaces;
+        if (!surfaces || typeof surfaces !== "object") return persisted;
+        const migrated = Object.fromEntries(
+          Object.entries(surfaces as Record<string, unknown>).map(([key, entry]) => {
+            if (!entry || typeof entry !== "object") return [key, entry];
+            const { state, ...rest } = entry as { state?: unknown };
+            return [key, { ...rest, state: migrateViewStatePersisted(state) }];
+          }),
+        );
+        return { ...(persisted as object), surfaces: migrated };
+      },
       storage: createJSONStorage(() => createWorkspaceAwareStorage(defaultStorage)),
       partialize: (state) => ({ surfaces: state.surfaces }),
       merge: (persisted, current) => {

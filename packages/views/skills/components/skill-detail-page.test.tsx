@@ -17,6 +17,16 @@ const agentsRef = vi.hoisted(() => ({ current: [] as unknown[] }));
 const membersRef = vi.hoisted(() => ({ current: [] as unknown[] }));
 const canEditRef = vi.hoisted(() => ({ current: true }));
 
+// The publish dialog belongs to the marketplace surface and is exercised
+// there; this file is about the skill detail page. Mocking it keeps the page's own
+// tests from having to stand up the three list queries the form loads.
+vi.mock("../../marketplace", () => ({
+  PublishDialog: () => null,
+  // Matches the shipped value: publishing is hidden, so these suites assert the
+  // page as a user sees it today.
+  MARKETPLACE_PUBLISHING_ENABLED: false,
+}));
+
 vi.mock("@enact/core/hooks", () => ({ useWorkspaceId: () => "ws-1" }));
 vi.mock("@enact/core/workspace/queries", () => ({
   skillDetailOptions: (wsId: string, id: string) => ({

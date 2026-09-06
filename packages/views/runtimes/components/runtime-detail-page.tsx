@@ -169,9 +169,23 @@ export function RuntimeDetailPage({
       ? machine.runtimes[0]
       : machine.runtimes.find((runtime) => runtime.owner_id === currentUserId);
     if (!editable) return null;
+    // The machine-level rename is owner-only, so only offer the machine path
+    // to the owner. An admin renaming someone else's machine still goes
+    // through the per-workspace fan-out, which is scoped to what they
+    // administer — the same reach they had before machines existed.
+    const ownsMachine = machine.runtimes.some(
+      (runtime) => runtime.owner_id === currentUserId,
+    );
     return {
       runtimeId: editable.id,
-      currentName: sharedCustomName(machine.runtimes) ?? "",
+      machineId: ownsMachine ? machine.serverMachineId : null,
+      // A machine that has a server row carries its name on that row; the
+      // shared-custom-name heuristic is only for machines assembled by
+      // inference.
+      currentName:
+        (machine.serverMachineId
+          ? (editable.custom_name?.trim() ?? "")
+          : "") || (sharedCustomName(machine.runtimes) ?? ""),
     };
   }, [machine, isAdmin, currentUserId]);
 
@@ -351,6 +365,7 @@ export function RuntimeDetailPage({
           onOpenChange={setRenameOpen}
           wsId={wsId}
           runtimeId={renameTarget.runtimeId}
+          machineId={renameTarget.machineId}
           currentName={renameTarget.currentName}
         />
       )}

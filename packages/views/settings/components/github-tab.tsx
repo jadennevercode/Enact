@@ -126,7 +126,7 @@ export function GitHubTab() {
 
   if (!workspace) return null;
 
-  const repositoriesHref = `${navigation.pathname}?tab=repositories`;
+  const repositoriesHref = `${navigation.pathname}?tab=resources`;
 
   return (
     <SettingsTab

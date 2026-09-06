@@ -11,6 +11,23 @@ package mmm
 // roles. Model and thinking level are deliberately absent: they follow the
 // runtime/server defaults of whatever deployment this lands on.
 
+import "github.com/enact-ai/enact/server/internal/portfolio"
+
+// The portfolio shapes are shared with every other integration that
+// provisions the same server objects; the aliases keep this package's public
+// names (mmm.AgentSpec and friends) working for callers and tests.
+type (
+	AgentSpec     = portfolio.AgentSpec
+	SquadSpec     = portfolio.SquadSpec
+	AutopilotSpec = portfolio.AutopilotSpec
+	AgentManifest = portfolio.Manifest
+)
+
+// SkillPrefix is the invocation-key namespace the daemon assigns to skills
+// contributed by the mmm Claude Code plugin (claude_plugins.go keys plugin
+// skills as "<plugin-name>:<skill>").
+const SkillPrefix = "mmm:"
+
 // RuntimeSkillNames lists every skill the mmm Claude Code plugin contributes,
 // using the workspace skill names produced by the local-skill import path
 // (plugin skills are imported under their invocation key, "mmm:<skill>").
@@ -31,46 +48,6 @@ var RuntimeSkillNames = []string{
 	"mmm:stat-screening",
 }
 
-// AgentSpec is one agent in the portfolio.
-type AgentSpec struct {
-	Name         string
-	Description  string
-	Instructions string
-	// SkillNames are workspace skill names to bind for UI visibility and
-	// assignment. Claude runtimes load the plugin skills natively regardless.
-	SkillNames []string
-	// MaxConcurrentTasks caps parallel task claims for this agent.
-	MaxConcurrentTasks int
-	// EngineEnv marks agents whose tasks invoke the analysis engine; bootstrap
-	// injects MMM_ENGINE_INTERPRETER for them when the local runtime has one.
-	EngineEnv bool
-}
-
-// SquadSpec is the delivery squad that groups the portfolio.
-type SquadSpec struct {
-	Name        string
-	Description string
-	LeaderName  string
-	MemberNames []string
-}
-
-// AutopilotSpec is the scheduled daily-report automation.
-type AutopilotSpec struct {
-	Title              string
-	Description        string
-	AssigneeName       string
-	IssueTitleTemplate string
-	DefaultCron        string
-	DefaultTimezone    string
-}
-
-// AgentManifest is the complete portfolio bootstrap applies.
-type AgentManifest struct {
-	Agents    []AgentSpec
-	Squad     SquadSpec
-	Autopilot AutopilotSpec
-}
-
 const (
 	AgentNameOrchestrator    = "MMM Orchestrator"
 	AgentNameBusinessAnalyst = "MMM Business Analyst"
@@ -81,6 +58,11 @@ const (
 // DefaultAgentManifest returns the four-role MMM portfolio.
 func DefaultAgentManifest() AgentManifest {
 	return AgentManifest{
+		SkillPrefix:       SkillPrefix,
+		RuntimeSkillNames: RuntimeSkillNames,
+		PluginName:        "mmm",
+		SetupCommand:      "enact mmm setup",
+		BootstrapCommand:  "enact mmm agent bootstrap",
 		Agents: []AgentSpec{
 			{
 				Name:        AgentNameOrchestrator,
@@ -145,7 +127,7 @@ func DefaultAgentManifest() AgentManifest {
 					"mmm:master-data",
 				},
 				MaxConcurrentTasks: 2,
-				EngineEnv:          true,
+				NeedsRuntimeEnv:    true,
 			},
 			{
 				Name:        AgentNameMetadataManager,

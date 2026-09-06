@@ -903,7 +903,7 @@ RETURNING *;
 -- name: MarkAgentTaskWaitingLocalDirectory :one
 -- Transitions a freshly-dispatched task into 'waiting_local_directory' while
 -- the daemon waits for another in-flight task to release the path lock on a
--- project_resource of type local_directory. wait_reason carries a short
+-- workspace_resource of type local_directory. wait_reason carries a short
 -- human-readable hint (typically the contested path) that the UI surfaces
 -- alongside the status.
 --
@@ -2370,6 +2370,14 @@ WHERE a.workspace_id = $1
 GROUP BY a.id, a.name, a.avatar_url, a.created_at
 ORDER BY a.created_at ASC;
 
+-- name: IssueHasAgentTask :one
+-- Whether any agent has ever run against this issue.
+--
+-- Existence, not a list: the retrospect filing asks this on every transition
+-- into a done status, and ListTasksByIssue would return every column of every
+-- task — including the prompt and result blobs — to answer a yes/no.
+SELECT EXISTS (SELECT 1 FROM agent_task_queue WHERE issue_id = $1);
+
 -- name: ListTasksByIssue :many
 SELECT * FROM agent_task_queue
 WHERE issue_id = $1
@@ -2406,6 +2414,20 @@ RETURNING a.*;
 SELECT * FROM agent
 WHERE workspace_id = $1 AND system_key = $2 AND archived_at IS NULL
 ORDER BY created_at ASC, id ASC
+LIMIT 1;
+
+-- name: GetAgentBySystemKeyIncludingArchived :one
+-- The same identity lookup, but not blind to an archived row.
+--
+-- Needed by any provisioning path that must not create a second agent when an
+-- archived one already holds the slot: agent_system_identity_unique (migration
+-- 172) covers (workspace_id, owner_id, runtime_id, system_key) with no archived
+-- predicate, so inserting alongside an archived row fails on the index rather
+-- than producing the duplicate. Callers that only want an agent they can assign
+-- work to should use GetAgentBySystemKey instead.
+SELECT * FROM agent
+WHERE workspace_id = $1 AND system_key = $2
+ORDER BY archived_at NULLS FIRST, created_at ASC, id ASC
 LIMIT 1;
 
 -- name: FindSDLCDefaultAgentForUpdate :one
@@ -2451,16 +2473,6 @@ SET system_key = @system_key,
     updated_at = now()
 WHERE id = @id
 RETURNING *;
-
--- name: BindUnboundSDLCDefaultAgents :execrows
-UPDATE agent
-SET runtime_id = @runtime_id,
-    runtime_mode = 'local',
-    updated_at = now()
-WHERE workspace_id = @workspace_id
-  AND system_key = ANY(@system_keys::text[])
-  AND runtime_id IS NULL
-  AND archived_at IS NULL;
 
 -- name: CreateSystemUserAgent :one
 -- Creates a product-defined agent that members can still see, chat with, and

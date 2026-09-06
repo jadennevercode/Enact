@@ -45,7 +45,6 @@ func LockAndFindActiveDuplicate(
 	ctx context.Context,
 	q *db.Queries,
 	workspaceID pgtype.UUID,
-	projectID pgtype.UUID,
 	parentIssueID pgtype.UUID,
 	title string,
 	allowDuplicate bool,
@@ -54,7 +53,7 @@ func LockAndFindActiveDuplicate(
 	if normalizedTitle == "" {
 		return db.Issue{}, false, nil
 	}
-	if err := q.LockIssueDuplicateKey(ctx, lockKey(workspaceID, projectID, parentIssueID, normalizedTitle)); err != nil {
+	if err := q.LockIssueDuplicateKey(ctx, lockKey(workspaceID, parentIssueID, normalizedTitle)); err != nil {
 		return db.Issue{}, false, err
 	}
 	if allowDuplicate {
@@ -63,7 +62,6 @@ func LockAndFindActiveDuplicate(
 
 	duplicate, err := q.FindActiveDuplicateIssue(ctx, db.FindActiveDuplicateIssueParams{
 		WorkspaceID:     workspaceID,
-		ProjectID:       projectID,
 		ParentIssueID:   parentIssueID,
 		NormalizedTitle: normalizedTitle,
 	})
@@ -81,7 +79,6 @@ func LockAndFindRecentAutopilotDuplicate(
 	q *db.Queries,
 	workspaceID pgtype.UUID,
 	autopilotID pgtype.UUID,
-	projectID pgtype.UUID,
 	title string,
 	window time.Duration,
 ) (db.Issue, bool, error) {
@@ -89,14 +86,13 @@ func LockAndFindRecentAutopilotDuplicate(
 	if normalizedTitle == "" || !autopilotID.Valid || window <= 0 {
 		return db.Issue{}, false, nil
 	}
-	if err := q.LockIssueDuplicateKey(ctx, recentAutopilotLockKey(workspaceID, autopilotID, projectID, normalizedTitle)); err != nil {
+	if err := q.LockIssueDuplicateKey(ctx, recentAutopilotLockKey(workspaceID, autopilotID, normalizedTitle)); err != nil {
 		return db.Issue{}, false, err
 	}
 
 	duplicate, err := q.FindRecentAutopilotDuplicateIssue(ctx, db.FindRecentAutopilotDuplicateIssueParams{
 		WorkspaceID:     workspaceID,
 		OriginID:        autopilotID,
-		ProjectID:       projectID,
 		NormalizedTitle: normalizedTitle,
 		CreatedAfter:    pgtype.Timestamptz{Time: time.Now().UTC().Add(-window), Valid: true},
 	})
@@ -109,22 +105,20 @@ func LockAndFindRecentAutopilotDuplicate(
 	return duplicate, true, nil
 }
 
-func lockKey(workspaceID, projectID, parentIssueID pgtype.UUID, normalizedTitle string) string {
+func lockKey(workspaceID, parentIssueID pgtype.UUID, normalizedTitle string) string {
 	return strings.Join([]string{
 		"issue-active-duplicate",
 		util.UUIDToString(workspaceID),
-		util.UUIDToString(projectID),
 		util.UUIDToString(parentIssueID),
 		normalizedTitle,
 	}, "|")
 }
 
-func recentAutopilotLockKey(workspaceID, autopilotID, projectID pgtype.UUID, normalizedTitle string) string {
+func recentAutopilotLockKey(workspaceID, autopilotID pgtype.UUID, normalizedTitle string) string {
 	return strings.Join([]string{
 		"autopilot-recent-duplicate",
 		util.UUIDToString(workspaceID),
 		util.UUIDToString(autopilotID),
-		util.UUIDToString(projectID),
 		normalizedTitle,
 	}, "|")
 }

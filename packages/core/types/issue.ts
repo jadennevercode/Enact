@@ -75,7 +75,6 @@ export interface Issue {
   creator_type: IssueAssigneeType;
   creator_id: string;
   parent_issue_id: string | null;
-  project_id: string | null;
   position: number;
   // Ordered barrier group among sibling sub-issues (null = unstaged). The
   // parent assignee is notified/woken only when every sub-issue in a stage
@@ -102,4 +101,16 @@ export interface Issue {
    * created_at/updated_at values are second-precision; parse before comparing.
    */
   last_activity_at?: string | null;
+  /**
+   * How the issue came to exist when something other than a person typed it:
+   * `autopilot`, `quick_create`, `retrospect`, ... Open by design — the server
+   * grows the set — so read it as a hint and never as "this issue was typed by
+   * a human". Use `isRetrospectIssue` from `@enact/core/agents` rather than
+   * comparing the string in a component.
+   *
+   * `null` on an ordinary issue, and absent on an endpoint that does not
+   * project the column. Both mean "no provenance recorded"; nothing should
+   * distinguish them.
+   */
+  origin_type?: string | null;
 }

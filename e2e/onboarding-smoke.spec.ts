@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { TestApiClient } from "./fixtures";
+import { TestApiClient, e2eEmail } from "./fixtures";
 import { waitForPageText } from "./helpers";
 
 // Smoke test for the onboarding flow: welcome → About you (role +
@@ -9,7 +9,7 @@ import { waitForPageText } from "./helpers";
 // email per run so the user is always a fresh, un-onboarded user
 // landing on /onboarding.
 
-const EMAIL = `onboarding-v3-${Date.now()}@localhost`;
+const EMAIL = e2eEmail(`onboarding-v3-${Date.now()}`);
 const SHOTS_DIR = "../shots-rail";
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -77,7 +77,7 @@ test("onboarding — welcome → about you (answer path)", async ({ page }) => {
 
 test("onboarding — one skip clears the whole questionnaire step", async ({ page }) => {
   const api = new TestApiClient();
-  await api.login(`skip-${Date.now()}@localhost`, "Skipper");
+  await api.login(e2eEmail(`skip-${Date.now()}`), "Skipper");
   const token = api.getToken();
 
   await page.addInitScript((t) => localStorage.setItem("enact_token", t), token);
@@ -103,7 +103,7 @@ test("onboarding — zh-Hans renders Chinese labels", async ({ page, context, ba
     },
   ]);
   const api = new TestApiClient();
-  await api.login(`zh-${Date.now()}@localhost`, "中文用户");
+  await api.login(e2eEmail(`zh-${Date.now()}`), "中文用户");
   const token = api.getToken();
 
   await page.addInitScript((t) => localStorage.setItem("enact_token", t), token);

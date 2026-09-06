@@ -3743,11 +3743,11 @@ func TestEnsureRepoReadyRefreshesOnMiss(t *testing.T) {
 	}
 }
 
-// A project github_repo URL that the workspace itself does not bind must still
+// A workspace-resource github_repo URL that the workspace itself does not bind must still
 // be allowed for `enact repo checkout` after registerTaskRepos runs. Without
-// this, the new project-repos-override-workspace-repos behavior would surface
+// this, the resource-repos-override-workspace-repos behavior would surface
 // repos in the meta-skill that the agent then can't actually clone.
-func TestRegisterTaskReposAllowsProjectOnlyURL(t *testing.T) {
+func TestRegisterTaskReposAllowsResourceOnlyURL(t *testing.T) {
 	t.Parallel()
 
 	sourceRepo := createDaemonTestRepo(t)
@@ -3755,18 +3755,18 @@ func TestRegisterTaskReposAllowsProjectOnlyURL(t *testing.T) {
 	d := newRepoReadyTestDaemon(t, func(w http.ResponseWriter, r *http.Request) {
 		refreshCalls.Add(1)
 		// If the workspace endpoint is hit it returns an empty list — the
-		// project-only URL must NOT depend on this for allowlist membership.
+		// resource-only URL must NOT depend on this for allowlist membership.
 		json.NewEncoder(w).Encode(WorkspaceReposResponse{
 			WorkspaceID:  "ws-1",
 			Repos:        []RepoData{},
 			ReposVersion: "v1",
 		})
 	})
-	// Workspace has zero workspace-bound repos; the project resource gives us
+	// Workspace has zero workspace-bound repos; the workspace resource gives us
 	// the only repo URL the agent should be able to check out.
 	d.workspaces["ws-1"] = newWorkspaceState("ws-1", nil, "", nil, nil)
 
-	d.registerTaskRepos("ws-1", "task-project-only", []RepoData{{URL: sourceRepo}})
+	d.registerTaskRepos("ws-1", "task-resource-only", []RepoData{{URL: sourceRepo}})
 
 	// The async clone goroutine in registerTaskRepos may not have finished;
 	// poll briefly until the cache is populated so the test isn't racy.
@@ -3782,7 +3782,7 @@ func TestRegisterTaskReposAllowsProjectOnlyURL(t *testing.T) {
 	}
 
 	if !d.workspaceRepoAllowed("ws-1", sourceRepo) {
-		t.Fatal("expected project repo to pass workspaceRepoAllowed")
+		t.Fatal("expected resource repo to pass workspaceRepoAllowed")
 	}
 
 	if err := d.ensureRepoReady(context.Background(), "ws-1", sourceRepo); err != nil {
@@ -3791,15 +3791,15 @@ func TestRegisterTaskReposAllowsProjectOnlyURL(t *testing.T) {
 	// ensureRepoReady refreshes settings on every call (RFC ENA-2414 §4.8; PR
 	// #2847 review by Emacs) so a freshly-flipped GitHub toggle takes effect
 	// without waiting for the 30s sync tick. We expect exactly one refresh —
-	// the project-only URL still skips re-cloning because the cache is warm.
+	// the resource-only URL still skips re-cloning because the cache is warm.
 	if got := refreshCalls.Load(); got != 1 {
 		t.Fatalf("expected 1 workspace-repos refresh (settings live-refresh on checkout), got %d", got)
 	}
 }
 
 // Confirms that a workspace refresh wiping allowedRepoURLs does not also wipe
-// task-scoped URLs (project repos). Without the separate taskRepoURLs map a
-// concurrent refresh would silently revoke project-only URLs and the next
+// task-scoped URLs (workspace-resource repos). Without the separate taskRepoURLs map a
+// concurrent refresh would silently revoke resource-only URLs and the next
 // checkout would fail.
 func TestRegisterTaskReposSurvivesWorkspaceRefresh(t *testing.T) {
 	t.Parallel()
@@ -3826,7 +3826,7 @@ func TestRegisterTaskReposSurvivesWorkspaceRefresh(t *testing.T) {
 	}
 
 	if !d.workspaceRepoAllowed("ws-1", sourceRepo) {
-		t.Fatal("project repo URL was wiped by workspace refresh")
+		t.Fatal("resource repo URL was wiped by workspace refresh")
 	}
 }
 

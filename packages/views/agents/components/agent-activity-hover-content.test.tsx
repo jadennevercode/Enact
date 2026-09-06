@@ -74,7 +74,6 @@ function makeIssue(id: string, identifier: string, title: string): Issue {
     creator_type: "member",
     creator_id: "user-1",
     parent_issue_id: null,
-    project_id: null,
     position: 1,
     stage: null,
     start_date: null,

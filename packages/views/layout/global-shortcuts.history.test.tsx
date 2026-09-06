@@ -19,7 +19,6 @@ vi.mock("@enact/core/paths", () => ({
     chat: () => "/w/chat",
     myIssues: () => "/w/my-issues",
     issues: () => "/w/issues",
-    projects: () => "/w/projects",
     autopilots: () => "/w/autopilots",
     agents: () => "/w/agents",
     squads: () => "/w/squads",

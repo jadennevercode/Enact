@@ -19,7 +19,7 @@ import (
 //
 //   - preserve user-authored content in the same file (the user's repo may
 //     already ship a CLAUDE.md / AGENTS.md when the agent is pointed at a
-//     local_directory project resource),
+//     local_directory workspace resource),
 //   - replace the brief idempotently on subsequent runs in the same workdir
 //     instead of appending duplicate copies, and
 //   - leave a precise excision target for a future cleanup pass.
@@ -113,11 +113,11 @@ func sanitizeEmailForBrief(email string) string {
 	return email
 }
 
-// formatProjectResource renders a single resource as a human-readable bullet.
-// Unknown resource types fall back to a JSON-encoded ref so the agent can
-// still read what the user attached. New resource types should add a case
-// here AND in the API validator (handler/project_resource.go).
-func formatProjectResource(r ProjectResourceForEnv) string {
+// formatWorkspaceResource renders a single resource as a human-readable
+// bullet. Unknown resource types fall back to a JSON-encoded ref so the agent
+// can still read what the user attached. New resource types should add a case
+// here AND in the API validator (handler/workspace_resource.go).
+func formatWorkspaceResource(r WorkspaceResourceForEnv) string {
 	label := r.Label
 	switch r.ResourceType {
 	case "github_repo":
@@ -242,7 +242,7 @@ func runtimeConfigPath(workDir, provider string) string {
 // The previous implementation called os.WriteFile unconditionally, which
 // silently truncated a repository's CLAUDE.md / AGENTS.md the
 // first time the agent was pointed at the user's own directory via the
-// local_directory project resource flow. See ENA-2753.
+// local_directory workspace resource flow. See ENA-2753.
 func writeRuntimeConfigFile(path, brief string) error {
 	block := runtimeMarkerBegin + "\n" + strings.TrimRight(brief, "\n") + "\n" + runtimeMarkerEnd + "\n"
 

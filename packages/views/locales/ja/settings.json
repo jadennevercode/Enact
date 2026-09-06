@@ -215,10 +215,6 @@
         "label": "タスクへ移動",
         "description": "タスク一覧を開きます。"
       },
-      "goProjects": {
-        "label": "プロジェクトへ移動",
-        "description": "プロジェクト一覧を開きます。"
-      },
       "goAutopilots": {
         "label": "自動化へ移動",
         "description": "ワークスペースの自動化を開きます。"
@@ -275,7 +271,6 @@
       "priority": "優先度",
       "assignee": "担当者",
       "labels": "ラベル",
-      "project": "プロジェクト",
       "due_date": "期限",
       "start_date": "開始日"
     }
@@ -315,7 +310,7 @@
       "notifications": "通知",
       "tokens": "API トークン",
       "general": "一般",
-      "repositories": "リポジトリ",
+      "resources": "リソース",
       "github": "GitHub",
       "integrations": "連携",
       "labs": "ラボ",
@@ -686,7 +681,45 @@
     "change_logo_aria": "ワークスペースのロゴを変更",
     "click_logo_hint": "ロゴをクリックして新しい画像をアップロード",
     "toast_logo_updated": "ワークスペースのロゴを更新しました",
-    "toast_logo_failed": "ワークスペースのロゴをアップロードできませんでした"
+    "toast_logo_failed": "ワークスペースのロゴをアップロードできませんでした",
+    "profile": {
+      "section": "プロジェクトプロファイル",
+      "section_description": "このプロジェクトが何か。すべてのエージェント実行がここから始まり、Marketplace もこれを基準に並べ替えます。",
+      "summary_label": "概要",
+      "summary_placeholder": "一言か二言：このプロジェクトが何で、誰のためのものか。",
+      "domain_label": "ドメイン",
+      "domain_placeholder": "物流、臨床試験、開発者ツール…",
+      "stack_label": "技術スタック",
+      "stack_hint": "カンマ区切り。リスティングが何のためのものかと照合されます。",
+      "stack_placeholder": "go, typescript, postgres",
+      "languages_label": "作業言語",
+      "languages_placeholder": "ja, en",
+      "typical_work_label": "扱う仕事",
+      "typical_work_hint": "このワークスペースで扱う仕事の種類。推奨内容を決めます。",
+      "constraints_label": "制約",
+      "constraints_hint": "実行が守るべきこと：レビュー要件、環境、コンプライアンス。",
+      "constraints_placeholder": "本番変更には二人目のレビューが必要。",
+      "repo_brief_label": "リポジトリ",
+      "repo_brief_hint": "リポジトリを読んだ実行が書いたものです。変更は分析の再実行で行い、ここでは編集しません。",
+      "save": "プロファイルを保存",
+      "saving": "保存中…",
+      "discard": "変更を破棄",
+      "saved": "プロジェクトプロファイルを保存しました。",
+      "save_failed": "プロジェクトプロファイルを保存できませんでした。",
+      "typical_work": {
+        "ship_code": "コードを書く",
+        "review_code": "コードレビュー",
+        "plan_product": "プロダクト計画",
+        "research": "調査・分析",
+        "write_docs": "ドキュメント作成",
+        "automate_ops": "運用自動化",
+        "data_analysis": "データ分析",
+        "knowledge_modeling": "知識モデリング",
+        "design": "デザイン",
+        "support": "サポート",
+        "compliance": "コンプライアンス"
+      }
+    }
   },
   "delete_workspace_dialog": {
     "title": "ワークスペースを削除",
@@ -741,7 +774,7 @@
     "feature_auto_link_label": "タスクと PR を自動リンク",
     "feature_auto_link_description": "PR のタイトル、本文、ブランチ名をタスク識別子と照合し、自動でリンクを作成します。",
     "section_repositories": "リポジトリ",
-    "repositories_shortcut_label": "リポジトリ URL はリポジトリタブにあります",
+    "repositories_shortcut_label": "リポジトリ URL はリソースタブにあります",
     "repositories_shortcut_link": "リポジトリを管理 →",
     "toast_failed": "GitHub 設定を更新できませんでした"
   },
@@ -1088,49 +1121,6 @@
     "connect_cancel": "キャンセル",
     "connect_success_toast": "Telegram ボットを接続しました",
     "connect_failed_toast": "Telegram ボットを接続できませんでした"
-  },
-  "repositories": {
-    "section_title": "リポジトリ",
-    "description": "このワークスペースに関連付けられた Git リポジトリです。エージェントはこれらをクローンしてコードを作業します。",
-    "url_placeholder": "https://git.example.com/org/repo.git または git@git.example.com:org/repo.git",
-    "url_empty": "（空の URL）",
-    "description_placeholder": "説明（例: Go バックエンド + Next.js フロントエンド）",
-    "add": "リポジトリを追加",
-    "connect_github": "GitHub に接続",
-    "choose_from_github": "GitHub から選択",
-    "github_not_configured": "この環境では GitHub 接続が設定されていません。",
-    "github_browse_not_configured": "リポジトリの参照には GITHUB_APP_ID と GITHUB_APP_PRIVATE_KEY が必要です。",
-    "github_connect_failed": "GitHub に接続できませんでした。もう一度お試しください。",
-    "github_picker_title": "GitHub リポジトリを選択",
-    "github_picker_description": "このワークスペースに追加するリポジトリを選択します。既存の手動設定は変更されません。",
-    "github_account": "GitHub アカウント",
-    "github_search_placeholder": "読み込み済みのリポジトリを検索",
-    "github_loading": "リポジトリを読み込み中…",
-    "github_load_failed": "GitHub からリポジトリを読み込めませんでした。インストール権限を確認して再試行してください。",
-    "github_empty": "このインストールでアクセスできるリポジトリはありません。",
-    "github_no_search_results": "読み込み済みのリポジトリに一致するものがありません。",
-    "github_private": "非公開",
-    "github_archived": "アーカイブ済み",
-    "github_added": "追加済み",
-    "github_load_more": "さらに読み込む",
-    "github_selected_count": "{{count}} 件選択",
-    "github_cancel": "キャンセル",
-    "github_import": "リポジトリを追加",
-    "complete_manual_entry_first": "空の手動リポジトリを入力するか削除してからインポートしてください。",
-    "save": "保存",
-    "saving": "保存中...",
-    "saved_hint": "すべての変更を保存しました",
-    "empty": "まだリポジトリがありません。",
-    "edit_aria": "リポジトリを編集",
-    "cancel_aria": "編集をキャンセル",
-    "delete_aria": "リポジトリを削除",
-    "delete_confirm_title": "リポジトリを削除しますか？",
-    "delete_confirm_description": "このリポジトリはワークスペースから直ちに削除されます。",
-    "delete_confirm_cancel": "キャンセル",
-    "delete_confirm_action": "リポジトリを削除",
-    "manage_hint": "リポジトリを管理できるのは admin と owner のみです。",
-    "toast_saved": "リポジトリを保存しました",
-    "toast_save_failed": "リポジトリを保存できませんでした"
   },
   "desktop": {
     "tabs": {

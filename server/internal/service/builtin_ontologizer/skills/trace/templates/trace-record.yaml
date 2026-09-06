@@ -1,0 +1,78 @@
+# revisions/rNNNN/trace-index.yaml —— 一个版本的追溯索引。
+#
+# 这份文件由脚本从交付物推导，不由人手写。它和交付物说的不一致时，是索引错了。
+# 放在这里是为了讲清每一栏的含义，不是给你填的模板——手工编辑过的追溯记录
+# 等于没有追溯记录，trace_index_current 这项检查存在的理由就是这个。
+#
+# 写入时机：revision.py seal（那时这一版还没封存）。封存之后不许再写。
+
+revision: r0004                       # 这份索引属于哪一版
+built_at: 2026-09-03T10:12:44+08:00   # 构建时间
+includes_derived: false               # false = 存盘形态，不含 scope_membership 与 orphaned
+record_count: 3
+
+records:
+  # ---- 一个有证据支撑的对象 ----------------------------------------------
+  - object_id: ent.journal_entry      # 稳定技术标识，跨版本认它，不认显示名
+    object_kind: entity               # entity/relationship/attribute/event/lifecycle/constraint/…
+    object_revision: r0004            # 这条表示所在的版本；回答时永远要带上
+    source_ids:                       # 支撑它的来源；空 = 这个对象没有依据
+      - ev.gl-ch6
+    source_digests:                   # 来源快照的摘要；摘要变了说明底稿换了版本
+      - sha256:abc123…
+    anchors:                          # 出处：定位符 + 原始短语。念的时候原样念，不要转述
+      - location: process-general-ledger-ch6.md §6.2 第3段
+        exact_snippet: 已过账分录不得直接修改，只能通过冲销分录反向记账
+    support_types:                    # evidence/assumption/guidance/constraint/process_reference
+      - evidence
+    alignment_ids:                    # 连接来源与对象的映射记录，why 的链路靠它
+      - al.001
+    confidence_or_uncertainty: '0.9'  # 抽取与映射的不确定性；低的优先审
+    validator_results: []             # 点到这个对象名字的检查结果；空 ≠ 全绿，只是没人点它的名
+    change_history:                   # created / added / changed / unchanged，及相对哪个上一版
+      - revision: r0004
+        action: unchanged
+        parent: r0003
+    evaluation_links: []              # 依赖它的 Competency Question；有链接说明改它会影响评估
+    scope_membership: []              # Access Scope 成员身份；只在现算（derived=True）时有值
+    orphaned: false                   # 同上，只在现算时有意义
+
+  # ---- 一个只靠假设撑着的对象 --------------------------------------------
+  - object_id: rel.reverses
+    object_kind: relationship
+    object_revision: r0004
+    source_ids: [as.001]              # 这是假设的 id，不是证据来源
+    source_digests: []
+    anchors: []                       # 没有出处——因为它本来就没有证据
+    support_types: [assumption]       # 回答时必须明说"这是一条假设撑着的"
+    alignment_ids: []
+    confidence_or_uncertainty: null
+    validator_results: []
+    change_history:
+      - revision: r0004
+        action: changed
+        parent: r0003
+    evaluation_links: [cq.003]
+    scope_membership: []
+    orphaned: false
+
+  # ---- 一条断了的定位符（不是对象）---------------------------------------
+  # 只在现算（derived=True）时出现。上一版的意见指向了这一版里不存在的东西。
+  - object_id: ent.reversal_batch
+    object_kind: orphaned_locator
+    object_revision: r0004
+    source_ids: []
+    source_digests: []
+    anchors: []
+    support_types: []
+    alignment_ids: []
+    confidence_or_uncertainty: null
+    validator_results: []
+    change_history:
+      - revision: r0004
+        action: orphaned
+        from_comment: cr.007          # 它来自哪条变更请求
+        source_revision: r0002        # 那条意见是在哪一版提的
+    evaluation_links: []
+    scope_membership: []
+    orphaned: true

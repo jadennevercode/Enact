@@ -266,11 +266,12 @@
     "discard_dialog_title": "放弃未保存的修改？",
     "discard_dialog_description": "当前 tab 有未保存的修改，离开会丢弃这些修改。",
     "discard_keep": "继续编辑",
-    "discard_confirm": "放弃修改"
+    "discard_confirm": "放弃修改",
+    "knowledge": "知识库"
   },
   "creation_studio": {
     "title": "创建智能体",
-    "squad_title": "为小队创建智能体",
+    "squad_title": "为智能体小组创建智能体",
     "duplicate_title": "复制 {{name}}",
     "back": "返回",
     "eyebrow": "创建智能体",
@@ -287,13 +288,24 @@
         "description": "自己配置每个字段。适合已经明确知道智能体应该如何工作的用户。"
       },
       "template": {
-        "title": "使用模板",
-        "description": "从整理好的指令和 skill 开始，再根据工作区需要修改每个细节。"
+        "title": "从模版开始",
+        "description": "安装一个已发布的智能体模版再作调整。它自带指令、skill 和 MCP server。"
       },
       "ai": {
         "title": "通过 AI 创建",
         "description": "描述你想要的结果。Agent Builder 会提出关键问题并实时生成草稿。"
+      },
+      "retrospect": {
+        "title": "复盘智能体",
+        "description": "Enact 内置的复盘者。它会阅读已完成的工作，提出对 skill、智能体和智能体家族的修改建议，并把团队学到的东西写下来。"
       }
+    },
+    "retrospect": {
+      "dialog_title": "让复盘智能体在哪个运行时上运行？",
+      "dialog_description": "选择它用来复盘的运行时。配置之后，有智能体参与的任务一旦完成，就会在它下面自动生成一条复盘任务。它对配置的修改建议始终以评论形式提出，等人同意后才执行。",
+      "cancel": "取消",
+      "confirm": "配置智能体",
+      "failed": "无法配置复盘智能体。"
     },
     "sections": {
       "identity": "身份",
@@ -341,7 +353,7 @@
       "empty_description": "描述它的角色、工作流程、输出或约束，右侧会生成第一版草稿。",
       "prompt_review": "审查前端 Pull Request",
       "prompt_research": "研究竞品并整理结论",
-      "prompt_assistant": "帮助团队规划和撰写项目",
+      "prompt_assistant": "帮我们团队规划和撰写方案",
       "thinking": "正在更新草稿…",
       "placeholder": "描述你需要的智能体…",
       "send": "发送消息"
@@ -351,7 +363,7 @@
     "duplicate_env_notice": "指令、skill 和命令行参数会被复制。环境变量、MCP 服务器和本机运行时配置不会复制。",
     "duplicate_runtime_reset_notice": "原运行时当前不可用，副本已改用其他运行时。模型、思考等级和速度只在所选运行时上有效，因此已被清空。",
     "create_and_open": "创建并打开",
-    "create_and_add": "创建并加入小队",
+    "create_and_add": "创建并加入智能体小组",
     "creating": "正在创建…",
     "create_failed": "无法创建智能体。",
     "name_conflict": "工作区中已存在同名智能体。",
@@ -405,7 +417,7 @@
     "cancel": "取消",
     "create_failed_toast": "创建智能体失败",
     "skill_attach_failed_toast": "智能体已创建，但 skill 关联失败：{{error}}",
-    "squad_join_failed_toast": "智能体\"{{name}}\"已创建，但加入小队失败：{{error}}。你可以在 Members 标签里手动添加。",
+    "squad_join_failed_toast": "智能体\"{{name}}\"已创建，但加入智能体小组失败：{{error}}。你可以在 Members 标签里手动添加。",
     "instructions": {
       "label": "指令",
       "placeholder_blank": "点击撰写指令…",
@@ -632,12 +644,12 @@
       "dialog_empty": "所有可用 Ontology 均已配置。",
       "dialog_cancel": "取消",
       "version": "版本 {{version}}",
-    "adding": "正在添加…",
-    "status_enabled": "已启用",
-    "status_paused": "已暂停",
-    "remove_confirm_title": "移除 Ontology？",
-    "remove_confirm_description": "确定从该智能体移除 {{name}}？CapHub 中的共享 Ontology 及其他智能体的绑定不会受到影响。",
-    "remove_confirm_action": "移除 Ontology"
+      "adding": "正在添加…",
+      "status_enabled": "已启用",
+      "status_paused": "已暂停",
+      "remove_confirm_title": "移除 Ontology？",
+      "remove_confirm_description": "确定从该智能体移除 {{name}}？CapHub 中的共享 Ontology 及其他智能体的绑定不会受到影响。",
+      "remove_confirm_action": "移除 Ontology"
     },
     "skills": {
       "intro": "这里展示该智能体实际拥有的全部 skill。工作区 skill 可在此管理；从 Codex 和 Claude Code 继承的 skill 也可以按智能体单独关闭。",
@@ -738,6 +750,23 @@
       "started_prefix": "{{when}}启动",
       "dispatched_prefix": "{{when}}派发",
       "queued_prefix": "{{when}}排队"
+    },
+    "knowledge": {
+      "title": "知识库",
+      "description": "装文档的仓库，这个智能体作为上下文来读。它的 brief 里会有一份全部文档的索引，需要哪篇就打开哪篇。先在设置 → 资源里添加仓库。",
+      "add_button": "挂载",
+      "add_title": "挂载知识库",
+      "add_description": "这个工作区里，该智能体还没读的知识库。",
+      "attach_button": "挂载",
+      "empty": "这个智能体没有挂载任何知识库。",
+      "none_available": "没有可挂载的知识库。先去设置 → 资源里添加。",
+      "loading": "正在加载知识库……",
+      "remove_tooltip": "不再让这个智能体读它",
+      "delivery_commit": "直接提交",
+      "delivery_pull_request": "Pull request",
+      "toast_attached": "已挂载知识库",
+      "toast_removed": "已取消挂载",
+      "toast_failed": "知识库更新失败"
     }
   },
   "char_counter": {

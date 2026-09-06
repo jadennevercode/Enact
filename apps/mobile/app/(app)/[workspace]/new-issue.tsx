@@ -35,7 +35,7 @@ import { useMentionInput } from "@/lib/use-mention-input";
 export default function NewIssueModal() {
   const [title, setTitle] = useState("");
   const description = useMentionInput();
-  // Attribute chips (status / priority / assignee / due date / project)
+  // Attribute chips (status / priority / assignee / due date)
   // live in `useNewIssueDraftStore` so the new-issue-picker/* formSheet
   // routes can read and write the same values without a parent-child
   // React relationship. The store is reset on mount + on unmount so
@@ -44,7 +44,6 @@ export default function NewIssueModal() {
   const priority = useNewIssueDraftStore((s) => s.priority);
   const assignee = useNewIssueDraftStore((s) => s.assignee);
   const dueDate = useNewIssueDraftStore((s) => s.dueDate);
-  const project = useNewIssueDraftStore((s) => s.project);
   const resetDraft = useNewIssueDraftStore((s) => s.reset);
 
   useEffect(() => {
@@ -73,7 +72,6 @@ export default function NewIssueModal() {
           ? { assignee_type: assignee.type, assignee_id: assignee.id }
           : {}),
         ...(dueDate ? { due_date: dueDate } : {}),
-        ...(project ? { project_id: project.id } : {}),
       });
       router.back();
     } catch (err) {
@@ -89,7 +87,6 @@ export default function NewIssueModal() {
     priority,
     assignee,
     dueDate,
-    project,
     createIssue,
   ]);
 

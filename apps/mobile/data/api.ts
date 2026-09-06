@@ -23,8 +23,6 @@ import type {
   Comment,
   CreateIssueRequest,
   CreateLabelRequest,
-  CreateProjectRequest,
-  CreateProjectResourceRequest,
   InboxItem,
   Issue,
   IssueLabelsResponse,
@@ -33,18 +31,13 @@ import type {
   ListIssuesParams,
   ListIssuesResponse,
   ListLabelsResponse,
-  ListProjectResourcesResponse,
-  ListProjectsResponse,
   MemberWithUser,
   PinnedItem,
   PinnedItemType,
-  Project,
-  ProjectResource,
   Reaction,
   ReorderPinsRequest,
   RuntimeDevice,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   ListIssueStatusesResponse,
   SendChatMessageResponse,
   Squad,
@@ -54,7 +47,6 @@ import type {
   TimelineEntry,
   UpdateIssueRequest,
   UpdateMeRequest,
-  UpdateProjectRequest,
   User,
   Workspace,
 } from "@enact/core/types";
@@ -89,31 +81,23 @@ import {
   EMPTY_INBOX_LIST,
   EMPTY_ISSUE_FALLBACK,
   EMPTY_LIST_LABELS_RESPONSE,
-  EMPTY_LIST_PROJECT_RESOURCES_RESPONSE,
-  EMPTY_LIST_PROJECTS_RESPONSE,
   EMPTY_MEMBER_LIST,
   EMPTY_NOTIFICATION_PREFERENCES,
   EMPTY_PIN_LIST,
-  EMPTY_PROJECT,
   EMPTY_RUNTIME_LIST,
   EMPTY_SEARCH_ISSUES_RESPONSE,
-  EMPTY_SEARCH_PROJECTS_RESPONSE,
   EMPTY_SQUAD_LIST,
   EMPTY_USER,
   EMPTY_WORKSPACE_LIST,
   InboxListSchema,
   NotificationPreferenceResponseSchema,
   ListLabelsResponseSchema,
-  ListProjectResourcesResponseSchema,
-  ListProjectsResponseSchema,
   LoginResponseSchema,
   MemberListSchema,
   PinListSchema,
   PinnedItemSchema,
-  ProjectSchema,
   RuntimeListSchema,
   SearchIssuesResponseSchema,
-  SearchProjectsResponseSchema,
   SendChatMessageResponseSchema,
   SquadListSchema,
   TaskMessageListSchema,
@@ -458,7 +442,7 @@ class ApiClient {
 
   // Archive endpoints — write surface. Match web's surface in
   // packages/core/api/client.ts:981-1003. No parseWithFallback (mirrors
-  // markInboxRead above and the project write endpoints): a malformed
+  // markInboxRead above and the other write endpoints): a malformed
   // archive response should surface naturally so the optimistic patch
   // rolls back.
   async archiveInbox(id: string): Promise<InboxItem> {
@@ -836,7 +820,7 @@ class ApiClient {
 
   // Create a new label and return it. Response is consumed by the
   // create-and-attach flow in label picker, so raw `this.fetch<Label>` is
-  // used — same convention as createProject (cache rollback on failure is
+  // used — same convention as the other write endpoints (cache rollback on failure is
   // preferable to a parseWithFallback fallback that would mask server errors).
   async createLabel(body: CreateLabelRequest): Promise<Label> {
     return this.fetch<Label>("/api/labels", {
@@ -891,124 +875,6 @@ class ApiClient {
       ListIssueStatusesResponseSchema,
       EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
       { ...opts, endpoint: "GET /api/issue-statuses" },
-    );
-  }
-
-  // --- Projects ---
-  async listProjects(opts?: {
-    signal?: AbortSignal;
-  }): Promise<ListProjectsResponse> {
-    const raw = await this.fetch<unknown>("/api/projects", {
-      signal: opts?.signal,
-    });
-    return parseWithFallback(
-      raw,
-      ListProjectsResponseSchema,
-      EMPTY_LIST_PROJECTS_RESPONSE,
-      { endpoint: "GET /api/projects" },
-    );
-  }
-
-  /** Workspace-wide project search. See `searchIssues` for the signal
-   *  contract. */
-  async searchProjects(
-    params: { q: string; limit?: number; include_closed?: boolean; offset?: number },
-    opts?: { signal?: AbortSignal },
-  ): Promise<SearchProjectsResponse> {
-    const search = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) {
-      if (v == null) continue;
-      search.set(k, String(v));
-    }
-    const raw = await this.fetch<unknown>(
-      `/api/projects/search?${search.toString()}`,
-      { signal: opts?.signal },
-    );
-    return parseWithFallback(
-      raw,
-      SearchProjectsResponseSchema,
-      EMPTY_SEARCH_PROJECTS_RESPONSE,
-      { endpoint: "GET /api/projects/search" },
-    );
-  }
-
-  async getProject(
-    id: string,
-    opts?: { signal?: AbortSignal },
-  ): Promise<Project> {
-    const raw = await this.fetch<unknown>(`/api/projects/${id}`, {
-      signal: opts?.signal,
-    });
-    // Drift-safe parse — UI checks `data.id === ""` to render the
-    // "project not found / shape drifted" error state instead of a
-    // half-populated detail page.
-    return parseWithFallback(raw, ProjectSchema, EMPTY_PROJECT, {
-      endpoint: "GET /api/projects/:id",
-    });
-  }
-
-  // Write endpoints — no parseWithFallback (mirrors updateIssue:430). A
-  // malformed write response surfaces as an error so the optimistic
-  // patch rolls back; pretending the write succeeded with empty data
-  // would silently desync caches.
-  async createProject(body: CreateProjectRequest): Promise<Project> {
-    return this.fetch<Project>("/api/projects", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  async updateProject(
-    id: string,
-    body: UpdateProjectRequest,
-  ): Promise<Project> {
-    return this.fetch<Project>(`/api/projects/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-  }
-
-  async deleteProject(id: string): Promise<void> {
-    await this.fetch<void>(`/api/projects/${id}`, { method: "DELETE" });
-  }
-
-  // --- Project resources ---
-  async listProjectResources(
-    projectId: string,
-    opts?: { signal?: AbortSignal },
-  ): Promise<ListProjectResourcesResponse> {
-    const raw = await this.fetch<unknown>(
-      `/api/projects/${projectId}/resources`,
-      { signal: opts?.signal },
-    );
-    return parseWithFallback(
-      raw,
-      ListProjectResourcesResponseSchema,
-      EMPTY_LIST_PROJECT_RESOURCES_RESPONSE,
-      { endpoint: "GET /api/projects/:id/resources" },
-    );
-  }
-
-  async createProjectResource(
-    projectId: string,
-    body: CreateProjectResourceRequest,
-  ): Promise<ProjectResource> {
-    return this.fetch<ProjectResource>(
-      `/api/projects/${projectId}/resources`,
-      {
-        method: "POST",
-        body: JSON.stringify(body),
-      },
-    );
-  }
-
-  async deleteProjectResource(
-    projectId: string,
-    resourceId: string,
-  ): Promise<void> {
-    await this.fetch<void>(
-      `/api/projects/${projectId}/resources/${resourceId}`,
-      { method: "DELETE" },
     );
   }
 
@@ -1151,7 +1017,7 @@ class ApiClient {
   // --- Pins ---
   //
   // Pin metadata only — title / status / icon for each row come from
-  // `issueDetailOptions` / `projectDetailOptions` on the consumer side.
+  // `issueDetailOptions` on the consumer side.
   // Endpoints mirror packages/core/api/client.ts:1551-1572.
 
   async listPins(opts?: { signal?: AbortSignal }): Promise<PinnedItem[]> {

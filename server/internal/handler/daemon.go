@@ -25,6 +25,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/middleware"
 	"github.com/enact-ai/enact/server/internal/runtimeapps"
 	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/workspaceprofile"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
@@ -256,8 +257,8 @@ func parseWorkspaceRepos(raw []byte) []RepoData {
 	return normalizeWorkspaceRepos(repos)
 }
 
-func workspaceReposResponse(workspaceID string, raw []byte, settingsRaw []byte) daemonWorkspaceReposResponse {
-	repos := parseWorkspaceRepos(raw)
+func workspaceReposResponse(workspaceID string, repos []RepoData, settingsRaw []byte) daemonWorkspaceReposResponse {
+	repos = normalizeWorkspaceRepos(repos)
 	resp := daemonWorkspaceReposResponse{
 		WorkspaceID:  workspaceID,
 		Repos:        repos,
@@ -313,6 +314,46 @@ func (h *Handler) inheritMachineCustomName(ctx context.Context, rt db.AgentRunti
 	return updated
 }
 
+// resolveMachineForRegistration upserts the machine this daemon runs on and
+// links any of its runtime rows that predate the link. Returns a zero UUID
+// when the machine could not be resolved, which the runtime upserts treat as
+// "leave machine_id as it is" rather than as "clear it".
+//
+// The device name stored here is the raw name the daemon proposed, not the
+// `device_info` string the runtime rows carry: device_info appends the CLI
+// version, which is a per-provider fact and does not belong on the host.
+func (h *Handler) resolveMachineForRegistration(ctx context.Context, req DaemonRegisterRequest, ownerID pgtype.UUID) pgtype.UUID {
+	var none pgtype.UUID
+	if strings.TrimSpace(req.DaemonID) == "" {
+		return none
+	}
+	metadata, _ := json.Marshal(map[string]any{
+		"cli_version": req.CLIVersion,
+		"launched_by": req.LaunchedBy,
+	})
+	machine, err := h.Queries.UpsertMachine(ctx, db.UpsertMachineParams{
+		DaemonID:   req.DaemonID,
+		OwnerID:    ownerID,
+		DeviceName: strings.TrimSpace(req.DeviceName),
+		Metadata:   metadata,
+		Status:     "online",
+	})
+	if err != nil {
+		slog.Warn("machine upsert failed during registration", "error", err, "daemon_id", req.DaemonID)
+		return none
+	}
+	// Adopt projections written before this server knew about machines, in
+	// every workspace at once — including workspaces this register call is not
+	// for. That is the point: the host is one thing.
+	if _, err := h.Queries.BackfillAgentRuntimeMachine(ctx, db.BackfillAgentRuntimeMachineParams{
+		MachineID: machine.ID,
+		DaemonID:  strToText(req.DaemonID),
+	}); err != nil {
+		slog.Warn("machine backfill failed during registration", "error", err, "daemon_id", req.DaemonID)
+	}
+	return machine.ID
+}
+
 var errRuntimeProfileDisabled = errors.New("runtime profile is disabled")
 
 // upsertRuntimeWithProfile serializes custom-runtime registration with profile
@@ -335,14 +376,34 @@ func (h *Handler) upsertRuntimeWithProfile(
 	defer tx.Rollback(ctx)
 	qtx := h.Queries.WithTx(tx)
 
-	profile, err = qtx.LockRuntimeProfileForRegistration(ctx, db.LockRuntimeProfileForRegistrationParams{
+	// The lock query joins runtime_profile_workspace, so a profile that is not
+	// published into this workspace returns no rows — the daemon is told the
+	// profile is unknown rather than being allowed to register it.
+	locked, err := qtx.LockRuntimeProfileForRegistration(ctx, db.LockRuntimeProfileForRegistrationParams{
 		ID:          profileID,
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		return row, profile, fmt.Errorf("lock runtime profile: %w", err)
 	}
-	if !profile.Enabled {
+	profile = db.RuntimeProfile{
+		ID:             locked.ID,
+		WorkspaceID:    locked.WorkspaceID,
+		DisplayName:    locked.DisplayName,
+		ProtocolFamily: locked.ProtocolFamily,
+		CommandName:    locked.CommandName,
+		Description:    locked.Description,
+		FixedArgs:      locked.FixedArgs,
+		Visibility:     locked.Visibility,
+		CreatedBy:      locked.CreatedBy,
+		Enabled:        locked.Enabled,
+		CreatedAt:      locked.CreatedAt,
+		UpdatedAt:      locked.UpdatedAt,
+		OwnerID:        locked.OwnerID,
+	}
+	// Two switches, both must be on: the owner has not retired the definition
+	// globally, and this workspace has not opted out of it.
+	if !locked.Enabled || !locked.WorkspaceEnabled {
 		return row, profile, errRuntimeProfileDisabled
 	}
 
@@ -437,6 +498,18 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve the machine before any of its per-workspace projections. The
+	// daemon_id is this host's persistent identity (internal/daemon/identity.go),
+	// so one row here is shared by every workspace this daemon registers with —
+	// which is what stops the device name, CLI metadata and the user's rename
+	// from being duplicated N times and drifting apart.
+	//
+	// Best-effort: a machine that cannot be written must not fail registration,
+	// because the per-workspace runtime rows are what actually run work. The
+	// projection simply keeps its existing machine_id (the upserts COALESCE it)
+	// and the next register call tries again.
+	machineID := h.resolveMachineForRegistration(r.Context(), req, ownerID)
+
 	resp := make([]AgentRuntimeResponse, 0, len(req.Runtimes))
 	var sdlcRuntime pgtype.UUID
 	sdlcRuntimeIsCodex := false
@@ -500,6 +573,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 						DeviceInfo:  deviceInfo,
 						Metadata:    metadata,
 						OwnerID:     ownerID,
+						MachineID:   machineID,
 						ProfileID:   profileUUID,
 					}
 				},
@@ -545,6 +619,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				LegacyDaemonID: prow.LegacyDaemonID,
 				Visibility:     prow.Visibility,
 				ProfileID:      prow.ProfileID,
+				MachineID:      prow.MachineID,
 			}
 		} else {
 			row, err := h.Queries.UpsertAgentRuntime(r.Context(), db.UpsertAgentRuntimeParams{
@@ -557,6 +632,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				DeviceInfo:  deviceInfo,
 				Metadata:    metadata,
 				OwnerID:     ownerID,
+				MachineID:   machineID,
 			})
 			if err != nil {
 				obsmetrics.RecordEvent(h.Analytics, h.Metrics, analytics.RuntimeFailed(
@@ -590,6 +666,7 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 				LegacyDaemonID: row.LegacyDaemonID,
 				Visibility:     row.Visibility,
 				ProfileID:      row.ProfileID,
+				MachineID:      row.MachineID,
 			}
 		}
 
@@ -719,20 +796,13 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		}, prow.Inserted)
 	}
 
-	if err := service.BindUnboundSDLCDefaultAgents(r.Context(), h.TxStarter, h.Queries, wsUUID, sdlcRuntime); err != nil {
-		// Registration itself remains usable; the next registration or server
-		// startup will retry the idempotent binding.
-		slog.Warn("failed to bind SDLC default agents to runtime",
-			"workspace_id", req.WorkspaceID, "runtime_id", uuidToString(sdlcRuntime), "error", err)
-	}
-
 	slog.Info("daemon registered", "workspace_id", req.WorkspaceID, "daemon_id", req.DaemonID, "runtimes_count", len(resp))
 
 	h.publish(protocol.EventDaemonRegister, req.WorkspaceID, "system", "", map[string]any{
 		"runtimes": resp,
 	})
 
-	repoResp := workspaceReposResponse(req.WorkspaceID, ws.Repos, ws.Settings)
+	repoResp := workspaceReposResponse(req.WorkspaceID, h.workspaceRepos(r.Context(), parseUUID(req.WorkspaceID)), ws.Settings)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"runtimes":      resp,
@@ -915,7 +985,7 @@ func (h *Handler) GetDaemonWorkspaceRepos(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJSON(w, http.StatusOK, workspaceReposResponse(workspaceID, ws.Repos, ws.Settings))
+	writeJSON(w, http.StatusOK, workspaceReposResponse(workspaceID, h.workspaceRepos(r.Context(), parseUUID(workspaceID)), ws.Settings))
 }
 
 // setRuntimeOffline flips a runtime offline, recording the daemon's reason when
@@ -2150,11 +2220,10 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 
 	// Include workspace ID and repos so the daemon can set up worktrees.
 	//
-	// Repo precedence: project-bound github_repo resources override workspace
+	// Repo precedence: attached github_repo resources override the workspace
 	// repos when present. Mixing both would just confuse the agent — if a
-	// project explicitly attached its repos, those are the authoritative set
-	// for issues inside that project. When the project has no github_repo
-	// resources (or no project at all), we fall back to the workspace repos.
+	// workspace explicitly attached its repos, those are the authoritative
+	// set for its work. With none attached we fall back to workspace.repos.
 	if task.IssueID.Valid {
 		if issue, err := h.Queries.GetIssue(r.Context(), task.IssueID); err == nil {
 			resp.WorkspaceID = uuidToString(issue.WorkspaceID)
@@ -2247,55 +2316,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 				}
 			}
 
-			var projectRepos []RepoData
-			if issue.ProjectID.Valid {
-				resp.ProjectID = uuidToString(issue.ProjectID)
-				if proj, err := h.Queries.GetProject(r.Context(), issue.ProjectID); err == nil {
-					resp.ProjectTitle = proj.Title
-					resp.ProjectDescription = proj.Description.String
-				}
-				if rows := h.listProjectResourcesForProject(r.Context(), issue.ProjectID); len(rows) > 0 {
-					out := make([]ProjectResourceData, 0, len(rows))
-					for _, row := range rows {
-						label := ""
-						if row.Label.Valid {
-							label = row.Label.String
-						}
-						ref := json.RawMessage(row.ResourceRef)
-						if len(ref) == 0 {
-							ref = json.RawMessage("{}")
-						}
-						out = append(out, ProjectResourceData{
-							ID:           uuidToString(row.ID),
-							ResourceType: row.ResourceType,
-							ResourceRef:  ref,
-							Label:        label,
-						})
-						// Lift github_repo resources into the daemon's repo list
-						// so `enact repo checkout` and the meta-skill render
-						// them as the issue's repos.
-						if row.ResourceType == "github_repo" {
-							var payload struct {
-								URL string `json:"url"`
-								Ref string `json:"ref,omitempty"`
-							}
-							if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-								projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-							}
-						}
-					}
-					resp.ProjectResources = out
-				}
-			}
-
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), issue.WorkspaceID); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, issue.WorkspaceID)
 		}
 
 		// Load every planned input as one chronological, de-duplicated set.
@@ -2598,58 +2619,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 						binding.LastThreadID.String != binding.LastMessageID.String
 				}
 			}
-			// A web chat can opt into the same durable project context as an
-			// issue-bound task. Revalidate the soft reference in this workspace at
-			// claim time: a deleted/stale project degrades to workspace context and
-			// can never leak a project from another tenant.
-			var projectRepos []RepoData
-			if cs.ProjectID.Valid {
-				if project, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-					ID:          cs.ProjectID,
-					WorkspaceID: cs.WorkspaceID,
-				}); err == nil {
-					resp.ProjectID = uuidToString(project.ID)
-					resp.ProjectTitle = project.Title
-					resp.ProjectDescription = project.Description.String
-					if rows := h.listProjectResourcesForProject(r.Context(), project.ID); len(rows) > 0 {
-						resources := make([]ProjectResourceData, 0, len(rows))
-						for _, row := range rows {
-							label := ""
-							if row.Label.Valid {
-								label = row.Label.String
-							}
-							ref := json.RawMessage(row.ResourceRef)
-							if len(ref) == 0 {
-								ref = json.RawMessage("{}")
-							}
-							resources = append(resources, ProjectResourceData{
-								ID:           uuidToString(row.ID),
-								ResourceType: row.ResourceType,
-								ResourceRef:  ref,
-								Label:        label,
-							})
-							if row.ResourceType == "github_repo" {
-								var payload struct {
-									URL string `json:"url"`
-									Ref string `json:"ref,omitempty"`
-								}
-								if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-									projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-								}
-							}
-						}
-						resp.ProjectResources = resources
-					}
-				}
-			}
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), cs.WorkspaceID); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, cs.WorkspaceID)
 			if !task.ForceFreshSession {
 				// Resume chat sessions only when the stored pointer was produced
 				// by the same runtime as the claiming task. When the chat_session
@@ -2817,11 +2787,8 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 					resp.WorkspaceID = uuidToString(ap.WorkspaceID)
 				}
 				if len(resp.Repos) == 0 {
-					if ws, err := h.Queries.GetWorkspace(r.Context(), ap.WorkspaceID); err == nil && ws.Repos != nil {
-						var repos []RepoData
-						if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-							resp.Repos = repos
-						}
+					if repos := h.workspaceRepos(r.Context(), ap.WorkspaceID); len(repos) > 0 {
+						resp.Repos = repos
 					}
 				}
 			}
@@ -2847,60 +2814,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			resp.ThreadName = qc.Prompt
 			resp.WorkspaceID = qc.WorkspaceID
 
-			// When the user picked a project in the modal, surface its title
-			// and resources to the daemon so the agent has the same context
-			// it would for an issue-bound task: the prompt template can name
-			// the project, and `enact repo checkout` sees the project's
-			// github_repo resources instead of the workspace fallback.
-			var projectRepos []RepoData
-			if qc.ProjectID != "" {
-				projectUUID, err := util.ParseUUID(qc.ProjectID)
-				if err == nil {
-					resp.ProjectID = qc.ProjectID
-					if proj, err := h.Queries.GetProject(r.Context(), projectUUID); err == nil {
-						resp.ProjectTitle = proj.Title
-						resp.ProjectDescription = proj.Description.String
-					}
-					if rows := h.listProjectResourcesForProject(r.Context(), projectUUID); len(rows) > 0 {
-						out := make([]ProjectResourceData, 0, len(rows))
-						for _, row := range rows {
-							label := ""
-							if row.Label.Valid {
-								label = row.Label.String
-							}
-							ref := json.RawMessage(row.ResourceRef)
-							if len(ref) == 0 {
-								ref = json.RawMessage("{}")
-							}
-							out = append(out, ProjectResourceData{
-								ID:           uuidToString(row.ID),
-								ResourceType: row.ResourceType,
-								ResourceRef:  ref,
-								Label:        label,
-							})
-							if row.ResourceType == "github_repo" {
-								var payload struct {
-									URL string `json:"url"`
-									Ref string `json:"ref,omitempty"`
-								}
-								if json.Unmarshal(row.ResourceRef, &payload) == nil && payload.URL != "" {
-									projectRepos = append(projectRepos, RepoData{URL: payload.URL, Ref: strings.TrimSpace(payload.Ref)})
-								}
-							}
-						}
-						resp.ProjectResources = out
-					}
-				}
-			}
-
-			if len(projectRepos) > 0 {
-				resp.Repos = projectRepos
-			} else if ws, err := h.Queries.GetWorkspace(r.Context(), parseUUID(qc.WorkspaceID)); err == nil && ws.Repos != nil {
-				var repos []RepoData
-				if json.Unmarshal(ws.Repos, &repos) == nil && len(repos) > 0 {
-					resp.Repos = repos
-				}
-			}
+			h.applyWorkspaceResourcesToClaim(r.Context(), &resp, parseUUID(qc.WorkspaceID))
 
 			// Parent-issue resolution for quick-create tasks opened from
 			// "Add sub issue". The handler already verified workspace
@@ -3039,6 +2953,10 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		if ws.Context.Valid {
 			resp.WorkspaceContext = ws.Context.String
 		}
+		// The project profile rides the same read. Rendered here rather than
+		// on the daemon so the section's wording stays a server decision; an
+		// empty profile renders "" and the daemon skips the heading.
+		resp.WorkspaceProfile = workspaceprofile.Brief(workspaceprofile.Parse(ws.Profile))
 	} else {
 		slog.Warn("task claim: failed to load workspace for context injection",
 			"task_id", uuidToString(task.ID),
@@ -3081,10 +2999,18 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		}
 	}
 
+	// Knowledge bases the claiming agent selected. Applied once here rather
+	// than beside each applyWorkspaceResourcesToClaim call: knowledge is keyed
+	// on the agent, not on which of issue / chat / autopilot / quick-create
+	// produced the task, so the four paths above would each have made the same
+	// call with the same argument and a fifth path would have been born
+	// missing it.
+	h.applyAgentKnowledgeToClaim(r.Context(), &resp, task.AgentID)
+
 	// Last gate before dispatch: refuse to hand a worktree-mode local_directory
 	// task to a daemon that cannot implement the mode.
 	//
-	// The save-time gate in project_resource.go cannot cover this. It checks the
+	// The save-time gate in workspace_resource.go cannot cover this. It checks the
 	// version at the moment the resource is written; a machine downgraded
 	// afterwards still claims tasks, and an old daemon json-skips execution_mode
 	// entirely — it would run the task IN PLACE, editing the working copy the
@@ -3092,7 +3018,7 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	// prevent, so it fails closed here, against the version of the runtime that
 	// is actually claiming.
 	if reason := worktreeClaimBlockReason(
-		resp.ProjectResources,
+		resp.WorkspaceResources,
 		runtime,
 		requestHasClientCapability(r, protocol.DaemonCapabilityLocalWorktreeV1),
 	); reason != "" {
@@ -3158,9 +3084,9 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 // two tasks silently ran in the user's own directory (ENA-5707).
 //
 // Only resources bound to the claiming runtime's own daemon are considered: a
-// project may carry one local_directory per machine, and another machine's
+// workspace may carry one local_directory per machine, and another machine's
 // worktree resource says nothing about this one's ability to run the task.
-func worktreeClaimBlockReason(resources []ProjectResourceData, runtime db.AgentRuntime, hasWorktreeCapability bool) string {
+func worktreeClaimBlockReason(resources []WorkspaceResourceData, runtime db.AgentRuntime, hasWorktreeCapability bool) string {
 	if !runtime.DaemonID.Valid || runtime.DaemonID.String == "" {
 		return ""
 	}
@@ -3551,7 +3477,7 @@ type TaskWaitLocalDirectoryRequest struct {
 
 // MarkTaskWaitingLocalDirectory transitions a dispatched task to
 // waiting_local_directory. Called by the daemon when, after claiming a task
-// whose project carries a local_directory resource, it discovers another
+// whose workspace carries a local_directory resource, it discovers another
 // in-flight task already holds the path's mutex.
 func (h *Handler) MarkTaskWaitingLocalDirectory(w http.ResponseWriter, r *http.Request) {
 	taskID := chi.URLParam(r, "taskId")
@@ -3618,7 +3544,7 @@ type TaskCompleteRequest struct {
 	Output    string `json:"output"`
 	SessionID string `json:"session_id"` // Claude session ID for future resumption
 	WorkDir   string `json:"work_dir"`   // working directory used during execution
-	// DurableWorkDir is the configured project directory that replaces a
+	// DurableWorkDir is the configured workspace directory that replaces a
 	// disposable task worktree after the daemon confirms the worktree is gone.
 	DurableWorkDir string `json:"durable_work_dir,omitempty"`
 	// BranchName is the branch this run delivered its work on. Worktree-mode
@@ -4608,7 +4534,7 @@ type TaskCancelAckRequest struct {
 	// this is the only channel that can report where the work went.
 	BranchName string `json:"branch_name,omitempty"`
 	// DurableWorkDir is present only when Finalize confirmed the disposable
-	// worktree was removed and the configured project directory is authoritative.
+	// worktree was removed and the configured workspace directory is authoritative.
 	DurableWorkDir string `json:"durable_work_dir,omitempty"`
 	// ErrorMessage / FailureReason: set when the cancelled run's worktree
 	// Finalize ABORTED — there is no branch, and the error text naming the

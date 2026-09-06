@@ -13,7 +13,6 @@ import {
 } from "./queries";
 import { inboxKeys } from "../inbox/queries";
 import { patchInboxIssueStatus } from "../inbox/ws-updaters";
-import { projectKeys } from "../projects/queries";
 import {
   decrementBucketTotal,
   findIssueLocation,
@@ -48,7 +47,7 @@ export type IssueTableRowCache = IssueTableRowsResponse;
  * it" and "someone else changed it" follow the same rules by construction.
  *
  * The rules, per loaded bucketed list (workspace board + every myList
- * scope — My Issues, Project, actor panels, workspace members/agents tabs):
+ * scope — My Issues, actor panels, workspace members/agents tabs):
  *
  *   card present, filter untouched by the change → surgical patch (rebucket
  *     on status, position-slot insert; never a refetch — refetching the
@@ -64,7 +63,7 @@ export type IssueTableRowCache = IssueTableRowsResponse;
  *     stale: the row's slot in the destination bucket's loaded window is
  *     server knowledge, and under staleTime: Infinity an explicit
  *     invalidation is the only channel that ever fills it in
- *   card absent, left the list (reassigned / re-projected) → old status
+ *   card absent, left the list (reassigned) → old status
  *     bucket total -1
  *   card absent, may have ENTERED, or anything undecidable (no base entity,
  *     unknown membership) → mark the key stale (never hard-insert: the
@@ -77,7 +76,7 @@ export type IssueTableRowCache = IssueTableRowsResponse;
  *
  * The detail cache and the Inbox `issue_status` projection are patched in the
  * same pass. Aggregate projections that cannot be recomputed from one entity
- * (assignee-grouped boards, Gantt, project metrics) go through
+ * (assignee-grouped boards) go through
  * {@link invalidateIssueDerivatives}.
  */
 
@@ -173,8 +172,8 @@ export function tableRowEntries(
     );
 }
 
-/** Caches under `prefix` that hold a plain `Issue[]` — per-parent children and
- *  the project Gantt list. */
+/** Caches under `prefix` that hold a plain `Issue[]` — the per-parent
+ *  children lists. */
 export function issueArrayEntries(
   qc: QueryClient,
   prefix: readonly unknown[],
@@ -233,7 +232,6 @@ const issueActivityFields = [
   "start_date",
   "due_date",
   "parent_issue_id",
-  "project_id",
   "stage",
 ] as const satisfies readonly (keyof Issue)[];
 
@@ -274,9 +272,6 @@ function flatWindowNeedsReconcile(
     changed.assignee &&
     ((filter.assignee_filters?.length ?? 0) > 0 || filter.include_no_assignee)
   ) {
-    return true;
-  }
-  if (changed.project && ((filter.project_ids?.length ?? 0) > 0 || filter.include_no_project)) {
     return true;
   }
   if (patchFieldChanged(patch, base, "parent_issue_id") && filter.top_level_only) {
@@ -420,8 +415,8 @@ export function applyIssueChange(
     if (wasMember === false && isMember === false) continue;
 
     // Certain count arithmetic — branch on the membership OUTCOME, never on
-    // which field changed, so status / assignee / project (and future team)
-    // all flow through the same two cases. wasMember === true implies a
+    // which field changed, so status / assignee (and future team) all flow
+    // through the same two cases. wasMember === true implies a
     // baseIssue exists, so the old status is known.
     if (wasMember === true && baseIssue) {
       if (isMember === true) {
@@ -582,21 +577,11 @@ export function rollbackIssueChange(
 
 /**
  * Refresh the aggregate projections a single-entity patch cannot recompute:
- * assignee-grouped boards (regrouping is server logic), every Project Gantt
- * (schedule membership + row mirrors), and project metrics when the change
- * could shift per-project counts.
+ * the assignee-grouped boards, whose regrouping is server logic.
  */
-export function invalidateIssueDerivatives(
-  qc: QueryClient,
-  wsId: string,
-  opts: { statusOrProjectChanged: boolean },
-) {
+export function invalidateIssueDerivatives(qc: QueryClient, wsId: string) {
   qc.invalidateQueries({ queryKey: issueKeys.assigneeGroupsAll(wsId) });
   qc.invalidateQueries({ queryKey: issueKeys.myAssigneeGroupsAll(wsId) });
-  qc.invalidateQueries({ queryKey: issueKeys.projectGanttAll(wsId) });
-  if (opts.statusOrProjectChanged) {
-    qc.invalidateQueries({ queryKey: projectKeys.all(wsId) });
-  }
 }
 
 /** True when any object part of a query key encodes the requested ordering.

@@ -19,9 +19,8 @@ export type GanttZoom = "day" | "week" | "month";
 export type IssueGrouping =
   | "status"
   | "assignee"
-  | "project"
   | `property:${string}`;
-export type SwimlaneGrouping = "parent" | "project" | "assignee";
+export type SwimlaneGrouping = "parent" | "assignee";
 /**
  * Sort key. `property:<definitionId>` is resolved server-side against the
  * active property catalog; stale or unsupported definitions degrade to
@@ -47,7 +46,6 @@ export type TableSystemColumnKey =
   | "priority"
   | "assignee"
   | "labels"
-  | "project"
   | "start_date"
   | "due_date"
   | "created_at"
@@ -63,7 +61,6 @@ export type TableGrouping =
   | "none"
   | "status"
   | "assignee"
-  | "project"
   | `property:${string}`;
 export type TableCalculation = "none" | "sum" | "average" | "count";
 
@@ -74,7 +71,6 @@ export const TABLE_SYSTEM_COLUMNS: readonly TableSystemColumnKey[] = [
   "priority",
   "assignee",
   "labels",
-  "project",
   "start_date",
   "due_date",
   "created_at",
@@ -98,7 +94,7 @@ export interface IssueDateFilter {
   to: string;
 }
 
-export const SWIMLANE_GROUPINGS: SwimlaneGrouping[] = ["parent", "project", "assignee"];
+export const SWIMLANE_GROUPINGS: SwimlaneGrouping[] = ["parent", "assignee"];
 
 export interface CardProperties {
   priority: boolean;
@@ -106,7 +102,6 @@ export interface CardProperties {
   assignee: boolean;
   startDate: boolean;
   dueDate: boolean;
-  project: boolean;
   childProgress: boolean;
   labels: boolean;
 }
@@ -116,7 +111,7 @@ export interface ActorFilterValue {
   id: string;
 }
 
-/** The nine query-defining filter fields as one value — what a saved view
+/** The seven query-defining filter fields as one value — what a saved view
  *  fixes, and what resets restore. */
 export interface FilterSnapshot {
   statusFilters: IssueStatus[];
@@ -124,8 +119,6 @@ export interface FilterSnapshot {
   assigneeFilters: ActorFilterValue[];
   includeNoAssignee: boolean;
   creatorFilters: ActorFilterValue[];
-  projectFilters: string[];
-  includeNoProject: boolean;
   labelFilters: string[];
   propertyFilters: Record<string, string[]>;
 }
@@ -137,7 +130,6 @@ export type FilterDimension =
   | "priority"
   | "assignee"
   | "creator"
-  | "project"
   | "label"
   | `property:${string}`;
 
@@ -164,7 +156,6 @@ export const SORT_OPTIONS: { value: StaticSortField; label: string }[] = [
 export const GROUPING_OPTIONS: { value: StaticIssueGrouping; label: string }[] = [
   { value: "status", label: "Status" },
   { value: "assignee", label: "Assignee" },
-  { value: "project", label: "Project" },
 ];
 
 export const CARD_PROPERTY_OPTIONS: { key: keyof CardProperties; label: string }[] = [
@@ -173,7 +164,6 @@ export const CARD_PROPERTY_OPTIONS: { key: keyof CardProperties; label: string }
   { key: "assignee", label: "Assignee" },
   { key: "startDate", label: "Start date" },
   { key: "dueDate", label: "Due date" },
-  { key: "project", label: "Project" },
   { key: "labels", label: "Labels" },
   { key: "childProgress", label: "Sub-issue progress" },
 ];
@@ -186,8 +176,6 @@ export interface IssueViewState {
   assigneeFilters: ActorFilterValue[];
   includeNoAssignee: boolean;
   creatorFilters: ActorFilterValue[];
-  projectFilters: string[];
-  includeNoProject: boolean;
   labelFilters: string[];
   /**
    * Custom-property filters: definition id → selected option ids (checkbox
@@ -229,7 +217,7 @@ export interface IssueViewState {
   /** Active swimlane grouping dimension. */
   swimlaneGrouping: SwimlaneGrouping;
   /** Persisted lane order, keyed by grouping. Entries are raw lane ids
-   *  (parent issue id, project id, or `<assigneeType>:<assigneeId>`). */
+   *  (parent issue id, or `<assigneeType>:<assigneeId>`). */
   swimlaneOrders: Record<SwimlaneGrouping, string[]>;
   /** Persisted collapsed lanes, keyed by grouping. Same id space as
    *  `swimlaneOrders`, plus the sentinel `"none"` for the pinned
@@ -251,8 +239,6 @@ export interface IssueViewState {
   toggleAssigneeFilter: (value: ActorFilterValue) => void;
   toggleNoAssignee: () => void;
   toggleCreatorFilter: (value: ActorFilterValue) => void;
-  toggleProjectFilter: (projectId: string) => void;
-  toggleNoProject: () => void;
   toggleLabelFilter: (labelId: string) => void;
   togglePropertyFilter: (propertyId: string, optionId: string) => void;
   setDateFilter: (filter: IssueDateFilter | null) => void;
@@ -261,8 +247,8 @@ export interface IssueViewState {
   showStatus: (category: IssueStatusCategory) => void;
   clearFilters: () => void;
   /** Clear one filter dimension (a filter-bar chip). `property:<id>` clears
-   *  that definition's entry only. Paired boolean flags (no-assignee /
-   *  no-project) clear with their dimension. */
+   *  that definition's entry only. The paired no-assignee flag clears with
+   *  its dimension. */
   clearFilterDimension: (dimension: FilterDimension) => void;
   /** Replace every filter field at once — how "reset inside a saved view"
    *  returns to the view's own conditions instead of to nothing. */
@@ -296,8 +282,6 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
   assigneeFilters: [],
   includeNoAssignee: false,
   creatorFilters: [],
-  projectFilters: [],
-  includeNoProject: false,
   labelFilters: [],
   propertyFilters: {},
   dateFilter: null,
@@ -310,7 +294,6 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
     assignee: true,
     startDate: true,
     dueDate: true,
-    project: true,
     childProgress: true,
     labels: true,
   },
@@ -321,8 +304,8 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
   ganttZoom: "week",
   ganttShowCompleted: false,
   swimlaneGrouping: "assignee",
-  swimlaneOrders: { parent: [], project: [], assignee: [] },
-  collapsedSwimlanes: { parent: [], project: [], assignee: [] },
+  swimlaneOrders: { parent: [], assignee: [] },
+  collapsedSwimlanes: { parent: [], assignee: [] },
   tableColumns: DEFAULT_TABLE_COLUMNS.map((column) => ({ ...column })),
   tableGrouping: "none",
   tableCollapsedGroups: [],
@@ -375,14 +358,6 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
           : [...state.creatorFilters, value],
       };
     }),
-  toggleProjectFilter: (projectId) =>
-    set((state) => ({
-      projectFilters: state.projectFilters.includes(projectId)
-        ? state.projectFilters.filter((id) => id !== projectId)
-        : [...state.projectFilters, projectId],
-    })),
-  toggleNoProject: () =>
-    set((state) => ({ includeNoProject: !state.includeNoProject })),
   toggleLabelFilter: (labelId) =>
     set((state) => ({
       labelFilters: state.labelFilters.includes(labelId)
@@ -420,8 +395,6 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
       assigneeFilters: [],
       includeNoAssignee: false,
       creatorFilters: [],
-      projectFilters: [],
-      includeNoProject: false,
       labelFilters: [],
       propertyFilters: {},
       dateFilter: null,
@@ -442,8 +415,6 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
           return { assigneeFilters: [], includeNoAssignee: false };
         case "creator":
           return { creatorFilters: [] };
-        case "project":
-          return { projectFilters: [], includeNoProject: false };
         case "label":
           return { labelFilters: [] };
         default: {
@@ -542,8 +513,68 @@ export const viewStoreSlice = (set: StoreApi<IssueViewState>["setState"]): Issue
   setTableCalculation: (tableCalculation) => set({ tableCalculation }),
 });
 
+/**
+ * Persisted-payload version for every view-state store.
+ *
+ * v1 dropped the Project dimension: the entity no longer exists, so a payload
+ * written before this bump can still name it in a grouping, a swimlane, a
+ * table column, a card property or a filter. Those keys are stripped rather
+ * than merged, because a `grouping: "project"` that survives rehydration
+ * groups a board by a field no issue has any more.
+ */
+export const ISSUE_VIEW_STORE_VERSION = 1;
+
+const PROJECT_GROUPING = "project";
+
+function isPlainRecord(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/**
+ * Strip the Project dimension out of one persisted view-state payload.
+ *
+ * Shared by every store built on {@link viewStoreSlice} — the issues store,
+ * My Issues, the actor panel and each per-surface entry in the surface
+ * registry — so they all shed the same keys at the same version.
+ */
+export function migrateViewStatePersisted(persisted: unknown): unknown {
+  if (!isPlainRecord(persisted)) return persisted;
+  const {
+    projectFilters: _projectFilters,
+    includeNoProject: _includeNoProject,
+    ...rest
+  } = persisted;
+
+  if (rest.grouping === PROJECT_GROUPING) delete rest.grouping;
+  if (rest.swimlaneGrouping === PROJECT_GROUPING) delete rest.swimlaneGrouping;
+  if (rest.tableGrouping === PROJECT_GROUPING) delete rest.tableGrouping;
+
+  for (const key of ["swimlaneOrders", "collapsedSwimlanes"]) {
+    const lanes = rest[key];
+    if (isPlainRecord(lanes)) {
+      const { [PROJECT_GROUPING]: _dropped, ...kept } = lanes;
+      rest[key] = kept;
+    }
+  }
+
+  if (isPlainRecord(rest.cardProperties)) {
+    const { [PROJECT_GROUPING]: _dropped, ...kept } = rest.cardProperties;
+    rest.cardProperties = kept;
+  }
+
+  if (Array.isArray(rest.tableColumns)) {
+    rest.tableColumns = rest.tableColumns.filter(
+      (column) => !isPlainRecord(column) || column.key !== PROJECT_GROUPING,
+    );
+  }
+
+  return rest;
+}
+
 export const viewStorePersistOptions = (name: string) => ({
   name,
+  version: ISSUE_VIEW_STORE_VERSION,
+  migrate: migrateViewStatePersisted,
   storage: createJSONStorage(() => createWorkspaceAwareStorage(defaultStorage)),
   partialize: (state: IssueViewState) => ({
     // NOTE: `agentRunningFilter` is intentionally NOT persisted — running
@@ -559,8 +590,6 @@ export const viewStorePersistOptions = (name: string) => ({
     assigneeFilters: state.assigneeFilters,
     includeNoAssignee: state.includeNoAssignee,
     creatorFilters: state.creatorFilters,
-    projectFilters: state.projectFilters,
-    includeNoProject: state.includeNoProject,
     labelFilters: state.labelFilters,
     propertyFilters: state.propertyFilters,
     sortBy: state.sortBy,

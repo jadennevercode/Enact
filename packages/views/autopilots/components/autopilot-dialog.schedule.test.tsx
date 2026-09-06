@@ -40,13 +40,6 @@ vi.mock("@enact/core/workspace/queries", () => ({
   }),
 }));
 
-vi.mock("@enact/core/projects/queries", () => ({
-  projectListOptions: (wsId: string) => ({
-    queryKey: ["projects", wsId],
-    queryFn: async () => [],
-  }),
-}));
-
 vi.mock("@enact/core/autopilots/queries", () => ({
   cronPreviewOptions: (wsId: string, expr: string, tz: string) => ({
     queryKey: ["cron-preview", wsId, expr, tz],
@@ -100,10 +93,6 @@ vi.mock("./subscriber-multi-select", () => ({
   SubscriberMultiSelect: () => <div data-testid="subscriber-multi-select" />,
 }));
 
-vi.mock("../../projects/components/project-picker", () => ({
-  ProjectPicker: ({ triggerRender }: { triggerRender: React.ReactElement }) => triggerRender,
-}));
-
 vi.mock("./pickers/timezone-picker", () => ({
   TimezonePicker: ({ value }: { value: string }) => <div data-testid="timezone-picker">{value}</div>,
 }));
@@ -142,7 +131,6 @@ function renderEditDialog(triggers: AutopilotTrigger[]) {
         initial={{
           title: "Issue title sweep",
           description: "",
-          project_id: null,
           assignee_type: "agent",
           assignee_id: "agent-1",
           execution_mode: "run_only",

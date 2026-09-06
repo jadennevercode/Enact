@@ -37,7 +37,6 @@ const renderSearch = () => render(<SearchCommand />, { wrapper: I18nWrapper });
 const {
   mockPush,
   mockSearchIssues,
-  mockSearchProjects,
   mockRecentItems,
   mockAllIssues,
   mockSetTheme,
@@ -58,7 +57,6 @@ const {
 } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockSearchIssues: vi.fn(),
-  mockSearchProjects: vi.fn(),
   mockRecentItems: { current: [] as Array<{ id: string; visitedAt: number }> },
   mockAllIssues: { current: [] as Array<Record<string, unknown>> },
   mockSetTheme: vi.fn(),
@@ -105,7 +103,6 @@ vi.mock("@enact/core/api", () => ({
   api: {
     getBaseUrl: () => "http://127.0.0.1:8080",
     searchIssues: mockSearchIssues,
-    searchProjects: mockSearchProjects,
   },
 }));
 
@@ -179,7 +176,7 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     chat: () => "/ws-test/chat",
     myIssues: () => "/ws-test/my-issues",
     issues: () => "/ws-test/issues",
-    projects: () => "/ws-test/projects",
+    artifacts: () => "/ws-test/artifacts",
     autopilots: () => "/ws-test/autopilots",
     agents: () => "/ws-test/agents",
     squads: () => "/ws-test/squads",
@@ -187,12 +184,12 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
     runtimes: () => "/ws-test/runtimes",
     ontologies: () => "/ws-test/ontologies",
     skills: () => "/ws-test/skills",
+    marketplace: () => "/ws-test/marketplace",
     settings: () => "/ws-test/settings",
     issueDetail: (id: string) => `/ws-test/issues/${id}`,
     memberDetail: (id: string) => `/ws-test/members/${id}`,
     agentDetail: (id: string) => `/ws-test/agents/${id}`,
     squadDetail: (id: string) => `/ws-test/squads/${id}`,
-    projectDetail: (id: string) => `/ws-test/projects/${id}`,
   }),
 }));
 
@@ -278,7 +275,6 @@ describe("SearchCommand", () => {
   beforeEach(() => {
     mockPush.mockReset();
     mockSearchIssues.mockReset().mockResolvedValue({ issues: [] });
-    mockSearchProjects.mockReset().mockResolvedValue({ projects: [] });
     mockRecentItems.current = [];
     mockAllIssues.current = [];
     mockAgents.current = [];
@@ -328,12 +324,11 @@ describe("SearchCommand", () => {
 
     expect(screen.queryByText("Pages")).not.toBeInTheDocument();
     // Only the primary creation action surfaces on empty query; everything
-    // else (theme, copy, New Project) must be revealed by typing.
+    // else (theme, copy) must be revealed by typing.
     expect(screen.getByText("Commands")).toBeInTheDocument();
     expect(
       screen.getByText((_, el) => el?.textContent === "New Issue" && el?.tagName === "SPAN"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("New Project")).not.toBeInTheDocument();
     expect(screen.queryByText("Switch to Light Theme")).not.toBeInTheDocument();
     expect(screen.queryByText("Switch to Dark Theme")).not.toBeInTheDocument();
     expect(screen.queryByText("Use System Theme")).not.toBeInTheDocument();
@@ -548,7 +543,7 @@ describe("SearchCommand", () => {
     expect(screen.getByText("ENA-2")).toBeInTheDocument();
   });
 
-  it("shows New Issue / New Project under Commands and triggers the modal store", async () => {
+  it("shows New Issue under Commands and triggers the modal store", async () => {
     const user = userEvent.setup();
     renderSearch();
 
@@ -559,9 +554,6 @@ describe("SearchCommand", () => {
       expect(screen.getByText("Commands")).toBeInTheDocument();
       expect(
         screen.getByText((_, el) => el?.textContent === "New Issue" && el?.tagName === "SPAN"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText((_, el) => el?.textContent === "New Project" && el?.tagName === "SPAN"),
       ).toBeInTheDocument();
     });
 
@@ -576,7 +568,7 @@ describe("SearchCommand", () => {
 
   it("hides copy-link commands when not on an issue detail route", async () => {
     const user = userEvent.setup();
-    mockPathname.current = "/ws-test/projects";
+    mockPathname.current = "/ws-test/agents";
     renderSearch();
 
     const input = screen.getByPlaceholderText("Type a command or search...");
@@ -630,7 +622,7 @@ describe("SearchCommand", () => {
 
   it("hides fold/unfold-all-comments commands off issue detail routes", async () => {
     const user = userEvent.setup();
-    mockPathname.current = "/ws-test/projects";
+    mockPathname.current = "/ws-test/agents";
     renderSearch();
 
     const input = screen.getByPlaceholderText("Type a command or search...");
@@ -805,7 +797,6 @@ describe("SearchCommand", () => {
           creator_type: "member",
           creator_id: "user-1",
           parent_issue_id: null,
-          project_id: null,
           position: 0,
           start_date: null,
           due_date: null,
@@ -877,7 +868,6 @@ describe("SearchCommand", () => {
           creator_type: "member",
           creator_id: "user-1",
           parent_issue_id: null,
-          project_id: null,
           position: 0,
           start_date: null,
           due_date: null,
@@ -926,16 +916,17 @@ describe("SearchCommand", () => {
     const input = screen.getByPlaceholderText(
       "Type a command or search...",
     ) as HTMLInputElement;
-    await user.type(input, "new");
+    await user.type(input, "issue");
 
-    // "new" surfaces New Issue + New Project, so cmdk has a multi-item list.
+    // "issue" surfaces the New Issue command plus the Issues and My Issues
+    // pages, so cmdk has a multi-item list for the arrow keys to move through.
     await waitFor(() => {
       expect(
         screen.getByText((_, el) => el?.textContent === "New Issue" && el?.tagName === "SPAN"),
       ).toBeInTheDocument();
       expect(
-        screen.getByText((_, el) => el?.textContent === "New Project" && el?.tagName === "SPAN"),
-      ).toBeInTheDocument();
+        document.querySelectorAll('[cmdk-item=""]').length,
+      ).toBeGreaterThan(1);
     });
 
     const selectedValue = () =>
@@ -966,11 +957,10 @@ describe("SearchCommand", () => {
     expect(selectedValue()).toBe(first);
   });
 
-  // ENA-5824: the two searches are ranked independently server-side and the
-  // palette renders the whole Projects group before the whole Issues group, so
-  // per-type ranking let one cancelled project be the very first row. The
-  // partition has to be cross-type and applied here, where results aggregate.
-  describe("mixed issue/project cancelled demotion", () => {
+  // ENA-5824: the server can rank a cancelled issue above live work, which
+  // used to make it the very first row of the palette. The demotion is applied
+  // here, where the rows are assembled for display.
+  describe("cancelled demotion", () => {
     const fixtureIssue = (
       over: Partial<Record<string, unknown>> & { id: string },
     ) => ({
@@ -986,32 +976,11 @@ describe("SearchCommand", () => {
       creator_type: "member",
       creator_id: "user-1",
       parent_issue_id: null,
-      project_id: null,
       position: 0,
       start_date: null,
       due_date: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
-      match_source: "title",
-      ...over,
-    });
-
-    const fixtureProject = (
-      over: Partial<Record<string, unknown>> & { id: string },
-    ) => ({
-      workspace_id: "ws-test",
-      title: "Untitled",
-      description: null,
-      icon: null,
-      status: "in_progress",
-      priority: "none",
-      lead_type: null,
-      lead_id: null,
-      start_date: null,
-      due_date: null,
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
-      issue_count: 0,
       match_source: "title",
       ...over,
     });
@@ -1022,59 +991,18 @@ describe("SearchCommand", () => {
         document.querySelectorAll<HTMLElement>('[cmdk-item=""]'),
       )
         .map((el) => el.getAttribute("data-value") ?? "")
-        .filter((v) => v.startsWith("project:") || v.startsWith("issue-"));
+        .filter((v) => v.startsWith("issue-"));
 
     /**
      * Group headings, top to bottom. Queried structurally rather than by text:
-     * a cancelled project also renders "Cancelled" as its status label.
+     * a cancelled issue also renders "Cancelled" as its status label.
      */
     const renderedHeadings = () =>
       Array.from(
         document.querySelectorAll<HTMLElement>("[cmdk-group-heading]"),
       ).map((el) => el.textContent ?? "");
 
-    it("keeps a cancelled project below a live issue instead of first", async () => {
-      const user = userEvent.setup();
-      mockSearchIssues.mockResolvedValue({
-        issues: [
-          fixtureIssue({
-            id: "issue-live",
-            number: 10,
-            identifier: "ENA-10",
-            title: "search live issue",
-            status: "in_progress",
-          }),
-        ],
-        total: 1,
-      });
-      mockSearchProjects.mockResolvedValue({
-        projects: [
-          fixtureProject({
-            id: "proj-dead",
-            title: "search dead project",
-            status: "cancelled",
-          }),
-        ],
-        total: 1,
-      });
-
-      renderSearch();
-      await user.type(
-        screen.getByPlaceholderText("Type a command or search..."),
-        "search",
-      );
-
-      await waitFor(
-        () => {
-          expect(renderedValues()).toEqual(["issue-live", "project:proj-dead"]);
-        },
-        { timeout: 2000 },
-      );
-      // Still discoverable, just under its own heading at the bottom.
-      expect(renderedHeadings()).toEqual(["Issues", "Cancelled"]);
-    });
-
-    it("keeps live rows of both types above every cancelled row", async () => {
+    it("keeps every live row above every cancelled row", async () => {
       const user = userEvent.setup();
       mockSearchIssues.mockResolvedValue({
         issues: [
@@ -1102,13 +1030,6 @@ describe("SearchCommand", () => {
         ],
         total: 3,
       });
-      mockSearchProjects.mockResolvedValue({
-        projects: [
-          fixtureProject({ id: "proj-dead", title: "search p1", status: "cancelled" }),
-          fixtureProject({ id: "proj-live", title: "search p2", status: "planned" }),
-        ],
-        total: 2,
-      });
 
       renderSearch();
       await user.type(
@@ -1119,16 +1040,16 @@ describe("SearchCommand", () => {
       await waitFor(
         () => {
           expect(renderedValues()).toEqual([
-            "project:proj-live",
             // 'done' is live — only cancelled work is demoted.
             "issue-live",
             "issue-done",
-            "project:proj-dead",
             "issue-dead",
           ]);
         },
         { timeout: 2000 },
       );
+      // Still discoverable, just under its own heading at the bottom.
+      expect(renderedHeadings()).toEqual(["Issues", "Cancelled"]);
     });
 
     it("exempts a cancelled issue the query targets by identifier", async () => {
@@ -1145,7 +1066,6 @@ describe("SearchCommand", () => {
         ],
         total: 1,
       });
-      mockSearchProjects.mockResolvedValue({ projects: [], total: 0 });
 
       renderSearch();
       await user.type(
@@ -1183,7 +1103,6 @@ describe("SearchCommand", () => {
       creator_type: "member",
       creator_id: "user-1",
       parent_issue_id: null,
-      project_id: null,
       position: 0,
       start_date: null,
       due_date: null,
@@ -1203,11 +1122,6 @@ describe("SearchCommand", () => {
       mockSearchIssues.mockImplementation(({ q }: { q: string }) =>
         q === "alpha"
           ? Promise.resolve({ issues: [alphaIssue], total: 1 })
-          : new Promise(() => {}),
-      );
-      mockSearchProjects.mockImplementation(({ q }: { q: string }) =>
-        q === "alpha"
-          ? Promise.resolve({ projects: [], total: 0 })
           : new Promise(() => {}),
       );
     };

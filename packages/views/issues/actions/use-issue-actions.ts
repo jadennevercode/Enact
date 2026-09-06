@@ -67,7 +67,6 @@ export function useIssueActions(issue: Issue | null): UseIssueActionsResult {
 
   const issueId = issue?.id ?? null;
   const issueIdentifier = issue?.identifier ?? null;
-  const issueProjectId = issue?.project_id ?? null;
   const issueAssigneeType = issue?.assignee_type ?? null;
   const issueAssigneeId = issue?.assignee_id ?? null;
   const { entryOf } = useIssueStatuses(wsId);
@@ -173,7 +172,6 @@ export function useIssueActions(issue: Issue | null): UseIssueActionsResult {
     openModal("create-issue", {
       parent_issue_id: issueId,
       parent_issue_identifier: issueIdentifier,
-      ...(issueProjectId ? { project_id: issueProjectId } : {}),
       // Inherit the parent's assignee (member/agent/squad) so a sub-issue
       // created from the "Add sub-issue" entry starts with the same owner
       // (discussion #1728). The modal keys off whether these fields are
@@ -189,7 +187,6 @@ export function useIssueActions(issue: Issue | null): UseIssueActionsResult {
     openModal,
     issueId,
     issueIdentifier,
-    issueProjectId,
     issueAssigneeType,
     issueAssigneeId,
   ]);

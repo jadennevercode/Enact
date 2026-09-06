@@ -25,12 +25,7 @@
     "runtime_required_toast": "消息未发送——请先为该智能体绑定运行时",
     "attachment_bind_failed_toast": "消息已发送，但文件未能附加。请稍后重试。",
     "add_tooltip": "添加",
-    "upload_file": "图片或文件",
-    "project_context": "项目上下文",
-    "change_project_context": "更改项目上下文",
-    "remove_project_context": "移除项目上下文",
-    "no_projects": "还没有项目",
-    "project_context_unsupported": "项目描述不会生效——该智能体的守护进程版本过旧，需要升级"
+    "upload_file": "图片或文件"
   },
   "queue": {
     "title_other": "{{count}} 条排队消息",
@@ -138,7 +133,7 @@
   "empty_state": {
     "first_time_title": "和你的智能体对话",
     "first_time_intro": "✨ 它们了解你的工作区——",
-    "first_time_pillars": "任务、项目、skill",
+    "first_time_pillars": "任务、智能体、skill",
     "first_time_pillars_suffix": "。",
     "first_time_actions": "让它做一份总结、规划你的一天，或交给它一个小任务。",
     "returning_title_named": "你好，我是 {{name}}",
@@ -156,8 +151,8 @@
     "cta": "开始",
     "board": {
       "title": "几分钟搭好任务看板",
-      "desc": "告诉我目标，我来建项目、拆任务、排好优先级。",
-      "prompt": "把我们的目标整理成一个项目看板"
+      "desc": "告诉我目标 —— 我来把它拆成任务并排好优先级。",
+      "prompt": "把我们当前的目标变成任务看板"
     },
     "delegate": {
       "title": "先交给我一件事",
@@ -223,11 +218,11 @@
     "unarchive": "取消归档",
     "archived_title": "已归档",
     "pinned_segment": "已置顶",
-    "no_project_segment": "无项目",
     "row_actions_aria": "聊天操作"
   },
   "header": {
     "view_profile": "查看 Agent 资料",
+    "artifacts": "产物",
     "rename": "重命名会话",
     "delete": "删除会话",
     "archive": "归档会话",

@@ -18,7 +18,7 @@ export const PRIORITY_ORDER: IssuePriority[] = [
  * Order every user-facing priority list renders in: the empty value first,
  * then severity descending. Leading with "No priority" follows the convention
  * every other picker in the app uses — the first row is always the empty
- * value (unassigned / no project / no stage), so the eye finds "clear this
+ * value (unassigned / no stage), so the eye finds "clear this
  * field" in the same place regardless of which pill was opened.
  */
 export const PRIORITY_DISPLAY_ORDER: IssuePriority[] = [

@@ -102,9 +102,9 @@ describe("TableColumnPicker", () => {
     renderPicker();
 
     await user.click(screen.getByRole("button", { name: "Add column" }));
-    await user.click(screen.getByRole("menuitemcheckbox", { name: "Project" }));
+    await user.click(screen.getByRole("menuitemcheckbox", { name: "Labels" }));
 
-    expect(toggleTableColumn).toHaveBeenCalledWith("project");
+    expect(toggleTableColumn).toHaveBeenCalledWith("labels");
   });
 
   it("toggles a custom-property column when its menu item is clicked", async () => {

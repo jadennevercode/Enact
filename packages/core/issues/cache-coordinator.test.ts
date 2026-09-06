@@ -24,8 +24,12 @@ const wsKey = issueKeys.listSorted(WS_ID, sort);
 const myAssignedKey = issueKeys.myListSorted(WS_ID, "assigned", { assignee_id: "me" }, sort);
 const myAllKey = issueKeys.myListSorted(WS_ID, "all", {}, sort);
 const involvedKey = issueKeys.myListSorted(WS_ID, "agents", { involves_user_id: "me" }, sort);
-const projectP1Key = issueKeys.myListSorted(WS_ID, "project:p1", { project_id: "p1" }, sort);
-const projectP2Key = issueKeys.myListSorted(WS_ID, "project:p2", { project_id: "p2" }, sort);
+// Creator-filtered lists: the issue's creator is "me", so it is definitely a
+// member of one and definitely never a member of the other, and no write can
+// change that — creator is immutable. That makes them the clean pair for
+// exercising off-window count arithmetic against a never-a-member list.
+const creatorMeKey = issueKeys.myListSorted(WS_ID, "created", { creator_id: "me" }, sort);
+const creatorBobKey = issueKeys.myListSorted(WS_ID, "created", { creator_id: "bob" }, sort);
 const membersKey = issueKeys.myListSorted(
   WS_ID,
   "workspace:members",
@@ -144,8 +148,7 @@ function makeIssue(idx: number, overrides: Partial<Issue> = {}): Issue {
     creator_type: "member",
     creator_id: "me",
     parent_issue_id: null,
-    project_id: "p1",
-    position: idx,
+      position: idx,
     stage: null,
     start_date: null,
     due_date: null,
@@ -380,13 +383,14 @@ describe("applyIssueChange", () => {
 
   it("status change: rebuckets loaded cards, patches inbox, adjusts counts for absent-but-member lists", () => {
     qc.setQueryData<ListIssuesCache>(wsKey, bucketed([issue()]));
-    // p1 list loaded but the card is beyond its loaded window — the change
-    // is certain (old + new status known, membership definite), so the two
-    // bucket totals shift arithmetically right away; the list is then marked
-    // stale so the server can place the row in the target bucket's window.
-    qc.setQueryData<ListIssuesCache>(projectP1Key, bucketed([], 3));
-    // p2 list loaded; the issue was never a member — untouched.
-    qc.setQueryData<ListIssuesCache>(projectP2Key, bucketed([]));
+    // The creator-me list is loaded but the card is beyond its loaded window
+    // — the change is certain (old + new status known, membership definite),
+    // so the two bucket totals shift arithmetically right away; the list is
+    // then marked stale so the server can place the row in the target
+    // bucket's window.
+    qc.setQueryData<ListIssuesCache>(creatorMeKey, bucketed([], 3));
+    // The creator-bob list is loaded; the issue was never a member — untouched.
+    qc.setQueryData<ListIssuesCache>(creatorBobKey, bucketed([]));
     qc.setQueryData<InboxItem[]>(inboxKey, [
       {
         id: "inbox-1",
@@ -422,18 +426,18 @@ describe("applyIssueChange", () => {
 
     // Off-window count arithmetic: todo 3 → 2, in_progress 0 → 1, loaded
     // arrays untouched (never hard-insert).
-    expect(total(qc, projectP1Key, "todo")).toBe(2);
-    expect(total(qc, projectP1Key, "in_progress")).toBe(1);
-    expect(ids(qc, projectP1Key, "todo")).toEqual([]);
+    expect(total(qc, creatorMeKey, "todo")).toBe(2);
+    expect(total(qc, creatorMeKey, "in_progress")).toBe(1);
+    expect(ids(qc, creatorMeKey, "todo")).toEqual([]);
 
     const staleHashes = result.staleKeys.map(hashKey);
     // The moved list IS flagged stale: the row now counted in in_progress
     // can only be placed into that bucket's loaded window by the server,
     // and with staleTime: Infinity no other channel triggers that reconcile.
-    expect(staleHashes).toContain(hashKey(projectP1Key));
-    // Never-a-member p2 and the surgically-rebucketed workspace list have
-    // nothing to reconcile — no stale keys.
-    expect(staleHashes).not.toContain(hashKey(projectP2Key));
+    expect(staleHashes).toContain(hashKey(creatorMeKey));
+    // The never-a-member creator-bob list and the surgically-rebucketed
+    // workspace list have nothing to reconcile — no stale keys.
+    expect(staleHashes).not.toContain(hashKey(creatorBobKey));
     expect(staleHashes).not.toContain(hashKey(wsKey));
   });
 
@@ -469,17 +473,17 @@ describe("applyIssueChange", () => {
 
   it("rolls off-window count arithmetic back on failure", () => {
     const snapshot = bucketed([], 3);
-    qc.setQueryData<ListIssuesCache>(projectP1Key, snapshot);
+    qc.setQueryData<ListIssuesCache>(creatorMeKey, snapshot);
 
     const patch = { status: "in_progress" as const };
     const result = applyIssueChange(qc, WS_ID, "issue-1", patch, {
       changed: issueChangedDims(patch, issue()),
       baseIssue: issue(),
     });
-    expect(total(qc, projectP1Key, "todo")).toBe(2);
+    expect(total(qc, creatorMeKey, "todo")).toBe(2);
 
     rollbackIssueChange(qc, WS_ID, "issue-1", result);
-    expect(qc.getQueryData<ListIssuesCache>(projectP1Key)).toEqual(snapshot);
+    expect(qc.getQueryData<ListIssuesCache>(creatorMeKey)).toEqual(snapshot);
   });
 
   it("assignee change me→bob: removes from my-assigned (total decremented), keeps members tab, flags union/involves scopes", () => {
@@ -540,30 +544,6 @@ describe("applyIssueChange", () => {
     expect(result.staleKeys.map(hashKey)).toContain(hashKey(agentsKey));
   });
 
-  it("project move p1→p2: removes from the old project's list, flags the loaded target list, never touches unrelated lists", () => {
-    qc.setQueryData<ListIssuesCache>(wsKey, bucketed([issue()]));
-    qc.setQueryData<ListIssuesCache>(projectP1Key, bucketed([issue()]));
-    qc.setQueryData<ListIssuesCache>(projectP2Key, bucketed([]));
-    qc.setQueryData<ListIssuesCache>(myAssignedKey, bucketed([issue()]));
-
-    const patch = { project_id: "p2" };
-    const result = applyIssueChange(qc, WS_ID, "issue-1", patch, {
-      changed: issueChangedDims(patch, issue()),
-      baseIssue: issue(),
-    });
-
-    expect(ids(qc, projectP1Key, "todo")).toEqual([]);
-    expect(total(qc, projectP1Key, "todo")).toBe(0);
-    expect(ids(qc, wsKey, "todo")).toEqual(["issue-1"]);
-    // Assignee list membership is untouched by a project move.
-    expect(ids(qc, myAssignedKey, "todo")).toEqual(["issue-1"]);
-
-    const staleHashes = result.staleKeys.map(hashKey);
-    expect(staleHashes).toContain(hashKey(projectP2Key));
-    expect(staleHashes).not.toContain(hashKey(myAssignedKey));
-    expect(staleHashes).not.toContain(hashKey(wsKey));
-  });
-
   it("degrades to a stale key when no base entity is known for an absent card", () => {
     // The card is beyond the list's loaded window and neither detail nor any
     // list holds it — without a base the client cannot rule out that it WAS
@@ -579,9 +559,9 @@ describe("applyIssueChange", () => {
   });
 
   it("skips absent cards entirely when the change cannot affect the list", () => {
-    // Assignee change, project-filtered list, card absent, base known and in
-    // another project — nothing about this list can have drifted.
-    qc.setQueryData<ListIssuesCache>(projectP2Key, bucketed([]));
+    // Assignee change, creator-filtered list, card absent, base known and
+    // created by someone else — nothing about this list can have drifted.
+    qc.setQueryData<ListIssuesCache>(creatorBobKey, bucketed([]));
 
     const patch = { assignee_id: "bob", assignee_type: "member" as const };
     const result = applyIssueChange(qc, WS_ID, "issue-1", patch, {

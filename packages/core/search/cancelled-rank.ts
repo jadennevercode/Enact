@@ -1,25 +1,21 @@
 /**
- * Cross-type cancelled demotion for aggregated search results (ENA-5824).
+ * Cancelled demotion for search results (ENA-5824).
  *
- * The search API already ranks cancelled work below live work — but only
- * *within one result set*. Every client that renders issues and projects
- * together aggregates two independent responses, so a cancelled row from one
- * response still lands above a live row from the other: the command palette
- * and the mobile search screen both render the whole Projects list before the
- * whole Issues list, so a single cancelled project outranks every live issue.
+ * The search API already ranks cancelled work below live work, but the client
+ * still renders the two as separate sections, and the split has to survive
+ * truncation.
  *
- * The fix has to live at the aggregation point, and it has to be a *stable*
- * partition across BOTH types: relative order inside each side is preserved, so
- * the server's ranking still decides everything except "live before cancelled".
- * Applying it before any truncation is what makes cancelled rows give up their
- * slot rather than merely their position.
+ * The partition is *stable*: relative order inside each side is preserved, so
+ * the server's ranking still decides everything except "live before
+ * cancelled". Applying it before any truncation is what makes cancelled rows
+ * give up their slot rather than merely their position.
  *
  * Direct hits are exempt, matching the server: an exact identifier, an exact
  * bare number, or an exact title means the user is targeting that one record
  * and demoting it would hide exactly what they asked for.
  */
 
-import type { SearchIssueResult, SearchProjectResult } from "../types/api";
+import type { SearchIssueResult } from "../types/api";
 import { issueBehavesAs } from "../issues/status-category";
 
 /**
@@ -88,14 +84,6 @@ export function isIssueDirectHit(
   return isExactTitle(issue.title, query);
 }
 
-/** A query targets this specific project: its full title. */
-export function isProjectDirectHit(
-  project: { title?: string | null },
-  query: string,
-): boolean {
-  return isExactTitle(project.title, query);
-}
-
 export interface CancelledPartition<T> {
   /** Everything that is not demoted, in its original relative order. */
   live: T[];
@@ -121,55 +109,21 @@ export function partitionStable<T>(
   return { live, cancelled };
 }
 
-export interface AggregatedSearchPartition {
-  /** Projects to render first, minus the demoted ones. */
-  liveProjects: SearchProjectResult[];
-  /** Issues to render after the live projects, minus the demoted ones. */
-  liveIssues: SearchIssueResult[];
-  /**
-   * Cancelled projects then cancelled issues — one trailing bucket, so no
-   * cancelled row of either type can precede a live row of the other.
-   */
-  cancelledProjects: SearchProjectResult[];
-  cancelledIssues: SearchIssueResult[];
-  /** True when anything was demoted; lets callers skip an empty section. */
-  hasCancelled: boolean;
-}
-
 /**
- * Partitions a global-search result pair (issues + projects) for rendering.
+ * Partitions a search result set for rendering.
  *
- * Render order must be: live projects → live issues → cancelled (projects then
- * issues). Callers that truncate must truncate the concatenation in that order,
- * so the cancelled tail is what gets dropped.
+ * Render order must be: live issues → cancelled issues. Callers that truncate
+ * must truncate the concatenation in that order, so the cancelled tail is what
+ * gets dropped rather than merely reordered.
  */
-export function partitionAggregatedSearchResults({
-  issues,
-  projects,
-  query,
-}: {
-  issues: readonly SearchIssueResult[];
-  projects: readonly SearchProjectResult[];
-  query: string;
-}): AggregatedSearchPartition {
-  const issueParts = partitionStable(
+export function partitionCancelledIssues(
+  issues: readonly SearchIssueResult[],
+  query: string,
+): CancelledPartition<SearchIssueResult> {
+  return partitionStable(
     issues,
     // By CATEGORY: a custom status in the cancelled category is cancelled
     // work and has to sink the same way. (ENA-6243)
     (issue) => issueBehavesAs(issue, "cancelled") && !isIssueDirectHit(issue, query),
   );
-  const projectParts = partitionStable(
-    projects,
-    (project) =>
-      project.status === "cancelled" && !isProjectDirectHit(project, query),
-  );
-
-  return {
-    liveProjects: projectParts.live,
-    liveIssues: issueParts.live,
-    cancelledProjects: projectParts.cancelled,
-    cancelledIssues: issueParts.cancelled,
-    hasCancelled:
-      projectParts.cancelled.length > 0 || issueParts.cancelled.length > 0,
-  };
 }

@@ -25,7 +25,7 @@ describe("issue window request", () => {
 
   it.each([
     "/acme/issues",
-    "/acme/projects/project-1",
+    "/acme/artifacts",
     "/acme/issues/issue-1/attachments",
     "https://example.com/acme/issues/issue-1",
     "//example.com/acme/issues/issue-1",

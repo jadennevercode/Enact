@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -12,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/enact-ai/enact/server/internal/service"
 	"github.com/enact-ai/enact/server/internal/testutil"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
@@ -79,26 +77,25 @@ func TestCreateWorkspace_DoesNotMarkOnboarded(t *testing.T) {
 		t.Fatalf("CreateWorkspace marked user as onboarded; expected NULL, got %q. The workspace layout hard gate relies on this staying NULL until Step 3 CompleteOnboarding fires.", *onboardedAt)
 	}
 
-	var version int32
-	var skillCount, skillFileCount, agentCount, bindingCount, squadCount, squadMemberCount int
+	// A new workspace starts empty of product content. The SDLC delivery system
+	// is published to the Marketplace by the catalog workspace and installed by
+	// a team that wants it; seeding nine agents and ten skills into every
+	// workspace was the behaviour this replaced.
+	var skillCount, agentCount, squadCount int
 	err := testPool.QueryRow(ctx, `
 		SELECT
-			w.sdlc_defaults_version,
 			(SELECT count(*) FROM skill s WHERE s.workspace_id = w.id AND s.name LIKE 'sdlc-%'),
-			(SELECT count(*) FROM skill_file sf JOIN skill s ON s.id = sf.skill_id WHERE s.workspace_id = w.id AND s.name LIKE 'sdlc-%'),
 			(SELECT count(*) FROM agent a WHERE a.workspace_id = w.id AND a.system_key LIKE 'sdlc:%'),
-			(SELECT count(*) FROM agent_skill aks JOIN agent a ON a.id = aks.agent_id WHERE a.workspace_id = w.id AND a.system_key LIKE 'sdlc:%'),
-			(SELECT count(*) FROM squad sq WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery'),
-			(SELECT count(*) FROM squad_member sm JOIN squad sq ON sq.id = sm.squad_id WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery')
+			(SELECT count(*) FROM squad sq WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery')
 		FROM workspace w
 		WHERE w.slug = $1
-	`, slug).Scan(&version, &skillCount, &skillFileCount, &agentCount, &bindingCount, &squadCount, &squadMemberCount)
+	`, slug).Scan(&skillCount, &agentCount, &squadCount)
 	if err != nil {
-		t.Fatalf("query seeded SDLC defaults: %v", err)
+		t.Fatalf("query new workspace contents: %v", err)
 	}
-	if version != service.SDLCDefaultsVersion || skillCount != 10 || skillFileCount != 52 || agentCount != 9 || bindingCount != 18 || squadCount != 1 || squadMemberCount != 9 {
-		t.Fatalf("SDLC defaults = version:%d skills:%d files:%d agents:%d bindings:%d squads:%d members:%d; want version:%d skills:10 files:52 agents:9 bindings:18 squads:1 members:9",
-			version, skillCount, skillFileCount, agentCount, bindingCount, squadCount, squadMemberCount, service.SDLCDefaultsVersion)
+	if skillCount != 0 || agentCount != 0 || squadCount != 0 {
+		t.Fatalf("new workspace carries SDLC content = skills:%d agents:%d families:%d; want all 0 — creating a workspace must not provision the bundle",
+			skillCount, agentCount, squadCount)
 	}
 }
 
@@ -381,9 +378,11 @@ WHERE storage_key = $1
 }
 
 func TestDeleteWorkspace_DirtyTriggersHaveTeardownGuard(t *testing.T) {
+	// trg_issue_delete_dirty_hourly is deliberately absent: migration 435
+	// dropped it with the project dimension, since every remaining bucket-key
+	// column lives on the queue row that trg_atq_dirty_hourly already covers.
 	for _, triggerName := range []string{
 		"trg_atq_dirty_hourly",
-		"trg_issue_delete_dirty_hourly",
 		"trg_tu_dirty_hourly",
 	} {
 		var definition string
@@ -683,75 +682,6 @@ VALUES ($1, $2, 'owner')
 	if resp2.AvatarURL == nil || *resp2.AvatarURL != avatarURL {
 		t.Fatalf("avatar_url should be preserved by partial update, got %v", resp2.AvatarURL)
 	}
-}
-
-func TestUpdateWorkspace_ReposValidation(t *testing.T) {
-	ctx := context.Background()
-
-	const slug = "handler-tests-repos-validation"
-	_, _ = testPool.Exec(ctx, `DELETE FROM workspace WHERE slug = $1`, slug)
-
-	wsID := dbfx.Insert(t, "workspace", testutil.Cols{
-		"name":        "Handler Test Repos Validation",
-		"slug":        slug,
-		"description": "UpdateWorkspace repos validation test",
-	})
-
-	dbfx.Exec(t, `
-INSERT INTO member (workspace_id, user_id, role)
-VALUES ($1, $2, 'owner')
-`, wsID, testUserID)
-
-	t.Run("rejects invalid repo URLs without persisting", func(t *testing.T) {
-		req := newRequest("PATCH", "/api/workspaces/"+wsID, map[string]any{
-			"repos": []map[string]any{
-				{"url": "not-a-url"},
-			},
-		})
-		req = withURLParam(req, "id", wsID)
-		testutil.Call(t, testHandler.UpdateWorkspace, req).Want(http.StatusBadRequest)
-
-		var raw []byte
-		dbfx.QueryRow(t, `SELECT repos FROM workspace WHERE id = $1`, wsID).Scan(&raw)
-		if string(raw) != "[]" {
-			t.Fatalf("invalid repos update should not persist, got %s", raw)
-		}
-	})
-
-	t.Run("normalizes valid repos", func(t *testing.T) {
-		req := newRequest("PATCH", "/api/workspaces/"+wsID, map[string]any{
-			"repos": []map[string]any{
-				{
-					"url":         "  https://github.com/enact-ai/enact.git  ",
-					"description": "  main monorepo  ",
-				},
-				{
-					"url": "https://github.com/enact-ai/enact.git",
-				},
-				{
-					"url": "git@github.com:enact-ai/enact-cloud.git",
-				},
-			},
-		})
-		req = withURLParam(req, "id", wsID)
-		testutil.Call(t, testHandler.UpdateWorkspace, req).Want(http.StatusOK)
-
-		var raw []byte
-		dbfx.QueryRow(t, `SELECT repos FROM workspace WHERE id = $1`, wsID).Scan(&raw)
-		var repos []workspaceRepoRef
-		if err := json.Unmarshal(raw, &repos); err != nil {
-			t.Fatalf("decode repos: %v", err)
-		}
-		if len(repos) != 2 {
-			t.Fatalf("expected duplicate URL to be deduped, got %d repos: %s", len(repos), raw)
-		}
-		if repos[0].URL != "https://github.com/enact-ai/enact.git" || repos[0].Description != "main monorepo" {
-			t.Fatalf("first repo not normalized: %+v", repos[0])
-		}
-		if repos[1].URL != "git@github.com:enact-ai/enact-cloud.git" {
-			t.Fatalf("second repo not preserved: %+v", repos[1])
-		}
-	})
 }
 
 // revocationFixture is a minimal (workspace, member-to-revoke, runtime,

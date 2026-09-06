@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AppConfigSchema,
+  ListAgentKnowledgeResponseSchema,
+  EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   ChildIssueProgressResponseSchema,
   WecomInstallationSchema,
   ListWecomInstallationsResponseSchema,
@@ -36,7 +38,6 @@ import {
   EMPTY_CREATE_FEEDBACK_RESPONSE,
   EMPTY_INBOX_ITEMS,
   EMPTY_INBOX_UNREAD_SUMMARY,
-  EMPTY_SEARCH_PROJECTS_RESPONSE,
   EMPTY_USER,
   InboxItemListSchema,
   InboxUnreadSummarySchema,
@@ -45,7 +46,6 @@ import {
   ListPropertiesResponseSchema,
   MALFORMED_RUNTIME_MODEL_LIST_REQUEST,
   RuntimeModelListRequestSchema,
-  SearchProjectsResponseSchema,
   RuntimeHourlyActivityListSchema,
   RuntimeUsageByAgentListSchema,
   RuntimeUsageByHourListSchema,
@@ -85,7 +85,6 @@ const baseIssue = {
   creator_type: "member",
   creator_id: "user-1",
   parent_issue_id: null,
-  project_id: null,
   position: 0,
   stage: null,
   start_date: null,
@@ -142,6 +141,70 @@ describe("IssueSchema (via ListIssuesResponseSchema)", () => {
         total: 1,
       }),
     ).toThrow();
+  });
+
+  it("carries origin_type through, including a value this build predates", () => {
+    // The server grows the set (autopilot, quick_create, retrospect, ...), and
+    // an installed desktop build must not blank a list over a provenance it has
+    // never heard of — which is why this stays z.string() and not an enum.
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [
+        { ...baseIssue, origin_type: "retrospect" },
+        { ...baseIssue, id: "issue-2", origin_type: "some_future_origin" },
+      ],
+      total: 2,
+    });
+    expect(parsed.issues[0]?.origin_type).toBe("retrospect");
+    expect(parsed.issues[1]?.origin_type).toBe("some_future_origin");
+  });
+
+  // The shape the server actually sends for every issue a person typed. The
+  // field is deliberately not omitempty on the Go side, so `null` is the
+  // ordinary case, not an edge one — and a schema that rejected it would fail
+  // the row and, through parseWithFallback, blank the entire issue list.
+  it("accepts the null origin_type an ordinary issue carries", () => {
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [{ ...baseIssue, origin_type: null }],
+      total: 1,
+    });
+    expect(parsed.issues[0]?.origin_type ?? undefined).toBeUndefined();
+  });
+
+  it("does not blank a list because one issue has no provenance", () => {
+    const fallback = { issues: [], total: 0 };
+    const parsed = parseWithFallback(
+      {
+        issues: [
+          { ...baseIssue, origin_type: null },
+          { ...baseIssue, id: "issue-2", origin_type: "retrospect" },
+        ],
+        total: 2,
+      },
+      ListIssuesResponseSchema,
+      fallback,
+      { endpoint: "GET /api/issues" },
+    );
+    expect(parsed.issues).toHaveLength(2);
+  });
+
+  it("leaves origin_type undefined when the endpoint does not project it", () => {
+    const parsed = ListIssuesResponseSchema.parse({
+      issues: [baseIssue],
+      total: 1,
+    });
+    expect(parsed.issues[0]?.origin_type).toBeUndefined();
+  });
+
+  it("falls back rather than exposing a malformed origin_type", () => {
+    const fallback = { issues: [], total: 0 };
+    expect(
+      parseWithFallback(
+        { issues: [{ ...baseIssue, origin_type: 7 }], total: 1 },
+        ListIssuesResponseSchema,
+        fallback,
+        { endpoint: "GET /api/issues" },
+      ),
+    ).toEqual(fallback);
   });
 
   it("accepts a primitive metadata KV map", () => {
@@ -1125,55 +1188,6 @@ describe("InboxItemListSchema", () => {
   });
 });
 
-describe("SearchProjectsResponseSchema date drift", () => {
-  const ENDPOINT = { endpoint: "GET /api/projects/search" };
-
-  const baseProject = {
-    id: "p-1",
-    workspace_id: "ws-1",
-    title: "Launch",
-    description: null,
-    icon: null,
-    status: "in_progress",
-    priority: "high",
-    lead_type: null,
-    lead_id: null,
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-    issue_count: 0,
-    done_count: 0,
-    resource_count: 0,
-    match_source: "title",
-  };
-
-  it("parses start_date / due_date when the backend returns them", () => {
-    const parsed = parseWithFallback(
-      { projects: [{ ...baseProject, start_date: "2026-03-01", due_date: "2026-03-31" }], total: 1 },
-      SearchProjectsResponseSchema,
-      EMPTY_SEARCH_PROJECTS_RESPONSE,
-      ENDPOINT,
-    );
-    expect(parsed.projects[0]?.start_date).toBe("2026-03-01");
-    expect(parsed.projects[0]?.due_date).toBe("2026-03-31");
-  });
-
-  // Frontend deploys before backend: an older backend omits the new keys. The
-  // .default(null) must keep the whole batch parseable (→ null), not degrade
-  // it to the empty fallback and blank the search results.
-  it("defaults missing start_date / due_date to null without dropping results", () => {
-    const parsed = parseWithFallback(
-      { projects: [baseProject], total: 1 },
-      SearchProjectsResponseSchema,
-      EMPTY_SEARCH_PROJECTS_RESPONSE,
-      ENDPOINT,
-    );
-    expect(parsed).not.toBe(EMPTY_SEARCH_PROJECTS_RESPONSE);
-    expect(parsed.projects).toHaveLength(1);
-    expect(parsed.projects[0]?.start_date).toBeNull();
-    expect(parsed.projects[0]?.due_date).toBeNull();
-  });
-});
-
 // The "run now" flow branches on run.status/reason_code to avoid a false-success
 // toast (ENA-4525), so the trigger response must survive backend drift.
 describe("AutopilotRunSchema", () => {
@@ -1758,5 +1772,64 @@ describe("issue status catalog schemas", () => {
       { endpoint: "POST /api/issue-statuses" },
     );
     expect(parsed).toEqual(EMPTY_ISSUE_STATUS_ENTRY);
+  });
+});
+
+describe("Agent knowledge schemas", () => {
+  it("parses a well-formed binding list", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        {
+          resource_id: "res-1",
+          url: "https://github.com/acme/kb.git",
+          ref: "main",
+          path: "docs/knowledge",
+          delivery: "commit",
+          label: "Handbook",
+        },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("commit");
+    expect(parsed.knowledge_sources[0]?.path).toBe("docs/knowledge");
+  });
+
+  it("defaults a missing delivery to pull_request", () => {
+    // pull_request is the mode that asks a person before anything is
+    // published, so it is the safe assumption for a server too old to send
+    // the field. Guessing `commit` would let an agent push unreviewed.
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [{ resource_id: "res-1", url: "https://x/y.git" }],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("pull_request");
+    expect(parsed.knowledge_sources[0]?.label).toBeNull();
+  });
+
+  it("falls back to pull_request for a delivery mode it does not know", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        { resource_id: "res-1", url: "https://x/y.git", delivery: "force_push" },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources[0]?.delivery).toBe("pull_request");
+  });
+
+  it("keeps unknown fields rather than dropping the row", () => {
+    const parsed = ListAgentKnowledgeResponseSchema.parse({
+      knowledge_sources: [
+        { resource_id: "res-1", url: "https://x/y.git", future_field: 1 },
+      ],
+      total: 1,
+    });
+    expect(parsed.knowledge_sources).toHaveLength(1);
+  });
+
+  it("has an empty fallback for a response that does not parse at all", () => {
+    expect(
+      ListAgentKnowledgeResponseSchema.safeParse("not an object").success,
+    ).toBe(false);
+    expect(EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE.knowledge_sources).toEqual([]);
   });
 });

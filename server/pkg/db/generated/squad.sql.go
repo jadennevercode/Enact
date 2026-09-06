@@ -131,7 +131,7 @@ func (q *Queries) CreateSquad(ctx context.Context, arg CreateSquadParams) (Squad
 	return i, err
 }
 
-const findSDLCDefaultSquadForUpdate = `-- name: FindSDLCDefaultSquadForUpdate :one
+const findProductSquadForUpdate = `-- name: FindProductSquadForUpdate :one
 SELECT id, workspace_id, name, description, leader_id, creator_id, created_at, updated_at, archived_at, archived_by, avatar_url, instructions, system_key FROM squad
 WHERE workspace_id = $1
   AND (
@@ -146,15 +146,18 @@ LIMIT 1
 FOR UPDATE
 `
 
-type FindSDLCDefaultSquadForUpdateParams struct {
+type FindProductSquadForUpdateParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 	SystemKey   pgtype.Text `json:"system_key"`
 	DefaultName string      `json:"default_name"`
 	LeaderID    pgtype.UUID `json:"leader_id"`
 }
 
-func (q *Queries) FindSDLCDefaultSquadForUpdate(ctx context.Context, arg FindSDLCDefaultSquadForUpdateParams) (Squad, error) {
-	row := q.db.QueryRow(ctx, findSDLCDefaultSquadForUpdate,
+// Resolves a product-owned family by its stable system_key, falling back to a
+// pre-system_key row with the same name and leader so an existing family is
+// adopted rather than duplicated. Used by both the SDLC bundle and the catalog.
+func (q *Queries) FindProductSquadForUpdate(ctx context.Context, arg FindProductSquadForUpdateParams) (Squad, error) {
+	row := q.db.QueryRow(ctx, findProductSquadForUpdate,
 		arg.WorkspaceID,
 		arg.SystemKey,
 		arg.DefaultName,

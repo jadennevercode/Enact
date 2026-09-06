@@ -52,6 +52,7 @@ const catalogOntology: OntologySummary = {
   capabilityCount: 33,
   isLayered: true,
   capHubUrl: "http://127.0.0.1:13000/domains/marketing_media_mix",
+  attached: false,
 };
 
 const agent: Agent = {

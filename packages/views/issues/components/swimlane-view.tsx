@@ -27,7 +27,6 @@ import type {
   IssueStatus,
   IssueStatusCategory,
   IssueTableGroupDescriptor,
-  Project,
   UpdateIssueRequest,
 } from "@enact/core/types";
 import { useViewStore, useViewStoreApi } from "@enact/core/issues/stores/view-store-context";
@@ -56,7 +55,6 @@ import { HiddenColumnsPanel, HiddenColumnRow } from "./hidden-columns-panel";
 import { InfiniteScrollSentinel } from "./infinite-scroll-sentinel";
 import { ListLoadMoreFooter } from "./list-load-more-footer";
 import { AppLink } from "../../navigation";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { VirtuosoSeed } from "../../common/virtuoso-seed";
 
@@ -92,7 +90,6 @@ function combineChildrenLists(
 type SwimLaneMoveTargetUpdates = Pick<
   UpdateIssueRequest,
   | "parent_issue_id"
-  | "project_id"
   | "assignee_type"
   | "assignee_id"
   | "status"
@@ -208,7 +205,7 @@ function computePosition(ids: string[], activeId: string, issueMap: Map<string, 
 
 /**
  * One swimlane row. Lanes are produced by a per-grouping builder
- * (`buildParentLanes` / `buildProjectLanes` / `buildAssigneeLanes`) and then
+ * (`buildParentLanes` / `buildAssigneeLanes`) and then
  * consumed uniformly by the renderer. The matcher/move-updates closures hide
  * the grouping-specific details behind a single interface so the drag-end
  * handler doesn't need to branch on grouping.
@@ -230,8 +227,6 @@ interface LaneGroup {
   identifier: string;
   /** Parent issue (parent grouping only) — drives the open-parent link + status icon in the header. */
   parentIssue: Pick<Issue, "id" | "status"> | null;
-  /** Project metadata (project grouping only) — drives the icon in the header. */
-  project: Project | null;
   /** Actor (assignee grouping only) — drives the avatar in the header. */
   actor: { type: IssueAssigneeType; id: string } | null;
   /** Whether this lane owns `issue`. */
@@ -252,7 +247,6 @@ const EMPTY_PROGRESS_MAP = new Map<string, ChildProgress>();
 // Stable reference for non-parent groupings — keeps the `statusTotals` /
 // `cells` memos from busting on every render when there are no headers.
 const EMPTY_HEADER_IDS = new Set<string>();
-const EMPTY_PROJECTS: Project[] = [];
 
 /**
  * Build parent-grouping lanes. The "No parent" lane is always pinned at the
@@ -288,8 +282,7 @@ function buildParentLanes(
         title: parent.title,
         identifier: parent.identifier,
         parentIssue: parent,
-        project: null,
-        actor: null,
+          actor: null,
         matches: (i) => i.parent_issue_id === parentId,
         moveUpdates: { parent_issue_id: parentId },
       });
@@ -316,7 +309,6 @@ function buildParentLanes(
       title: labels.noParent,
       identifier: "",
       parentIssue: null,
-      project: null,
       actor: null,
       matches: (i) => i.parent_issue_id === null,
       moveUpdates: { parent_issue_id: null },
@@ -331,7 +323,6 @@ function buildParentLanes(
       title: labels.otherParents,
       identifier: "",
       parentIssue: null,
-      project: null,
       actor: null,
       // Match the canonical filter logic: a child whose parent isn't a
       // header lane in the current render.
@@ -341,66 +332,6 @@ function buildParentLanes(
   }
   lanes.push(...ordered);
   return lanes;
-}
-
-function buildProjectLanes(
-  visibleIssues: Issue[],
-  projects: Project[],
-  storedOrder: string[],
-  labels: { noProject: string },
-): LaneGroup[] {
-  const projectMap = new Map<string, Project>();
-  for (const p of projects) projectMap.set(p.id, p);
-
-  const seen = new Map<string, LaneGroup>();
-  for (const issue of visibleIssues) {
-    if (issue.project_id === null) continue;
-    const key = `project:${issue.project_id}`;
-    if (seen.has(key)) continue;
-    const project = projectMap.get(issue.project_id) ?? null;
-    const projectId = issue.project_id;
-    seen.set(key, {
-      key,
-      rawId: projectId,
-      isPinned: false,
-      isOrphan: false,
-      title: project?.title ?? "",
-      identifier: "",
-      parentIssue: null,
-      project,
-      actor: null,
-      matches: (i) => i.project_id === projectId,
-      moveUpdates: { project_id: projectId },
-    });
-  }
-
-  const orderIndex = new Map<string, number>();
-  storedOrder.forEach((id, idx) => orderIndex.set(`project:${id}`, idx));
-  const ordered = Array.from(seen.values()).sort((a, b) => {
-    const ai = orderIndex.get(a.key);
-    const bi = orderIndex.get(b.key);
-    if (ai !== undefined && bi !== undefined) return ai - bi;
-    if (ai !== undefined) return -1;
-    if (bi !== undefined) return 1;
-    return a.title.localeCompare(b.title);
-  });
-
-  return [
-    {
-      key: `project:${NONE_LANE_ID}`,
-      rawId: NONE_LANE_ID,
-      isPinned: true,
-      isOrphan: false,
-      title: labels.noProject,
-      identifier: "",
-      parentIssue: null,
-      project: null,
-      actor: null,
-      matches: (i) => i.project_id === null,
-      moveUpdates: { project_id: null },
-    },
-    ...ordered,
-  ];
 }
 
 function buildAssigneeLanes(
@@ -425,7 +356,6 @@ function buildAssigneeLanes(
       title: getActorName(assigneeType, assigneeId),
       identifier: "",
       parentIssue: null,
-      project: null,
       actor: { type: assigneeType, id: assigneeId },
       matches: (i) =>
         i.assignee_type === assigneeType && i.assignee_id === assigneeId,
@@ -461,7 +391,6 @@ function buildAssigneeLanes(
       title: labels.noAssignee,
       identifier: "",
       parentIssue: null,
-      project: null,
       actor: null,
       matches: (i) => i.assignee_id === null,
       moveUpdates: { assignee_type: null, assignee_id: null },
@@ -474,13 +403,11 @@ function buildServerLanes(
   descriptors: readonly IssueTableGroupDescriptor[],
   grouping: SwimlaneGrouping,
   visibleStatuses: readonly IssueStatus[],
-  projects: ReadonlyMap<string, Project> | undefined,
   getActorName: (type: string, id: string) => string,
   storedOrder: string[],
   labels: {
     noParent: string;
     otherParents: string;
-    noProject: string;
     noAssignee: string;
   },
 ): LaneGroup[] {
@@ -524,8 +451,7 @@ function buildServerLanes(
           : labels.noAssignee,
         identifier: "",
         parentIssue: null,
-        project: null,
-        actor,
+          actor,
         matches: (issue) =>
           actor
             ? issue.assignee_type === actor.type &&
@@ -534,27 +460,6 @@ function buildServerLanes(
         moveUpdates: actor
           ? { assignee_type: actor.type, assignee_id: actor.id }
           : { assignee_type: null, assignee_id: null },
-        total: descriptor.count,
-        serverCellKeys,
-      }];
-    }
-    if (grouping === "project" && value.kind === "project") {
-      const rawId = value.project_id ?? NONE_LANE_ID;
-      const project = value.project_id
-        ? projects?.get(value.project_id) ?? null
-        : null;
-      return [{
-        key: `project:${rawId}`,
-        rawId,
-        isPinned: value.project_id === null,
-        isOrphan: false,
-        title: value.project_id ? project?.title ?? "" : labels.noProject,
-        identifier: "",
-        parentIssue: null,
-        project,
-        actor: null,
-        matches: (issue) => issue.project_id === value.project_id,
-        moveUpdates: { project_id: value.project_id },
         total: descriptor.count,
         serverCellKeys,
       }];
@@ -574,8 +479,7 @@ function buildServerLanes(
         parentIssue: value.parent
           ? { id: value.parent.id, status: value.parent.status as IssueStatus }
           : null,
-        project: null,
-        actor: null,
+          actor: null,
         matches: (issue) => issue.parent_issue_id === value.parent_id,
         moveUpdates: unavailable
           ? {}
@@ -611,8 +515,6 @@ function SwimLaneViewImpl({
   hiddenStatuses = [],
   onMoveIssue,
   childProgressMap = EMPTY_PROGRESS_MAP,
-  projectMap,
-  projectId,
   onCreateIssue,
   groupBranches,
 }: {
@@ -635,9 +537,6 @@ function SwimLaneViewImpl({
     onSettled?: () => void,
   ) => void;
   childProgressMap?: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
-  /** Pre-fills `project_id` on the create form for the in-cell "+" button. */
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   groupBranches?: IssueGroupBranches;
 }) {
@@ -666,21 +565,12 @@ function SwimLaneViewImpl({
     agentRunningFilter: activeFiltersProp?.agentRunningFilter ?? false,
     runningIssueIds: activeFiltersProp?.runningIssueIds,
     creatorFilters: activeFiltersProp?.creatorFilters ?? [],
-    projectFilters: activeFiltersProp?.projectFilters ?? [],
-    includeNoProject: activeFiltersProp?.includeNoProject ?? false,
     labelFilters: activeFiltersProp?.labelFilters ?? [],
     // Carry the "Show sub-issues" toggle through to the extra-children merge
     // path (see `filterIssues(extra, activeFilters)` below); otherwise batch /
     // per-parent loaded sub-issues get re-added even when the toggle is off.
     showSubIssues: activeFiltersProp?.showSubIssues ?? true,
   }), [activeFiltersProp]);
-  const projects = useMemo(
-    () =>
-      swimlaneGrouping === "project" && projectMap
-        ? Array.from(projectMap.values())
-        : EMPTY_PROJECTS,
-    [projectMap, swimlaneGrouping],
-  );
   const { getActorName } = useActorName();
 
   const laneSourceIssues = unfilteredIssues ?? issues;
@@ -697,7 +587,6 @@ function SwimLaneViewImpl({
     () => ({
       noParent: t(($) => $.swimlane.no_parent),
       otherParents: t(($) => $.swimlane.other_parents),
-      noProject: t(($) => $.swimlane.no_project),
       noAssignee: t(($) => $.swimlane.no_assignee),
     }),
     [t],
@@ -807,14 +696,10 @@ function SwimLaneViewImpl({
         groupBranches.descriptors,
         swimlaneGrouping,
         sortedStatuses,
-        projectMap,
         getActorName,
         swimlaneOrder,
         laneLabels,
       );
-    }
-    if (swimlaneGrouping === "project") {
-      return buildProjectLanes(issues, projects, swimlaneOrder, laneLabels);
     }
     if (swimlaneGrouping === "assignee") {
       return buildAssigneeLanes(issues, getActorName, swimlaneOrder, laneLabels);
@@ -828,18 +713,16 @@ function SwimLaneViewImpl({
     issues,
     mergedIssues,
     laneSourceIssues,
-    projects,
     getActorName,
     swimlaneOrder,
     laneLabels,
     groupBranches,
-    projectMap,
     sortedStatuses,
   ]);
 
   // For parent grouping: issues that are themselves lane headers should not
   // also appear as cards (that would be a double-render). Other groupings
-  // never collide this way (lanes are projects/actors, not issues), so the
+  // never collide this way (lanes are actors, not issues), so the
   // set is empty there.
   const headerIssueIds = useMemo(() => {
     if (swimlaneGrouping !== "parent") {
@@ -854,7 +737,7 @@ function SwimLaneViewImpl({
 
   // Map of issue id → owning lane key. Used by orphan detection for parent
   // grouping (a child whose canonical parent isn't a lane header here lands
-  // in the fallback) and as the matcher hot-path for project/assignee.
+  // in the fallback) and as the matcher hot-path for assignee grouping.
   const cells = useMemo(() => {
     const result: Record<string, Record<string, string[]>> = {};
     for (const lane of laneGroups) {
@@ -1380,10 +1263,8 @@ function SwimLaneViewImpl({
         sortedStatuses={sortedStatuses}
         issueMap={issueMapRef.current}
         childProgressMap={childProgressMap}
-        projectMap={projectMap}
         gridStyle={gridStyle}
         paths={paths}
-        projectId={projectId}
         onCreateIssue={onCreateIssue}
         groupPagination={groupBranches?.pagination}
       />
@@ -1525,11 +1406,6 @@ function SwimLaneViewImpl({
             <BoardCardContent
               issue={activeIssue}
               childProgress={childProgressMap.get(activeIssue.id)}
-              project={
-                activeIssue.project_id
-                  ? projectMap?.get(activeIssue.project_id)
-                  : undefined
-              }
             />
           </div>
         ) : null}
@@ -1561,10 +1437,8 @@ function DraggableSwimLane({
   sortedStatuses,
   issueMap,
   childProgressMap,
-  projectMap,
   gridStyle,
   paths,
-  projectId,
   onCreateIssue,
   groupPagination,
 }: {
@@ -1576,10 +1450,8 @@ function DraggableSwimLane({
   sortedStatuses: IssueStatus[];
   issueMap: Map<string, Issue>;
   childProgressMap: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   gridStyle: React.CSSProperties;
   paths: ReturnType<typeof useWorkspacePaths>;
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   groupPagination?: Record<string, IssueGroupPageState>;
 }) {
@@ -1637,7 +1509,6 @@ function DraggableSwimLane({
               className="size-3.5"
             />
           )}
-          {lane.project && <ProjectIcon project={lane.project} size="sm" />}
           {lane.actor && (
             <ActorAvatar
               actorType={lane.actor.type}
@@ -1683,10 +1554,8 @@ function DraggableSwimLane({
                 issueIds={issueIds}
                 issueMap={issueMap}
                 childProgressMap={childProgressMap}
-                projectMap={projectMap}
                 status={status}
                 lane={lane}
-                projectId={projectId}
                 onCreateIssue={onCreateIssue}
                 readOnly={lane.isOrphan}
                 page={
@@ -1708,10 +1577,8 @@ function SwimLaneCell({
   issueIds,
   issueMap,
   childProgressMap,
-  projectMap,
   status,
   lane,
-  projectId,
   onCreateIssue,
   readOnly = false,
   page,
@@ -1720,10 +1587,8 @@ function SwimLaneCell({
   issueIds: string[];
   issueMap: Map<string, Issue>;
   childProgressMap: Map<string, ChildProgress>;
-  projectMap?: Map<string, Project>;
   status: IssueStatus;
   lane: LaneGroup;
-  projectId?: string;
   onCreateIssue?: (defaults: IssueCreateDefaults) => void;
   /**
    * Display-only cell — the create affordance is suppressed and drag-end
@@ -1755,12 +1620,8 @@ function SwimLaneCell({
   );
 
   const handleAdd = useCallback(() => {
-    const data: IssueCreateDefaults = { status, ...lane.moveUpdates };
-    // Per-page project override takes precedence (e.g. Project Detail
-    // pre-fills its own project id regardless of grouping).
-    if (projectId) data.project_id = projectId;
-    onCreateIssue?.(data);
-  }, [status, lane, projectId, onCreateIssue]);
+    onCreateIssue?.({ status, ...lane.moveUpdates });
+  }, [status, lane, onCreateIssue]);
 
   return (
     <div className={`flex min-h-[120px] flex-col rounded-xl ${cfg?.columnBg ?? "bg-muted/40"} p-2`}>
@@ -1776,9 +1637,6 @@ function SwimLaneCell({
               key={issue.id}
               issue={issue}
               childProgress={childProgressMap.get(issue.id)}
-              project={
-                issue.project_id ? projectMap?.get(issue.project_id) : undefined
-              }
             />
           ))}
         </SortableContext>

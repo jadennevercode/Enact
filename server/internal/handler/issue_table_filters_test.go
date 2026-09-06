@@ -20,18 +20,6 @@ func TestListIssues_TableFacetsAreServerSide(t *testing.T) {
 	token := fmt.Sprintf("table-filter-%d", time.Now().UnixNano())
 	metadata := fmt.Sprintf(`{"table_filter_test":%q}`, token)
 
-	createProject := func(title string) string {
-		var id string
-		if err := testPool.QueryRow(ctx, `
-			INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-		`, testWorkspaceID, title).Scan(&id); err != nil {
-			t.Fatalf("create project: %v", err)
-		}
-		return id
-	}
-	projectA := createProject(token + " A")
-	projectB := createProject(token + " B")
-
 	var labelA, labelB string
 	if err := testPool.QueryRow(ctx, `
 		INSERT INTO issue_label (workspace_id, name, color)
@@ -49,7 +37,6 @@ func TestListIssues_TableFacetsAreServerSide(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue WHERE metadata @> $1::jsonb`, metadata)
 		_, _ = testPool.Exec(context.Background(), `DELETE FROM issue_label WHERE id IN ($1, $2)`, labelA, labelB)
-		_, _ = testPool.Exec(context.Background(), `DELETE FROM project WHERE id IN ($1, $2)`, projectA, projectB)
 	})
 
 	nextNumber := func() int {
@@ -64,7 +51,7 @@ func TestListIssues_TableFacetsAreServerSide(t *testing.T) {
 		return number
 	}
 
-	insertIssue := func(title, status, priority string, assigned bool, projectID, parentID *string) string {
+	insertIssue := func(title, status, priority string, assigned bool, parentID *string) string {
 		var assigneeType *string
 		var assigneeID *string
 		if assigned {
@@ -77,19 +64,19 @@ func TestListIssues_TableFacetsAreServerSide(t *testing.T) {
 			INSERT INTO issue (
 				workspace_id, title, status, priority, assignee_type, assignee_id,
 				creator_type, creator_id, parent_issue_id, position, number,
-				project_id, metadata
-			) VALUES ($1, $2, $3, $4, $5, $6, 'member', $7, $8, 0, $9, $10, $11::jsonb)
+				metadata
+			) VALUES ($1, $2, $3, $4, $5, $6, 'member', $7, $8, 0, $9, $10::jsonb)
 			RETURNING id
 		`, testWorkspaceID, title, status, priority, assigneeType, assigneeID,
-			testUserID, parentID, nextNumber(), projectID, metadata).Scan(&id); err != nil {
+			testUserID, parentID, nextNumber(), metadata).Scan(&id); err != nil {
 			t.Fatalf("create issue %q: %v", title, err)
 		}
 		return id
 	}
 
-	issueA := insertIssue(token+" todo", "todo", "high", false, nil, nil)
-	issueB := insertIssue(token+" progress", "in_progress", "low", true, &projectA, nil)
-	issueC := insertIssue(token+" child", "done", "high", true, &projectB, &issueB)
+	issueA := insertIssue(token+" todo", "todo", "high", false, nil)
+	issueB := insertIssue(token+" progress", "in_progress", "low", true, nil)
+	issueC := insertIssue(token+" child", "done", "high", true, &issueB)
 	if _, err := testPool.Exec(ctx, `
 		INSERT INTO issue_to_label (issue_id, label_id) VALUES ($1, $2), ($3, $4), ($5, $2)
 	`, issueA, labelA, issueB, labelB, issueC); err != nil {
@@ -139,7 +126,6 @@ func TestListIssues_TableFacetsAreServerSide(t *testing.T) {
 	assertList("&statuses=todo,in_progress", issueA, issueB)
 	assertList("&priorities=high", issueA, issueC)
 	assertList("&assignee_filters="+url.QueryEscape("member:"+testUserID), issueB, issueC)
-	assertList("&project_ids="+projectA+"&include_no_project=true", issueA, issueB)
 	assertList("&label_ids="+labelA, issueA, issueC)
 	assertList("&top_level_only=true", issueA, issueB)
 	assertList("&q="+url.QueryEscape("progress "+token), issueB)

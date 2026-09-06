@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/util"
 	"github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AgentRuntimeResponse struct {
@@ -42,7 +42,14 @@ type AgentRuntimeResponse struct {
 	Visibility string `json:"visibility"`
 	// ProfileID is set when this runtime is an instance of a custom
 	// runtime_profile (ENA-3284); null for built-in runtimes.
-	ProfileID  *string `json:"profile_id"`
+	ProfileID *string `json:"profile_id"`
+	// MachineID identifies the host this runtime runs on (migration 412). The
+	// same machine registered in several workspaces reports the SAME id in each
+	// of them, which is what lets a client show one computer once instead of
+	// re-deriving machine identity from daemon_id and device names. Null for
+	// cloud runtimes, which have no host, and for local rows a machine-aware
+	// server has not registered yet.
+	MachineID  *string `json:"machine_id"`
 	LastSeenAt *string `json:"last_seen_at"`
 	CreatedAt  string  `json:"created_at"`
 	UpdatedAt  string  `json:"updated_at"`
@@ -72,6 +79,7 @@ func runtimeToResponse(rt db.AgentRuntime) AgentRuntimeResponse {
 		OwnerID:      uuidToPtr(rt.OwnerID),
 		Visibility:   rt.Visibility,
 		ProfileID:    uuidToPtr(rt.ProfileID),
+		MachineID:    uuidToPtr(rt.MachineID),
 		LastSeenAt:   timestampToPtr(rt.LastSeenAt),
 		CreatedAt:    timestampToString(rt.CreatedAt),
 		UpdatedAt:    timestampToString(rt.UpdatedAt),
@@ -674,9 +682,15 @@ func (h *Handler) runtimeHasLiveProfile(ctx context.Context, rt db.AgentRuntime)
 	if !rt.ProfileID.Valid {
 		return false, nil
 	}
-	if _, err := h.Queries.GetRuntimeProfileForWorkspace(ctx, db.GetRuntimeProfileForWorkspaceParams{
+	// "Live" means the profile still reaches this workspace, by either route:
+	// published for the whole workspace, or owned by the person whose machine
+	// this runtime is. The second is why the runtime's owner is passed rather
+	// than the caller's identity — the question is whether the runtime still
+	// has a definition behind it, not who is asking.
+	if _, err := h.Queries.GetRuntimeProfileVisibleInWorkspace(ctx, db.GetRuntimeProfileVisibleInWorkspaceParams{
 		ID:          rt.ProfileID,
 		WorkspaceID: rt.WorkspaceID,
+		OwnerID:     rt.OwnerID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

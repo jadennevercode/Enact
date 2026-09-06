@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { githubShortLabel, midTruncate } from "./github-url";
+import {
+  githubShortLabel,
+  midTruncate,
+  repositoryIdentity,
+} from "./github-url";
 
 describe("githubShortLabel", () => {
   it("extracts owner/repo from an https URL", () => {
@@ -84,5 +88,40 @@ describe("midTruncate", () => {
     expect(out).toContain("…");
     expect(out.startsWith("aaaaaaaaaa")).toBe(true);
     expect(out.endsWith("aaaaaaaaaa")).toBe(true);
+  });
+});
+
+describe("repositoryIdentity", () => {
+  // Canonical location for this matrix; the Resources tab suite only checks
+  // that the picker uses it to dedupe.
+  it("matches an https clone URL against its scp-shorthand twin", () => {
+    expect(repositoryIdentity("https://github.com/acme/repo.git")).toBe(
+      repositoryIdentity("git@github.com:acme/repo.git"),
+    );
+  });
+
+  it("lowercases the host but preserves path casing", () => {
+    expect(repositoryIdentity("https://GitHub.com/Acme/Repo.git")).toBe(
+      "github.com/Acme/Repo",
+    );
+    expect(repositoryIdentity("git@github.com:acme/repo.git")).toBe(
+      "github.com/acme/repo",
+    );
+  });
+
+  it("ignores trailing slashes and ssh:// scheme differences", () => {
+    expect(repositoryIdentity("https://github.com/acme/repo/")).toBe(
+      "github.com/acme/repo",
+    );
+    expect(repositoryIdentity("ssh://git@github.com/acme/repo.git")).toBe(
+      "github.com/acme/repo",
+    );
+  });
+
+  it("returns null for input that names no repository", () => {
+    expect(repositoryIdentity("")).toBeNull();
+    expect(repositoryIdentity("   ")).toBeNull();
+    expect(repositoryIdentity("not a url")).toBeNull();
+    expect(repositoryIdentity("https://github.com/")).toBeNull();
   });
 });

@@ -20,7 +20,6 @@ import { StatusIcon } from "./status-icon";
  *     above — the reference-dense-prose problem from #6732.
  *   - `100%` bounds it against the *container*, keeping the chip inside narrow
  *     parents such as a chat bubble.
- * `ProjectChip` carries the identical cap; the two must not drift.
  *
  * The cap lives here (single source of truth) — wrappers must NOT add their own
  * flex container around it, or a percentage cap gets dropped during the

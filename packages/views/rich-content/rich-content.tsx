@@ -56,7 +56,6 @@ import {
 } from "../navigation";
 import { IssueMentionCard } from "../issues/components/issue-mention-card";
 import { useResolveIssueIdentifier } from "../issues/hooks";
-import { ProjectMentionCard } from "../projects/components/project-mention-card";
 import { useLinkHover, LinkHoverCard } from "../editor/link-hover-card";
 import {
   openLink,
@@ -149,20 +148,6 @@ function IdentifierIssueMentionLink({
   return <IssueMentionLink issueId={issue.id} label={identifier} />;
 }
 
-/**
- * Project mention chip. Navigation and accessibility are owned by the AppLink
- * inside ProjectMentionCard; the wrapper only shields surrounding click
- * handlers (e.g. collapsed-comment expanders) from mention clicks — the same
- * shape as IssueMentionLink above.
- */
-function ProjectMentionLink({ projectId, label }: { projectId: string; label?: string }) {
-  return (
-    <span className="inline align-middle" onClick={(e) => e.stopPropagation()}>
-      <ProjectMentionCard projectId={projectId} fallbackLabel={label} />
-    </span>
-  );
-}
-
 function childrenToLabel(children: ReactNode): string | undefined {
   if (typeof children === "string") return children;
   if (Array.isArray(children)) return children.join("");
@@ -172,16 +157,12 @@ function childrenToLabel(children: ReactNode): string | undefined {
 /**
  * Decide whether a link should render as an entity chip instead of a raw URL.
  *
- * Pasting a link copied out of the app is how people reference a project:
- * projects carry only a UUID and a free-text title, so unlike an issue they have
- * no `ENA-123` shorthand for the autolink preprocessor to detect — the URL IS
- * the reference. Rendering it as the same chip the `mention://project/<uuid>`
- * form produces closes that gap without inventing a new text form. Issue URLs
- * go through the same path for symmetry.
+ * A pasted in-app issue URL means the same thing as the mention form, so it
+ * renders as the same chip rather than as a raw path the reader has to decode.
  *
  * Three conditions, each load-bearing:
  *   - BARE: the visible text is the URL itself, which is what the linkify
- *     preprocessor emits for a pasted URL. `[路线图](…/projects/<id>)` carries a
+ *     preprocessor emits for a pasted URL. `[路线图](…/issues/<id>)` carries a
  *     label the author chose, and replacing it with a chip would discard it.
  *   - SAME WORKSPACE: a chip resolves its title against the CURRENT workspace,
  *     so unfurling a link into another workspace would turn a working link into
@@ -217,7 +198,7 @@ function RichLink({ href, children }: { href?: string; children?: ReactNode }) {
   }
 
   if (isMentionHref(href)) {
-    const match = href.match(/^mention:\/\/(member|agent|issue|project|all)\/(.+)$/);
+    const match = href.match(/^mention:\/\/(member|agent|issue|all)\/(.+)$/);
     if (match?.[1] === "issue" && match[2]) {
       // A bare identifier (from the autolink preprocessor) is carried as the id
       // segment; a real mention carries a UUID. Dispatch on the id shape.
@@ -231,8 +212,13 @@ function RichLink({ href, children }: { href?: string; children?: ReactNode }) {
       }
       return <IssueMentionLink issueId={match[2]} label={childrenToLabel(children)} />;
     }
-    if (match?.[1] === "project" && match[2]) {
-      return <ProjectMentionLink projectId={match[2]} label={childrenToLabel(children)} />;
+    if (!match) {
+      // A mention href this build no longer understands — the
+      // `mention://project/<uuid>` still sitting in rich text saved before
+      // projects were removed. There is nothing to resolve and nowhere to
+      // navigate, so it degrades to the label the author wrote: plain text,
+      // not a dead chip and not an "@" that would misread it as an actor.
+      return <>{children}</>;
     }
     // Member / agent / all mentions
     return <span className="mention">{children}</span>;
@@ -281,10 +267,6 @@ function RichLink({ href, children }: { href?: string; children?: ReactNode }) {
       <IssueMentionLink issueId={entity.id} />
     );
   }
-  if (entity?.kind === "project") {
-    return <ProjectMentionLink projectId={entity.id} />;
-  }
-
   return plainLink;
 }
 

@@ -29,7 +29,7 @@ The chain is:
 2. the task points at an agent and runtime;
 3. server wakes the runtime over daemon websocket when possible;
 4. daemon polls/claims the task;
-5. server returns task context, repos, project resources, prior session/workdir hints, and task token;
+5. server returns task context, repos, workspace resources, prior session/workdir hints, and task token;
 6. daemon prepares a workdir and launches the provider CLI;
 7. `enact repo checkout` talks to the local daemon, not directly to GitHub.
 
@@ -47,7 +47,7 @@ enact repo checkout <url> --ref <branch-or-sha>
 
 `runtime update` and `runtime delete` are writes. Starting a runtime update is limited to its owner or a workspace owner/admin; the original initiator may keep polling that specific in-flight request if their admin role changes. `runtime delete` removes a runtime registration; if active agents are still bound, it refuses unless the user explicitly passes `--cascade`, which unbinds those agents and cancels their queued/running tasks before deleting the runtime. Unbinding keeps the agents and everything they own — instructions, skills, chats, labels, channel installations, autopilots and task history — and only clears `agent.runtime_id`; an unbound agent cannot run until it is bound to a runtime again (`enact agent update <id> --runtime-id <runtime-id>`), and every trigger path refuses it with `agent_runtime_required`. `repo checkout` creates a dedicated branch in the task working directory. Most runtimes use a linked worktree; Linux and Windows Codex use task-local Git metadata so a task can stage and commit without making the shared `.repos` cache writable.
 
-`repo checkout` requires both `ENACT_DAEMON_PORT` and the injected task-scoped `ENACT_TOKEN`; it is intended to run inside the active daemon task and from that task's workdir (or a descendant). The local daemon authenticates the token against its active-task registry, derives workspace/task/agent identity itself, and rejects a caller-supplied workdir outside that task. If either variable is absent, you are not in the normal agent checkout path. When a project `github_repo` resource has `resource_ref.ref`, `repo checkout <url>` uses that ref by default for the current task; an explicit `repo checkout <url> --ref <branch-or-sha>` overrides it.
+`repo checkout` requires both `ENACT_DAEMON_PORT` and the injected task-scoped `ENACT_TOKEN`; it is intended to run inside the active daemon task and from that task's workdir (or a descendant). The local daemon authenticates the token against its active-task registry, derives workspace/task/agent identity itself, and rejects a caller-supplied workdir outside that task. If either variable is absent, you are not in the normal agent checkout path. When a workspace `github_repo` resource has `resource_ref.ref`, `repo checkout <url>` uses that ref by default for the current task; an explicit `repo checkout <url> --ref <branch-or-sha>` overrides it.
 
 ## Task CLI boundary
 
@@ -74,18 +74,21 @@ Check in this order:
 5. Did the daemon heartbeat recently? Runtime `last_seen_at` is the visible clue.
 6. Did the task get claimed or is it stuck pending/running/waiting for local directory?
 7. If repo checkout failed, classify it after checking whether repo context was
-   present in the task/project context.
+   present in the task/workspace context.
 
 ## Repos
 
-The runtime brief lists repos available to this task. Treat that list as the authority for agent checkout unless the user explicitly asks to bind a new project resource.
+The runtime brief lists repos available to this task. Treat that list as the authority for agent checkout unless the user explicitly asks to bind a new workspace resource.
 
-Workspace repos and project resources are not the same thing:
+The workspace repo registry and workspace resources are not the same thing:
 
 - workspace repo metadata can appear in workspace context;
-- `github_repo` project resources are durable project context and can affect future tasks; optional `resource_ref.ref` pins the default checkout ref for tasks in that project;
-- `local_directory` resources point at a path owned by a daemon and carry local-machine assumptions.
+- `github_repo` workspace resources are durable workspace context and affect future tasks; an optional `resource_ref.ref` pins the default checkout ref for tasks in the workspace;
+- `local_directory` resources point at a path owned by a daemon and carry local-machine assumptions;
+- `knowledge_repo` resources are documents an agent READS, bound per agent rather than workspace-wide. They never appear under `## Repositories` — they have their own `## Knowledge` section, already checked out and indexed by the daemon before the run.
 
-Do not add a project resource just because `repo checkout` failed. First determine whether the user asked for durable project context or just a task checkout.
+A knowledge base is checked out twice, for two different purposes, and confusing them is the failure mode. The location in the `## Knowledge` section is shared by every task on the machine and is reset — read it, never write to it. To write a document back, `enact repo checkout <url>` gives the task its own checkout on a branch, which is allowed because the claim puts knowledge bases in the same repo allowlist as code.
+
+See the `enact-resources` skill for the resource CLI. Do not add a resource just because `repo checkout` failed. First determine whether the user asked for durable workspace context or just a task checkout.
 
 More source-backed details: `references/runtimes-and-repos-source-map.md`.

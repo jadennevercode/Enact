@@ -21,9 +21,11 @@ function workspaceScoped(slug: string) {
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,
-    projects: () => `${ws}/projects`,
-    projectDetail: (id: string) => `${ws}/projects/${encode(id)}`,
-    projectArtifacts: (id: string) => `${ws}/projects/${encode(id)}/artifacts`,
+    // The files an issue produced, its sub-issues included. Hangs off the
+    // issue because that is what owns them; there is no workspace-wide
+    // artifacts section. No per-file detail page — a file opens through
+    // `attachmentPreview`.
+    issueArtifacts: (id: string) => `${ws}/issues/${encode(id)}/artifacts`,
     autopilots: () => `${ws}/autopilots`,
     autopilotDetail: (id: string) => `${ws}/autopilots/${encode(id)}`,
     agents: () => `${ws}/agents`,
@@ -47,6 +49,10 @@ function workspaceScoped(slug: string) {
       `${ws}/chat?agent=${encode(agentId)}`,
     chatSession: (sessionId: string) =>
       `${ws}/chat?session=${encode(sessionId)}`,
+    // The files one chat session produced. A real route rather than a mode of
+    // the chat screen, so it survives a refresh and can be linked to.
+    chatSessionArtifacts: (sessionId: string) =>
+      `${ws}/chat/${encode(sessionId)}/artifacts`,
     myIssues: () => `${ws}/my-issues`,
     runtimes: () => `${ws}/runtimes`,
     runtimeDetail: (id: string) => `${ws}/runtimes/${encode(id)}`,
@@ -54,8 +60,19 @@ function workspaceScoped(slug: string) {
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,
     ontologies: () => `${ws}/ontologies`,
     skills: () => `${ws}/skills`,
+    // The capability directory. A single-word section like every other
+    // workspace destination; a listing is addressed by id because slugs are
+    // scoped to their publisher and two workspaces may use the same one.
+    marketplace: () => `${ws}/marketplace`,
+    marketplaceListing: (id: string) => `${ws}/marketplace/${encode(id)}`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
     settings: () => `${ws}/settings`,
+    // The workspace's own General tab, where the project profile lives. A bare
+    // `settings()` opens the account's Profile tab, which is a different
+    // person's-vs-project distinction than the word "profile" suggests, so
+    // anything pointing at the project profile has to name this one.
+    settingsWorkspace: () => `${ws}/settings?tab=workspace`,
+    settingsResources: () => `${ws}/settings/resources`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
 }

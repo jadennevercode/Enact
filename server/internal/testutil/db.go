@@ -275,17 +275,6 @@ func (f *Fixture) SquadMember(t TB, squadID, memberType, memberID string, over .
 	}, over))
 }
 
-// Project inserts a project.
-func (f *Fixture) Project(t TB, title string, over ...Cols) string {
-	t.Helper()
-	return f.Insert(t, "project", merge(Cols{
-		"workspace_id": f.WorkspaceID,
-		"title":        title,
-		"status":       "planned",
-		"priority":     "none",
-	}, over))
-}
-
 // ChatSession inserts a chat session with agentID.
 func (f *Fixture) ChatSession(t TB, agentID string, over ...Cols) string {
 	t.Helper()

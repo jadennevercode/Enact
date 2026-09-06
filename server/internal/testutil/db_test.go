@@ -98,7 +98,6 @@ func TestBuildersInsertRowsTheSchemaAccepts(t *testing.T) {
 	taskID := f.Task(t, agentID, Cols{"runtime_id": runtimeID, "issue_id": issueID})
 	squadID := f.Squad(t, "fixture squad", agentID)
 	f.SquadMember(t, squadID, "agent", agentID)
-	projectID := f.Project(t, "fixture project")
 	sessionID := f.ChatSession(t, agentID)
 
 	for _, tt := range []struct {
@@ -111,7 +110,6 @@ func TestBuildersInsertRowsTheSchemaAccepts(t *testing.T) {
 		{"comment", commentID},
 		{"agent_task_queue", taskID},
 		{"squad", squadID},
-		{"project", projectID},
 		{"chat_session", sessionID},
 	} {
 		if n := f.Count(t, fmt.Sprintf(`SELECT count(*) FROM %s WHERE id = $1`, tt.table), tt.id); n != 1 {

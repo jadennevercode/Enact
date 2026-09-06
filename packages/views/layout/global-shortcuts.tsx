@@ -30,7 +30,6 @@ const GLOBAL_ACTIONS: readonly ShortcutActionId[] = [
   "goChat",
   "goMyIssues",
   "goIssues",
-  "goProjects",
   "goAutopilots",
   "goAgents",
   "goSquads",
@@ -61,7 +60,6 @@ export function GlobalShortcuts() {
       goChat: chatPath,
       goMyIssues: workspacePaths.myIssues(),
       goIssues: workspacePaths.issues(),
-      goProjects: workspacePaths.projects(),
       goAutopilots: workspacePaths.autopilots(),
       goAgents: workspacePaths.agents(),
       goSquads: workspacePaths.squads(),
@@ -121,13 +119,7 @@ export function GlobalShortcuts() {
       }
       if (actionId === "createIssue") {
         if (useModalStore.getState().modal) return;
-        const projectMatch = navigation.pathname.match(
-          /^\/[^/]+\/projects\/([^/]+)$/,
-        );
-        const data = projectMatch
-          ? { project_id: projectMatch[1] }
-          : undefined;
-        openCreateIssueWithPreference(data);
+        openCreateIssueWithPreference();
         return;
       }
 

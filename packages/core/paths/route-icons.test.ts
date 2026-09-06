@@ -30,7 +30,11 @@ describe("workspace page coverage", () => {
     for (const [method, fn] of Object.entries(ws)) {
       if (typeof fn !== "function" || fn.length !== 0) continue;
       if (EXCLUDED_METHODS.has(method)) continue;
-      const segment = fn().split("/").filter(Boolean)[1] ?? "";
+      // Strip the query and hash first, the way resolveRouteIconName does:
+      // a route that selects a tab (settings?tab=workspace) is the settings
+      // page, and comparing the raw string would report it as unmapped.
+      const segment =
+        fn().split(/[?#]/)[0]!.split("/").filter(Boolean)[1] ?? "";
       if (!KNOWN_SEGMENTS.has(segment)) missing.push(`${method} → "${segment}"`);
     }
 
@@ -43,7 +47,6 @@ describe("workspace page coverage", () => {
 
 describe("pageForSegment", () => {
   it("maps a known segment to its page key", () => {
-    expect(pageForSegment("projects")).toBe("projects");
     expect(pageForSegment("my-issues")).toBe("myIssues");
     expect(pageForSegment("ontologies")).toBe("ontologies");
     expect(pageForSegment("settings")).toBe("settings");
@@ -57,7 +60,6 @@ describe("pageForSegment", () => {
 
 describe("resolveRouteIconName", () => {
   it("resolves a page path to its page icon", () => {
-    expect(resolveRouteIconName("/acme/projects")).toBe("FolderKanban");
     expect(resolveRouteIconName("/acme/autopilots")).toBe("Zap");
     expect(resolveRouteIconName("/acme/chat")).toBe("MessageSquare");
     expect(resolveRouteIconName("/acme/squads")).toBe("Users");
@@ -67,12 +69,13 @@ describe("resolveRouteIconName", () => {
   });
 
   it("gives sub-routes their parent page icon (sidebar semantics)", () => {
-    expect(resolveRouteIconName("/acme/projects/proj-123")).toBe("FolderKanban");
     expect(resolveRouteIconName("/acme/issues/bug-42")).toBe("ListTodo");
+    // Including an issue's artifacts, which is a sub-route of the issue.
+    expect(resolveRouteIconName("/acme/issues/bug-42/artifacts")).toBe("ListTodo");
   });
 
   it("ignores the workspace slug and any query/hash", () => {
-    expect(resolveRouteIconName("/other-team/projects?x=1#y")).toBe("FolderKanban");
+    expect(resolveRouteIconName("/other-team/squads?x=1#y")).toBe("Users");
   });
 
   it("falls back to the default for unknown or too-short paths", () => {

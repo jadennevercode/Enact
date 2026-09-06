@@ -78,6 +78,14 @@ type AgentMcpServer struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+// Workspace resources an individual agent has opted into. Today only knowledge_repo resources; code resources stay workspace-wide.
+type AgentResource struct {
+	AgentID    pgtype.UUID        `json:"agent_id"`
+	ResourceID pgtype.UUID        `json:"resource_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	CreatedBy  pgtype.UUID        `json:"created_by"`
+}
+
 type AgentRuntime struct {
 	ID             pgtype.UUID        `json:"id"`
 	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
@@ -96,6 +104,8 @@ type AgentRuntime struct {
 	Visibility     string             `json:"visibility"`
 	ProfileID      pgtype.UUID        `json:"profile_id"`
 	CustomName     pgtype.Text        `json:"custom_name"`
+	// The machine this runtime row projects into its workspace. NULL for cloud runtimes.
+	MachineID pgtype.UUID `json:"machine_id"`
 }
 
 type AgentSkill struct {
@@ -210,7 +220,6 @@ type Autopilot struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	AssigneeType       string             `json:"assignee_type"`
-	ProjectID          pgtype.UUID        `json:"project_id"`
 	PauseReason        pgtype.Text        `json:"pause_reason"`
 }
 
@@ -456,7 +465,6 @@ type ChatSession struct {
 	LastReadAt   pgtype.Timestamptz `json:"last_read_at"`
 	IsAgentIntro bool               `json:"is_agent_intro"`
 	PinnedAt     pgtype.Timestamptz `json:"pinned_at"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
 }
 
 type ClientUsageDaily struct {
@@ -715,7 +723,6 @@ type Issue struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	Number             int32              `json:"number"`
-	ProjectID          pgtype.UUID        `json:"project_id"`
 	OriginType         pgtype.Text        `json:"origin_type"`
 	OriginID           pgtype.UUID        `json:"origin_id"`
 	FirstExecutedAt    pgtype.Timestamptz `json:"first_executed_at"`
@@ -925,6 +932,82 @@ type LarkUserBinding struct {
 	BoundAt        pgtype.Timestamptz `json:"bound_at"`
 }
 
+// A computer running an Enact daemon. Owned by a user, independent of any workspace; agent_runtime projects it into each workspace.
+type Machine struct {
+	ID         pgtype.UUID        `json:"id"`
+	DaemonID   string             `json:"daemon_id"`
+	OwnerID    pgtype.UUID        `json:"owner_id"`
+	DeviceName string             `json:"device_name"`
+	CustomName pgtype.Text        `json:"custom_name"`
+	Metadata   []byte             `json:"metadata"`
+	Status     string             `json:"status"`
+	LastSeenAt pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
+type MarketplaceInstall struct {
+	ID          pgtype.UUID        `json:"id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	VersionID   pgtype.UUID        `json:"version_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	EntityKind  string             `json:"entity_kind"`
+	EntityID    pgtype.UUID        `json:"entity_id"`
+	InstalledBy pgtype.UUID        `json:"installed_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type MarketplaceListing struct {
+	ID              pgtype.UUID        `json:"id"`
+	Kind            string             `json:"kind"`
+	Slug            string             `json:"slug"`
+	Name            string             `json:"name"`
+	Description     string             `json:"description"`
+	Category        string             `json:"category"`
+	Tags            []string           `json:"tags"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	PublishedBy     pgtype.UUID        `json:"published_by"`
+	Visibility      string             `json:"visibility"`
+	Status          string             `json:"status"`
+	Featured        bool               `json:"featured"`
+	InstallCount    int64              `json:"install_count"`
+	LatestVersionID pgtype.UUID        `json:"latest_version_id"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type MarketplaceListingFile struct {
+	ID        pgtype.UUID        `json:"id"`
+	VersionID pgtype.UUID        `json:"version_id"`
+	Path      string             `json:"path"`
+	Content   string             `json:"content"`
+	SizeBytes int64              `json:"size_bytes"`
+	Sha256    string             `json:"sha256"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type MarketplaceListingVersion struct {
+	ID          pgtype.UUID        `json:"id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	Version     string             `json:"version"`
+	Manifest    []byte             `json:"manifest"`
+	Changelog   string             `json:"changelog"`
+	Digest      string             `json:"digest"`
+	SizeBytes   int64              `json:"size_bytes"`
+	PublishedBy pgtype.UUID        `json:"published_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type MarketplaceRecommendationDecision struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ListingID   pgtype.UUID        `json:"listing_id"`
+	VersionID   pgtype.UUID        `json:"version_id"`
+	Decision    string             `json:"decision"`
+	DecidedBy   pgtype.UUID        `json:"decided_by"`
+	DecidedAt   pgtype.Timestamptz `json:"decided_at"`
+}
+
 type Member struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
@@ -1047,34 +1130,6 @@ type PluginStorage struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
-type Project struct {
-	ID          pgtype.UUID        `json:"id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
-	Title       string             `json:"title"`
-	Description pgtype.Text        `json:"description"`
-	Icon        pgtype.Text        `json:"icon"`
-	Status      string             `json:"status"`
-	LeadType    pgtype.Text        `json:"lead_type"`
-	LeadID      pgtype.UUID        `json:"lead_id"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Priority    string             `json:"priority"`
-	StartDate   pgtype.Date        `json:"start_date"`
-	DueDate     pgtype.Date        `json:"due_date"`
-}
-
-type ProjectResource struct {
-	ID           pgtype.UUID        `json:"id"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
-	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
-	ResourceType string             `json:"resource_type"`
-	ResourceRef  []byte             `json:"resource_ref"`
-	Label        pgtype.Text        `json:"label"`
-	Position     int32              `json:"position"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	CreatedBy    pgtype.UUID        `json:"created_by"`
-}
-
 type QuickAction struct {
 	ID            pgtype.UUID        `json:"id"`
 	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
@@ -1094,18 +1149,33 @@ type QuickAction struct {
 }
 
 type RuntimeProfile struct {
-	ID             pgtype.UUID        `json:"id"`
-	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
-	DisplayName    string             `json:"display_name"`
-	ProtocolFamily string             `json:"protocol_family"`
-	CommandName    string             `json:"command_name"`
-	Description    pgtype.Text        `json:"description"`
-	FixedArgs      []byte             `json:"fixed_args"`
-	Visibility     string             `json:"visibility"`
-	CreatedBy      pgtype.UUID        `json:"created_by"`
-	Enabled        bool               `json:"enabled"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID pgtype.UUID `json:"id"`
+	// Origin workspace: where this profile was created. NOT the access check — see runtime_profile_workspace.
+	WorkspaceID    pgtype.UUID `json:"workspace_id"`
+	DisplayName    string      `json:"display_name"`
+	ProtocolFamily string      `json:"protocol_family"`
+	CommandName    string      `json:"command_name"`
+	Description    pgtype.Text `json:"description"`
+	FixedArgs      []byte      `json:"fixed_args"`
+	Visibility     string      `json:"visibility"`
+	CreatedBy      pgtype.UUID `json:"created_by"`
+	// Owner-level global switch. A workspace also has its own switch on runtime_profile_workspace.enabled; both must be true to register.
+	Enabled   bool               `json:"enabled"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	// The user who owns this definition and may edit it. Backfilled from created_by.
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+// Publication of a runtime profile into a workspace. Authoritative for whether a workspace may use the profile.
+type RuntimeProfileWorkspace struct {
+	ID          pgtype.UUID        `json:"id"`
+	ProfileID   pgtype.UUID        `json:"profile_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	PublishedBy pgtype.UUID        `json:"published_by"`
+	Enabled     bool               `json:"enabled"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Skill struct {
@@ -1119,6 +1189,8 @@ type Skill struct {
 	CreatedAt            pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 	PluginInstallationID pgtype.UUID        `json:"plugin_installation_id"`
+	// The skill_version row matching the skill's current content. A proposal written against an older version cannot be approved.
+	CurrentVersionID pgtype.UUID `json:"current_version_id"`
 }
 
 type SkillFile struct {
@@ -1134,6 +1206,24 @@ type SkillToLabel struct {
 	SkillID   pgtype.UUID        `json:"skill_id"`
 	LabelID   pgtype.UUID        `json:"label_id"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+// Immutable snapshot of a skill's content. Appended on every content write; the arbiter of what an approver actually approved.
+type SkillVersion struct {
+	ID          pgtype.UUID        `json:"id"`
+	SkillID     pgtype.UUID        `json:"skill_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Version     int32              `json:"version"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Content     string             `json:"content"`
+	Config      []byte             `json:"config"`
+	Files       []byte             `json:"files"`
+	ContentHash string             `json:"content_hash"`
+	Source      string             `json:"source"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	Summary     string             `json:"summary"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type Squad struct {
@@ -1225,10 +1315,11 @@ type TaskUsage struct {
 }
 
 type TaskUsageHourly struct {
-	BucketHour       pgtype.Timestamptz `json:"bucket_hour"`
-	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
-	RuntimeID        pgtype.UUID        `json:"runtime_id"`
-	AgentID          pgtype.UUID        `json:"agent_id"`
+	BucketHour  pgtype.Timestamptz `json:"bucket_hour"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	RuntimeID   pgtype.UUID        `json:"runtime_id"`
+	AgentID     pgtype.UUID        `json:"agent_id"`
+	// Vestigial. Always NULL since migration 435 removed the project dimension; kept only because dropping it would drop uq_task_usage_hourly_key, which the rollup needs as an ON CONFLICT target.
 	ProjectID        pgtype.UUID        `json:"project_id"`
 	Provider         string             `json:"provider"`
 	Model            string             `json:"model"`
@@ -1253,10 +1344,11 @@ type TaskUsageHourlyDirty struct {
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 	RuntimeID   pgtype.UUID        `json:"runtime_id"`
 	AgentID     pgtype.UUID        `json:"agent_id"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
-	Provider    string             `json:"provider"`
-	Model       string             `json:"model"`
-	EnqueuedAt  pgtype.Timestamptz `json:"enqueued_at"`
+	// Vestigial. Always NULL since migration 435; see task_usage_hourly.project_id.
+	ProjectID  pgtype.UUID        `json:"project_id"`
+	Provider   string             `json:"provider"`
+	Model      string             `json:"model"`
+	EnqueuedAt pgtype.Timestamptz `json:"enqueued_at"`
 }
 
 type TaskUsageHourlyRollupState struct {
@@ -1390,13 +1482,13 @@ type Workspace struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	Context      pgtype.Text        `json:"context"`
-	Repos        []byte             `json:"repos"`
 	IssuePrefix  string             `json:"issue_prefix"`
 	IssueCounter int32              `json:"issue_counter"`
 	AvatarUrl    pgtype.Text        `json:"avatar_url"`
 	// When TRUE, an agent run that resolves to no precise accountable human (would be owner_fallback) is refused at enqueue instead of degrading to the agent owner (ENA-4302 §3.5). Default FALSE = owner_fallback. Never affects authorization (originator_user_id).
-	AttributionFailClosed bool  `json:"attribution_fail_closed"`
-	SdlcDefaultsVersion   int32 `json:"sdlc_defaults_version"`
+	AttributionFailClosed bool   `json:"attribution_fail_closed"`
+	SdlcDefaultsVersion   int32  `json:"sdlc_defaults_version"`
+	Profile               []byte `json:"profile"`
 }
 
 type WorkspaceInvitation struct {
@@ -1420,6 +1512,18 @@ type WorkspaceMcpServer struct {
 	CreatedBy   pgtype.UUID        `json:"created_by"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+// Repos and local directories a workspace's agents work in. Injected into every agent run as context.
+type WorkspaceResource struct {
+	ID           pgtype.UUID        `json:"id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	ResourceType string             `json:"resource_type"`
+	ResourceRef  []byte             `json:"resource_ref"`
+	Label        pgtype.Text        `json:"label"`
+	Position     int32              `json:"position"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
 }
 
 type WorkspaceShareLink struct {

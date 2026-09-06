@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS lesson_event;
+
+DROP TABLE IF EXISTS lesson;

@@ -129,8 +129,8 @@ export function WorkingAgentsHoverContent({
  * working on rows this surface's scope AND active filters would show, resolved
  * by the surface controller from the server-side `working_agents` facet — the
  * same compiled query the rows come from. Before ENA-5525 it ran its own
- * workspace-wide `/api/working-agents` read, so on a project page it could
- * advertise agents working nowhere near that project and open an empty list.
+ * workspace-wide `/api/working-agents` read, so on a narrowed surface it could
+ * advertise agents working nowhere near it and open an empty list.
  *
  * `agents === undefined` means the projection has not resolved. Every surface of
  * the chip then stays indeterminate — label, compact number, colour tier and

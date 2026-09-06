@@ -1,0 +1,82 @@
+# define/model-cards.yaml
+#
+# 访谈和证据里冒出来的候选对象线索，一个线索一张卡。这不是 candidate——
+# 卡上没有 id 规范、没有基数、没有 support 链，那些是 generate 的活。
+# 卡的作用是让人在生成之前就能看见「我们打算把这些东西建成对象」并当场纠正。
+#
+# 检查项 model_cards_sourced 要求每张卡有 kind、name，并且有 source_phrase
+# 或 assumption_ref 之一——它是从哪里来的必须能说出口。
+# assumption_ref 必须是 fagc-register.yaml 里真实存在的 statement_id。
+#
+# kind 取六类之一：entity | event | relationship | attribute | role | state
+# 判据见 knowledge/discovery-heuristics.md。例子取自 evals/fixtures/journal-reversal/。
+
+version: 1
+source_refs:
+  interview: define/interview-state.yaml
+  fagc: define/fagc-register.yaml
+
+cards:
+  # ---- entity ------------------------------------------------------------
+  - id: mc.001
+    kind: entity
+    name: 日记账分录
+    aliases: [JE, 分录]                      # 原始短语保留，不翻译、不归一
+    source_phrase: "本章适用于已过账（posted）的日记账分录"   # 引自证据或访谈原话
+    source_ref: ev.001 §6.1
+    note: 术语表提醒「凭证」在部分工厂指纸质单据，定义里要写清楚它不属于本类
+    raised_in_round: 1
+
+  - id: mc.002
+    kind: entity
+    name: 冲销申请单
+    source_phrase: "三者通过冲销申请单号关联"
+    source_ref: ev.001 §6.5
+    note: 有单号、串起三条记录 → 有独立身份，是实体不是属性
+    raised_in_round: 2
+
+  # ---- event -------------------------------------------------------------
+  - id: mc.003
+    kind: event
+    name: 冲销分录生成
+    source_phrase: "审批通过后系统生成一条冲销分录"
+    source_ref: ev.001 §6.2/4
+    note: 有时刻、有参与者、改变原分录状态 → 事件
+    raised_in_round: 2
+
+  # ---- relationship ------------------------------------------------------
+  - id: mc.004
+    kind: relationship
+    name: 冲销了
+    source_phrase: "reversal_of"
+    source_ref: ev.004 CSV 表头
+    note: 样本里 JE-2026-0092.reversal_of = JE-2026-0091，一对一，方向从冲销分录指向原分录
+    raised_in_round: 1
+
+  # ---- attribute（挂在假设上的那种）--------------------------------------
+  - id: mc.005
+    kind: attribute
+    name: 金额口径
+    assumption_ref: asm.001                  # 没有原话可引，就挂一条显式假设
+    note: 含税与币种未定，先记假设；ud.002 未裁决前不要写成事实
+    raised_in_round: 3
+
+  # ---- role --------------------------------------------------------------
+  - id: mc.006
+    kind: role
+    name: 审批人
+    source_phrase: "审批人不得是该分录的制单人"
+    source_ref: ev.001 §6.2/3
+    note: >-
+      人在这里改过一次：原先当成实体，访谈确认它是员工在一次冲销申请里的资格，
+      建成关系端角色，不建成对象。见 readiness.core_objects 的 corrected。
+    raised_in_round: 2
+
+  # ---- state -------------------------------------------------------------
+  - id: mc.007
+    kind: state
+    name: 已冲销 reversed
+    source_phrase: "冲销分录过账后，原分录状态变为 reversed"
+    source_ref: ev.001 §6.2/5
+    note: 与 draft、posted 一起构成分录生命周期；转换要带 guard（期间关账状态）
+    raised_in_round: 2

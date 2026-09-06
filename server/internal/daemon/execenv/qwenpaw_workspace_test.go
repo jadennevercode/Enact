@@ -110,7 +110,7 @@ func TestPrepareQwenpawWorkspacePreservesCollidingSkillSlugs(t *testing.T) {
 	}
 
 	expectedSkills := map[string]string{
-		"a-b":         "first skill body",
+		"a-b":       "first skill body",
 		"a-b-enact": "second skill body",
 	}
 	for slug, wantBody := range expectedSkills {

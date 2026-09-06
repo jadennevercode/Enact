@@ -38,7 +38,7 @@ vi.mock("@enact/core/auth", () => ({
   createAuthStore: vi.fn(),
 }));
 
-const mockCreateIssue = vi.fn();
+const mockGetWorkspaceSetup = vi.fn();
 const mockGetWorkspace = vi.fn();
 
 vi.mock("@enact/core/paths", async () => {
@@ -57,7 +57,7 @@ vi.mock("@enact/core/paths", async () => {
 
 vi.mock("@enact/core/api", () => ({
   api: {
-    createIssue: (...args: unknown[]) => mockCreateIssue(...args),
+    getWorkspaceSetup: (...args: unknown[]) => mockGetWorkspaceSetup(...args),
     getWorkspace: (...args: unknown[]) => mockGetWorkspace(...args),
   },
 }));
@@ -72,6 +72,14 @@ const navigationAdapter: NavigationAdapter = {
   getShareableUrl: (path: string) => `https://test.local${path}`,
 };
 
+/**
+ * Seeded into the query cache so the checklist is present on first render.
+ * The destination of the modal's only button depends on it, and letting the
+ * fetch resolve mid-test would make the assertion a race against react-query's
+ * scheduling rather than a statement about the component.
+ */
+let seededSetup: unknown = null;
+
 function TestProviders({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -80,6 +88,9 @@ function TestProviders({ children }: { children: ReactNode }) {
     ["workspaces", "list"],
     [{ id: "ws-1", slug: "test-ws" }],
   );
+  if (seededSetup) {
+    queryClient.setQueryData(["workspaces", "ws-1", "setup"], seededSetup);
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -101,10 +112,25 @@ function renderWelcome() {
   return render(<WelcomeAfterOnboarding />, { wrapper: TestProviders });
 }
 
+function setupWithRuntimeStep(issueId: string) {
+  return {
+    steps: [
+      { key: "runtime", done: false, issue_id: issueId, issue_identifier: "ENA-2" },
+      { key: "repository", done: false, issue_id: "issue-repo" },
+      { key: "profile", done: false, issue_id: "issue-profile" },
+      { key: "capability", done: false, issue_id: "issue-capability" },
+    ],
+    complete: false,
+    parent_issue_id: "issue-parent",
+    profile: { empty: true },
+  };
+}
+
 beforeEach(() => {
-  mockCreateIssue.mockReset();
+  mockGetWorkspaceSetup.mockReset();
   mockGetWorkspace.mockReset();
   mockPush.mockReset();
+  seededSetup = null;
   useWelcomeStore.getState().reset();
 });
 
@@ -112,100 +138,66 @@ describe("WelcomeAfterOnboarding", () => {
   it("renders nothing when no skip signal is present", () => {
     const { container } = renderWelcome();
     expect(container.firstChild).toBeNull();
-    expect(mockCreateIssue).not.toHaveBeenCalled();
+    expect(mockGetWorkspaceSetup).not.toHaveBeenCalled();
   });
 
-  it("does not seed issues for a different workspace", () => {
-    useWelcomeStore.getState().set({
-      workspaceId: "ws-2",
-      choice: "skip",
-    });
+  it("stays out of a different workspace", () => {
+    useWelcomeStore.getState().set({ workspaceId: "ws-2", choice: "skip" });
 
     const { container } = renderWelcome();
     expect(container.firstChild).toBeNull();
-    expect(mockCreateIssue).not.toHaveBeenCalled();
+    expect(mockGetWorkspaceSetup).not.toHaveBeenCalled();
   });
 
-  it("provisions the no-runtime guide, then opens the completion modal", async () => {
-    mockCreateIssue.mockResolvedValueOnce({
-      id: "issue-install",
-      identifier: "ENA-1",
-      workspace_id: "ws-1",
-    });
-    useWelcomeStore.getState().set({
-      workspaceId: "ws-1",
-      choice: "skip",
-    });
+  // The modal used to wait on an issue this component created itself. The
+  // server files that issue inside the transaction that creates the workspace,
+  // so there is nothing to wait for and no provisioning failure to recover.
+  it("shows the completion modal without waiting on anything", async () => {
+    mockGetWorkspaceSetup.mockResolvedValue(setupWithRuntimeStep("issue-runtime"));
+    useWelcomeStore.getState().set({ workspaceId: "ws-1", choice: "skip" });
 
     renderWelcome();
 
-    expect(screen.getByText(/Setting up your workspace/i)).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByText(/Welcome to Enact/i)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/Welcome to Enact/i)).toBeInTheDocument();
+  });
 
-    expect(mockCreateIssue).toHaveBeenCalledTimes(1);
-    expect(mockCreateIssue.mock.calls[0]![0]).toMatchObject({
-      title: "Connect a runtime to start with Mika",
-      status: "in_progress",
-      assignee_type: "member",
-      assignee_id: "user-1",
-    });
-    expect(mockCreateIssue.mock.calls[0]![0].description).toContain(
-      "Start with Mika",
-    );
+  it("sends the member to the runtime step of the setup checklist", async () => {
+    seededSetup = setupWithRuntimeStep("issue-runtime");
+    mockGetWorkspaceSetup.mockResolvedValue(seededSetup);
+    useWelcomeStore.getState().set({ workspaceId: "ws-1", choice: "skip" });
+
+    renderWelcome();
 
     fireEvent.click(screen.getByRole("button", { name: /got it/i }));
+
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/test-ws/issues/issue-install");
+      expect(mockPush).toHaveBeenCalledWith("/test-ws/issues/issue-runtime");
     });
   });
 
-  // The surface is one-shot and the signal is not persisted, so dismissing on
-  // failure used to be terminal: no guide issue, no message, nothing to
-  // reload. A failure has to stay on screen and offer a way forward.
-  it("offers a retry instead of dismissing when guide provisioning fails", async () => {
-    mockCreateIssue.mockRejectedValueOnce(new Error("network down"));
-    useWelcomeStore.getState().set({
-      workspaceId: "ws-1",
-      choice: "skip",
-    });
+  // A slow or failed checklist read must not strand the member on a modal
+  // whose only button does nothing. The checklist is in their issue list
+  // either way.
+  it("falls back to the issue list when the checklist cannot be read", async () => {
+    mockGetWorkspaceSetup.mockRejectedValue(new Error("network down"));
+    useWelcomeStore.getState().set({ workspaceId: "ws-1", choice: "skip" });
 
     renderWelcome();
 
-    expect(
-      await screen.findByRole("button", { name: /try again/i }),
-    ).toBeInTheDocument();
-    expect(useWelcomeStore.getState().dismissed).toBe(false);
+    fireEvent.click(await screen.findByRole("button", { name: /got it/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/test-ws/issues");
+    });
   });
 
-  it("provisions the guide issue when the member retries", async () => {
-    mockCreateIssue
-      .mockRejectedValueOnce(new Error("network down"))
-      .mockResolvedValueOnce({ id: "issue-install", workspace_id: "ws-1" });
-    useWelcomeStore.getState().set({
-      workspaceId: "ws-1",
-      choice: "skip",
-    });
+  it("dismisses when the member closes it", async () => {
+    mockGetWorkspaceSetup.mockResolvedValue(setupWithRuntimeStep("issue-runtime"));
+    useWelcomeStore.getState().set({ workspaceId: "ws-1", choice: "skip" });
 
     renderWelcome();
 
-    fireEvent.click(await screen.findByRole("button", { name: /try again/i }));
-
-    expect(await screen.findByText(/Welcome to Enact/i)).toBeInTheDocument();
-    expect(mockCreateIssue).toHaveBeenCalledTimes(2);
-  });
-
-  it("dismisses only when the member chooses to", async () => {
-    mockCreateIssue.mockRejectedValueOnce(new Error("network down"));
-    useWelcomeStore.getState().set({
-      workspaceId: "ws-1",
-      choice: "skip",
-    });
-
-    renderWelcome();
-
-    fireEvent.click(await screen.findByRole("button", { name: /not now/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /got it/i }));
 
     await waitFor(() => {
       expect(useWelcomeStore.getState().dismissed).toBe(true);

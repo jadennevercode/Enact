@@ -235,7 +235,7 @@ function makeSquad(overrides: Partial<Squad> = {}): Squad {
   return {
     id: "sq-new",
     workspace_id: "ws-1",
-    name: "New Squad",
+    name: "New Agent Family",
     description: "",
     instructions: "",
     avatar_url: null,
@@ -249,12 +249,12 @@ function makeSquad(overrides: Partial<Squad> = {}): Squad {
   };
 }
 
-// "Create Squad" is both the dialog title and the submit button label. Always
+// "Create Agent Family" is both the dialog title and the submit button label. Always
 // pick by role so tests don't depend on DOM order between the two.
 function getSubmitButton(): HTMLButtonElement {
   const btn = screen
     .getAllByRole("button")
-    .find((b) => b.textContent === "Create Squad");
+    .find((b) => b.textContent === "Create Agent Family");
   if (!btn) throw new Error("Create Squad submit button not found");
   return btn as HTMLButtonElement;
 }
@@ -301,7 +301,7 @@ describe("CreateSquadModal", () => {
     fireEvent.change(name, { target: { value: "Platform Team" } });
     expect(name.value).toBe("Platform Team");
 
-    const desc = screen.getByPlaceholderText(/Describe what this squad/i) as HTMLInputElement;
+    const desc = screen.getByPlaceholderText(/Describe what this agent family/i) as HTMLInputElement;
     fireEvent.change(desc, { target: { value: "We own infra" } });
     expect(desc.value).toBe("We own infra");
     // Char counter reflects the typed length.
@@ -471,7 +471,7 @@ describe("CreateSquadModal", () => {
       expect(mocks.toastError).toHaveBeenCalledTimes(1);
     });
     expect(mocks.navigationPush).not.toHaveBeenCalled();
-    // Submit button is re-enabled (textContent reads "Create Squad" again,
+    // Submit button is re-enabled (textContent reads "Create Agent Family" again,
     // not "Creating...").
     const button = getSubmitButton();
     expect(button.disabled).toBe(false);

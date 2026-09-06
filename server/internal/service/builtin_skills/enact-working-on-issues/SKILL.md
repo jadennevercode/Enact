@@ -1,6 +1,6 @@
 ---
 name: enact-working-on-issues
-description: "Use when acting on a Enact issue beyond what the brief covers: PR linking vs close intent, reading a linked PR's real state, metadata keys, status-change side effects, sub-issue todo vs backlog."
+description: "Use when acting on a Enact issue beyond what the brief covers: PR linking vs close intent, reading a linked PR's real state, metadata keys, status-change side effects, sub-issue todo vs backlog, listing the issue's artifacts."
 user-invocable: false
 allowed-tools: Bash(enact *), Bash(git *), Bash(gh *)
 ---
@@ -228,6 +228,21 @@ close intent writes the literal `done` key.
   `todo` when no active task / retry remains — that is the main server-owned
   status write on the agent-run path.
 
+### A retrospect sub-issue may appear under a finished issue
+
+In a workspace that has configured a Retrospect Agent, moving an issue that
+agents actually worked on into a `done`-category status files a sub-issue titled
+`Retrospect: <parent title>` under it, assigned to that agent. That is expected
+and is not yours to act on: it is not work the parent left unfinished, so do not
+close it, re-assign it, or fold it into your own report. It is filed at most once
+per issue — an issue reopened and finished again is not retrospected twice — and
+never under another retrospect.
+
+If it proposes a change to a skill, an agent's instructions, or a squad leader's
+instructions, it posts the proposal as a comment, sets itself to `in_review`, and
+waits for a **person** to reply agreeing. Your reply is not that agreement; do
+not supply it on a human's behalf, and do not apply the proposed edit yourself.
+
 ## Claim ownership without duplicating a run
 
 Assigning an active issue to an agent normally starts a run. When the work is
@@ -309,6 +324,38 @@ Read each sub-issue's description before promoting and only promote items whose
 stated dependencies are met; if a description conflicts with the parent's
 breakdown, leave it `backlog` and comment to confirm first.
 
+## Artifacts: the files an issue produced
+
+`GET /api/issues/{id}/artifacts` lists every file this issue produced, plus
+every file its DIRECT children produced. `{id}` takes a UUID or an identifier
+(`ENA-42`). It is one flat list; folders and version chains are derived by the
+client.
+
+Three things this listing does that the flat `GET /api/issues/{id}/attachments`
+does not:
+
+- It follows comment attachments to the issue they hang off, so a file someone
+  attached in a comment is listed under the issue rather than lost.
+- It includes direct children, tagged with the child that produced them. The
+  walk is ONE level; a grandchild's files are not listed.
+- It reports `scope_issue_id`, the resolved issue. Compare a row's
+  `owner_issue_id` against it to tell the issue's own files from a child's —
+  the id you asked with may have been an identifier.
+
+Each row carries `owner_issue_id` / `owner_issue_number` /
+`owner_issue_identifier` / `owner_issue_title`. `?limit=` caps the listing
+(default 500, max 2000); `truncated` says the cap was hit, and the issue's own
+rows sort ahead of its children's, so a truncated listing sheds delegated work
+first.
+
+Two files are versions of ONE artifact when they share a producing issue AND a
+filename. Uploading again never overwrites: it adds a row, and the old file
+stays. Two different issues that both produced `report.pdf` are two artifacts.
+
+The chat twin is `GET /api/chat/sessions/{sessionId}/artifacts`, scoped to one
+session and gated exactly like its transcript. There is no workspace-wide
+artifact listing — a file belongs to the issue or the session that produced it.
+
 ## Incorrect → correct
 
 PR title (link the issue):
@@ -339,5 +386,5 @@ contract above: the `pull-requests` CLI and route, the PR response field list,
 `derivePRState`, the two-path link (`extractIdentifiers`) vs close-intent
 (`extractClosingIdentifiers`) proof, the backlog enqueue lines, child-done
 notify, the stage column / `stageBarrierClosed` barrier and the `--stage` /
-`issue children` CLI, and the metadata CLI. Re-derive before depending on an
-exact line.
+`issue children` CLI, the metadata CLI, and the two artifact listings.
+Re-derive before depending on an exact line.

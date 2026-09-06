@@ -113,12 +113,12 @@ describe("push", () => {
   it("navigates the active session in-tab (url + virtual history)", () => {
     const getAdapter = renderProvider();
 
-    getAdapter().push("/acme/projects?sort=name");
+    getAdapter().push("/acme/artifacts?sort=name");
 
     const active = getActiveTab(useTabStore.getState())!;
-    expect(active.url).toBe("/acme/projects?sort=name");
+    expect(active.url).toBe("/acme/artifacts?sort=name");
     expect(active.history).toEqual({
-      stack: ["/acme/issues", "/acme/projects?sort=name"],
+      stack: ["/acme/issues", "/acme/artifacts?sort=name"],
       index: 1,
     });
   });
@@ -173,14 +173,14 @@ describe("push with pinned active tab", () => {
     const getAdapter = renderProvider();
     const pinnedId = acmeGroup().activeTabId;
 
-    getAdapter().push("/acme/projects");
+    getAdapter().push("/acme/artifacts");
 
     const group = acmeGroup();
     const pinned = group.tabs.find((t) => t.id === pinnedId)!;
-    const projects = group.tabs.find((t) => t.url === "/acme/projects")!;
+    const artifacts = group.tabs.find((t) => t.url === "/acme/artifacts")!;
     // The pinned tab stays parked on its url; focus follows the new tab.
     expect(pinned.url).toBe("/acme/issues");
-    expect(group.activeTabId).toBe(projects.id);
+    expect(group.activeTabId).toBe(artifacts.id);
   });
 
   it("allows in-tab navigation when only search/hash changes (RFC §3 D2b)", () => {
@@ -209,7 +209,7 @@ describe("push with pinned active tab", () => {
 describe("back", () => {
   it("moves the session's virtual history backwards", () => {
     const getAdapter = renderProvider();
-    getAdapter().push("/acme/projects");
+    getAdapter().push("/acme/artifacts");
 
     getAdapter().back!();
 
@@ -232,7 +232,7 @@ describe("canGoBack", () => {
   it("is true once the tab has navigated in place", () => {
     const getAdapter = renderProvider();
 
-    getAdapter().push("/acme/projects");
+    getAdapter().push("/acme/artifacts");
 
     expect(getActiveTab(useTabStore.getState())!.history.index).toBe(1);
     expect(getAdapter().canGoBack!()).toBe(true);
@@ -240,7 +240,7 @@ describe("canGoBack", () => {
 
   it("is false again after stepping back to the start", () => {
     const getAdapter = renderProvider();
-    getAdapter().push("/acme/projects");
+    getAdapter().push("/acme/artifacts");
 
     getAdapter().back!();
 
@@ -249,7 +249,7 @@ describe("canGoBack", () => {
 
   it("is false for a freshly opened tab, which starts its own history", () => {
     const getAdapter = renderProvider();
-    getAdapter().push("/acme/projects");
+    getAdapter().push("/acme/artifacts");
 
     getAdapter().openInNewTab!("/acme/agents", "Agents", { activate: true });
 

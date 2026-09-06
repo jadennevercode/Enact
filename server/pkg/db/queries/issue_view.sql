@@ -63,20 +63,6 @@ swept_pins AS (
 )
 SELECT deleted.id FROM deleted;
 
--- name: DeleteIssueViewsByProjectScope :exec
--- Project deletion cleanup: called inside DeleteProject's application
--- transaction so project views never outlive their surface. Their sidebar
--- pins fall in the same statement (see DeleteIssueView).
-WITH deleted AS (
-    DELETE FROM issue_view
-    WHERE issue_view.workspace_id = $1 AND issue_view.scope_type = 'project' AND issue_view.scope_id = $2
-    RETURNING issue_view.id
-)
-DELETE FROM pinned_item
-WHERE pinned_item.item_type = 'view'
-  AND pinned_item.workspace_id = $1
-  AND pinned_item.item_id IN (SELECT deleted.id FROM deleted);
-
 -- name: DeletePrivateIssueViewsByOwner :exec
 -- Member removal: a departed member's private views are unreachable by every
 -- remaining member while still consuming their quota — same rule as private

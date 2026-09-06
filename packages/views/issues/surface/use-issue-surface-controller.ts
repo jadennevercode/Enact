@@ -10,7 +10,6 @@ import type {
   IssueTableFacetsResponse,
   IssueTableGroupsRequest,
   IssueTableQuerySpec,
-  Project,
   WorkingAgentSummary,
 } from "@enact/core/types";
 import { workspaceWorkingAgentsOptions } from "@enact/core/agents";
@@ -66,12 +65,10 @@ interface UseIssueSurfaceControllerInput {
 
 export interface IssueSurfaceController {
   scopeKey: string;
-  projectId?: string;
   createDefaults: IssueCreateDefaults;
   viewMode: IssueSurfaceMode;
   allowGantt: boolean;
   surfaceIssues: Issue[];
-  projectIssues: Issue[];
   issues: Issue[];
   swimlaneIssues: Issue[];
   /** Agents currently working inside THIS surface, under the surface's active
@@ -97,12 +94,9 @@ export interface IssueSurfaceController {
   actions: IssueSurfaceActions;
   selection: IssueSurfaceSelection;
   childProgressMap: Map<string, ChildProgress>;
-  projectMap: Map<string, Project>;
   resolveTableExportLookups: (needs: {
-    projects: boolean;
     childProgress: boolean;
   }) => Promise<{
-    projectMap: Map<string, Project>;
     childProgressMap: Map<string, ChildProgress>;
   }>;
   tableSearch: string;
@@ -210,7 +204,6 @@ export function useIssueSurfaceController({
     [scope],
   );
   const scopeKey = queryPlan.scopeKey;
-  const projectId = scope.type === "project" ? scope.projectId : undefined;
 
   const viewMode = useViewStore((s) => s.viewMode);
   const setViewMode = useViewStore((s) => s.setViewMode);
@@ -223,17 +216,12 @@ export function useIssueSurfaceController({
   const assigneeFilters = useViewStore((s) => s.assigneeFilters);
   const includeNoAssignee = useViewStore((s) => s.includeNoAssignee);
   const creatorFilters = useViewStore((s) => s.creatorFilters);
-  const projectFilters = useViewStore((s) => s.projectFilters);
-  const includeNoProject = useViewStore((s) => s.includeNoProject);
   const labelFilters = useViewStore((s) => s.labelFilters);
   const propertyFilters = useViewStore((s) => s.propertyFilters);
   const agentRunningFilter = useViewStore((s) => s.agentRunningFilter);
   const showSubIssues = useViewStore((s) => s.showSubIssues);
   const ganttShowCompleted = useViewStore((s) => s.ganttShowCompleted);
-  const cardProperties = useViewStore((s) => s.cardProperties);
   const swimlaneGrouping = useViewStore((s) => s.swimlaneGrouping);
-  const tableColumns = useViewStore((s) => s.tableColumns);
-  const tableGrouping = useViewStore((s) => s.tableGrouping);
   const listCollapsedStatuses = useViewStore((s) => s.listCollapsedStatuses);
   const hiddenStatusCategories = useViewStore((s) => s.hiddenStatusCategories);
   const catalog = useIssueStatuses(wsId);
@@ -321,7 +309,7 @@ export function useIssueSurfaceController({
     groupingPropertyId && catalogSettled && !activeGroupingProperty
       ? "status"
       : grouping;
-  const usesGantt = effectiveViewMode === "gantt" && !!projectId;
+  const usesGantt = effectiveViewMode === "gantt";
   const usesTable = effectiveViewMode === "table";
   const activeSearch = usesTable ? tableSearch : search;
   const debouncedActiveSearch = useDebouncedTableSearch(activeSearch);
@@ -383,16 +371,6 @@ export function useIssueSurfaceController({
     ],
   );
 
-  const projectFilterState = useMemo(
-    () => ({
-      projectFilters: scope.type === "project" ? [] : projectFilters,
-      includeNoProject: scope.type === "project" ? false : includeNoProject,
-    }),
-    [includeNoProject, projectFilters, scope.type],
-  );
-  const { projectFilters: viewProjectFilters, includeNoProject: viewIncludeNoProject } =
-    projectFilterState;
-
   // Exactly the filters `clearFilters()` resets, so an empty surface that
   // reports "filters hid everything" can always offer a button that fixes it.
   // Display toggles (show sub-issues) and per-surface search are deliberately
@@ -404,8 +382,6 @@ export function useIssueSurfaceController({
     assigneeFilters.length > 0 ||
     includeNoAssignee ||
     creatorFilters.length > 0 ||
-    viewProjectFilters.length > 0 ||
-    viewIncludeNoProject ||
     labelFilters.length > 0 ||
     Object.keys(effectivePropertyFilters).length > 0 ||
     dateFilter != null ||
@@ -435,15 +411,6 @@ export function useIssueSurfaceController({
         const assigneeTypes = assigneeTypesForActorKind(scope.actorKind);
         queryScope = {
           kind: "workspace",
-          ...(assigneeTypes ? { assignee_types: assigneeTypes } : {}),
-        };
-        break;
-      }
-      case "project": {
-        const assigneeTypes = assigneeTypesForActorKind(scope.actorKind);
-        queryScope = {
-          kind: "project",
-          project_id: scope.projectId,
           ...(assigneeTypes ? { assignee_types: assigneeTypes } : {}),
         };
         break;
@@ -480,10 +447,6 @@ export function useIssueSurfaceController({
         ...(assigneeFilters.length > 0 ? { assignees: assigneeFilters } : {}),
         ...(includeNoAssignee ? { include_no_assignee: true } : {}),
         ...(creatorFilters.length > 0 ? { creators: creatorFilters } : {}),
-        ...(viewProjectFilters.length > 0
-          ? { project_ids: viewProjectFilters }
-          : {}),
-        ...(viewIncludeNoProject ? { include_no_project: true } : {}),
         ...(labelFilters.length > 0 ? { label_ids: labelFilters } : {}),
         ...(Object.keys(effectivePropertyFilters).length > 0
           ? { properties: effectivePropertyFilters }
@@ -515,8 +478,6 @@ export function useIssueSurfaceController({
     sort.sort_by,
     sort.sort_direction,
     statusFilters,
-    viewIncludeNoProject,
-    viewProjectFilters,
     workingIssueIDs,
   ]);
   // Every consumer below — the facet request, the status/group branch hooks and
@@ -641,7 +602,6 @@ export function useIssueSurfaceController({
         secondary_values: serverStatuses,
       };
     }
-    if (effectiveGrouping === "project") return { kind: "project" };
     const propertyId = propertyIdFromViewKey(effectiveGrouping);
     if (propertyId) {
       return {
@@ -691,8 +651,6 @@ export function useIssueSurfaceController({
         assigneeFilters,
         includeNoAssignee,
         creatorFilters,
-        viewProjectFilters,
-        viewIncludeNoProject,
         labelFilters,
         effectivePropertyFilters,
         agentRunningFilter,
@@ -712,8 +670,6 @@ export function useIssueSurfaceController({
       priorityFilters,
       showSubIssues,
       statusFilters,
-      viewIncludeNoProject,
-      viewProjectFilters,
     ],
   );
   const selection = useCreateIssueSurfaceSelection(
@@ -723,8 +679,6 @@ export function useIssueSurfaceController({
 
   const data = useIssueSurfaceData({
     wsId,
-    queryPlan,
-    projectId,
     usesGantt,
     usesTable,
     serverStatusBranches,
@@ -739,21 +693,10 @@ export function useIssueSurfaceController({
     includeNoAssignee,
     agentRunningFilter,
     creatorFilters,
-    projectFilters: viewProjectFilters,
-    includeNoProject: viewIncludeNoProject,
     labelFilters,
     propertyFilters: effectivePropertyFilters,
     workingIssueIDs,
     showSubIssues,
-    loadProjects:
-      cardProperties.project ||
-      (usesTable && tableColumns.some((column) => column.key === "project")) ||
-      // Project group headers resolve their title through the projects query,
-      // so grouping by project has to load it even when no card/column shows
-      // the project itself.
-      (usesTable && tableGrouping === "project") ||
-      (effectiveViewMode === "board" && effectiveGrouping === "project") ||
-      (effectiveViewMode === "swimlane" && swimlaneGrouping === "project"),
   });
 
   // Gantt draws a client-materialized canvas, so its chip counts the agents
@@ -835,10 +778,9 @@ export function useIssueSurfaceController({
 
   return {
     scopeKey,
-    projectId,
     createDefaults: resolvedCreateDefaults,
     viewMode: effectiveViewMode,
-    allowGantt: allowedModes.has("gantt") && !!projectId,
+    allowGantt: allowedModes.has("gantt"),
     ...surfaceData,
     workingAgents,
     hasActiveFilters,

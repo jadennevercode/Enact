@@ -215,10 +215,6 @@
         "label": "태스크로 이동",
         "description": "태스크 목록을 엽니다."
       },
-      "goProjects": {
-        "label": "프로젝트로 이동",
-        "description": "프로젝트 목록을 엽니다."
-      },
       "goAutopilots": {
         "label": "자동화로 이동",
         "description": "워크스페이스 자동화를 엽니다."
@@ -228,8 +224,8 @@
         "description": "에이전트 목록을 엽니다."
       },
       "goSquads": {
-        "label": "스쿼드로 이동",
-        "description": "스쿼드 목록을 엽니다."
+        "label": "에이전트 패밀리로 이동",
+        "description": "에이전트 패밀리 목록을 엽니다."
       },
       "goUsage": {
         "label": "사용량으로 이동",
@@ -275,7 +271,6 @@
       "priority": "우선순위",
       "assignee": "담당자",
       "labels": "레이블",
-      "project": "프로젝트",
       "due_date": "마감일",
       "start_date": "시작일"
     }
@@ -315,7 +310,7 @@
       "notifications": "알림",
       "tokens": "API 토큰",
       "general": "일반",
-      "repositories": "저장소",
+      "resources": "리소스",
       "github": "GitHub",
       "integrations": "연동",
       "labs": "실험실",
@@ -686,7 +681,45 @@
     "deleting": "삭제하는 중...",
     "toast_delete_failed": "워크스페이스를 삭제하지 못했습니다",
     "confirm_cancel": "취소",
-    "confirm_action": "확인"
+    "confirm_action": "확인",
+    "profile": {
+      "section": "프로젝트 프로필",
+      "section_description": "이 프로젝트가 무엇인지. 모든 에이전트 실행이 여기서 시작하고, Marketplace도 이것을 기준으로 정렬합니다.",
+      "summary_label": "요약",
+      "summary_placeholder": "한두 문장: 이 프로젝트가 무엇이고 누구를 위한 것인지.",
+      "domain_label": "도메인",
+      "domain_placeholder": "물류, 임상시험, 개발자 도구…",
+      "stack_label": "스택",
+      "stack_hint": "쉼표로 구분. 리스팅이 무엇을 위한 것인지와 대조됩니다.",
+      "stack_placeholder": "go, typescript, postgres",
+      "languages_label": "작업 언어",
+      "languages_placeholder": "ko, en",
+      "typical_work_label": "주로 하는 일",
+      "typical_work_hint": "이 워크스페이스에서 다루는 일의 종류. 추천 내용을 결정합니다.",
+      "constraints_label": "제약",
+      "constraints_hint": "실행이 지켜야 할 것: 리뷰 요건, 환경, 컴플라이언스.",
+      "constraints_placeholder": "프로덕션 변경에는 두 번째 리뷰어가 필요합니다.",
+      "repo_brief_label": "저장소",
+      "repo_brief_hint": "저장소를 읽은 실행이 작성했습니다. 바꾸려면 분석을 다시 실행하세요.",
+      "save": "프로필 저장",
+      "saving": "저장 중…",
+      "discard": "변경 취소",
+      "saved": "프로젝트 프로필을 저장했습니다.",
+      "save_failed": "프로젝트 프로필을 저장하지 못했습니다.",
+      "typical_work": {
+        "ship_code": "코드 작성",
+        "review_code": "코드 리뷰",
+        "plan_product": "제품 기획",
+        "research": "조사·분석",
+        "write_docs": "문서 작성",
+        "automate_ops": "운영 자동화",
+        "data_analysis": "데이터 분석",
+        "knowledge_modeling": "지식 모델링",
+        "design": "디자인",
+        "support": "지원",
+        "compliance": "컴플라이언스"
+      }
+    }
   },
   "delete_workspace_dialog": {
     "title": "워크스페이스 삭제",
@@ -741,7 +774,7 @@
     "feature_auto_link_label": "태스크와 PR 자동 연결",
     "feature_auto_link_description": "PR 제목, 본문, 브랜치 이름을 태스크 식별자와 대조해 자동으로 연결합니다.",
     "section_repositories": "저장소",
-    "repositories_shortcut_label": "저장소 URL은 저장소 탭에 있습니다",
+    "repositories_shortcut_label": "저장소 URL은 리소스 탭에 있습니다",
     "repositories_shortcut_link": "저장소 관리 →",
     "toast_failed": "GitHub 설정을 업데이트하지 못했습니다"
   },
@@ -826,49 +859,6 @@
     "connect_cancel": "취소",
     "connect_success_toast": "Telegram 봇이 연결되었습니다",
     "connect_failed_toast": "Telegram 봇을 연결할 수 없습니다"
-  },
-  "repositories": {
-    "section_title": "저장소",
-    "description": "이 워크스페이스와 연결된 Git 저장소입니다. 에이전트는 이 저장소를 클론해 코드 작업을 합니다.",
-    "url_placeholder": "https://git.example.com/org/repo.git 또는 git@git.example.com:org/repo.git",
-    "url_empty": "(빈 URL)",
-    "description_placeholder": "설명(예: Go 백엔드 + Next.js 프런트엔드)",
-    "add": "저장소 추가",
-    "connect_github": "GitHub 연결",
-    "choose_from_github": "GitHub에서 선택",
-    "github_not_configured": "이 배포에는 GitHub 연결이 설정되어 있지 않습니다.",
-    "github_browse_not_configured": "저장소를 탐색하려면 GITHUB_APP_ID와 GITHUB_APP_PRIVATE_KEY가 필요합니다.",
-    "github_connect_failed": "GitHub에 연결하지 못했습니다. 다시 시도해 주세요.",
-    "github_picker_title": "GitHub 저장소 선택",
-    "github_picker_description": "이 워크스페이스에 추가할 저장소를 선택하세요. 기존 수동 설정은 변경되지 않습니다.",
-    "github_account": "GitHub 계정",
-    "github_search_placeholder": "불러온 저장소 검색",
-    "github_loading": "저장소 불러오는 중…",
-    "github_load_failed": "GitHub에서 저장소를 불러오지 못했습니다. 설치 권한을 확인한 후 다시 시도해 주세요.",
-    "github_empty": "이 설치에서 접근 가능한 저장소가 없습니다.",
-    "github_no_search_results": "불러온 저장소 중 검색 결과가 없습니다.",
-    "github_private": "비공개",
-    "github_archived": "보관됨",
-    "github_added": "추가됨",
-    "github_load_more": "더 불러오기",
-    "github_selected_count": "{{count}}개 선택",
-    "github_cancel": "취소",
-    "github_import": "저장소 추가",
-    "complete_manual_entry_first": "비어 있는 수동 저장소를 입력하거나 삭제한 후 가져오세요.",
-    "save": "저장",
-    "saving": "저장하는 중...",
-    "saved_hint": "모든 변경사항 저장됨",
-    "empty": "아직 저장소가 없습니다.",
-    "edit_aria": "저장소 수정",
-    "cancel_aria": "수정 취소",
-    "delete_aria": "저장소 삭제",
-    "delete_confirm_title": "저장소를 삭제할까요?",
-    "delete_confirm_description": "이 저장소는 워크스페이스에서 즉시 제거됩니다.",
-    "delete_confirm_cancel": "취소",
-    "delete_confirm_action": "저장소 삭제",
-    "manage_hint": "관리자와 소유자만 저장소를 관리할 수 있습니다.",
-    "toast_saved": "저장소를 저장했습니다",
-    "toast_save_failed": "저장소를 저장하지 못했습니다"
   },
   "desktop": {
     "tabs": {

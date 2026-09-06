@@ -14,7 +14,6 @@ import {
 import { useWorkspaceId } from "@enact/core/hooks";
 import type { Agent } from "@enact/core/types";
 import { agentListOptions } from "@enact/core/workspace/queries";
-import { projectListOptions } from "@enact/core/projects/queries";
 import {
   dashboardKeys,
   dashboardUsageDailyOptions,
@@ -58,12 +57,11 @@ import {
   mergeAgentDashboardRows,
 } from "../utils";
 import {
-  ALL_PROJECTS,
   DurationNumberFlow,
   dimsForDays,
   type TimeRange,
 } from "./dashboard-shared";
-import { ProjectFilter, TimeRangeFilter } from "./dashboard-filters";
+import { TimeRangeFilter } from "./dashboard-filters";
 import { UsageTrendCard } from "./usage-trend-card";
 import { Leaderboard } from "./leaderboard";
 import { ErrorsTab } from "./errors-tab";
@@ -129,7 +127,7 @@ function useDataFreshness(
 }
 
 /**
- * Workspace + project usage dashboard.
+ * Workspace usage dashboard.
  *
  * Lives at `/{slug}/usage`. Two tabs, split by the question the reader arrived
  * with rather than by which rollup feeds them: Usage answers "what did this
@@ -138,8 +136,8 @@ function useDataFreshness(
  * thirty rows, and the only way to chart failures was to hide spend.
  *
  * Scope is expressed by where a control lives: the toolbar under the header
- * carries the tabs and the two page-scoped filters (time range, project),
- * every card carries its own view switches. All six rollups are fetched for
+ * carries the tabs and the page-scoped time range filter, every card carries
+ * its own view switches. All six rollups are fetched for
  * both tabs — they are small, and prefetching is what makes switching tabs
  * instant — but the loading and empty states are per tab, so Usage does not
  * wait on the failure queries.
@@ -154,7 +152,6 @@ export function DashboardPage() {
   const navigation = useNavigation();
   const locales = i18n.resolvedLanguage ?? i18n.language;
   const [days, setDays] = useState<TimeRange>(30);
-  const [projectValue, setProjectValue] = useState<string>(ALL_PROJECTS);
 
   // The tab lives in the URL because the Errors view is the half of this page
   // people paste at each other ("this agent failed 54 times, see for
@@ -175,19 +172,8 @@ export function DashboardPage() {
   // they do so the dashboard reflects the new rates.
   useCustomPricingStore((s) => s.pricings);
 
-  const { data: projects = [] } = useQuery(projectListOptions(wsId));
   const agentsQuery = useQuery(agentListOptions(wsId));
   const agents = agentsQuery.data ?? EMPTY_AGENTS;
-
-  // Validate the picked project against the current workspace's list. A
-  // stale UUID — left over from a project that's been deleted, or from the
-  // previous workspace after a switch — would silently filter every query to
-  // empty rows while the header still reads "All projects". Derive the
-  // effective filter so the API call matches the user-visible selection.
-  const projectId = useMemo(() => {
-    if (projectValue === ALL_PROJECTS) return null;
-    return projects.some((p) => p.id === projectValue) ? projectValue : null;
-  }, [projectValue, projects]);
 
   // The weekly charts paint `ceil(days / 7)` trailing calendar weeks anchored
   // at today-in-UTC. In the worst case (today = Sunday) the leftmost Monday
@@ -206,7 +192,7 @@ export function DashboardPage() {
   const chartFetchDays = weekCount * 7;
 
   const dailyQuery = useQuery(
-    dashboardUsageDailyOptions(wsId, chartFetchDays, projectId, viewTZ),
+    dashboardUsageDailyOptions(wsId, chartFetchDays, viewTZ),
   );
   // The three per-agent rollups carry no date, so `dailyCutoffIso` below
   // cannot trim them — their window is closed server-side at exactly `days`
@@ -216,19 +202,19 @@ export function DashboardPage() {
   // and the Run time / Tasks KPIs silently widen by one day while the chart
   // and the Cost / Tokens KPIs beside them do not (ENA-5551).
   const byAgentQuery = useQuery(
-    dashboardUsageByAgentOptions(wsId, days, projectId, viewTZ),
+    dashboardUsageByAgentOptions(wsId, days, viewTZ),
   );
   const runTimeQuery = useQuery(
-    dashboardAgentRunTimeOptions(wsId, days, projectId, viewTZ),
+    dashboardAgentRunTimeOptions(wsId, days, viewTZ),
   );
   const runTimeDailyQuery = useQuery(
-    dashboardRunTimeDailyOptions(wsId, chartFetchDays, projectId, viewTZ),
+    dashboardRunTimeDailyOptions(wsId, chartFetchDays, viewTZ),
   );
   const failuresDailyQuery = useQuery(
-    dashboardFailuresDailyOptions(wsId, chartFetchDays, projectId, viewTZ),
+    dashboardFailuresDailyOptions(wsId, chartFetchDays, viewTZ),
   );
   const failuresByAgentQuery = useQuery(
-    dashboardFailuresByAgentOptions(wsId, days, projectId, viewTZ),
+    dashboardFailuresByAgentOptions(wsId, days, viewTZ),
   );
 
   const dailyUsage = dailyQuery.data ?? EMPTY_DAILY;
@@ -495,8 +481,8 @@ export function DashboardPage() {
 
       {/* View toolbar, same grammar as the issues surface header: view
           switching on the left, page-scoped filters on the right. Both tabs
-          share the range and project filter, which is why the filters live
-          here and not inside a tab. */}
+          share the range filter, which is why it lives here and not inside a
+          tab. */}
       <div className={cn("h-12 shrink-0 overflow-x-auto border-b [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
         <div className="flex h-full w-max min-w-full items-center justify-between gap-2">
           <TabsList variant="line" className="gap-0 p-0 group-data-horizontal/tabs:h-full">
@@ -515,11 +501,6 @@ export function DashboardPage() {
           </TabsList>
           <div className="flex shrink-0 items-center gap-2">
             <TimeRangeFilter days={days} onChange={setDays} />
-            <ProjectFilter
-              projects={projects}
-              projectValue={projectValue}
-              onProjectChange={setProjectValue}
-            />
           </div>
         </div>
       </div>

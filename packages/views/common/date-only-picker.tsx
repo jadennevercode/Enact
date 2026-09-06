@@ -50,7 +50,7 @@ interface DateOnlyPickerProps {
 
 /**
  * Entity-agnostic calendar-day picker: the shared behaviour behind every
- * start/due-date pill (issues, projects, …). It owns the Popover + Calendar +
+ * start/due-date pill. It owns the Popover + Calendar +
  * clear wiring and the calendar-day transport ("YYYY-MM-DD", no timezone shift,
  * via @enact/core/issues/date); each entity wraps it to supply only the field
  * name (through `onChange`), the icon, and the localized copy. Keeping this in

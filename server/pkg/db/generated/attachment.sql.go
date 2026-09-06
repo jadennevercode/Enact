@@ -447,6 +447,185 @@ func (q *Queries) LinkAttachmentsToIssue(ctx context.Context, arg LinkAttachment
 	return i, err
 }
 
+const listArtifactsByChatSession = `-- name: ListArtifactsByChatSession :many
+SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+LEFT JOIN comment c ON c.id = a.comment_id
+LEFT JOIN issue i ON i.id = COALESCE(a.issue_id, c.issue_id)
+WHERE a.workspace_id = $1
+  AND a.chat_session_id = $2
+ORDER BY a.filename ASC, a.created_at ASC
+LIMIT $3
+`
+
+type ListArtifactsByChatSessionParams struct {
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	ChatSessionID pgtype.UUID `json:"chat_session_id"`
+	RowLimit      int32       `json:"row_limit"`
+}
+
+type ListArtifactsByChatSessionRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	IssueID          pgtype.UUID        `json:"issue_id"`
+	CommentID        pgtype.UUID        `json:"comment_id"`
+	UploaderType     string             `json:"uploader_type"`
+	UploaderID       pgtype.UUID        `json:"uploader_id"`
+	Filename         string             `json:"filename"`
+	Url              string             `json:"url"`
+	ContentType      string             `json:"content_type"`
+	SizeBytes        int64              `json:"size_bytes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ChatSessionID    pgtype.UUID        `json:"chat_session_id"`
+	ChatMessageID    pgtype.UUID        `json:"chat_message_id"`
+	TaskID           pgtype.UUID        `json:"task_id"`
+	OwnerIssueID     pgtype.UUID        `json:"owner_issue_id"`
+	OwnerIssueNumber pgtype.Int4        `json:"owner_issue_number"`
+	OwnerIssueTitle  pgtype.Text        `json:"owner_issue_title"`
+}
+
+// Chat artifacts: every file uploaded into one chat session, by the member or
+// by the agent.
+//
+// chat_session_id is the durable owner and survives the message binding, so
+// a file stays listed whether or not it ever got attached to a message. The
+// owner issue is joined anyway (LEFT, so a missing edge is not a filter) to
+// keep one artifact row shape across both scopes; for chat rows it is
+// normally NULL.
+func (q *Queries) ListArtifactsByChatSession(ctx context.Context, arg ListArtifactsByChatSessionParams) ([]ListArtifactsByChatSessionRow, error) {
+	rows, err := q.db.Query(ctx, listArtifactsByChatSession, arg.WorkspaceID, arg.ChatSessionID, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArtifactsByChatSessionRow{}
+	for rows.Next() {
+		var i ListArtifactsByChatSessionRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.IssueID,
+			&i.CommentID,
+			&i.UploaderType,
+			&i.UploaderID,
+			&i.Filename,
+			&i.Url,
+			&i.ContentType,
+			&i.SizeBytes,
+			&i.CreatedAt,
+			&i.ChatSessionID,
+			&i.ChatMessageID,
+			&i.TaskID,
+			&i.OwnerIssueID,
+			&i.OwnerIssueNumber,
+			&i.OwnerIssueTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArtifactsByIssue = `-- name: ListArtifactsByIssue :many
+SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
+       i.id     AS owner_issue_id,
+       i.number AS owner_issue_number,
+       i.title  AS owner_issue_title
+FROM attachment a
+LEFT JOIN comment c ON c.id = a.comment_id
+JOIN issue i ON i.id = COALESCE(a.issue_id, c.issue_id)
+WHERE a.workspace_id = $1
+  AND (i.id = $2 OR i.parent_issue_id = $2)
+ORDER BY (i.id = $2) DESC, i.number ASC, a.filename ASC, a.created_at ASC
+LIMIT $3
+`
+
+type ListArtifactsByIssueParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	IssueID     pgtype.UUID `json:"issue_id"`
+	RowLimit    int32       `json:"row_limit"`
+}
+
+type ListArtifactsByIssueRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	IssueID          pgtype.UUID        `json:"issue_id"`
+	CommentID        pgtype.UUID        `json:"comment_id"`
+	UploaderType     string             `json:"uploader_type"`
+	UploaderID       pgtype.UUID        `json:"uploader_id"`
+	Filename         string             `json:"filename"`
+	Url              string             `json:"url"`
+	ContentType      string             `json:"content_type"`
+	SizeBytes        int64              `json:"size_bytes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ChatSessionID    pgtype.UUID        `json:"chat_session_id"`
+	ChatMessageID    pgtype.UUID        `json:"chat_message_id"`
+	TaskID           pgtype.UUID        `json:"task_id"`
+	OwnerIssueID     pgtype.UUID        `json:"owner_issue_id"`
+	OwnerIssueNumber int32              `json:"owner_issue_number"`
+	OwnerIssueTitle  string             `json:"owner_issue_title"`
+}
+
+// Issue artifacts: every file this issue produced, plus the files its direct
+// children produced.
+//
+// The owner issue is derived, not stored — an attachment hangs off an issue
+// directly or off a comment that does, and COALESCE follows whichever edge
+// exists. The join is inner, so chat uploads (which own neither edge) cannot
+// reach this listing.
+//
+// Children are included one level deep because a sub-issue is where delegated
+// work lands; a parent whose children did the producing would otherwise look
+// empty. Deeper descendants are not walked — the folder list stays readable
+// and the query stays a single index scan on idx_issue_parent.
+//
+// The issue's own rows sort ahead of its children's, so a truncated listing
+// sheds delegated work before it sheds the issue's own.
+func (q *Queries) ListArtifactsByIssue(ctx context.Context, arg ListArtifactsByIssueParams) ([]ListArtifactsByIssueRow, error) {
+	rows, err := q.db.Query(ctx, listArtifactsByIssue, arg.WorkspaceID, arg.IssueID, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArtifactsByIssueRow{}
+	for rows.Next() {
+		var i ListArtifactsByIssueRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.IssueID,
+			&i.CommentID,
+			&i.UploaderType,
+			&i.UploaderID,
+			&i.Filename,
+			&i.Url,
+			&i.ContentType,
+			&i.SizeBytes,
+			&i.CreatedAt,
+			&i.ChatSessionID,
+			&i.ChatMessageID,
+			&i.TaskID,
+			&i.OwnerIssueID,
+			&i.OwnerIssueNumber,
+			&i.OwnerIssueTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAttachmentURLsByCommentID = `-- name: ListAttachmentURLsByCommentID :many
 SELECT url FROM attachment
 WHERE comment_id = $1
@@ -763,102 +942,6 @@ func (q *Queries) ListAttachmentsByIssue(ctx context.Context, arg ListAttachment
 			&i.ChatSessionID,
 			&i.ChatMessageID,
 			&i.TaskID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAttachmentsByProject = `-- name: ListAttachmentsByProject :many
-SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
-       i.id     AS owner_issue_id,
-       i.number AS owner_issue_number,
-       i.title  AS owner_issue_title
-FROM attachment a
-JOIN comment c ON c.id = a.comment_id
-JOIN issue i ON i.id = c.issue_id
-WHERE i.project_id = $2
-  AND a.workspace_id = $3
-  AND a.issue_id IS NULL
-UNION ALL
-SELECT a.id, a.workspace_id, a.issue_id, a.comment_id, a.uploader_type, a.uploader_id, a.filename, a.url, a.content_type, a.size_bytes, a.created_at, a.chat_session_id, a.chat_message_id, a.task_id,
-       i.id     AS owner_issue_id,
-       i.number AS owner_issue_number,
-       i.title  AS owner_issue_title
-FROM attachment a
-JOIN issue i ON i.id = a.issue_id
-WHERE i.project_id = $2
-  AND a.workspace_id = $3
-ORDER BY owner_issue_number ASC, filename ASC, created_at ASC
-LIMIT $1
-`
-
-type ListAttachmentsByProjectParams struct {
-	RowLimit    int32       `json:"row_limit"`
-	ProjectID   pgtype.UUID `json:"project_id"`
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-}
-
-type ListAttachmentsByProjectRow struct {
-	ID               pgtype.UUID        `json:"id"`
-	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
-	IssueID          pgtype.UUID        `json:"issue_id"`
-	CommentID        pgtype.UUID        `json:"comment_id"`
-	UploaderType     string             `json:"uploader_type"`
-	UploaderID       pgtype.UUID        `json:"uploader_id"`
-	Filename         string             `json:"filename"`
-	Url              string             `json:"url"`
-	ContentType      string             `json:"content_type"`
-	SizeBytes        int64              `json:"size_bytes"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
-	ChatSessionID    pgtype.UUID        `json:"chat_session_id"`
-	ChatMessageID    pgtype.UUID        `json:"chat_message_id"`
-	TaskID           pgtype.UUID        `json:"task_id"`
-	OwnerIssueID     pgtype.UUID        `json:"owner_issue_id"`
-	OwnerIssueNumber int32              `json:"owner_issue_number"`
-	OwnerIssueTitle  string             `json:"owner_issue_title"`
-}
-
-// Project artifacts. An attachment carries no project_id of its own; project
-// membership is derived through its owning issue (directly, or through the
-// comment it hangs off). Deriving rather than denormalising keeps the listing
-// correct for free when an issue moves between projects.
-//
-// Chat-only attachments (chat_session_id set, no issue/comment owner) are
-// absent by construction: a chat session belongs to no project, so there is no
-// edge to follow.
-func (q *Queries) ListAttachmentsByProject(ctx context.Context, arg ListAttachmentsByProjectParams) ([]ListAttachmentsByProjectRow, error) {
-	rows, err := q.db.Query(ctx, listAttachmentsByProject, arg.RowLimit, arg.ProjectID, arg.WorkspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListAttachmentsByProjectRow{}
-	for rows.Next() {
-		var i ListAttachmentsByProjectRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.IssueID,
-			&i.CommentID,
-			&i.UploaderType,
-			&i.UploaderID,
-			&i.Filename,
-			&i.Url,
-			&i.ContentType,
-			&i.SizeBytes,
-			&i.CreatedAt,
-			&i.ChatSessionID,
-			&i.ChatMessageID,
-			&i.TaskID,
-			&i.OwnerIssueID,
-			&i.OwnerIssueNumber,
-			&i.OwnerIssueTitle,
 		); err != nil {
 			return nil, err
 		}

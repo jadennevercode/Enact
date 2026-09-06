@@ -28,7 +28,6 @@ const issue: Issue = {
   creator_type: "member",
   creator_id: "member-1",
   parent_issue_id: null,
-  project_id: null,
   position: 1,
   stage: null,
   start_date: null,

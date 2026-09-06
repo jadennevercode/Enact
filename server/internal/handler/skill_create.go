@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 
+	skillpkg "github.com/enact-ai/enact/server/internal/skill"
+	"github.com/enact-ai/enact/server/internal/skillversion"
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	skillpkg "github.com/enact-ai/enact/server/internal/skill"
-	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 type skillCreateInput struct {
@@ -19,6 +20,9 @@ type skillCreateInput struct {
 	Content     string
 	Config      any
 	Files       []CreateSkillFileRequest
+	// Source labels the version this creation records. Defaults to
+	// skillversion.SourceManual; import and seeding paths say so explicitly.
+	Source string
 }
 
 // createSkillWithFilesInTx writes a skill plus its supporting files using the
@@ -64,6 +68,14 @@ func createSkillWithFilesInTx(ctx context.Context, qtx *db.Queries, input skillC
 		}
 		fileResps = append(fileResps, skillFileToResponse(sf))
 	}
+
+	// v1. A skill with no recorded version is a skill nothing can be rolled
+	// back to, so the snapshot is taken here rather than on first edit.
+	version, err := recordSkillVersionInTx(ctx, qtx, skill, input.Source, input.CreatorID, "Created")
+	if err != nil {
+		return SkillWithFilesResponse{}, err
+	}
+	skill.CurrentVersionID = version.ID
 
 	return SkillWithFilesResponse{
 		SkillResponse: skillToResponse(skill),
@@ -124,6 +136,12 @@ type skillOverwriteInput struct {
 	Content        string
 	Config         any
 	Files          []CreateSkillFileRequest
+	// Source labels the version this overwrite records. Import conflict
+	// resolution passes SourceImport; refresh-from-source passes SourceRefresh.
+	Source string
+	// ActorID owns the recorded version. Falls back to the target's creator
+	// when the caller has no user context.
+	ActorID pgtype.UUID
 }
 
 // overwriteSkillWithFiles re-imports a bundle onto an existing skill in a single
@@ -226,6 +244,16 @@ func (h *Handler) overwriteSkillWithFiles(ctx context.Context, input skillOverwr
 		fileResps = append(fileResps, skillFileToResponse(sf))
 	}
 
+	actorID := input.ActorID
+	if !actorID.Valid {
+		actorID = existing.CreatedBy
+	}
+	version, err := recordSkillVersionInTx(ctx, qtx, skill, input.Source, actorID, overwriteVersionSummary(input.Source))
+	if err != nil {
+		return SkillWithFilesResponse{}, err
+	}
+	skill.CurrentVersionID = version.ID
+
 	if err := tx.Commit(ctx); err != nil {
 		return SkillWithFilesResponse{}, err
 	}
@@ -234,4 +262,18 @@ func (h *Handler) overwriteSkillWithFiles(ctx context.Context, input skillOverwr
 		SkillResponse: skillToResponse(skill),
 		Files:         fileResps,
 	}, nil
+}
+
+// overwriteVersionSummary names the version an overwrite produced, so the
+// history distinguishes "someone re-imported this from upstream" from
+// "someone edited it here" without the reader having to decode `source`.
+func overwriteVersionSummary(source string) string {
+	switch source {
+	case skillversion.SourceRefresh:
+		return "Refreshed from source"
+	case skillversion.SourceImport:
+		return "Overwritten by import"
+	default:
+		return "Replaced"
+	}
 }

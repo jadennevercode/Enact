@@ -436,3 +436,84 @@ describe("runtimeRowLabel", () => {
     ).toBe("just this one");
   });
 });
+
+// The server owns machine identity since migration 412. `machine_id` is the
+// same value in every workspace a host is registered in, so grouping by it is
+// a fact rather than an inference — which matters because the inference it
+// replaces could be wrong in both directions.
+describe("server-owned machine identity", () => {
+  it("groups by machine_id even when the inferred keys disagree", () => {
+    // Two runtimes the old heuristic would have split: different daemon ids
+    // and different parsed hostnames. The server says they are one host, and
+    // the server is the one that actually knows.
+    const machines = buildRuntimeMachines(
+      [
+        makeRuntime({
+          id: "rt-a",
+          provider: "claude",
+          machine_id: "machine-1",
+          daemon_id: "daemon-old",
+          name: "Claude (old-hostname.local)",
+        }),
+        makeRuntime({
+          id: "rt-b",
+          provider: "codex",
+          machine_id: "machine-1",
+          daemon_id: "daemon-new",
+          name: "Codex (renamed-host.local)",
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(machines).toHaveLength(1);
+    expect(machines[0]!.runtimes.map((r) => r.id).sort()).toEqual(["rt-a", "rt-b"]);
+    expect(machines[0]!.serverMachineId).toBe("machine-1");
+  });
+
+  it("keeps distinct machine_ids apart even when they share a device name", () => {
+    // The mirror case: two people running identically named laptops. The old
+    // device-name fallback could merge them; distinct machine ids cannot.
+    const machines = buildRuntimeMachines(
+      [
+        makeRuntime({
+          id: "rt-mine",
+          machine_id: "machine-mine",
+          daemon_id: null,
+          owner_id: "user-1",
+          name: "Claude (MacBook-Pro.local)",
+        }),
+        makeRuntime({
+          id: "rt-theirs",
+          machine_id: "machine-theirs",
+          daemon_id: null,
+          owner_id: "user-2",
+          name: "Claude (MacBook-Pro.local)",
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(machines).toHaveLength(2);
+    expect(
+      machines.map((m) => m.serverMachineId).sort(),
+    ).toEqual(["machine-mine", "machine-theirs"]);
+  });
+
+  it("still groups by daemon id when the server sent no machine_id", () => {
+    // A runtime registered by an older server, or one whose daemon has not
+    // re-registered yet. The inference has to keep working, or upgrading the
+    // client would scatter every existing machine into per-runtime rows.
+    const machines = buildRuntimeMachines(
+      [
+        makeRuntime({ id: "rt-1", provider: "claude", daemon_id: "daemon-legacy" }),
+        makeRuntime({ id: "rt-2", provider: "codex", daemon_id: "daemon-legacy" }),
+      ],
+      { now: NOW },
+    );
+
+    expect(machines).toHaveLength(1);
+    expect(machines[0]!.serverMachineId).toBeNull();
+    expect(machines[0]!.daemonId).toBe("daemon-legacy");
+  });
+});

@@ -12,8 +12,6 @@ export interface IssueFilters {
    *  includeNoAssignee=false, the predicate intentionally matches nothing. */
   assigneeFilterActive?: boolean;
   creatorFilters: ActorFilterValue[];
-  projectFilters: string[];
-  includeNoProject: boolean;
   labelFilters: string[];
   /** Custom-property filters: definition id → selected option ids (OR within
    *  a definition, AND across definitions; checkbox uses "true"/"false"). */
@@ -38,8 +36,6 @@ export interface IssueFilterState {
   /** See IssueFilters.assigneeFilterActive. */
   assigneeFilterActive?: boolean;
   creatorFilters: ActorFilterValue[];
-  projectFilters: string[];
-  includeNoProject: boolean;
   labelFilters: string[];
   propertyFilters?: Record<string, string[]>;
   workingOnly: boolean;
@@ -113,12 +109,11 @@ export function applyIssueFilters(
   filters: IssueFilterState,
   context: IssueFilterContext = {},
 ): Issue[] {
-  const { statusFilters, priorityFilters, assigneeFilters, includeNoAssignee, creatorFilters, projectFilters, includeNoProject, labelFilters, workingOnly } = filters;
+  const { statusFilters, priorityFilters, assigneeFilters, includeNoAssignee, creatorFilters, labelFilters, workingOnly } = filters;
   const hasAssigneeFilter =
     filters.assigneeFilterActive === true ||
     assigneeFilters.length > 0 ||
     includeNoAssignee;
-  const hasProjectFilter = projectFilters.length > 0 || includeNoProject;
   // Empty set passed without `agentRunningFilter` is a no-op. When the
   // filter is on but the set is missing/empty, hide everything — the
   // user opted into "only running" and there is nothing running.
@@ -161,20 +156,9 @@ export function applyIssueFilters(
       return false;
     }
 
-    if (hasProjectFilter) {
-      if (!issue.project_id) {
-        if (!includeNoProject) return false;
-      } else if (projectFilters.length > 0) {
-        if (!projectFilters.includes(issue.project_id)) return false;
-      } else {
-        // Only "No project" is checked → hide issues that have a project
-        return false;
-      }
-    }
-
     if (labelFilters.length > 0) {
       // OR semantics within the filter: keep issues that carry any of the
-      // selected labels. Matches existing priority / project multi-select.
+      // selected labels. Matches the existing priority multi-select.
       const issueLabels = issue.labels;
       if (!issueLabels || issueLabels.length === 0) return false;
       if (!issueLabels.some((l) => labelFilters.includes(l.id))) return false;
@@ -196,8 +180,6 @@ export function filterIssues(issues: Issue[], filters: IssueFilters): Issue[] {
       includeNoAssignee: filters.includeNoAssignee,
       assigneeFilterActive: filters.assigneeFilterActive,
       creatorFilters: filters.creatorFilters,
-      projectFilters: filters.projectFilters,
-      includeNoProject: filters.includeNoProject,
       labelFilters: filters.labelFilters,
       propertyFilters: filters.propertyFilters,
       workingOnly: filters.agentRunningFilter === true,

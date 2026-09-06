@@ -28,7 +28,7 @@ issue — so nobody reconstructs context, and nothing ships without a human sayi
 - **[Assign an issue](https://enact.ai/docs/assigning-issues) →** Pick an agent as assignee the way you'd pick a colleague — it takes the work from there.
 - **[Autopilots](https://enact.ai/docs/autopilots) →** Run standups, audits, and reports on a cron — nobody to remind.
 - **[Chat](https://enact.ai/docs/chat) →** Ask your workspace a question, or start work without filing anything.
-- **[Projects](https://enact.ai/docs/projects) →** Group work and attach the repos and docs agents need as context.
+- **[Resources](https://enact.ai/docs/resources) →** Attach the repos and local directories agents work in — every run gets them as context.
 
 ## Stay in the loop.
 
@@ -37,6 +37,7 @@ issue — so nobody reconstructs context, and nothing ships without a human sayi
 - **[Execution log](https://enact.ai/docs/tasks) →** Replay every tool call, command, and error, timestamped.
 - **Token usage →** See what each run cost, per agent and per issue.
 - **[Review gates](https://enact.ai/docs/issues) →** Work lands in review, not in main. You decide what ships.
+- **[Artifacts](https://enact.ai/docs/artifacts) →** Every file a run produced, collected in one place with its version history.
 - **[Inbox](https://enact.ai/docs/inbox) →** Get pinged when an agent needs a call, not for every step.
 - **[Retries and timeouts](https://enact.ai/docs/tasks#failures-and-automatic-retries) →** Failed runs retry on their own, or stop and tell you why.
 
@@ -46,7 +47,7 @@ issue — so nobody reconstructs context, and nothing ships without a human sayi
 
 - **[Self-host everything](SELF_HOSTING.md) →** Docker Compose or Helm, on your own infrastructure.
 - **[Any Git host](https://enact.ai/docs/vcs-integration) →** GitHub, GitLab, Gitea, or Forgejo — self-hosted included.
-- **[Workspaces](https://enact.ai/docs/workspaces) →** Separate agents, issues, and settings per team.
+- **[Workspaces](https://enact.ai/docs/workspaces) →** One workspace is one project: its own agents, issues, code, and settings.
 - **[Roles](https://enact.ai/docs/members-roles) and [access scopes](https://enact.ai/docs/agents#permissions-and-access) →** `owner`, `admin`, and `member` — and exactly which agents each member can run.
 - **[Security model](https://enact.ai/docs/security-model) →** What an agent can reach, and what it can't.
 - **[Slack, Lark, DingTalk, WeCom, and Telegram](https://enact.ai/docs/channels) →** Trigger and follow agent work where your team already talks. DingTalk, WeCom, and Telegram are [community-maintained](https://enact.ai/docs/community-maintained).

@@ -7,7 +7,10 @@ import enChat from "../../locales/en/chat.json";
 const updateMutate = vi.hoisted(() => vi.fn());
 
 vi.mock("@enact/core/paths", () => ({
-  useWorkspacePaths: () => ({ agentDetail: (id: string) => `/agents/${id}` }),
+  useWorkspacePaths: () => ({
+    agentDetail: (id: string) => `/agents/${id}`,
+    chatSessionArtifacts: (id: string) => `/acme/chat/${id}/artifacts`,
+  }),
 }));
 
 vi.mock("@enact/core/chat/mutations", () => ({

@@ -5,23 +5,21 @@
  *
  * Architecture invariant (matches web): `PinnedItem` only carries metadata
  * (`item_type` + `item_id`). Title / status / icon are fetched per-row via
- * `issueDetailOptions` / `projectDetailOptions`, so when an issue's status
- * or a project's title changes via `issue:updated` / `project:updated`,
- * this list updates automatically — no cross-entity invalidate on pinKeys
- * is needed. Do NOT inline the display fields into the pin row; that
- * couples this view to a stale snapshot. See packages/core/types/pin.ts
- * top comment.
+ * `issueDetailOptions`, so when an issue's status changes via
+ * `issue:updated` this list updates automatically — no cross-entity
+ * invalidate on pinKeys is needed. Do NOT inline the display fields into
+ * the pin row; that couples this view to a stale snapshot. See
+ * packages/core/types/pin.ts top comment.
  *
- * Rendering split by `item_type`:
- *   - issue → existing `<IssueRow>` (used by my-issues / more/issues /
- *     project-related-issues), `showStatus` because pins are heterogeneous
- *     (no section grouping by status).
- *   - project → existing `<ProjectRow>` (used by more/projects).
+ * Only issue pins render a real row (`<IssueRow>` with `showStatus`,
+ * because pins are heterogeneous and there is no section grouping by
+ * status). Any other `item_type` the server may send falls through to the
+ * placeholder below so the user can still unpin it.
  *
- * Missing / no-permission rows: the detail query may 404 (issue/project
- * deleted, user lost access, server returned a parseWithFallback fallback
- * with an empty id). We render a low-emphasis placeholder so the user can
- * unpin it from here — otherwise a dead pin stays forever.
+ * Missing / no-permission rows: the detail query may 404 (issue deleted,
+ * user lost access, server returned a parseWithFallback fallback with an
+ * empty id). We render a low-emphasis placeholder so the user can unpin it
+ * from here — otherwise a dead pin stays forever.
  */
 import { useMemo } from "react";
 import {
@@ -34,15 +32,13 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import type { Issue, PinnedItem, Project } from "@enact/core/types";
+import type { Issue, PinnedItem, PinnedItemType } from "@enact/core/types";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { IssueRow } from "@/components/issue/issue-row";
-import { ProjectRow } from "@/components/project/project-row";
 import { pinListOptions } from "@/data/queries/pins";
 import { useDeletePin } from "@/data/mutations/pins";
 import { issueDetailOptions } from "@/data/queries/issues";
-import { projectDetailOptions } from "@/data/queries/projects";
 import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
@@ -90,8 +86,8 @@ export default function PinsPage() {
     return (
       <View className="flex-1 items-center justify-center bg-background px-6">
         <Text className="text-sm text-muted-foreground text-center">
-          No pins yet. Pin an issue or project from its actions menu to
-          surface it here.
+          No pins yet. Pin an issue from its actions menu to surface it
+          here.
         </Text>
       </View>
     );
@@ -129,11 +125,11 @@ function PinRow({
   wsSlug: string | null;
 }) {
   if (pin.item_type === "issue") {
-    return (
-      <IssuePinRow pin={pin} wsId={wsId} wsSlug={wsSlug} />
-    );
+    return <IssuePinRow pin={pin} wsId={wsId} wsSlug={wsSlug} />;
   }
-  return <ProjectPinRow pin={pin} wsId={wsId} wsSlug={wsSlug} />;
+  // Mobile renders no other pin target. Show the unpin placeholder rather
+  // than dropping the row silently, so the pin can still be cleaned up.
+  return <MissingPinRow itemType={pin.item_type} itemId={pin.item_id} />;
 }
 
 function IssuePinRow({
@@ -164,34 +160,6 @@ function IssuePinRow({
   );
 }
 
-function ProjectPinRow({
-  pin,
-  wsId,
-  wsSlug,
-}: {
-  pin: PinnedItem;
-  wsId: string | null;
-  wsSlug: string | null;
-}) {
-  const { data, isLoading } = useQuery(
-    projectDetailOptions(wsId, pin.item_id),
-  );
-  const project = data && data.id ? (data as Project) : null;
-
-  if (isLoading) return <SkeletonRow />;
-  if (!project)
-    return <MissingPinRow itemType="project" itemId={pin.item_id} />;
-
-  return (
-    <ProjectRow
-      project={project}
-      onPress={() => {
-        if (wsSlug) router.push(`/${wsSlug}/project/${project.id}`);
-      }}
-    />
-  );
-}
-
 function SkeletonRow() {
   return (
     <View className="px-4 py-3 flex-row items-center gap-3">
@@ -202,7 +170,8 @@ function SkeletonRow() {
 }
 
 /**
- * Renders for pins whose target issue/project was deleted or revoked.
+ * Renders for pins whose target was deleted, revoked, or is a kind this
+ * client has no screen for.
  * Tapping triggers unpin so the user can clean it up; no destination
  * navigation since there's nothing to navigate to. Subtle styling so
  * it doesn't dominate the list of live pins.
@@ -211,7 +180,7 @@ function MissingPinRow({
   itemType,
   itemId,
 }: {
-  itemType: "issue" | "project";
+  itemType: PinnedItemType;
   itemId: string;
 }) {
   const { colorScheme } = useColorScheme();

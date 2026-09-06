@@ -2,7 +2,7 @@
  * Registry of workspace navigation *pages* and their icons.
  *
  * A "page" here is a collection or tool surface that has no specific resource
- * of its own — Issues, Projects, Settings, etc. Its icon is a stable, static
+ * of its own — Issues, Artifacts, Settings, etc. Its icon is a stable, static
  * choice keyed by the URL route segment (`/{slug}/{segment}/...`).
  *
  * This is the source of truth the sidebar nav uses (via `resolveRouteIconName`
@@ -24,7 +24,7 @@ export type RouteIconName =
   | "MessageSquare"
   | "CircleUser"
   | "ListTodo"
-  | "FolderKanban"
+  | "FolderOpen"
   | "Zap"
   | "Bot"
   | "Users"
@@ -33,6 +33,7 @@ export type RouteIconName =
   | "Network"
   | "Server"
   | "BookOpenText"
+  | "Store"
   | "Settings"
   | "File"
   | "FileText"
@@ -49,7 +50,6 @@ export type NavLabelKey =
   | "chat"
   | "my_issues"
   | "issues"
-  | "projects"
   | "autopilots"
   | "agents"
   | "squads"
@@ -57,6 +57,7 @@ export type NavLabelKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "marketplace"
   | "settings";
 
 /** Stable identifier for each workspace navigation page. */
@@ -65,7 +66,6 @@ export type WorkspacePageKey =
   | "chat"
   | "myIssues"
   | "issues"
-  | "projects"
   | "autopilots"
   | "agents"
   | "squads"
@@ -73,6 +73,7 @@ export type WorkspacePageKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "marketplace"
   | "settings";
 
 export interface WorkspacePage {
@@ -93,7 +94,6 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   chat: { segment: "chat", icon: "MessageSquare", navKey: "chat" },
   myIssues: { segment: "my-issues", icon: "CircleUser", navKey: "my_issues" },
   issues: { segment: "issues", icon: "ListTodo", navKey: "issues" },
-  projects: { segment: "projects", icon: "FolderKanban", navKey: "projects" },
   autopilots: { segment: "autopilots", icon: "Zap", navKey: "autopilots" },
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },
@@ -101,6 +101,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
   skills: { segment: "skills", icon: "BookOpenText", navKey: "skills" },
+  marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
 

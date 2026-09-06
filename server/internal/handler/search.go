@@ -12,7 +12,7 @@ import (
 
 // searchStatementTimeout bounds every /search request at the Postgres level.
 //
-// The two search handlers (SearchIssues, SearchProjects) run LOWER(col) LIKE
+// The search handler (SearchIssues) runs LOWER(col) LIKE
 // '%pattern%' queries whose fast path depends on pg_bigm / pg_trgm GIN
 // indexes (see migrations 032, 033, 036, 134). When those extensions are
 // missing — as they were on every self-hosted deployment using the bundled
@@ -26,7 +26,7 @@ import (
 // <50 ms) and short enough that the frontend's implicit request timeout
 // (browser default, ~30 s) never kicks in. On timeout the caller sees a
 // 503 with a descriptive error rather than a stalled connection —
-// SearchIssues / SearchProjects map SQLSTATE 57014 to
+// SearchIssues maps SQLSTATE 57014 to
 // http.StatusServiceUnavailable so the frontend can distinguish this
 // from a generic 500.
 const searchStatementTimeout = 3 * time.Second

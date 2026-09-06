@@ -33,11 +33,10 @@ function makeIssue(id: string, status: string, category: IssueStatusCategory): I
     status,
     status_category: category,
     priority: "none",
-    assignee_type: null,
-    assignee_id: null,
+    assignee_type: "member",
+    assignee_id: "u1",
     creator_type: "member",
     creator_id: "u-1",
-    project_id: "p1",
     parent_issue_id: null,
     stage: null,
     position: 1,
@@ -54,7 +53,7 @@ const QUERY = {
   sort: { field: "position" as const, direction: "asc" as const },
 };
 
-const CELL_KEY = "compound:project:p1:status_category:in_review";
+const CELL_KEY = "compound:assignee:member:u1:status_category:in_review";
 
 function wrapper(qc: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -74,8 +73,11 @@ describe("useIssueGroupBranches — category secondary axis", () => {
       total: 2,
       groups: [
         {
-          key: "project:p1",
-          value: { kind: "project" as const, project_id: "p1" },
+          key: "assignee:member:u1",
+          value: {
+            kind: "assignee" as const,
+            actor: { type: "member" as const, id: "u1" },
+          },
           count: 2,
           secondary_groups: [
             {
@@ -112,7 +114,7 @@ describe("useIssueGroupBranches — category secondary axis", () => {
           query: QUERY,
           group: {
             kind: "compound",
-            primary: "project",
+            primary: "assignee",
             secondary,
             secondary_values: ["in_review"],
           },

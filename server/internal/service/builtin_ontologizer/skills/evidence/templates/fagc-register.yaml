@@ -1,0 +1,153 @@
+# define/fagc-register.yaml
+#
+# 一条陈述一张卡。四类：
+#   fact       材料里明确写着的。必须有带 location 与 exact_snippet 的锚点。
+#   assumption 我们自己填的空。必须有 rationale 说明凭什么这么填。
+#   guidance   建模指引、口径约定。必须有 authority_or_owner。
+#   constraint 业务硬性约束。必须有 authority_or_owner。
+#
+# 检查项 no_inference_as_fact 按上面四行逐条核。它是这套流程最想防住的一件事：
+# 一条没有出处的推断被标成 fact，后面整条追溯链就都是装饰。
+# 检查项 conflicts_not_merged 核 disputed 陈述与 unresolved_decisions 的配对。
+# 例子取自 evals/fixtures/journal-reversal/。
+
+version: 1
+snapshot_ref: es-0001          # 这批陈述抽自哪个快照
+
+statements:
+  # ---- fact：有锚点，否则降级为 assumption -------------------------------
+  - statement_id: fact.001
+    classification: fact
+    statement: 冲销分录的借贷方向与原分录相反，金额相同，过账日期为当前日期。
+    source_ids: [ev.001]                       # fact 必填，指向 manifest 里的 evidence_id
+    anchors:                                   # fact 必填，每条要 location + exact_snippet
+      - location: "§6.2/4"
+        exact_snippet: "借贷方向与原分录相反，金额相同，过账日期为当前日期"
+    scope: 总账域已过账分录
+    valid_time: "2025-11 起"
+    authority_or_owner: 总账操作手册
+    confidence_or_uncertainty: high
+    status: confirmed                          # proposed | confirmed | disputed | resolved | deprecated
+    affected_object_ids: [ent.reversal_entry, rel.reverses]
+    revision_created: r0001
+
+  - statement_id: fact.002
+    classification: fact
+    statement: 审批人不得是该分录的制单人。
+    source_ids: [ev.001, ev.002]
+    anchors:
+      - location: "§6.2/3"
+        exact_snippet: "无论金额大小，审批人不得是该分录的制单人。"
+      - location: "§3.4"
+        exact_snippet: "制单、审批、复核三项职责不得由同一人承担。"
+    scope: 全部冲销申请
+    valid_time: "2025-04-01 起"
+    authority_or_owner: 集团财务政策部
+    confidence_or_uncertainty: high
+    status: confirmed
+
+  # ---- assumption：没有出处，写清楚凭什么这么填 --------------------------
+  - statement_id: asm.001
+    classification: assumption
+    statement: 50,000 阈值按本位币（CNY）不含税金额计。
+    rationale: >-                               # assumption 必填
+      政策 §3.3 明确未说明含税与币种；样本数据里 JE-2026-0110 恰为 50,000 且 tax_included=Y，
+      JE-2026-0105 为 USD。共享中心现行惯例按本位币不含税执行，但无文件支持。
+      按惯例先记为假设，等待 DE 裁决。
+    source_ids: [ev.002, ev.004]               # 可选：指向暴露这个空白的材料
+    anchors:
+      - location: "§3.3"
+        exact_snippet: "本政策未对「金额」是否含税、是原币还是本位币作出说明。"
+    scope: 审批阈值判定
+    confidence_or_uncertainty: medium
+    status: proposed
+    affected_object_ids: [attr.journal_entry.amount]
+    revision_created: r0001
+
+  # ---- guidance / constraint：必须有 authority_or_owner -------------------
+  - statement_id: con.001
+    classification: constraint
+    statement: 一条分录最多被冲销一次；冲销分录本身不可再被冲销。
+    authority_or_owner: 总账操作手册 §6.2/2、§6.2/4     # guidance/constraint 必填
+    source_ids: [ev.001]
+    anchors:
+      - location: "§6.2/2"
+        exact_snippet: "一条分录只能被冲销一次"
+    scope: 总账域
+    valid_time: "2025-11 起"
+    confidence_or_uncertainty: high
+    status: confirmed
+
+  - statement_id: gui.001
+    classification: guidance
+    statement: 「红冲」「反过账」是口头别名，系统里没有对应动作，建模时统一到「冲销」。
+    authority_or_owner: FSSC 内部 wiki 术语表（ev.005）
+    source_ids: [ev.005]
+    anchors:
+      - location: "术语表/冲销行"
+        exact_snippet: "「红冲」是习惯说法，系统里没有这个动作"
+    scope: 命名与别名
+    confidence_or_uncertainty: high
+    status: confirmed
+
+  # ---- 冲突：两条都留，都标 disputed，共用一个 conflict_group -------------
+  # 不要挑一个留下，也不要合成一句"通常……但有时……"。合并之后没人能再判断
+  # 哪一条适用于自己这一笔业务。conflicts_not_merged 要求冲突组内每条都保留
+  # source_ids、scope、valid_time、authority_or_owner 四项。
+  - statement_id: fact.010
+    classification: fact
+    statement: 软关账期间，经财务控制批准后仍可冲销已过账分录。
+    source_ids: [ev.001]
+    anchors:
+      - location: "§6.3"
+        exact_snippet: "在软关账（soft close）期间，经财务控制批准后仍可冲销"
+    status: disputed
+    conflict_group: cg.softclose               # disputed 必填，同组共用一个值
+    scope: 共享中心执行口径
+    valid_time: "2025-11 起"
+    authority_or_owner: 总账操作手册（FSSC）
+    confidence_or_uncertainty: high
+
+  - statement_id: fact.011
+    classification: fact
+    statement: 软关账期间，任何已过账分录不得冲销。
+    source_ids: [ev.002]
+    anchors:
+      - location: "§3.2"
+        exact_snippet: "进入软关账后，任何已过账分录不得冲销。"
+    status: disputed
+    conflict_group: cg.softclose
+    scope: 集团政策口径
+    valid_time: "2025-04-01 起"
+    authority_or_owner: 集团财务政策部
+    confidence_or_uncertainty: high
+
+# 每个 conflict_group 要有且只有一条 unresolved decision，并且要有 owner。
+# 没有 owner 的未决事项会漂移成事实——过几周就没人记得它没被裁决过。
+unresolved_decisions:
+  - id: ud.001
+    conflict_group: cg.softclose
+    question: 软关账期间到底能不能冲销？以政策 §3.2 为准还是以手册 §6.3 为准？
+    owner: OO1                                  # 必填
+    raised_at: "2026-09-03T10:35:00+08:00"
+    options:
+      - 以政策为准：软关账一律禁止，手册 §6.3 作废，生命周期少一条转换
+      - 以手册为准：软关账经批准可冲销，转换带 guard，政策待修订
+      - 按主体分口径：本部按政策、工厂按手册，需要在实体上加适用范围属性
+    consequence_if_unresolved: >-
+      lc.journal_entry 的 posted → reversed 转换 guard 只能写成假设，
+      cq.006（软关账期间的冲销申请按哪条规则处理）无法回答。
+    status: open
+
+  # 阈值口径这条不是两份材料打架，是材料没说。它挂在 asm.001 上，
+  # 没有 conflict_group，因此不进 conflicts_not_merged 的核对，
+  # 但同样要有主，否则它会以"惯例"的名义变成事实。
+  - id: ud.002
+    question: 50,000 阈值含税还是不含税？本位币还是原币？
+    owner: DE1
+    raised_at: "2026-09-03T10:36:00+08:00"
+    related_statement_ids: [asm.001]
+    consequence_if_unresolved: >-
+      attr.journal_entry.amount 的 unit_or_format 只能挂 asm.001，
+      审批路由（cq.002）在跨币种分录上算不准。
+    status: open

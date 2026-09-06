@@ -49,6 +49,7 @@ function machine(runtimes: AgentRuntime[]): RuntimeMachine {
 
   return {
     id: "local:daemon-1",
+    serverMachineId: null,
     daemonId: "daemon-1",
     title: "dev.local",
     subtitle: null,

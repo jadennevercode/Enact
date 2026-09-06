@@ -84,7 +84,7 @@ export function pickStageKeys(
   ) {
     return { stageKey: "reconnecting" };
   }
-  // Daemon-emitted hold state for the local_directory flow: the project is
+  // Daemon-emitted hold state for the local_directory flow: the runtime is
   // pinned to a path that another task currently owns. The daemon publishes
   // this status string when it dequeues a task but can't acquire the path
   // lock; the renderer surfaces a dedicated label so the user understands

@@ -16,8 +16,8 @@ import { normalizeStoredUploads, type DraftUpload } from "../../drafts/draft-upl
 // One logical Issue-Create draft (ENA-5181), split so switching between the
 // manual form and the agent form never destroys the other side's content.
 //
-//   shared  — belongs to the issue no matter how it is filed: project,
-//             priority, due date, attachments.
+//   shared  — belongs to the issue no matter how it is filed: priority,
+//             due date, attachments.
 //   manual  — the manual form's own state: title, description, status, start
 //             date, assignee, labels, custom properties.
 //   agent   — the agent form's own state: the free-text prompt and the picked
@@ -32,7 +32,6 @@ import { normalizeStoredUploads, type DraftUpload } from "../../drafts/draft-upl
 // one-time assist-init the panels perform when the target slot is still empty.
 
 export interface IssueCreateShared {
-  projectId?: string;
   priority: IssuePriority;
   dueDate: string | null;
   /** Uploads for the dialog (placeholders + completed), referenced by the
@@ -72,7 +71,6 @@ export interface IssueCreateDraft {
 }
 
 const emptyShared = (): IssueCreateShared => ({
-  projectId: undefined,
   priority: "none",
   dueDate: null,
   attachments: [],
@@ -131,7 +129,6 @@ function migrateDraft(raw: unknown): IssueCreateDraft {
     return {
       shared: {
         ...emptyShared(),
-        projectId: d.projectId as string | undefined,
         priority: (d.priority as IssuePriority) ?? "none",
         dueDate: (d.dueDate as string | null) ?? null,
         // Legacy builds persisted bare Attachment rows; normalize wraps them
@@ -157,7 +154,12 @@ function migrateDraft(raw: unknown): IssueCreateDraft {
     };
   }
 
-  const sharedRaw = (d.shared as Partial<IssueCreateShared> & { attachments?: unknown }) ?? {};
+  const { projectId: _droppedProjectId, ...sharedRaw } =
+    (d.shared as Partial<IssueCreateShared> & {
+      attachments?: unknown;
+      // Drafts written before the Project entity was removed still carry it.
+      projectId?: unknown;
+    }) ?? {};
   return {
     shared: {
       ...emptyShared(),

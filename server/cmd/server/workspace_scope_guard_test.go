@@ -56,16 +56,6 @@ func TestWorkspaceScopeGuard(t *testing.T) {
 		assertRowExists(t, ctx, "comment", id)
 	})
 
-	t.Run("DeleteProject", func(t *testing.T) {
-		id := seedProject(t, ctx)
-		t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, util.UUIDToString(id)) })
-
-		if err := queries.DeleteProject(ctx, db.DeleteProjectParams{ID: id, WorkspaceID: wsB}); err != nil {
-			t.Fatalf("cross-workspace DeleteProject: expected nil error (no-op), got %v", err)
-		}
-		assertRowExists(t, ctx, "project", id)
-	})
-
 	t.Run("DeleteSkill", func(t *testing.T) {
 		id := seedSkill(t, ctx)
 		t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM skill WHERE id = $1`, util.UUIDToString(id)) })
@@ -156,19 +146,6 @@ func seedComment(t *testing.T, ctx context.Context, issueID pgtype.UUID) pgtype.
 		RETURNING id
 	`, util.UUIDToString(issueID), testWorkspaceID, testUserID).Scan(&s); err != nil {
 		t.Fatalf("seed comment: %v", err)
-	}
-	return parseUUID(s)
-}
-
-func seedProject(t *testing.T, ctx context.Context) pgtype.UUID {
-	t.Helper()
-	var s string
-	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title, status, priority)
-		VALUES ($1, 'scope-guard test project', 'planned', 'none')
-		RETURNING id
-	`, testWorkspaceID).Scan(&s); err != nil {
-		t.Fatalf("seed project: %v", err)
 	}
 	return parseUUID(s)
 }

@@ -275,11 +275,12 @@
     "discard_dialog_title": "Discard unsaved changes?",
     "discard_dialog_description": "You have unsaved changes in this tab. Leaving now will discard them.",
     "discard_keep": "Keep editing",
-    "discard_confirm": "Discard changes"
+    "discard_confirm": "Discard changes",
+    "knowledge": "Knowledge"
   },
   "creation_studio": {
     "title": "Create an agent",
-    "squad_title": "Create an agent for this squad",
+    "squad_title": "Create an agent for this agent family",
     "duplicate_title": "Duplicate {{name}}",
     "back": "Go back",
     "eyebrow": "Agent creation",
@@ -296,13 +297,24 @@
         "description": "Configure every field yourself. Best when you already know exactly how this agent should work."
       },
       "template": {
-        "title": "Use a template",
-        "description": "Start from curated instructions and skills, then adapt every detail to your workspace."
+        "title": "From a template",
+        "description": "Install a published agent template and adjust it. It arrives with its instructions, skills and MCP servers already set up."
       },
       "ai": {
         "title": "Build with AI",
         "description": "Describe the outcome you want. An Agent Builder will ask focused questions and prepare a live draft."
+      },
+      "retrospect": {
+        "title": "Retrospect Agent",
+        "description": "Enact's built-in reviewer. It reads finished work, proposes changes to skills, agents and agent families, and writes down what the team learned."
       }
+    },
+    "retrospect": {
+      "dialog_title": "Where should the Retrospect Agent run?",
+      "dialog_description": "Pick the runtime it reviews on. From then on, finishing an issue that agents worked on files a review under it. It always proposes configuration changes as a comment and waits for someone to agree.",
+      "cancel": "Cancel",
+      "confirm": "Set up agent",
+      "failed": "Couldn't set up the Retrospect Agent."
     },
     "sections": {
       "identity": "Identity",
@@ -350,7 +362,7 @@
       "empty_description": "Describe its role, workflow, output, or constraints. A useful first draft will appear on the right.",
       "prompt_review": "Review frontend pull requests",
       "prompt_research": "Research competitors and summarize findings",
-      "prompt_assistant": "Help our team plan and write projects",
+      "prompt_assistant": "Help our team plan and write specs",
       "thinking": "Updating the draft…",
       "placeholder": "Describe the agent you need…",
       "send": "Send message"
@@ -360,7 +372,7 @@
     "duplicate_env_notice": "Instructions, skills and command arguments are copied. Environment variables, MCP servers and machine-local runtime config are not.",
     "duplicate_runtime_reset_notice": "The original runtime is unavailable, so this copy runs on another one. Model, thinking level and speed were cleared because they only apply to the runtime they were chosen on.",
     "create_and_open": "Create & open agent",
-    "create_and_add": "Create & add to squad",
+    "create_and_add": "Create & add to agent family",
     "creating": "Creating agent…",
     "create_failed": "Could not create the agent.",
     "name_conflict": "An agent with this name already exists.",
@@ -414,7 +426,7 @@
     "cancel": "Cancel",
     "create_failed_toast": "Failed to create agent",
     "skill_attach_failed_toast": "Agent created, but failed to attach skills: {{error}}",
-    "squad_join_failed_toast": "Agent \"{{name}}\" was created but couldn't join the squad: {{error}}. You can add it manually from Members.",
+    "squad_join_failed_toast": "Agent \"{{name}}\" was created but couldn't join the agent family: {{error}}. You can add it manually from Members.",
     "instructions": {
       "label": "Instructions",
       "placeholder_blank": "Click to write instructions…",
@@ -643,12 +655,12 @@
       "dialog_empty": "All available ontologies are already assigned.",
       "dialog_cancel": "Cancel",
       "version": "Version {{version}}",
-    "adding": "Adding…",
-    "status_enabled": "Enabled",
-    "status_paused": "Paused",
-    "remove_confirm_title": "Remove Ontology?",
-    "remove_confirm_description": "Remove {{name}} from this agent? The shared CapHub ontology and its bindings to other agents will not be affected.",
-    "remove_confirm_action": "Remove Ontology"
+      "adding": "Adding…",
+      "status_enabled": "Enabled",
+      "status_paused": "Paused",
+      "remove_confirm_title": "Remove Ontology?",
+      "remove_confirm_description": "Remove {{name}} from this agent? The shared CapHub ontology and its bindings to other agents will not be affected.",
+      "remove_confirm_action": "Remove Ontology"
     },
     "skills": {
       "intro": "This is the agent's effective skill set. Workspace skills are managed here; inherited Codex and Claude Code skills can also be turned off per agent.",
@@ -752,6 +764,23 @@
       "started_prefix": "Started {{when}}",
       "dispatched_prefix": "Dispatched {{when}}",
       "queued_prefix": "Queued {{when}}"
+    },
+    "knowledge": {
+      "title": "Knowledge bases",
+      "description": "Repos of documents this agent reads as context. Its brief carries an index of every document; it opens the ones a task needs. Add the repo under Settings → Resources first.",
+      "add_button": "Attach",
+      "add_title": "Attach a knowledge base",
+      "add_description": "Knowledge bases on this workspace that this agent does not read yet.",
+      "attach_button": "Attach",
+      "empty": "This agent reads no knowledge bases.",
+      "none_available": "No unattached knowledge bases. Add one under Settings → Resources.",
+      "loading": "Loading knowledge bases…",
+      "remove_tooltip": "Stop this agent reading it",
+      "delivery_commit": "Commits directly",
+      "delivery_pull_request": "Pull request",
+      "toast_attached": "Knowledge base attached",
+      "toast_removed": "Knowledge base removed",
+      "toast_failed": "Could not update knowledge bases"
     }
   },
   "char_counter": {

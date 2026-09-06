@@ -1,0 +1,88 @@
+# define/readiness.yaml
+#
+# 八项，一项都不能少，id 必须是下面这八个字符串（脚本按 id 取，写错等于缺项）。
+# 每项 status ∈ answered | corrected | skipped。
+#
+#   answered   人回答了，原话记在 answer 里
+#   corrected  系统先猜了一版，人改过，改后的说法记在 answer 里，猜的那版留在 inferred_was
+#   skipped    人明确说这次不答。必须写 rationale——跳过是决定，不是遗漏
+#
+# inferred 是第四种状态，只在确认之前存在。检查项 readiness_resolved 会把任何
+# 残留的 inferred 判失败：它是系统的猜测，留着就等于把猜测当输入喂给生成。
+# 见 references/readiness-questions.md。例子取自 evals/fixtures/journal-reversal/。
+
+version: 1
+interview_ref: define/interview-state.yaml
+confirmed_at: "2026-09-03T14:20:00+08:00"
+confirmed_by: DE1
+
+questions:
+  - id: goal
+    status: answered
+    answer: 让财务 AI 助手回答「这条分录能不能冲销、该谁批、按什么顺序做」。
+    answered_by: DE1
+    round: 1
+    evidence_refs: [ev.006]          # 已经在材料里的，不重新问，标出处即可
+
+  - id: boundary
+    status: answered
+    answer: >-
+      只做总账域中与冲销相关的部分；应付、应收、固定资产不做。
+      集团本部与华东两家工厂，海外主体不做。2025 财年至今。粒度到单条分录，
+      journal line 不展开。
+    answered_by: DE1
+    round: 1
+    evidence_refs: [ev.006]
+
+  - id: users_and_decisions
+    status: answered
+    answer: >-
+      总账会计（决定要不要发起冲销）、总账主管与 Controller（决定批不批）、
+      财务复核（核对冲销是否成对）、内审（追溯责任）、月结流程 owner（软关账期间放不放行）。
+    answered_by: DE1
+    round: 1
+
+  - id: core_objects
+    status: corrected                # 系统猜过一版，人改了
+    inferred_was: 分录、冲销分录、审批人、期间
+    answer: >-
+      分录、冲销分录、冲销申请单、会计期间、原因代码、员工。
+      「审批人」不是对象，是员工在一次冲销申请里的角色。
+    answered_by: DE1
+    corrected_at: "2026-09-03T14:05:00+08:00"
+    round: 2
+
+  - id: key_processes_and_events
+    status: answered
+    answer: >-
+      发起 → 校验 → 审批 → 生成冲销分录 → 过账，五步。
+      要留时间点的事件：申请提交、审批通过、冲销分录生成、过账成功。
+    answered_by: PO1
+    round: 2
+
+  - id: exceptions_and_lifecycle
+    status: answered
+    answer: >-
+      四种异常：已被冲销、期间已硬关账、审批人等于制单人、过账失败回滚。
+      分录状态 draft → posted → reversed；冲销分录只到 posted，不可再冲销。
+      审批被否决之后去哪里，流程图上断了，业务上是退回制单人修改申请。
+    answered_by: PO1
+    round: 2
+    note: 这一条同时补上了 ev.003 图上断开的那条连线，已回写 fagc
+
+  - id: terminology_ambiguity
+    status: answered
+    answer: >-
+      「红冲」「反过账」都指冲销，系统里无此动作，统一叫冲销。
+      「凭证」在部分工厂指纸质单据，不是系统对象，不建模。
+      Controller 总部叫财务控制、工厂叫财务经理，权限是否等同还没确认——记为假设。
+    answered_by: DE1
+    round: 3
+
+  - id: data_granularity
+    status: skipped
+    rationale: >-                     # skipped 必填理由，否则 readiness_resolved 不过
+      粒度已在章程里定死为「单条分录，journal line 不展开」，本轮无需重问；
+      若后续要支持按科目聚合的 cq.004，再单独开一轮。
+    skipped_by: DE1
+    round: 3

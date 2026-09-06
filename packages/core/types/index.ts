@@ -27,6 +27,8 @@ export type {
   TaskFailureReason,
   AgentRuntime,
   RuntimeDevice,
+  Machine,
+  MachineWorkspace,
   RuntimeProfile,
   RuntimeProtocolFamily,
   RuntimeProfileVisibility,
@@ -84,7 +86,16 @@ export type {
 } from "./agent";
 export { RUNTIME_PROFILE_PROTOCOL_FAMILIES } from "./agent";
 export type { OntologyCatalogItem, OntologySummary, OntologyDetail } from "./ontology";
-export type { Workspace, WorkspaceRepo, WorkspaceMcpServer, Member, MemberRole, User, MemberWithUser, Invitation, ShareLink, ShareLinkInfo } from "./workspace";
+export type { Workspace, WorkspaceMcpServer, Member, MemberRole, User, MemberWithUser, Invitation, ShareLink, ShareLinkInfo } from "./workspace";
+export type {
+  WorkspaceSetup,
+  WorkspaceSetupStep,
+  WorkspaceSetupStepKey,
+  WorkspaceProfile,
+  WorkspaceTypicalWork,
+  UpdateWorkspaceProfileRequest,
+} from "./workspace-setup";
+export { WORKSPACE_TYPICAL_WORK } from "./workspace-setup";
 export type {
   PluginInstallation,
   PluginConfigField,
@@ -136,11 +147,8 @@ export type {
 export type { IssueSubscriber } from "./subscriber";
 export type * from "./events";
 export type * from "./api";
-export type {
-  Attachment,
-  ProjectArtifact,
-  ListProjectArtifactsResponse,
-} from "./attachment";
+export type { Attachment } from "./attachment";
+export type { Artifact, ListArtifactsResponse } from "./artifacts";
 export {
   attachmentDownloadPath,
   attachmentIdFromDownloadURL,
@@ -171,22 +179,21 @@ export type {
 } from "./chat";
 export type { StorageAdapter } from "./storage";
 export type {
-  Project,
-  ProjectStatus,
-  ProjectPriority,
-  CreateProjectRequest,
-  UpdateProjectRequest,
-  ListProjectsResponse,
-  ProjectResource,
-  ProjectResourceType,
-  ProjectResourceRef,
+  WorkspaceResource,
+  WorkspaceResourceType,
+  WorkspaceResourceRef,
   GithubRepoResourceRef,
   LocalDirectoryResourceRef,
   LocalDirectoryExecutionMode,
-  CreateProjectResourceRequest,
-  UpdateProjectResourceRequest,
-  ListProjectResourcesResponse,
-} from "./project";
+  CreateWorkspaceResourceRequest,
+  UpdateWorkspaceResourceRequest,
+  ListWorkspaceResourcesResponse,
+  KnowledgeRepoResourceRef,
+  KnowledgeRepoDelivery,
+  AgentKnowledgeSource,
+  ListAgentKnowledgeResponse,
+  AttachAgentKnowledgeRequest,
+} from "./resources";
 export type { PinnedItem, PinnedItemType, CreatePinRequest, ReorderPinsRequest } from "./pin";
 export type {
   GitHubInstallation,
@@ -328,3 +335,43 @@ export type {
   WorkspaceSubscriptionSeatReconcileResult,
   CreateWorkspaceSubscriptionPortalResponse,
 } from "./billing";
+
+export type {
+  SkillVersionSource,
+  SkillVersionFile,
+  SkillVersion,
+  SkillVersionDetail,
+  ListSkillVersionsResponse,
+} from "./skill";
+
+export type {
+  MarketplaceKind,
+  MarketplaceInstalledFilter,
+  MarketplaceVisibility,
+  MarketplaceStatus,
+  MarketplaceConflictStrategy,
+  MarketplaceListing,
+  MarketplaceVersion,
+  MarketplaceListingDetail,
+  MarketplaceFacets,
+  MarketplaceCatalog,
+  MarketplaceInstall,
+  MarketplaceRecommendation,
+  MarketplaceRecommendationReason,
+  MarketplaceRecommendations,
+  MarketplaceSkillManifest,
+  MarketplaceMcpManifest,
+  MarketplaceAgentSkillRef,
+  MarketplaceAgentManifest,
+  MarketplaceSquadAgentRef,
+  MarketplaceSquadManifest,
+  MarketplaceManifest,
+  PublishMarketplaceListingRequest,
+  PublishMarketplaceListingResponse,
+  UpdateMarketplaceListingRequest,
+  MarketplaceInstallRequest,
+  MarketplaceInstallResult,
+  MarketplaceFile,
+  MarketplaceSkillOrigin,
+  ExistingSkillIdentity,
+} from "./marketplace";

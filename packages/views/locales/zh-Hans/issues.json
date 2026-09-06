@@ -56,12 +56,10 @@
     "no_results": "无结果",
     "no_labels": "还没有标签",
     "no_assignee": "无负责人",
-    "no_project": "无项目",
     "section_status": "状态",
     "section_priority": "优先级",
     "section_assignee": "负责人",
     "section_creator": "创建者",
-    "section_project": "项目",
     "section_label": "标签",
     "section_date": "日期",
     "date_field": "字段",
@@ -75,7 +73,7 @@
     "date_clear": "清除日期筛选",
     "members_group": "成员",
     "agents_group": "智能体",
-    "squads_group": "小队",
+    "squads_group": "智能体小组",
     "issue_count_other": "{{count}} 个任务",
     "reset": "重置全部筛选",
     "chip_remove": "移除{{name}}筛选",
@@ -99,7 +97,6 @@
     "group_status": "状态",
     "group_assignee": "负责人",
     "group_parent": "父级任务",
-    "group_project": "项目",
     "sort_manual": "手动",
     "sort_status": "状态",
     "sort_priority": "优先级",
@@ -113,7 +110,6 @@
     "card_assignee": "负责人",
     "card_start_date": "开始日期",
     "card_due_date": "截止日期",
-    "card_project": "项目",
     "card_labels": "标签",
     "card_child_progress": "子任务进度",
     "show_sub_issues": "显示子任务"
@@ -180,7 +176,6 @@
       "priority": "优先级",
       "assignee": "负责人",
       "labels": "标签",
-      "project": "项目",
       "start_date": "开始日期",
       "due_date": "截止日期",
       "created_at": "创建时间",
@@ -237,7 +232,6 @@
   "swimlane": {
     "no_parent": "无父级",
     "other_parents": "其他父级",
-    "no_project": "无项目",
     "no_assignee": "未分配",
     "open_parent": "打开父级任务",
     "toggle_collapse": "切换泳道"
@@ -254,13 +248,14 @@
   },
   "detail": {
     "not_found": "这个任务不存在或已在该工作区被删除。",
-    "breadcrumb_project_unknown": "未知项目",
     "back": "返回",
     "title_placeholder": "任务标题",
     "desc_placeholder": "添加描述...",
     "current_issue": "当前任务",
     "sub_issues_label": "子任务",
     "sub_issue_of": "属于父任务",
+    "retrospect_origin_label": "复盘",
+    "retrospect_origin_tooltip": "这条任务是这项工作完成后，由复盘智能体自动创建的。",
     "add_sub_issues": "添加子任务",
     "add_sub_issue_tooltip": "添加子任务",
     "add_sub_issue_aria": "添加子任务",
@@ -310,7 +305,6 @@
     "prop_assignee": "负责人",
     "prop_start_date": "开始日期",
     "prop_due_date": "截止日期",
-    "prop_project": "项目",
     "prop_labels": "标签",
     "add_property_action": "添加字段",
     "prop_created_by": "创建者",
@@ -353,6 +347,7 @@
       "hint_jump": "跳转",
       "hint_close": "关闭"
     },
+    "artifacts_tooltip": "产物",
     "sidebar_tooltip": "切换侧边栏",
     "find": {
       "placeholder": "在任务中查找...",
@@ -363,6 +358,7 @@
       "close": "关闭查找"
     },
     "update_failed": "更新任务失败",
+    "move_issue_failed": "移动任务失败",
     "link_copied": "已复制链接",
     "link_copy_failed": "复制链接失败",
     "workdir_path_copied": "已复制本地 workdir 路径",
@@ -392,7 +388,7 @@
     "description_updated": "更新了描述",
     "task_completed_other": "完成了 task（{{count}} 次）",
     "task_failed_other": "task 失败（{{count}} 次）",
-    "squad_leader_evaluated": "评估了小队触发",
+    "squad_leader_evaluated": "评估了智能体小组触发",
     "squad_leader_action": "已评估并采取了操作",
     "squad_leader_action_reason": "已评估并采取了操作：{{reason}}",
     "squad_leader_no_action": "已评估：无需操作",
@@ -491,6 +487,11 @@
     "title": "没有符合筛选条件的任务",
     "hint": "调整或清除筛选条件，就能看到这个视图里的任务。",
     "clear_button": "清除筛选"
+  },
+  "surface": {
+    "empty_title": "暂无任务",
+    "empty_hint": "新建一个任务，开始在这个工作区中推进工作。",
+    "empty_new_button": "新建任务"
   },
   "agent_live": {
     "is_working": "{{name}} 在工作",
@@ -650,9 +651,9 @@
       "search_placeholder": "分配给...",
       "members_group": "成员",
       "agents_group": "智能体",
-      "squads_group": "小队",
+      "squads_group": "智能体小组",
       "agent_runtime_required": "请先为该智能体绑定运行时，再分配工作",
-      "squad_runtime_required": "请先为该小队的负责人绑定运行时，再分配工作"
+      "squad_runtime_required": "请先为该智能体小组的负责人绑定运行时，再分配工作"
     },
     "start_date": {
       "trigger_label": "开始日期",
@@ -709,9 +710,6 @@
     "hint_my_assigned": "基于「我的 issues · 分配给我」创建",
     "hint_my_created": "基于「我的 issues · 我创建的」创建",
     "hint_my_involved": "基于「我的 issues · 我参与的」创建",
-    "hint_project": "基于项目「{{title}}」创建，仅在该项目页面可用",
-    "hint_project_agents": "基于项目「{{title}}」中智能体负责的 issues 创建，仅在该项目页面可用",
-    "hint_project_members": "基于项目「{{title}}」中成员负责的 issues 创建，仅在该项目页面可用",
     "my_private_note": "我的 issues 视图仅自己可见",
     "name_label": "名称",
     "visibility_label": "可见性",

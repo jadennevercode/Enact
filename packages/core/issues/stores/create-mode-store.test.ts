@@ -32,13 +32,13 @@ describe("openCreateIssueWithPreference", () => {
 
   it("forwards seed data to whichever modal is opened", () => {
     useCreateModeStore.getState().setLastMode("manual");
-    openCreateIssueWithPreference({ project_id: "p1" });
+    openCreateIssueWithPreference({ parent_issue_id: "i1" });
     expect(useModalStore.getState().modal).toBe("create-issue");
-    expect(useModalStore.getState().data).toEqual({ project_id: "p1" });
+    expect(useModalStore.getState().data).toEqual({ parent_issue_id: "i1" });
 
     useCreateModeStore.getState().setLastMode("agent");
-    openCreateIssueWithPreference({ project_id: "p2" });
+    openCreateIssueWithPreference({ parent_issue_id: "i2" });
     expect(useModalStore.getState().modal).toBe("quick-create-issue");
-    expect(useModalStore.getState().data).toEqual({ project_id: "p2" });
+    expect(useModalStore.getState().data).toEqual({ parent_issue_id: "i2" });
   });
 });

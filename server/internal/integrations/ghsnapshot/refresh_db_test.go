@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
 func testDBPool(t *testing.T) *pgxpool.Pool {
@@ -26,6 +27,14 @@ func testDBPool(t *testing.T) *pgxpool.Pool {
 		pool.Close()
 		t.Skipf("skipping DB test: database not reachable: %v", err)
 	}
+	// Closing the pool is itself a cleanup, registered before any fixture's.
+	// t.Cleanup is LIFO, so every later DELETE runs while the pool is still
+	// open. A `defer pool.Close()` in the test body cannot do this: deferred
+	// calls run when the function returns, which is before cleanups, so the
+	// fixture DELETEs all failed with "closed pool" and were swallowed by
+	// their ignored error -- which is how this package leaked a workspace and
+	// a PR row on every run.
+	t.Cleanup(pool.Close)
 	return pool
 }
 
@@ -62,9 +71,30 @@ func randHex(t *testing.T) string {
 	return string(out)
 }
 
+// seedPR gives each test its own address rather than a shared constant.
+// ListGitHubPRRowsByAddress returns every row at an address and the manager
+// applies to all of them, so a row left behind by an earlier run would take
+// the apply — and the onApplied signal — that the test is waiting for on its
+// own row. A process-unique installation ID means residue can never collide
+// with a live test, whatever an earlier crashed run left in the database.
 func seedPR(t *testing.T, pool *pgxpool.Pool, q *db.Queries, headSHA string) db.GithubPullRequest {
-	return seedPRAt(t, pool, q, 987654, "r", 4242, headSHA)
+	return seedPRAt(t, pool, q, nextInstallationID(), "r", 4242, headSHA)
 }
+
+// installationIDSeq is based at a random offset so two runs of the suite, or
+// two packages sharing the database, never hand out the same address.
+var installationIDSeq = func() *atomic.Int64 {
+	var b [4]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	base := int64(b[0])<<24 | int64(b[1])<<16 | int64(b[2])<<8 | int64(b[3])
+	v := &atomic.Int64{}
+	v.Store(1_000_000_000 + base*1000)
+	return v
+}()
+
+func nextInstallationID() int64 { return installationIDSeq.Add(1) }
 
 func seedPRAt(t *testing.T, pool *pgxpool.Pool, q *db.Queries, installationID int64, repoName string, prNumber int32, headSHA string) db.GithubPullRequest {
 	t.Helper()
@@ -85,6 +115,17 @@ func seedPRAt(t *testing.T, pool *pgxpool.Pool, q *db.Queries, installationID in
 	if err != nil {
 		t.Fatalf("seed PR: %v", err)
 	}
+	// Registered here rather than left to each test: six of the ten seed calls
+	// had no cleanup, and github_pull_request holds a foreign key to the
+	// workspace, so seedWorkspace's own DELETE failed silently and leaked both
+	// rows. t.Cleanup is LIFO and this registers after seedWorkspace's, so the
+	// PR goes first and the workspace delete then succeeds.
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM github_pull_request_check_run WHERE pr_id=$1`, pr.ID)
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM github_pull_request WHERE id=$1`, pr.ID)
+	})
 	return pr
 }
 
@@ -100,7 +141,6 @@ func checkRunCount(t *testing.T, pool *pgxpool.Pool, prID pgtype.UUID) int {
 
 func TestListStaleUndecidedGitHubPRsExcludesDecidedAndRotatesCursor(t *testing.T) {
 	pool := testDBPool(t)
-	defer pool.Close()
 	q := db.New(pool)
 	ctx := context.Background()
 	now := time.Unix(1_700_010_000, 0)
@@ -201,7 +241,6 @@ func TestListStaleUndecidedGitHubPRsExcludesDecidedAndRotatesCursor(t *testing.T
 // response for an old head must never overwrite a newer head's snapshot.
 func TestApplySnapshotHeadSHAGuard(t *testing.T) {
 	pool := testDBPool(t)
-	defer pool.Close()
 	q := db.New(pool)
 	ctx := context.Background()
 	now := time.Unix(1_700_000_100, 0)
@@ -277,7 +316,6 @@ func TestApplySnapshotHeadSHAGuard(t *testing.T) {
 // trailing edge must still fetch and apply B immediately.
 func TestInFlightOldHeadKeepsTrailingRefresh(t *testing.T) {
 	pool := testDBPool(t)
-	defer pool.Close()
 	q := db.New(pool)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -368,7 +406,6 @@ func TestInFlightOldHeadKeepsTrailingRefresh(t *testing.T) {
 // replace, not an accumulation.
 func TestApplySnapshotReplacesRuns(t *testing.T) {
 	pool := testDBPool(t)
-	defer pool.Close()
 	q := db.New(pool)
 	ctx := context.Background()
 	now := time.Unix(1_700_000_200, 0)

@@ -13,14 +13,13 @@ describe("issue create settings store", () => {
     });
   });
 
-  it("defaults to project-only quick create and the classic manual toolbar", () => {
-    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["project"]);
+  it("defaults to priority-only quick create and the classic manual toolbar", () => {
+    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["priority"]);
     expect(useIssueCreateSettingsStore.getState().manualCreateFields).toEqual([
       "status",
       "priority",
       "assignee",
       "labels",
-      "project",
     ]);
   });
 
@@ -31,14 +30,12 @@ describe("issue create settings store", () => {
     setQuickCreateFieldVisible("priority", true);
 
     expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual([
-      "project",
       "priority",
       "due_date",
     ]);
 
-    setQuickCreateFieldVisible("project", false);
+    setQuickCreateFieldVisible("priority", false);
     expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual([
-      "priority",
       "due_date",
     ]);
   });
@@ -53,10 +50,9 @@ describe("issue create settings store", () => {
       "status",
       "priority",
       "assignee",
-      "project",
       "due_date",
     ]);
-    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["project"]);
+    expect(useIssueCreateSettingsStore.getState().quickCreateFields).toEqual(["priority"]);
   });
 
   it("is a no-op to re-enable an already visible field", () => {

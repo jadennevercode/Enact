@@ -236,7 +236,7 @@ function SortableTabItem({
   } = useSortable({ id: tab.id });
 
   // Pin is a secondary interaction state, not an identity: a pinned tab keeps
-  // its resource visual (a project's icon, an issue's status, an actor's
+  // its resource visual (an issue's status, an actor's
   // avatar) rather than collapsing to a Pin glyph. Pinned-ness is conveyed by
   // position, the suppressed close button, and the hover Pin/Unpin action.
   const style = {

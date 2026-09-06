@@ -16,6 +16,7 @@ import (
 	"time"
 
 	skillpkg "github.com/enact-ai/enact/server/internal/skill"
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
@@ -520,6 +521,17 @@ func (h *Handler) UpdateSkill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Snapshot before commit, in the same transaction that made the change.
+	// Record() skips the write when nothing the skill says actually moved, so
+	// a PATCH that resends unchanged fields does not mint an empty version.
+	version, err := recordSkillVersionInTx(
+		r.Context(), qtx, skill, skillversion.SourceManual, parseUUID(requestUserID(r)), "Edited")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record skill version: "+err.Error())
+		return
+	}
+	skill.CurrentVersionID = version.ID
+
 	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to commit")
 		return
@@ -554,6 +566,13 @@ func (h *Handler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
 	qtx := h.Queries.WithTx(tx)
 	if err := qtx.DeleteSkillLabelAssignmentsBySkill(r.Context(), skill.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to remove skill label assignments")
+		return
+	}
+	// No foreign key does this for us, per the repo rule. Versions go with the
+	// skill they snapshot: a snapshot of a skill that no longer exists is not a
+	// history, it is an orphan.
+	if err := qtx.DeleteSkillVersionsBySkill(r.Context(), skill.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to remove skill versions")
 		return
 	}
 	if err := qtx.DeleteSkill(r.Context(), db.DeleteSkillParams{
@@ -2035,6 +2054,7 @@ func (h *Handler) createImportedSkillWithName(ctx context.Context, workspaceID, 
 		Content:     imported.content,
 		Config:      config,
 		Files:       files,
+		Source:      skillversion.SourceImport,
 	})
 }
 
@@ -2092,6 +2112,8 @@ func (h *Handler) resolveImportSkillConflict(w http.ResponseWriter, r *http.Requ
 			Content:       imported.content,
 			Config:        config,
 			Files:         files,
+			Source:        skillversion.SourceImport,
+			ActorID:       creatorUUID,
 		})
 		if err != nil {
 			status, reason := skillImportOverwriteFailure(err)
@@ -2347,13 +2369,35 @@ func (h *Handler) UpsertSkillFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sf, err := h.Queries.UpsertSkillFile(r.Context(), db.UpsertSkillFileParams{
+	// A supporting file is part of what the skill says, so writing one is a
+	// content change and gets a version like any other. That needs the file
+	// write and the snapshot in one transaction.
+	tx, err := h.TxStarter.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to start transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	qtx := h.Queries.WithTx(tx)
+
+	sf, err := qtx.UpsertSkillFile(r.Context(), db.UpsertSkillFileParams{
 		SkillID: skill.ID,
 		Path:    sanitizeNullBytes(req.Path),
 		Content: sanitizeNullBytes(req.Content),
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to upsert skill file: "+err.Error())
+		return
+	}
+	if _, err := recordSkillVersionInTx(
+		r.Context(), qtx, skill, skillversion.SourceManual, parseUUID(requestUserID(r)),
+		"Edited "+sf.Path,
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record skill version: "+err.Error())
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit skill file")
 		return
 	}
 
@@ -2382,8 +2426,27 @@ func (h *Handler) DeleteSkillFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "skill file not found")
 		return
 	}
-	if err := h.Queries.DeleteSkillFile(r.Context(), file.ID); err != nil {
+	tx, err := h.TxStarter.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to start transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	qtx := h.Queries.WithTx(tx)
+
+	if err := qtx.DeleteSkillFile(r.Context(), file.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete skill file")
+		return
+	}
+	if _, err := recordSkillVersionInTx(
+		r.Context(), qtx, skill, skillversion.SourceManual, parseUUID(requestUserID(r)),
+		"Removed "+file.Path,
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to record skill version: "+err.Error())
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit skill file deletion")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

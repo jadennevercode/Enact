@@ -145,14 +145,13 @@ func TestDashboardFixtureRunLandsInsideTheWindow(t *testing.T) {
 }
 
 // TestDashboardEndpoints covers the workspace-dashboard rollups:
-//   - daily token usage with and without project filter
-//   - per-agent token usage with and without project filter
+//   - daily token usage
+//   - per-agent token usage
 //   - per-agent run time
 //
-// Asserts that (1) tasks belonging to a project show up under the workspace
-// view, (2) the project filter excludes tasks tied to issues without a
-// matching project_id, and (3) run-time aggregation accumulates the
-// completed_at − started_at delta correctly.
+// Asserts that every task in the workspace shows up under the workspace view,
+// and that run-time aggregation accumulates the completed_at − started_at
+// delta correctly.
 func TestDashboardEndpoints(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
@@ -167,33 +166,26 @@ func TestDashboardEndpoints(t *testing.T) {
 		SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1
 	`, testWorkspaceID).Scan(&agentID)
 
-	// Two issues: one bound to a project, one not.
-	projectID := dbfx.Project(t, "dashboard test project")
-
 	// issue.number is `UNIQUE (workspace_id, number)` (migration 020) and
 	// defaults to 0. Two inserts into the same workspace would collide on the
 	// default; allocate `MAX(number) + 1` per row to stay sequential and
 	// avoid stepping on rows other tests have left behind in the shared
 	// fixture workspace.
-	mkIssue := func(withProject bool) string {
+	mkIssue := func() string {
 		var id string
-		var pid any
-		if withProject {
-			pid = projectID
-		}
 		dbfx.QueryRow(t, `
-			INSERT INTO issue (workspace_id, title, creator_id, creator_type, project_id, number)
+			INSERT INTO issue (workspace_id, title, creator_id, creator_type, number)
 			VALUES (
-				$1, 'dashboard test', $2, 'member', $3,
+				$1, 'dashboard test', $2, 'member',
 				(SELECT COALESCE(MAX(number), 0) + 1 FROM issue WHERE workspace_id = $1)
 			)
 			RETURNING id
-		`, testWorkspaceID, testUserID, pid).Scan(&id)
+		`, testWorkspaceID, testUserID).Scan(&id)
 		t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, id) })
 		return id
 	}
-	projectIssueID := mkIssue(true)
-	otherIssueID := mkIssue(false)
+	firstIssueID := mkIssue()
+	otherIssueID := mkIssue()
 
 	// A 600s run that finished inside today's window at every hour of the
 	// clock — see runFinishedToday for what a `now - 30m` fixture does to the
@@ -216,7 +208,7 @@ func TestDashboardEndpoints(t *testing.T) {
 		t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM agent_task_queue WHERE id = $1`, taskID) })
 	}
 
-	mkTaskWithUsage(projectIssueID, "completed", 1000)
+	mkTaskWithUsage(firstIssueID, "completed", 1000)
 	mkTaskWithUsage(otherIssueID, "completed", 500)
 
 	// All dashboard endpoints now read from task_usage_hourly (post-RFC
@@ -263,56 +255,10 @@ func TestDashboardEndpoints(t *testing.T) {
 		}
 	}
 
-	// daily — project-scoped
+	// agent-runtime — workspace-wide
 	{
 		w := httptest.NewRecorder()
-		testHandler.GetDashboardUsageDaily(w, newRequest("GET", "/api/dashboard/usage/daily?days=1&"+dashboardFixtureTZParam+"&project_id="+projectID, nil))
-		if w.Code != http.StatusOK {
-			t.Fatalf("daily project: expected 200, got %d: %s", w.Code, w.Body.String())
-		}
-		var rows []dailyRow
-		_ = json.NewDecoder(w.Body).Decode(&rows)
-		var total int64
-		for _, r := range rows {
-			if r.Model == "claude-3-5-sonnet" {
-				total += r.InputTokens
-			}
-		}
-		// Project filter must exclude the 500-token "other" issue. Token total
-		// for this project must be >= 1000 (our task) and < 1500 (would only
-		// reach 1500 if filter leaked).
-		if total < 1000 {
-			t.Errorf("daily project: expected >=1000 tokens, got %d", total)
-		}
-		if total >= 1500 {
-			t.Errorf("daily project: filter leaked — expected <1500 tokens, got %d", total)
-		}
-	}
-
-	// by-agent — project-scoped
-	{
-		w := httptest.NewRecorder()
-		testHandler.GetDashboardUsageByAgent(w, newRequest("GET", "/api/dashboard/usage/by-agent?days=1&"+dashboardFixtureTZParam+"&project_id="+projectID, nil))
-		if w.Code != http.StatusOK {
-			t.Fatalf("by-agent project: expected 200, got %d: %s", w.Code, w.Body.String())
-		}
-		var rows []byAgentRow
-		_ = json.NewDecoder(w.Body).Decode(&rows)
-		found := false
-		for _, r := range rows {
-			if r.AgentID == agentID && r.InputTokens >= 1000 {
-				found = true
-			}
-		}
-		if !found {
-			t.Errorf("by-agent project: expected agent %s with >=1000 tokens; got %v", agentID, rows)
-		}
-	}
-
-	// agent-runtime — project-scoped
-	{
-		w := httptest.NewRecorder()
-		testHandler.GetDashboardAgentRunTime(w, newRequest("GET", "/api/dashboard/agent-runtime?days=1&"+dashboardFixtureTZParam+"&project_id="+projectID, nil))
+		testHandler.GetDashboardAgentRunTime(w, newRequest("GET", "/api/dashboard/agent-runtime?days=1&"+dashboardFixtureTZParam, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("agent-runtime: expected 200, got %d: %s", w.Code, w.Body.String())
 		}
@@ -326,25 +272,15 @@ func TestDashboardEndpoints(t *testing.T) {
 				tasks += r.TaskCount
 			}
 		}
-		if tasks < 1 {
-			t.Errorf("agent-runtime: expected >=1 task for agent, got %d", tasks)
+		if tasks < 2 {
+			t.Errorf("agent-runtime: expected >=2 tasks for agent, got %d", tasks)
 		}
-		if seconds < 600 {
-			t.Errorf("agent-runtime: expected >=600s (one 10-minute run), got %d", seconds)
-		}
-	}
-
-	// agent-runtime — invalid project_id rejected
-	{
-		w := httptest.NewRecorder()
-		testHandler.GetDashboardAgentRunTime(w, newRequest("GET", "/api/dashboard/agent-runtime?project_id=not-a-uuid", nil))
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("agent-runtime: expected 400 for invalid uuid, got %d", w.Code)
+		if seconds < 1200 {
+			t.Errorf("agent-runtime: expected >=1200s (two 10-minute runs), got %d", seconds)
 		}
 	}
 
-	// Workspace-wide by-agent through the same rollup, just to confirm
-	// the no-project-filter shape matches up.
+	// Workspace-wide by-agent through the same rollup.
 	{
 		w := httptest.NewRecorder()
 		testHandler.GetDashboardUsageByAgent(w, newRequest("GET", "/api/dashboard/usage/by-agent?days=1&"+dashboardFixtureTZParam, nil))
@@ -388,13 +324,13 @@ func TestDashboardUsageDailyBucketsByViewerTimezone(t *testing.T) {
 	var bucketHour time.Time
 	dbfx.QueryRow(t, `
 		INSERT INTO task_usage_hourly (
-			bucket_hour, workspace_id, runtime_id, agent_id, project_id,
+			bucket_hour, workspace_id, runtime_id, agent_id,
 			provider, model,
 			input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, event_count
 		)
 		VALUES (
 			((CURRENT_DATE - 2)::timestamp + interval '4 hours') AT TIME ZONE 'UTC',
-			$1, $2, $3, NULL, 'tz-bucket-test', 'tz-bucket-model',
+			$1, $2, $3, 'tz-bucket-test', 'tz-bucket-model',
 			999, 0, 0, 0, 1
 		)
 		ON CONFLICT ON CONSTRAINT uq_task_usage_hourly_key DO UPDATE
@@ -881,93 +817,12 @@ func TestRollupTaskUsageHourlyWorkspaceMismatch(t *testing.T) {
 	}
 }
 
-// TestDashboardRollupReattributesOnProjectChange verifies the trigger that
-// fires on `UPDATE issue SET project_id` enqueues both old + new project
-// buckets so the next rollup tick re-attributes the affected tokens.
-// Uses the rollup window function directly to drain the dirty queue,
-// then asserts the rollup table reflects the new project_id.
-func TestDashboardRollupReattributesOnProjectChange(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-	ctx := context.Background()
-
-	var runtimeID, agentID string
-	dbfx.QueryRow(t, `SELECT id FROM agent_runtime WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&runtimeID)
-	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
-
-	mkProject := func(name string) string {
-		id := dbfx.Project(t, name)
-		return id
-	}
-	projectA := mkProject("dashboard reattr A")
-	projectB := mkProject("dashboard reattr B")
-
-	var issueID string
-	dbfx.QueryRow(t, `
-		INSERT INTO issue (workspace_id, title, creator_id, creator_type, project_id, number)
-		VALUES ($1, 'reattr issue', $2, 'member', $3,
-		        (SELECT COALESCE(MAX(number), 0) + 1 FROM issue WHERE workspace_id = $1))
-		RETURNING id
-	`, testWorkspaceID, testUserID, projectA).Scan(&issueID)
-	t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, issueID) })
-
-	taskID := dbfx.Task(t, agentID, testutil.Cols{
-		"issue_id":   issueID,
-		"runtime_id": runtimeID,
-		"status":     "completed",
-		"created_at": testutil.Raw("now()"),
-	})
-
-	dbfx.Exec(t, `
-		INSERT INTO task_usage (task_id, provider, model, input_tokens, output_tokens, created_at)
-		VALUES ($1, 'claude', 'claude-3-5-sonnet', 7777, 0, now())
-	`, taskID)
-
-	// First rollup pass: tokens attributed to project A.
-	dbfx.Exec(t, `
-		SELECT rollup_task_usage_hourly_window('1970-01-01'::timestamptz, now() + interval '1 hour')
-	`)
-	var aTokens int64
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2 AND agent_id = $3
-	`, testWorkspaceID, projectA, agentID).Scan(&aTokens)
-	if aTokens < 7777 {
-		t.Fatalf("project A: expected >=7777 tokens after first rollup, got %d", aTokens)
-	}
-
-	// Move the issue to project B. Trigger enqueues both A and B buckets.
-	dbfx.Exec(t, `UPDATE issue SET project_id = $1 WHERE id = $2`, projectB, issueID)
-	// Second rollup pass: A bucket drops to zero (deleted_empty), B
-	// bucket gets the tokens.
-	dbfx.Exec(t, `
-		SELECT rollup_task_usage_hourly_window('1970-01-01'::timestamptz, now() + interval '1 hour')
-	`)
-
-	var bTokens, aTokensAfter int64
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2 AND agent_id = $3
-	`, testWorkspaceID, projectB, agentID).Scan(&bTokens)
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2 AND agent_id = $3
-	`, testWorkspaceID, projectA, agentID).Scan(&aTokensAfter)
-	if bTokens < 7777 {
-		t.Errorf("project B: expected >=7777 tokens after reassign + rollup, got %d", bTokens)
-	}
-	if aTokensAfter != 0 {
-		t.Errorf("project A: expected 0 tokens after reassign + rollup, got %d", aTokensAfter)
-	}
-}
-
 // TestDashboardRollupClearsOnIssueDelete verifies that deleting an issue
-// (which cascades to its tasks and task_usage rows) also clears the
-// dashboard rollup row attributed to that issue's project. The
-// `issue BEFORE DELETE` trigger has to fire ahead of the cascade so the
-// dirty queue captures the original project_id while the issue row is
-// still readable.
+// (which cascades to its tasks and task_usage rows) also clears the dashboard
+// rollup rows its usage produced. Migration 435 removed the issue-scoped
+// BEFORE DELETE trigger along with the project dimension: every remaining
+// bucket-key column lives on the queue row, so `trg_atq_dirty_hourly` firing
+// on the cascade is now the whole mechanism. This is the test that says so.
 func TestDashboardRollupClearsOnIssueDelete(t *testing.T) {
 	if testHandler == nil {
 		t.Skip("database not available")
@@ -977,15 +832,24 @@ func TestDashboardRollupClearsOnIssueDelete(t *testing.T) {
 	dbfx.QueryRow(t, `SELECT id FROM agent_runtime WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&runtimeID)
 	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
 
-	projectID := dbfx.Project(t, "dashboard cascade test")
+
+	// The bucket key no longer carries a project, so a unique provider tag is
+	// what isolates this test's bucket from every other row in the shared
+	// fixture workspace.
+	const provider = "cascade-delete-test"
+	t.Cleanup(func() {
+		testPool.Exec(context.Background(),
+			`DELETE FROM task_usage_hourly WHERE workspace_id = $1 AND provider = $2`,
+			testWorkspaceID, provider)
+	})
 
 	var issueID string
 	dbfx.QueryRow(t, `
-		INSERT INTO issue (workspace_id, title, creator_id, creator_type, project_id, number)
-		VALUES ($1, 'cascade issue', $2, 'member', $3,
+		INSERT INTO issue (workspace_id, title, creator_id, creator_type, number)
+		VALUES ($1, 'cascade issue', $2, 'member',
 		        (SELECT COALESCE(MAX(number), 0) + 1 FROM issue WHERE workspace_id = $1))
 		RETURNING id
-	`, testWorkspaceID, testUserID, projectID).Scan(&issueID)
+	`, testWorkspaceID, testUserID).Scan(&issueID)
 	// No t.Cleanup deleting the issue — that's what the test exercises.
 
 	taskID := dbfx.Task(t, agentID, testutil.Cols{
@@ -998,25 +862,24 @@ func TestDashboardRollupClearsOnIssueDelete(t *testing.T) {
 
 	dbfx.Exec(t, `
 		INSERT INTO task_usage (task_id, provider, model, input_tokens, output_tokens, created_at)
-		VALUES ($1, 'claude', 'claude-3-5-sonnet', 4242, 0, now())
-	`, taskID)
+		VALUES ($1, $2, 'claude-3-5-sonnet', 4242, 0, now())
+	`, taskID, provider)
 
-	// First rollup: project bucket exists with 4242 tokens.
+	// First rollup: the bucket exists with 4242 tokens.
 	dbfx.Exec(t, `
 		SELECT rollup_task_usage_hourly_window('1970-01-01'::timestamptz, now() + interval '1 hour')
 	`)
 	var before int64
 	dbfx.QueryRow(t, `
 		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2
-	`, testWorkspaceID, projectID).Scan(&before)
+		WHERE workspace_id = $1 AND provider = $2
+	`, testWorkspaceID, provider).Scan(&before)
 	if before < 4242 {
-		t.Fatalf("project bucket: expected >=4242 tokens before delete, got %d", before)
+		t.Fatalf("bucket: expected >=4242 tokens before delete, got %d", before)
 	}
 
-	// Delete the issue. Cascade removes atq + task_usage. The issue
-	// BEFORE DELETE trigger should have enqueued the project bucket
-	// before the cascade started.
+	// Delete the issue. Cascade removes atq + task_usage; the queue-row
+	// trigger enqueues the bucket as its row goes.
 	dbfx.Exec(t, `DELETE FROM issue WHERE id = $1`, issueID)
 
 	dbfx.Exec(t, `
@@ -1025,93 +888,10 @@ func TestDashboardRollupClearsOnIssueDelete(t *testing.T) {
 	var after int64
 	dbfx.QueryRow(t, `
 		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2
-	`, testWorkspaceID, projectID).Scan(&after)
+		WHERE workspace_id = $1 AND provider = $2
+	`, testWorkspaceID, provider).Scan(&after)
 	if after != 0 {
-		t.Errorf("project bucket: expected 0 tokens after issue delete, got %d", after)
-	}
-}
-
-// TestDashboardRollupReattributesOnLinkTaskToIssue verifies that
-// `LinkTaskToIssue` (which UPDATEs `agent_task_queue.issue_id` from NULL
-// to a real issue id) re-attributes existing rollup rows from the
-// no-project bucket to the linked issue's project bucket. Mirrors the
-// quick-create flow in `service.task.LinkTaskToIssue`.
-func TestDashboardRollupReattributesOnLinkTaskToIssue(t *testing.T) {
-	if testHandler == nil {
-		t.Skip("database not available")
-	}
-	ctx := context.Background()
-
-	var runtimeID, agentID string
-	dbfx.QueryRow(t, `SELECT id FROM agent_runtime WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&runtimeID)
-	dbfx.QueryRow(t, `SELECT id FROM agent WHERE workspace_id = $1 LIMIT 1`, testWorkspaceID).Scan(&agentID)
-
-	// Quick-create task: issue_id is NULL at creation time.
-	taskID := dbfx.Task(t, agentID, testutil.Cols{
-		"issue_id":   nil,
-		"runtime_id": runtimeID,
-		"status":     "completed",
-		"context":    testutil.Raw("'{}'::jsonb"),
-		"created_at": testutil.Raw("now()"),
-	})
-
-	dbfx.Exec(t, `
-		INSERT INTO task_usage (task_id, provider, model, input_tokens, output_tokens, created_at)
-		VALUES ($1, 'claude', 'claude-3-5-sonnet', 1234, 0, now())
-	`, taskID)
-
-	// First rollup: tokens attributed to the no-project bucket (NULL).
-	dbfx.Exec(t, `
-		SELECT rollup_task_usage_hourly_window('1970-01-01'::timestamptz, now() + interval '1 hour')
-	`)
-	var nullBefore int64
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id IS NULL AND agent_id = $2
-	`, testWorkspaceID, agentID).Scan(&nullBefore)
-	if nullBefore < 1234 {
-		t.Fatalf("NULL bucket: expected >=1234 tokens pre-link, got %d", nullBefore)
-	}
-
-	// Create a project + issue, then run the same UPDATE LinkTaskToIssue
-	// uses. The atq trigger should enqueue OLD (NULL project) AND NEW
-	// (the project's id) so the next rollup tick zeroes the NULL bucket
-	// and populates the project bucket.
-	projectID := dbfx.Project(t, "dashboard link test")
-
-	var issueID string
-	dbfx.QueryRow(t, `
-		INSERT INTO issue (workspace_id, title, creator_id, creator_type, project_id, number)
-		VALUES ($1, 'link test issue', $2, 'member', $3,
-		        (SELECT COALESCE(MAX(number), 0) + 1 FROM issue WHERE workspace_id = $1))
-		RETURNING id
-	`, testWorkspaceID, testUserID, projectID).Scan(&issueID)
-	t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, issueID) })
-
-	// Mirror LinkTaskToIssue's UPDATE shape.
-	dbfx.Exec(t, `
-		UPDATE agent_task_queue SET issue_id = $1 WHERE id = $2 AND issue_id IS NULL
-	`, issueID, taskID)
-
-	dbfx.Exec(t, `
-		SELECT rollup_task_usage_hourly_window('1970-01-01'::timestamptz, now() + interval '1 hour')
-	`)
-
-	var projectAfter, nullAfter int64
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id = $2 AND agent_id = $3
-	`, testWorkspaceID, projectID, agentID).Scan(&projectAfter)
-	dbfx.QueryRow(t, `
-		SELECT COALESCE(SUM(input_tokens), 0) FROM task_usage_hourly
-		WHERE workspace_id = $1 AND project_id IS NULL AND agent_id = $2
-	`, testWorkspaceID, agentID).Scan(&nullAfter)
-	if projectAfter < 1234 {
-		t.Errorf("project bucket: expected >=1234 tokens after link, got %d", projectAfter)
-	}
-	if nullAfter != 0 {
-		t.Errorf("NULL bucket: expected 0 tokens after link, got %d", nullAfter)
+		t.Errorf("bucket: expected 0 tokens after issue delete, got %d", after)
 	}
 }
 
@@ -1139,12 +919,12 @@ func TestPruneTaskUsageHourlyDirty(t *testing.T) {
 	seed := func(model, age string) {
 		dbfx.Exec(t, `
 			INSERT INTO task_usage_hourly_dirty (
-				bucket_hour, workspace_id, runtime_id, agent_id, project_id,
+				bucket_hour, workspace_id, runtime_id, agent_id,
 				provider, model, enqueued_at
 			)
 			VALUES (
 				date_trunc('hour', now()), gen_random_uuid(), gen_random_uuid(),
-				gen_random_uuid(), NULL, $1, $2, now() - $3::interval
+				gen_random_uuid(), $1, $2, now() - $3::interval
 			)
 		`, tag, model, age)
 	}
@@ -1678,13 +1458,13 @@ func TestDashboardPerAgentRollupsUseExactWindow(t *testing.T) {
 	})
 	dbfx.Exec(t, `
 		INSERT INTO task_usage_hourly (
-			bucket_hour, workspace_id, runtime_id, agent_id, project_id,
+			bucket_hour, workspace_id, runtime_id, agent_id,
 			provider, model,
 			input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, event_count
 		)
 		VALUES (
 			((CURRENT_DATE - 1)::timestamp + interval '12 hours') AT TIME ZONE 'UTC',
-			$1, $2, $3, NULL, $4, $5,
+			$1, $2, $3, $4, $5,
 			7777, 0, 0, 0, 1
 		)
 		ON CONFLICT ON CONSTRAINT uq_task_usage_hourly_key DO UPDATE

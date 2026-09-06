@@ -6,8 +6,6 @@
     "refresh": "更新"
   },
   "filter": {
-    "project_label": "プロジェクト",
-    "all_projects": "すべてのプロジェクト",
     "period_label": "期間"
   },
   "kpi": {

@@ -74,7 +74,7 @@ interface DesktopAPI {
   /** Report the renderer's memory-router path for recovery diagnostics. */
   setRendererRouteContext: (context: RendererRouteContextInput) => void;
   /** Open the OS folder picker and return the chosen absolute path.
-   *  Used by the Project settings "Add local directory" flow. */
+   *  Used by the workspace Resources settings "Add local directory" flow. */
   pickDirectory: (
     defaultPath?: string,
   ) => Promise<{

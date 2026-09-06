@@ -198,8 +198,6 @@ func TestPrepareThenCleanupSidecarsRoundTripEmptyWorkdir(t *testing.T) {
 						Content: "Review PR diffs",
 					},
 				},
-				ProjectID:    "proj-1",
-				ProjectTitle: "Demo",
 			}
 
 			runPrepareLikeCycle(t, workDir, envRoot, provider, ctx)
@@ -374,10 +372,10 @@ func TestPrepareThenCleanupSidecarsRepeatedCycles(t *testing.T) {
 	}
 }
 
-// TestPrepareThenCleanupSidecarsWithProjectResources extends the
+// TestPrepareThenCleanupSidecarsWithWorkspaceResources extends the
 // round-trip to the .enact/project/resources.json branch — a separate
 // sidecar write that creates its own intermediate directory tree.
-func TestPrepareThenCleanupSidecarsWithProjectResources(t *testing.T) {
+func TestPrepareThenCleanupSidecarsWithWorkspaceResources(t *testing.T) {
 	t.Parallel()
 	for _, provider := range allFileBasedProviders {
 		provider := provider
@@ -388,10 +386,8 @@ func TestPrepareThenCleanupSidecarsWithProjectResources(t *testing.T) {
 			before := snapshot(t, workDir)
 
 			ctx := TaskContextForEnv{
-				IssueID:      "11111111-2222-3333-4444-555555555555",
-				ProjectID:    "proj-1",
-				ProjectTitle: "Demo project",
-				ProjectResources: []ProjectResourceForEnv{
+				IssueID: "11111111-2222-3333-4444-555555555555",
+				WorkspaceResources: []WorkspaceResourceForEnv{
 					{
 						ID:           "res-1",
 						ResourceType: "github_repo",
@@ -767,12 +763,12 @@ func TestPrepareThenCleanupSidecarsIssueContextCollisionPerProvider(t *testing.T
 	}
 }
 
-// TestPrepareThenCleanupSidecarsProjectResourcesCollisionPerProvider
+// TestPrepareThenCleanupSidecarsWorkspaceResourcesCollisionPerProvider
 // is the matching byte-exact matrix for `.enact/project/
 // resources.json` — the other Enact-only namespace file. Same
 // invariant: pre-existing user content survives the round-trip
-// untouched even when the task ships project resources of its own.
-func TestPrepareThenCleanupSidecarsProjectResourcesCollisionPerProvider(t *testing.T) {
+// untouched even when the task ships workspace resources of its own.
+func TestPrepareThenCleanupSidecarsWorkspaceResourcesCollisionPerProvider(t *testing.T) {
 	t.Parallel()
 	for _, provider := range allFileBasedProviders {
 		provider := provider
@@ -793,10 +789,8 @@ func TestPrepareThenCleanupSidecarsProjectResourcesCollisionPerProvider(t *testi
 			before := snapshot(t, workDir)
 
 			ctx := TaskContextForEnv{
-				IssueID:      "11111111-2222-3333-4444-555555555555",
-				ProjectID:    "proj-1",
-				ProjectTitle: "Demo",
-				ProjectResources: []ProjectResourceForEnv{
+				IssueID: "11111111-2222-3333-4444-555555555555",
+				WorkspaceResources: []WorkspaceResourceForEnv{
 					{
 						ID:           "res-1",
 						ResourceType: "github_repo",

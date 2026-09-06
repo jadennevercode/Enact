@@ -51,7 +51,7 @@ describe("IssueChip", () => {
     const chip = screen.getByText("ENA-3405").closest(".issue-mention");
     // 18rem bounds the chip against a long title so it cannot dominate a line
     // of prose (#6732); 100% keeps it inside a narrow parent such as a chat
-    // bubble. ProjectChip carries the identical cap — see its own test.
+    // bubble.
     expect(chip).toHaveClass("min-w-0");
     expect(chip).toHaveClass("max-w-[min(18rem,100%)]");
     expect(screen.getByText("A very long issue title that should stay inside a narrow chat bubble"))

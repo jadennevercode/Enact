@@ -18,7 +18,7 @@ import { useT } from "../../../i18n";
 const HIGHLIGHT_CLASS = "bg-accent";
 const ITEM_SELECTOR = "button[data-picker-item]:not(:disabled)";
 /**
- * Marks the fixed empty-value row ("No project", "Unassigned", …). The row is
+ * Marks the fixed empty-value row ("Unassigned", "No label", …). The row is
  * pinned first for the eye, but it is not a search result — typing a query and
  * pressing Enter must commit the first real match, never clear the field.
  */
@@ -243,7 +243,7 @@ export function PickerItem({
   onClick: () => void;
   hoverClassName?: string;
   /**
-   * Marks this row as the field's fixed empty value ("No project",
+   * Marks this row as the field's fixed empty value ("Unassigned",
    * "Unassigned", "No stage"). Such a row is pinned first for the eye but
    * excluded from search-result keyboard defaults, so typing a query and
    * pressing Enter commits the first real match instead of clearing the

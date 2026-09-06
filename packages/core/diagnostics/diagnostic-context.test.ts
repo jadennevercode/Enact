@@ -37,7 +37,6 @@ describe("bucketDiagnosticPath", () => {
 
   it("templates every workspace detail route", () => {
     expect(bucketDiagnosticPath("/acme/issues/ENA-5345")).toBe("/:slug/issues/:id");
-    expect(bucketDiagnosticPath("/acme/projects/p1")).toBe("/:slug/projects/:id");
     expect(bucketDiagnosticPath("/acme/autopilots/ap-7")).toBe("/:slug/autopilots/:id");
     expect(bucketDiagnosticPath("/acme/agents/agt_9")).toBe("/:slug/agents/:id");
     expect(bucketDiagnosticPath("/acme/members/m-3")).toBe("/:slug/members/:id");
@@ -56,7 +55,6 @@ describe("bucketDiagnosticPath", () => {
   // that was not a UUID, an issue key or digits travelled to telemetry intact.
   it("templates ids that look nothing like ids", () => {
     for (const [path, expected] of [
-      ["/acme/projects/p1", "/:slug/projects/:id"],
       ["/acme/skills/skl_123", "/:slug/skills/:id"],
       ["/acme/agents/my-favourite-agent", "/:slug/agents/:id"],
       ["/acme/squads/Platform Team", "/:slug/squads/:id"],

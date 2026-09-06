@@ -89,7 +89,6 @@ import {
 } from "@enact/core/issues/stores/view-store";
 import { useViewStore } from "@enact/core/issues/stores/view-store-context";
 import { propertyListOptions } from "@enact/core/properties";
-import { projectListOptions } from "@enact/core/projects/queries";
 import { useWorkspacePaths } from "@enact/core/paths";
 import { buildActorNameResolver, useActorName } from "@enact/core/workspace/hooks";
 import {
@@ -105,7 +104,6 @@ import type {
   IssueTableGroupSpec,
   IssueTableQuerySpec,
   IssueTableRowsResponse,
-  Project,
   UpdateIssueRequest,
 } from "@enact/core/types";
 import {
@@ -124,7 +122,6 @@ import { runConfirmIntent } from "../actions/run-confirm-gate";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { LabelChip } from "../../labels/label-chip";
 import { resolveClickIntent, useIntentNavigate } from "../../navigation";
-import { ProjectPicker } from "../../projects/components/project-picker";
 import { useT } from "../../i18n";
 import { useIssueSurfaceActionsOptional } from "../surface/actions-context";
 import { useIssueSurfaceSelection } from "../surface/selection-context";
@@ -166,10 +163,8 @@ type TableViewProps = {
   onCreateIssue: (defaults: IssueCreateDefaults) => void;
   exportIssues: () => Promise<Issue[]>;
   resolveExportLookups: (needs: {
-    projects: boolean;
     childProgress: boolean;
   }) => Promise<{
-    projectMap: Map<string, Project>;
     childProgressMap: Map<string, ChildProgress>;
   }>;
 };
@@ -263,7 +258,6 @@ function rebaseServerBranchState(
 function tableGroupSpec(grouping: string): IssueTableGroupSpec {
   if (grouping === "status") return { kind: "status" };
   if (grouping === "assignee") return { kind: "assignee" };
-  if (grouping === "project") return { kind: "project" };
   const propertyId = propertyIdFromViewKey(grouping);
   if (propertyId) return { kind: "property", property_id: propertyId };
   return { kind: "none" };
@@ -276,7 +270,6 @@ type ColumnLabelKey =
   | "priority"
   | "assignee"
   | "labels"
-  | "project"
   | "start_date"
   | "due_date"
   | "created_at"
@@ -1197,23 +1190,6 @@ function IssueTableBodyCell({
           onOpenChange={setEditorOpen}
         />
       );
-    case "project":
-      return (
-        <div onClick={stopRowNavigation} onAuxClick={stopRowNavigation}>
-          <ProjectPicker
-            projectId={issue.project_id}
-            onUpdate={onUpdate}
-            open={editorOpen}
-            onOpenChange={setEditorOpen}
-            triggerRender={
-              <button
-                type="button"
-                className="flex max-w-full items-center gap-1.5 rounded px-1 py-0.5 hover:bg-accent"
-              />
-            }
-          />
-        </div>
-      );
     case "start_date":
       return (
         <div onClick={stopRowNavigation} onAuxClick={stopRowNavigation}>
@@ -1372,23 +1348,6 @@ export function TableView({
     [effectiveTableGrouping],
   );
   const usesServerGrouping = serverGroupSpec.kind !== "none";
-  // Project group rows carry only a project id; the title comes from the
-  // shared projects query the surface already primes for this grouping.
-  //
-  // Read `data` rather than defaulting it in the destructure: an un-settled
-  // query has no data, so `= []` would hand this memo a fresh array on every
-  // render and churn every consumer of the map below (ENA-5477).
-  const groupProjectsQuery = useQuery({
-    ...projectListOptions(wsId),
-    enabled: serverGroupSpec.kind === "project",
-  });
-  const groupProjectMap = useMemo(
-    () =>
-      new Map(
-        (groupProjectsQuery.data ?? []).map((project) => [project.id, project]),
-      ),
-    [groupProjectsQuery.data],
-  );
   const serverGroupsRequestGroup =
     serverGroupSpec.kind === "none"
       ? ({ kind: "status" } as const)
@@ -1790,15 +1749,6 @@ export function TableView({
           ? getActorName(value.actor.type, value.actor.id)
           : t(($) => $.table.unassigned);
       }
-      if (value.kind === "project") {
-        if (!value.project_id) return t(($) => $.swimlane.no_project);
-        // A project the query cannot resolve (deleted, or not visible to this
-        // member) reads as unavailable — never as its raw id.
-        return (
-          groupProjectMap.get(value.project_id)?.title ??
-          t(($) => $.table.value_unavailable)
-        );
-      }
       if (value.kind === "parent") {
         if (value.value_state === "unset") {
           return t(($) => $.swimlane.no_parent);
@@ -1820,7 +1770,7 @@ export function TableView({
           ?.name ?? String(value.value ?? "")
       );
     },
-    [getActorName, groupProjectMap, propertyById, t],
+    [getActorName, propertyById, t],
   );
 
   const serverDisplayRows = useMemo<IssueTableDisplayRow[]>(() => {
@@ -2157,7 +2107,6 @@ export function TableView({
       onCreateIssue({
         parent_issue_id: issue.id,
         parent_issue_identifier: issue.identifier,
-        ...(issue.project_id ? { project_id: issue.project_id } : {}),
       }),
     [onCreateIssue],
   );
@@ -2309,7 +2258,6 @@ export function TableView({
       const [rows, exportLookups, exportActorName] = await Promise.all([
         mode === "all" ? exportIssues() : Promise.resolve(selectedIssues),
         resolveExportLookups({
-          projects: csvColumns.some((column) => column.key === "project"),
           childProgress: csvColumns.some(
             (column) => column.key === "child_progress",
           ),
@@ -2357,10 +2305,6 @@ export function TableView({
                 : "";
             case "labels":
               return issue.labels?.map((label) => label.name).join(", ") ?? "";
-            case "project":
-              return issue.project_id
-                ? exportLookups.projectMap.get(issue.project_id)?.title ?? ""
-                : "";
             case "start_date":
             case "due_date":
               return issue[column.key] ?? "";

@@ -11,6 +11,7 @@ import {
   getIssueSurfaceViewStore,
   pruneIssueSurfaceViewStates,
 } from "@enact/core/issues/stores/surface-view-store";
+import { statusCategoryOfKey } from "@enact/core/issues";
 import { ViewStoreProvider } from "@enact/core/issues/stores/view-store-context";
 import type {
   AgentTask,
@@ -39,7 +40,6 @@ function makeIssue(
     creator_type: "member",
     creator_id: "user-1",
     parent_issue_id: null,
-    project_id: "p1",
     position: 1,
     stage: null,
     start_date: null,
@@ -83,7 +83,7 @@ vi.mock("../../i18n", () => ({
   useT: () => ({ t: () => "translated" }),
 }));
 
-function makeWrapper(qc: QueryClient, surfaceKey = "project:p1") {
+function makeWrapper(qc: QueryClient, surfaceKey = "workspace:all") {
   const store = getIssueSurfaceViewStore(surfaceKey);
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -188,7 +188,6 @@ describe("useIssueSurfaceController", () => {
       listIssueTableRows,
       listIssueTableFacets,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot,
       getWorkspaceWorkingAgents,
       getChildIssueProgress: vi.fn(() => never()),
@@ -207,36 +206,36 @@ describe("useIssueSurfaceController", () => {
     vi.restoreAllMocks();
   });
 
-  it("derives the project scope and canonical server query", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+  it("derives the workspace scope and canonical server query", async () => {
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setSortBy("priority");
     store.getState().setSortDirection("desc");
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(listIssueTableRows).toHaveBeenCalled());
 
     const expectedSort = { sort_by: "priority", sort_direction: "desc" } as const;
 
-    expect(result.current.scopeKey).toBe("project:p1");
+    expect(result.current.scopeKey).toBe("workspace:all");
     expect(result.current.sort).toEqual(expectedSort);
     expect(result.current.tableQuerySpec).toEqual(
       expect.objectContaining({
-        scope: { kind: "project", project_id: "p1" },
+        scope: { kind: "workspace" },
         sort: { field: "priority", direction: "desc" },
       }),
     );
     expect(listIssueTableRows).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          scope: { kind: "project", project_id: "p1" },
+          scope: { kind: "workspace" },
         }),
         // A workspace with no custom statuses keeps the original contract —
         // that is what makes this safe across a rolling deploy. (ENA-6243)
@@ -262,7 +261,6 @@ describe("useIssueSurfaceController", () => {
       listIssueTableRows,
       listIssueTableFacets,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot,
       getChildIssueProgress: vi.fn(() => never()),
       // Both held pending: this is the state right after a workspace switch,
@@ -348,7 +346,6 @@ describe("useIssueSurfaceController", () => {
       listIssueTableRows: tableRows,
       listIssueTableFacets: tableFacets,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot,
       getChildIssueProgress: vi.fn(() => never()),
     } as unknown as ApiClient);
@@ -411,10 +408,14 @@ describe("useIssueSurfaceController", () => {
 
   it.each([
     {
-      name: "project",
-      surfaceKey: "project:p1",
-      scope: { type: "project" as const, projectId: "p1" },
-      expected: { project_id: "p1", status: "todo" },
+      name: "actor assigned",
+      surfaceKey: "actor:member:p1:assigned",
+      scope: { type: "actor" as const, actorType: "member" as const, actorId: "p1", relation: "assigned" as const },
+      expected: {
+        assignee_type: "member",
+        assignee_id: "p1",
+        status: "todo",
+      },
     },
     {
       name: "my assigned",
@@ -491,10 +492,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
     const onSettled = vi.fn();
 
@@ -504,7 +505,6 @@ describe("useIssueSurfaceController", () => {
         {
           status: "in_progress",
           position: 42,
-          project_id: "p2",
           before_id: "issue-0",
           after_id: "issue-2",
         },
@@ -517,7 +517,6 @@ describe("useIssueSurfaceController", () => {
         id: "issue-1",
         status: "in_progress",
         position: 42,
-        project_id: "p2",
         move_intent: {
           before_id: "issue-0",
           after_id: "issue-2",
@@ -540,10 +539,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     act(() => {
@@ -564,7 +563,7 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("never reports isEmpty in gantt mode — an empty scheduled subset cannot prove the window is empty", async () => {
-    // The gantt query returns only issues with a start/due date. A project
+    // The gantt query returns only issues with a start/due date. A surface
     // full of unscheduled issues comes back [] here, and the surface used to
     // conclude "no issues linked" and render the generic create-issue empty
     // state over GanttView's accurate "no scheduled issues" one.
@@ -573,10 +572,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -586,16 +585,16 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("reports isRefreshing while a view change revalidates behind the previous snapshot", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     listIssues.mockResolvedValue({ issues: [], total: 0 });
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     // First load is loading, never refreshing — there is no previous
@@ -623,17 +622,17 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("debounces table search into the canonical server query without fetching the legacy flat window", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     listIssues.mockResolvedValue({ issues: [], total: 0 });
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     listIssues.mockClear();
@@ -650,7 +649,7 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("loads only the Table facet whose filter submenu is active", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     const listIssueTableFacets = vi.fn().mockResolvedValue({
       query_fingerprint: "sha256:facets",
@@ -665,7 +664,6 @@ describe("useIssueSurfaceController", () => {
       listIssues,
       listIssueTableFacets,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
@@ -674,10 +672,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     expect(submenuFacetCalls(listIssueTableFacets)).toHaveLength(0);
@@ -738,7 +736,7 @@ describe("useIssueSurfaceController", () => {
   ])(
     "loads exact filter facets on demand for the server-paged $name",
     async ({ configure, properties }) => {
-      const store = getIssueSurfaceViewStore("project:p1");
+      const store = getIssueSurfaceViewStore("workspace:all");
       configure(store);
       const listIssueTableFacets = vi.fn().mockResolvedValue({
         query_fingerprint: "sha256:group-facets",
@@ -755,7 +753,6 @@ describe("useIssueSurfaceController", () => {
         ...tableMethods,
         listIssueTableFacets,
         listGroupedIssues: vi.fn(() => never()),
-        listProjects: vi.fn(() => never()),
         listProperties: vi.fn(() =>
           Promise.resolve({ properties, total: properties.length }),
         ),
@@ -766,10 +763,10 @@ describe("useIssueSurfaceController", () => {
       const { result } = renderHook(
         () =>
           useIssueSurfaceController({
-            scope: { type: "project", projectId: "p1" },
+            scope: { type: "workspace", actorKind: "all" },
             modes: ["board", "list", "swimlane"],
           }),
-        { wrapper: makeWrapper(qc, "project:p1") },
+        { wrapper: makeWrapper(qc, "workspace:all") },
       );
 
       expect(result.current.facetCountsExact).toBe(false);
@@ -799,14 +796,13 @@ describe("useIssueSurfaceController", () => {
 
   it.each([
     { grouping: "assignee" as const, expected: { kind: "assignee" } },
-    { grouping: "project" as const, expected: { kind: "project" } },
   ])(
     "asks the server for $grouping groups when the board is grouped that way",
     async ({ grouping, expected }) => {
       // The board's columns ARE the server's group descriptors, so the group
       // spec it requests is the whole contract — a board that asks for the
       // wrong dimension renders another dimension's columns.
-      const store = getIssueSurfaceViewStore("project:p1");
+      const store = getIssueSurfaceViewStore("workspace:all");
       store.getState().setViewMode("board");
       store.getState().setGrouping(grouping);
       const tableMethods = statusTableMethodsFromLegacy(listIssues);
@@ -817,7 +813,6 @@ describe("useIssueSurfaceController", () => {
         ...tableMethods,
         listIssueTableGroups,
         listGroupedIssues: vi.fn(() => never()),
-        listProjects: vi.fn(() => Promise.resolve({ projects: [], total: 0 })),
         getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
         getChildIssueProgress: vi.fn(() => Promise.resolve([])),
       } as unknown as ApiClient);
@@ -825,10 +820,10 @@ describe("useIssueSurfaceController", () => {
       renderHook(
         () =>
           useIssueSurfaceController({
-            scope: { type: "project", projectId: "p1" },
+            scope: { type: "workspace", actorKind: "all" },
             modes: ["board", "list", "swimlane"],
           }),
-        { wrapper: makeWrapper(qc, "project:p1") },
+        { wrapper: makeWrapper(qc, "workspace:all") },
       );
 
       await waitFor(() => expect(listIssueTableGroups).toHaveBeenCalled());
@@ -839,7 +834,7 @@ describe("useIssueSurfaceController", () => {
   );
 
   it("fails Table export closed when schema fallback would truncate the CSV", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     const listIssueTableRows = vi.fn(() =>
       Promise.resolve({
@@ -861,7 +856,6 @@ describe("useIssueSurfaceController", () => {
       listIssueTableRows,
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
@@ -870,10 +864,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await expect(result.current.exportTableIssues()).rejects.toBeInstanceOf(
@@ -882,7 +876,7 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("exports every stable cursor page exactly once", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     const first = makeIssue({ id: "issue-1", status: "todo" });
     const second = makeIssue({ id: "issue-2", status: "done" });
@@ -915,7 +909,6 @@ describe("useIssueSurfaceController", () => {
       listIssueTableRows,
       listIssueTableFacets: vi.fn(() => never()),
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       listProperties: vi.fn(() => Promise.resolve({ properties: [] })),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getChildIssueProgress: vi.fn(() => Promise.resolve([])),
@@ -924,10 +917,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await expect(result.current.exportTableIssues()).resolves.toEqual([
@@ -941,7 +934,7 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("sends workspace running-task issue ids through the Table filter", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     store.getState().toggleAgentRunningFilter();
     listIssues.mockResolvedValue({ issues: [], total: 0 });
@@ -970,7 +963,6 @@ describe("useIssueSurfaceController", () => {
       listIssueStatuses: async () => ({ statuses: [], categories: [], total: 0 }),
       listIssues,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() =>
         Promise.resolve([
           { id: "task-1", issue_id: "issue-running", status: "running" },
@@ -983,10 +975,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() =>
@@ -1015,7 +1007,6 @@ describe("useIssueSurfaceController", () => {
       listIssueStatuses: async () => ({ statuses: [], categories: [], total: 0 }),
       listIssues,
       listGroupedIssues: vi.fn(() => never()),
-      listProjects: vi.fn(() => never()),
       getAgentTaskSnapshot: vi.fn(() => Promise.resolve([])),
       getWorkspaceWorkingAgents,
       getChildIssueProgress: vi.fn(() => never()),
@@ -1043,7 +1034,7 @@ describe("useIssueSurfaceController", () => {
   it.each(["board", "list", "swimlane"] as const)(
     "uses running tasks for the %s server query without reading the task snapshot",
     async (viewMode) => {
-      const store = getIssueSurfaceViewStore("project:p1");
+      const store = getIssueSurfaceViewStore("workspace:all");
       store.getState().setViewMode(viewMode);
       store.getState().toggleAgentRunningFilter();
       mockWorkingAgents([
@@ -1058,10 +1049,10 @@ describe("useIssueSurfaceController", () => {
       const { result } = renderHook(
         () =>
           useIssueSurfaceController({
-            scope: { type: "project", projectId: "p1" },
+            scope: { type: "workspace", actorKind: "all" },
             modes: ["board", "list", "swimlane"],
           }),
-        { wrapper: makeWrapper(qc, "project:p1") },
+        { wrapper: makeWrapper(qc, "workspace:all") },
       );
 
       await waitFor(() =>
@@ -1077,7 +1068,7 @@ describe("useIssueSurfaceController", () => {
   );
 
   it("combines regular assignees with the independent running-task predicate", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("list");
     store.getState().toggleAssigneeFilter({ type: "agent", id: "agent-1" });
     store.getState().toggleAssigneeFilter({ type: "agent", id: "agent-2" });
@@ -1092,10 +1083,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => {
@@ -1113,7 +1104,7 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("does not subscribe Table to the legacy offset window", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     // page 1 claims a small window (under the ceiling); by page 2 the real
     // window has grown far beyond it. The ceiling check must see the fresh
@@ -1135,10 +1126,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -1147,17 +1138,17 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("leaves Table empty/error ownership to the server-backed renderer", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("table");
     listIssues.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["table"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     // The legacy list endpoint is not part of Table rendering anymore.
@@ -1166,17 +1157,17 @@ describe("useIssueSurfaceController", () => {
   });
 
   it("clears surface selection when the membership window changes (filters, search)", async () => {
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     store.getState().setViewMode("list");
     listIssues.mockResolvedValue({ issues: [], total: 0 });
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     act(() => {
@@ -1202,10 +1193,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1264,10 +1255,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1285,16 +1276,16 @@ describe("useIssueSurfaceController", () => {
       cancelled: [makeIssue({ id: "cancelled-1", status: "cancelled" })],
     });
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => store.getState().toggleStatusFilter("todo"));
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1314,16 +1305,16 @@ describe("useIssueSurfaceController", () => {
       cancelled: [makeIssue({ id: "cancelled-1", status: "cancelled" })],
     });
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => store.getState().toggleStatusFilter("cancelled"));
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1356,16 +1347,16 @@ describe("useIssueSurfaceController", () => {
       makeWorkingAgent("agent-2", ["prog-1"]),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => store.getState().toggleAgentRunningFilter());
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1395,19 +1386,19 @@ describe("useIssueSurfaceController", () => {
     });
     mockWorkingAgents([
       makeWorkingAgent("agent-1", ["todo-1"]),
-      // Working on an issue this project does not contain. The old
+      // Working on an issue this surface does not contain. The old
       // workspace-wide chip counted it here and then opened an empty list
       // (ENA-5525).
-      makeWorkingAgent("agent-elsewhere", ["other-project-1"]),
+      makeWorkingAgent("agent-elsewhere", ["other-issue-1"]),
     ]);
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1433,7 +1424,7 @@ describe("useIssueSurfaceController", () => {
     ]);
 
     // ...but the user is only looking at `todo`.
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => {
       store.getState().toggleStatusFilter("todo");
       store.getState().toggleAgentRunningFilter();
@@ -1442,10 +1433,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1477,16 +1468,16 @@ describe("useIssueSurfaceController", () => {
       makeWorkingAgent("agent-1", ["parent-1"]),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => store.getState().toggleShowSubIssues());
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1510,16 +1501,16 @@ describe("useIssueSurfaceController", () => {
       makeWorkingAgent("agent-child", ["child-1"]),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => store.getState().toggleShowSubIssues());
 
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1535,10 +1526,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["list"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1557,7 +1548,7 @@ describe("useIssueSurfaceController", () => {
       makeWorkingAgent("agent-2", ["prog-1"]),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => {
       store.getState().setViewMode("swimlane");
       store.getState().toggleStatusFilter("todo");
@@ -1566,10 +1557,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -1599,12 +1590,31 @@ describe("useIssueSurfaceController", () => {
   // Those rules live in the surface (`ganttCanvasRows`) so the chip narrows
   // the same set the canvas draws.
 
+  // Gantt lost its own server query when projects went away (it was the only
+  // project-scoped fetch left). It now reads the workspace list and narrows
+  // client-side, so the stub answers the paged list rather than a
+  // `scheduled=true` projection.
   function mockGanttIssues(issues: Issue[]) {
     listIssues.mockImplementation((params?: ListIssuesParams) => {
-      if (params?.scheduled === true) {
+      // Gantt asks for the scheduled subset in one un-bucketed request, so it
+      // gets the fixture whole rather than paged by status. The rows are not
+      // re-filtered by date here on purpose: the fixture carries a row the
+      // server considered scheduled but which has since lost its dates, and
+      // dropping it here would take away the case that proves the canvas
+      // drops it.
+      if (params?.scheduled) {
         return Promise.resolve({ issues, total: issues.length });
       }
-      return Promise.resolve({ issues: [], total: 0 });
+      // The list channel pages one request per status CATEGORY and the surface
+      // flattens the buckets, so each row must be answered by exactly one of
+      // them or it lands on the canvas as many times as there are categories.
+      const forCategory = issues.filter(
+        (issue) => statusCategoryOfKey(issue.status) === params?.status_category,
+      );
+      return Promise.resolve({
+        issues: forCategory,
+        total: forCategory.length,
+      });
     });
   }
 
@@ -1647,7 +1657,7 @@ describe("useIssueSurfaceController", () => {
       makeRunningTask("t-3", "agent-3", "gantt-undated"),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => {
       store.getState().setViewMode("gantt");
       store.getState().toggleAgentRunningFilter();
@@ -1656,10 +1666,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() =>
@@ -1697,7 +1707,7 @@ describe("useIssueSurfaceController", () => {
     mockGanttIssues(ganttFixture);
     mockWorkingAgents(workingAgents);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => {
       store.getState().setViewMode("gantt");
       if (selectedAssigneeId) {
@@ -1712,10 +1722,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() => expect(result.current.ganttIssues).toHaveLength(3));
@@ -1745,7 +1755,7 @@ describe("useIssueSurfaceController", () => {
       makeWorkingAgent("agent-editor", ["gantt-open", "gantt-done"]),
     ]);
 
-    const store = getIssueSurfaceViewStore("project:p1");
+    const store = getIssueSurfaceViewStore("workspace:all");
     act(() => {
       store.getState().setViewMode("gantt");
       store.getState().toggleAgentRunningFilter();
@@ -1755,10 +1765,10 @@ describe("useIssueSurfaceController", () => {
     const { result } = renderHook(
       () =>
         useIssueSurfaceController({
-          scope: { type: "project", projectId: "p1" },
+          scope: { type: "workspace", actorKind: "all" },
           modes: ["board", "list", "swimlane", "gantt"],
         }),
-      { wrapper: makeWrapper(qc, "project:p1") },
+      { wrapper: makeWrapper(qc, "workspace:all") },
     );
 
     await waitFor(() =>

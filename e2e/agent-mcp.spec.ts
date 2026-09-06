@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { TestApiClient } from "./fixtures";
+import { TestApiClient, e2eEmail } from "./fixtures";
 import { waitForPageText } from "./helpers";
 
 // Stage 3.2 (ENA-3870): the creator-only MCP tab on the agent detail page.
@@ -16,7 +16,7 @@ const E2E_WORKER =
   process.env.TEST_PARALLEL_INDEX ?? process.env.TEST_WORKER_INDEX ?? "0";
 const E2E_RUN_ID =
   process.env.E2E_RUN_ID ?? `${Date.now().toString(36)}-${process.pid.toString(36)}`;
-const EMAIL = `e2e-mcp-${E2E_WORKER}-${E2E_RUN_ID}@enact.ai`;
+const EMAIL = e2eEmail(`e2e-mcp-${E2E_WORKER}-${E2E_RUN_ID}`);
 const NAME = "E2E MCP User";
 
 const AGENT_ID = "11111111-1111-4111-8111-111111111111";

@@ -10,7 +10,7 @@ describe("nameToWorkspaceSlug", () => {
   it("lowercases ASCII names and joins words with hyphens", () => {
     expect(nameToWorkspaceSlug("My Team")).toBe("my-team");
     expect(nameToWorkspaceSlug("Acme Inc")).toBe("acme-inc");
-    expect(nameToWorkspaceSlug("Project X-1")).toBe("project-x-1");
+    expect(nameToWorkspaceSlug("Acme X-1")).toBe("acme-x-1");
   });
 
   it("strips leading and trailing hyphens", () => {
@@ -76,7 +76,7 @@ describe("nameToWorkspaceSlug", () => {
 
   it("keeps Latin and romanized segments apart when a name mixes them", () => {
     expect(nameToWorkspaceSlug("测试 Team")).toBe("ceshi-team");
-    expect(nameToWorkspaceSlug("Project 测试 1")).toBe("project-ceshi-1");
+    expect(nameToWorkspaceSlug("Acme 测试 1")).toBe("acme-ceshi-1");
     // No separator in the source: the romanized run must not glue onto it.
     expect(nameToWorkspaceSlug("Acme蜘蛛侠")).toBe("acme-zhizhuxia");
   });

@@ -21,7 +21,6 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     creator_type: "member",
     creator_id: "me",
     parent_issue_id: null,
-    project_id: "p1",
     position: 1,
     stage: null,
     start_date: null,
@@ -68,22 +67,6 @@ describe("issueMatchesListFilter", () => {
     ).toBe(false);
   });
 
-  it("judges project filters", () => {
-    expect(
-      issueMatchesListFilter(makeIssue(), "project:p1", { project_id: "p1" }),
-    ).toBe(true);
-    expect(
-      issueMatchesListFilter(makeIssue({ project_id: "p2" }), "project:p1", {
-        project_id: "p1",
-      }),
-    ).toBe(false);
-    expect(
-      issueMatchesListFilter(makeIssue({ project_id: null }), "project:p1", {
-        project_id: "p1",
-      }),
-    ).toBe(false);
-  });
-
   it("never decides involves_user_id — the ownership graph is server-side", () => {
     expect(
       issueMatchesListFilter(makeIssue(), "agents", { involves_user_id: "me" }),
@@ -97,9 +80,9 @@ describe("issueMatchesListFilter", () => {
   it("ANDs across fields — a definitive miss beats an unknown", () => {
     expect(
       issueMatchesListFilter(
-        makeIssue({ project_id: "p2" }),
+        makeIssue({ creator_id: "bob" }),
         "scoped",
-        { project_id: "p1", involves_user_id: "me" },
+        { creator_id: "me", involves_user_id: "me" },
       ),
     ).toBe(false);
   });
@@ -109,13 +92,11 @@ describe("issueChangedDims", () => {
   it("treats written membership fields as changed when no base is known", () => {
     expect(issueChangedDims({ assignee_id: "bob", assignee_type: "member" })).toEqual({
       assignee: true,
-      project: false,
       status: false,
     });
-    expect(issueChangedDims({ project_id: null })).toEqual({
+    expect(issueChangedDims({ status: "done" })).toEqual({
       assignee: false,
-      project: true,
-      status: false,
+      status: true,
     });
   });
 
@@ -123,29 +104,26 @@ describe("issueChangedDims", () => {
     const base = makeIssue();
     expect(issueChangedDims({ assignee_id: "me", assignee_type: "member" }, base)).toEqual({
       assignee: false,
-      project: false,
       status: false,
     });
     expect(issueChangedDims({ status: "todo" }, base).status).toBe(false);
     expect(issueChangedDims({ status: "done" }, base).status).toBe(true);
-    expect(issueChangedDims({ project_id: "p2" }, base).project).toBe(true);
   });
 
   it("ignores non-membership fields", () => {
     expect(issueChangedDims({ title: "x", position: 9 })).toEqual({
       assignee: false,
-      project: false,
       status: false,
     });
   });
 });
 
 describe("listFilterDependsOn", () => {
-  const none = { assignee: false, project: false, status: false };
+  const none = { assignee: false, status: false };
 
   it("my:all reacts to assignee changes only", () => {
     expect(listFilterDependsOn("all", {}, { ...none, assignee: true })).toBe(true);
-    expect(listFilterDependsOn("all", {}, { ...none, project: true })).toBe(false);
+    expect(listFilterDependsOn("all", {}, { ...none, status: true })).toBe(false);
   });
 
   it("assignee-keyed filters react to assignee changes", () => {
@@ -163,16 +141,7 @@ describe("listFilterDependsOn", () => {
       listFilterDependsOn("agents", { involves_user_id: "me" }, { ...none, assignee: true }),
     ).toBe(true);
     expect(
-      listFilterDependsOn("assigned", { assignee_id: "me" }, { ...none, project: true }),
-    ).toBe(false);
-  });
-
-  it("project filters react to project changes", () => {
-    expect(
-      listFilterDependsOn("project:p1", { project_id: "p1" }, { ...none, project: true }),
-    ).toBe(true);
-    expect(
-      listFilterDependsOn("project:p1", { project_id: "p1" }, { ...none, assignee: true }),
+      listFilterDependsOn("assigned", { assignee_id: "me" }, { ...none, status: true }),
     ).toBe(false);
   });
 
@@ -181,14 +150,14 @@ describe("listFilterDependsOn", () => {
       listFilterDependsOn(
         "created",
         { creator_id: "me" },
-        { assignee: true, project: true, status: true },
+        { assignee: true, status: true },
       ),
     ).toBe(false);
   });
 
   it("the unfiltered workspace list never reacts", () => {
     expect(
-      listFilterDependsOn(undefined, {}, { assignee: true, project: true, status: true }),
+      listFilterDependsOn(undefined, {}, { assignee: true, status: true }),
     ).toBe(false);
   });
 });

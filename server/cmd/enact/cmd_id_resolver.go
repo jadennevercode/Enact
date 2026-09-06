@@ -138,7 +138,7 @@ func ambiguousIDPrefixError(kind, input string, matches []idCandidate) error {
 // client-side to disambiguate, causing 14–35s timeouts (GH #4701). Since
 // `ENA-123` already covers every human use case for an issue reference, the
 // short-prefix path is removed instead of being moved server-side. Other
-// resources without a human-readable key (autopilots, projects, labels,
+// resources without a human-readable key (autopilots, resources, labels,
 // task runs, workspaces, ...) continue to accept short UUID prefixes; see
 // resolveIDByPrefix.
 func resolveIssueRef(ctx context.Context, client *cli.APIClient, input string) (resolvedID, error) {
@@ -338,44 +338,14 @@ func resolveAutopilotTriggerID(ctx context.Context, client *cli.APIClient, autop
 	return resolveIDByPrefix(ctx, client, "autopilot trigger", input, fetch)
 }
 
-func resolveProjectID(ctx context.Context, client *cli.APIClient, input string) (resolvedID, error) {
-	return resolveIDByPrefix(ctx, client, "project", input, fetchProjectCandidates)
-}
-
-func fetchProjectCandidates(ctx context.Context, client *cli.APIClient) ([]idCandidate, error) {
-	if client.WorkspaceID == "" {
-		return nil, fmt.Errorf("workspace_id is required to resolve project id prefixes")
-	}
-	params := url.Values{"workspace_id": {client.WorkspaceID}}
-	var result map[string]any
-	if err := client.GetJSON(ctx, "/api/projects?"+params.Encode(), &result); err != nil {
-		return nil, err
-	}
-	projectsRaw, _ := result["projects"].([]any)
-	candidates := make([]idCandidate, 0, len(projectsRaw))
-	for _, raw := range projectsRaw {
-		p, ok := raw.(map[string]any)
-		if !ok {
-			continue
-		}
-		candidates = append(candidates, idCandidate{
-			ID:      strVal(p, "id"),
-			Display: strVal(p, "title"),
-			Detail:  strVal(p, "status"),
-		})
-	}
-	return candidates, nil
-}
-
-func resolveProjectResourceID(ctx context.Context, client *cli.APIClient, projectID, input string) (resolvedID, error) {
+func resolveWorkspaceResourceID(ctx context.Context, client *cli.APIClient, input string) (resolvedID, error) {
 	fetch := func(ctx context.Context, client *cli.APIClient) ([]idCandidate, error) {
-		var result map[string]any
-		if err := client.GetJSON(ctx, "/api/projects/"+url.PathEscape(projectID)+"/resources", &result); err != nil {
+		resources, err := fetchWorkspaceResources(ctx, client)
+		if err != nil {
 			return nil, err
 		}
-		resourcesRaw, _ := result["resources"].([]any)
-		candidates := make([]idCandidate, 0, len(resourcesRaw))
-		for _, raw := range resourcesRaw {
+		candidates := make([]idCandidate, 0, len(resources))
+		for _, raw := range resources {
 			r, ok := raw.(map[string]any)
 			if !ok {
 				continue
@@ -392,7 +362,7 @@ func resolveProjectResourceID(ctx context.Context, client *cli.APIClient, projec
 		}
 		return candidates, nil
 	}
-	return resolveIDByPrefix(ctx, client, "project resource", input, fetch)
+	return resolveIDByPrefix(ctx, client, "resource", input, fetch)
 }
 
 func resolveLabelID(ctx context.Context, client *cli.APIClient, input string) (resolvedID, error) {

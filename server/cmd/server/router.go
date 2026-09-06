@@ -1446,6 +1446,18 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireWorkspaceMemberFromURL(queries, "id"))
 					r.Get("/", h.GetWorkspace)
+					// The setup checklist. A GET that writes: it files what the
+					// workspace is missing and closes the steps that have
+					// become true, because reading the checklist is exactly
+					// when its staleness matters. See workspace_setup.go.
+					r.Get("/setup", h.GetWorkspaceSetup)
+					// The project profile is member-writable, unlike
+					// `context` above it, which stays admin-only. Context is a
+					// standing instruction to every agent; the profile is a
+					// description every agent may consult, and the interview
+					// run writes it on an ordinary member's behalf.
+					r.Get("/profile", h.GetWorkspaceProfile)
+					r.Put("/profile", h.UpdateWorkspaceProfile)
 					r.Get("/members", h.ListMembersWithUser)
 					r.Post("/leave", h.LeaveWorkspace)
 					r.Get("/invitations", h.ListWorkspaceInvitations)
@@ -1502,6 +1514,14 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Patch("/runtime-profiles/{profileId}", h.UpdateRuntimeProfile)
 					r.Put("/runtime-profiles/{profileId}", h.UpdateRuntimeProfile)
 					r.Delete("/runtime-profiles/{profileId}", h.DeleteRuntimeProfile)
+					// Cross-workspace publication (migration 416). Publishing
+					// additionally requires the caller to OWN the profile —
+					// admin here only grants the right to add a runtime to this
+					// workspace, not to take someone else's definition.
+					r.Post("/runtime-profiles/publish", h.PublishRuntimeProfile)
+					// This workspace's own on/off switch for a published
+					// profile, separate from the owner's global one.
+					r.Patch("/runtime-profiles/{profileId}/enabled", h.SetRuntimeProfileWorkspaceEnabled)
 					// Publishing. The author uploads an artifact bundle and we
 					// store it; a version is immutable once published, so
 					// there is no update route here by design.
@@ -1779,6 +1799,12 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/reactions", h.AddIssueReaction)
 					r.Delete("/reactions", h.RemoveIssueReaction)
 					r.Get("/attachments", h.ListAttachments)
+					// Artifacts — the files this issue and its direct
+					// children produced, grouped and versioned by the client.
+					// Distinct from /attachments, which is the flat set of
+					// rows hanging off this issue alone and exists to resolve
+					// inline markdown references.
+					r.Get("/artifacts", h.ListIssueArtifacts)
 					r.Get("/children", h.ListChildIssues)
 					r.Get("/labels", h.ListLabelsForIssue)
 					r.Post("/labels", h.AttachLabel)
@@ -1840,21 +1866,13 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				})
 			})
 
-			// Projects
-			r.Route("/api/projects", func(r chi.Router) {
-				r.Get("/search", h.SearchProjects)
-				r.Get("/", h.ListProjects)
-				r.Post("/", h.CreateProject)
-				r.Route("/{id}", func(r chi.Router) {
-					r.Get("/", h.GetProject)
-					r.Put("/", h.UpdateProject)
-					r.Delete("/", h.DeleteProject)
-					r.Get("/artifacts", h.ListProjectArtifacts)
-					r.Get("/resources", h.ListProjectResources)
-					r.Post("/resources", h.CreateProjectResource)
-					r.Put("/resources/{resourceId}", h.UpdateProjectResource)
-					r.Delete("/resources/{resourceId}", h.DeleteProjectResource)
-				})
+			// Resources — repos and local directories the workspace's agents
+			// check out to work in.
+			r.Route("/api/resources", func(r chi.Router) {
+				r.Get("/", h.ListWorkspaceResources)
+				r.Post("/", h.CreateWorkspaceResource)
+				r.Put("/{resourceId}", h.UpdateWorkspaceResource)
+				r.Delete("/{resourceId}", h.DeleteWorkspaceResource)
 			})
 
 			// Squads
@@ -1954,6 +1972,10 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				// cannot mint an agent carrying `system_key` and thereby claim
 				// the system instruction layer. Idempotent per workspace.
 				r.Post("/mika", h.CreateMikaAgent)
+				// The workspace's built-in Retrospect Agent, on the same terms
+				// and for the same reason. Configuring it is what turns the
+				// retrospect loop on, so this endpoint is the opt-in.
+				r.Post("/retrospect", h.CreateRetrospectAgent)
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", h.GetAgent)
 					r.Put("/", h.UpdateAgent)
@@ -1972,6 +1994,12 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/ontologies/{domain}", h.AttachAgentOntology)
 					r.Put("/ontologies/{skillId}/enabled", h.SetAgentOntologyEnabled)
 					r.Delete("/ontologies/{skillId}", h.RemoveAgentOntology)
+					// Knowledge bases this agent has opted into. Unlike
+					// skills these are not workspace-wide: the binding is what
+					// puts the knowledge index in this agent's brief.
+					r.Get("/knowledge", h.ListAgentKnowledge)
+					r.Post("/knowledge", h.AttachAgentKnowledge)
+					r.Delete("/knowledge/{resourceId}", h.RemoveAgentKnowledge)
 					r.Put("/runtime-skills/enabled", h.SetAgentRuntimeSkillEnabled)
 					r.Delete("/skills/{skillId}", h.RemoveAgentSkill)
 					// Workspace MCP servers assigned to this agent. Mirrors
@@ -1989,6 +2017,45 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// internal/handler/agent_env.go.
 					r.Get("/env", h.GetAgentEnv)
 					r.Put("/env", h.UpdateAgentEnv)
+				})
+			})
+
+			// Marketplace. A directory of publishable capability assets that
+			// every workspace in this deployment can browse and install into
+			// its own library. Reads are member-visible: the payload carries
+			// no credential material — the publish path redacts every
+			// secret-bearing field before it is stored (marketplace_sanitize.go)
+			// — and a member has to be able to see what they may install.
+			//
+			// Writes are gated inside the handlers rather than here, because
+			// the rule is not a workspace role alone: publishing needs an
+			// owner or admin of the PUBLISHING workspace, which is a property
+			// of the listing, not of the route.
+			r.Route("/api/marketplace", func(r chi.Router) {
+				r.Get("/listings", h.ListMarketplaceListings)
+				r.Post("/listings", h.PublishMarketplaceListing)
+				r.Get("/installs", h.ListMarketplaceInstalls)
+				// Ranked against this workspace's project profile, recomputed
+				// on every request against the directory as it is right now: a
+				// listing published this afternoon has to reach a workspace
+				// that was set up this morning. See internal/recommend.
+				r.Get("/recommendations", h.ListMarketplaceRecommendations)
+				// "Not this one", scoped to the version the member was looking
+				// at, so a new version of the same listing comes back.
+				r.Route("/recommendations/{id}", func(r chi.Router) {
+					r.Post("/dismiss", h.DismissMarketplaceRecommendation)
+					r.Delete("/dismiss", h.RestoreMarketplaceRecommendation)
+				})
+				r.Route("/listings/{id}", func(r chi.Router) {
+					r.Get("/", h.GetMarketplaceListing)
+					r.Patch("/", h.UpdateMarketplaceListing)
+					r.Delete("/", h.DeleteMarketplaceListing)
+					r.Get("/versions", h.ListMarketplaceListingVersions)
+					// Publishing a new version reuses the create route: it is
+					// idempotent per (workspace, kind, slug) and adds a version
+					// to the listing already there.
+					r.Get("/file", h.GetMarketplaceListingFile)
+					r.Post("/install", h.InstallMarketplaceListing)
 				})
 			})
 
@@ -2026,12 +2093,16 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Get("/files", h.ListSkillFiles)
 					r.Put("/files", h.UpsertSkillFile)
 					r.Delete("/files/{fileId}", h.DeleteSkillFile)
+					// Version history. Reading is open to the workspace;
+					// restoring is an edit and is gated like one.
+					r.Get("/versions", h.ListSkillVersions)
+					r.Get("/versions/{versionId}", h.GetSkillVersion)
+					r.Post("/versions/{versionId}/restore", h.RestoreSkillVersion)
 				})
 			})
 
 			// Dashboard — workspace-wide token + run-time rollups for the
-			// "/{slug}/dashboard" page. Optional ?project_id filter scopes
-			// the rollup to a single project.
+			// "/{slug}/dashboard" page.
 			r.Route("/api/dashboard", func(r chi.Router) {
 				r.Get("/usage/daily", h.GetDashboardUsageDaily)
 				r.Get("/usage/by-agent", h.GetDashboardUsageByAgent)
@@ -2040,6 +2111,23 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Get("/failures/daily", h.GetDashboardFailuresDaily)
 				r.Get("/failures/by-agent", h.GetDashboardFailuresByAgent)
 			})
+
+			// Machines — the computer a daemon runs on, owned by a user and
+			// shared across every workspace it is registered in (migration
+			// 412). Deliberately outside /api/workspaces: routing a host
+			// through a workspace is what forced the per-workspace duplication
+			// this replaces.
+			r.Route("/api/machines", func(r chi.Router) {
+				r.Get("/", h.ListMyMachines)
+				r.Get("/{machineId}", h.GetMachine)
+				r.Patch("/{machineId}", h.UpdateMachine)
+			})
+
+			// Runtime profiles the caller owns, across every workspace. The
+			// workspace-scoped list under /api/workspaces/{id} answers "what
+			// can this team use"; this one answers "what have I defined, and
+			// how far has it spread".
+			r.Get("/api/runtime-profiles", h.ListMyRuntimeProfiles)
 
 			// Runtimes
 			r.Route("/api/runtimes", func(r chi.Router) {
@@ -2124,6 +2212,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// daemon suggestion pass for the latest assistant reply (ENA-5149).
 					r.Post("/quick-actions/regenerate", h.RegenerateChatQuickActions)
 					r.Get("/messages", h.ListChatMessages)
+					// Artifacts — every file uploaded into this session,
+					// gated exactly like the transcript above.
+					r.Get("/artifacts", h.ListChatSessionArtifacts)
 					r.Get("/messages/page", h.ListChatMessagesPage)
 					r.Get("/pending-task", h.GetPendingChatTask)
 					r.Delete("/queued-tasks", h.ClearQueuedChatTasks)

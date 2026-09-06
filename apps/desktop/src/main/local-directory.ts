@@ -102,7 +102,7 @@ export function setupLocalDirectory(
       if (!win) return { ok: false, reason: "no_window" };
       try {
         const result = await dialog.showOpenDialog(win, {
-          // Multiple-selection is intentionally disabled — a project_resource
+          // Multiple-selection is intentionally disabled — a workspace_resource
           // points at a single directory, and the create flow expects one
           // path per click. Multi-add would have to be a separate UX.
           properties: ["openDirectory", "createDirectory"],

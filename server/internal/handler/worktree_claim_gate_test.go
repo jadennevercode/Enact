@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func localDirRef(t *testing.T, path, daemonID, mode string) json.RawMessage {
@@ -42,7 +42,7 @@ func runtimeWithVersion(daemonID, cliVersion string) db.AgentRuntime {
 func TestWorktreeClaimBlockReason(t *testing.T) {
 	const daemon = "daemon-a"
 
-	worktreeRes := []ProjectResourceData{{
+	worktreeRes := []WorkspaceResourceData{{
 		ID: "r1", ResourceType: "local_directory",
 		ResourceRef: localDirRef(t, "/Users/dev/game", daemon, "worktree"),
 	}}
@@ -73,7 +73,7 @@ func TestWorktreeClaimBlockReason(t *testing.T) {
 
 	t.Run("ignores in_place and absent modes", func(t *testing.T) {
 		for _, mode := range []string{"in_place", ""} {
-			res := []ProjectResourceData{{
+			res := []WorkspaceResourceData{{
 				ID: "r1", ResourceType: "local_directory",
 				ResourceRef: localDirRef(t, "/Users/dev/game", daemon, mode),
 			}}
@@ -83,10 +83,10 @@ func TestWorktreeClaimBlockReason(t *testing.T) {
 		}
 	})
 
-	// A project may carry one local_directory per machine. Another machine's
+	// A workspace may carry one local_directory per machine. Another machine's
 	// worktree resource says nothing about this runtime's ability to run.
 	t.Run("ignores a resource bound to a different daemon", func(t *testing.T) {
-		other := []ProjectResourceData{{
+		other := []WorkspaceResourceData{{
 			ID: "r1", ResourceType: "local_directory",
 			ResourceRef: localDirRef(t, "/Users/dev/game", "daemon-b", "worktree"),
 		}}
@@ -96,7 +96,7 @@ func TestWorktreeClaimBlockReason(t *testing.T) {
 	})
 
 	t.Run("ignores non-local_directory resources", func(t *testing.T) {
-		repo := []ProjectResourceData{{
+		repo := []WorkspaceResourceData{{
 			ID: "r1", ResourceType: "github_repo",
 			ResourceRef: json.RawMessage(`{"url":"https://github.com/a/b"}`),
 		}}
@@ -112,7 +112,7 @@ func TestWorktreeClaimBlockReason(t *testing.T) {
 	})
 
 	t.Run("survives a malformed ref", func(t *testing.T) {
-		bad := []ProjectResourceData{{
+		bad := []WorkspaceResourceData{{
 			ID: "r1", ResourceType: "local_directory",
 			ResourceRef: json.RawMessage(`{"local_path": 42}`),
 		}}
@@ -547,7 +547,7 @@ func TestWorktreeClaimGateCancelPersistsReason(t *testing.T) {
 
 // seedWorktreeGateClaimFixture builds the full claim-path scenario the gate
 // exists for: a runtime whose machine reports cliVersion, an agent bound to
-// it, and a queued issue task whose project carries a worktree-mode
+// it, and a queued issue task whose workspace carries a worktree-mode
 // local_directory resource pinned to that same machine.
 func seedWorktreeGateClaimFixture(t *testing.T, ctx context.Context, label, daemonID, cliVersion string) (runtimeID, taskID string) {
 	t.Helper()
@@ -581,35 +581,29 @@ func seedWorktreeGateClaimFixture(t *testing.T, ctx context.Context, label, daem
 	}
 	t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM agent WHERE id = $1`, agentID) })
 
-	var projectID string
+	var resourceID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO project (workspace_id, title) VALUES ($1, $2) RETURNING id
-	`, testWorkspaceID, label+" project").Scan(&projectID); err != nil {
-		t.Fatalf("setup: create project: %v", err)
-	}
-	t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectID) })
-
-	if _, err := testPool.Exec(ctx, `
-		INSERT INTO project_resource (project_id, workspace_id, resource_type, resource_ref, position)
-		VALUES ($1, $2, 'local_directory', $3::jsonb, 0)
-	`, projectID, testWorkspaceID,
-		`{"local_path":"/Users/dev/wtgate","daemon_id":"`+daemonID+`","execution_mode":"worktree"}`); err != nil {
-		t.Fatalf("setup: create project_resource: %v", err)
+		INSERT INTO workspace_resource (workspace_id, resource_type, resource_ref, position)
+		VALUES ($1, 'local_directory', $2::jsonb, 0)
+		RETURNING id
+	`, testWorkspaceID,
+		`{"local_path":"/Users/dev/wtgate","daemon_id":"`+daemonID+`","execution_mode":"worktree"}`).Scan(&resourceID); err != nil {
+		t.Fatalf("setup: create workspace_resource: %v", err)
 	}
 	t.Cleanup(func() {
-		testPool.Exec(ctx, `DELETE FROM project_resource WHERE project_id = $1`, projectID)
+		testPool.Exec(ctx, `DELETE FROM workspace_resource WHERE id = $1`, resourceID)
 	})
 
 	var issueID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO issue (workspace_id, project_id, title, status, priority, creator_id, creator_type, number, position)
+		INSERT INTO issue (workspace_id, title, status, priority, creator_id, creator_type, number, position)
 		VALUES (
-			$1, $2, $3, 'in_progress', 'none', $4, 'member',
+			$1, $2, 'in_progress', 'none', $3, 'member',
 			(SELECT COALESCE(MAX(number), 82649) + 1 FROM issue WHERE workspace_id = $1),
 			0
 		)
 		RETURNING id
-	`, testWorkspaceID, projectID, label+" issue", testUserID).Scan(&issueID); err != nil {
+	`, testWorkspaceID, label+" issue", testUserID).Scan(&issueID); err != nil {
 		t.Fatalf("setup: create issue: %v", err)
 	}
 	t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM issue WHERE id = $1`, issueID) })
@@ -840,7 +834,7 @@ func TestClaimTask_WorktreeGateCancelFailureRequeuesBatch(t *testing.T) {
 // how the version string happens to be spelled.
 func TestWorktreeClaimGateIgnoresVersionStrings(t *testing.T) {
 	const daemon = "daemon-a"
-	res := []ProjectResourceData{{
+	res := []WorkspaceResourceData{{
 		ID: "r1", ResourceType: "local_directory",
 		ResourceRef: localDirRef(t, "/Users/dev/game", daemon, "worktree"),
 	}}

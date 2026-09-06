@@ -48,9 +48,6 @@ export function lockedDimensionsFromQuery(
     locked.add("assignee");
   }
   if (nonEmptyArray(query.creatorFilters)) locked.add("creator");
-  if (nonEmptyArray(query.projectFilters) || query.includeNoProject === true) {
-    locked.add("project");
-  }
   if (nonEmptyArray(query.labelFilters)) locked.add("label");
   const propertyFilters = query.propertyFilters;
   if (propertyFilters && typeof propertyFilters === "object") {

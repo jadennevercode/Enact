@@ -13,15 +13,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
 	"github.com/enact-ai/enact/server/internal/service"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // computeNextRun delegates to the shared cron helper in the service package.
@@ -36,7 +36,6 @@ type AutopilotResponse struct {
 	WorkspaceID string  `json:"workspace_id"`
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
-	ProjectID   *string `json:"project_id"`
 	// AssigneeType is "agent" or "squad". Path A from ENA-2429: when set
 	// to "squad", AssigneeID points at squad(id) rather than agent(id) and
 	// dispatch resolves to squad.leader_id at run time.
@@ -200,7 +199,6 @@ func autopilotToResponse(a db.Autopilot, subscribers []db.AutopilotSubscriber) A
 		WorkspaceID:        uuidToString(a.WorkspaceID),
 		Title:              a.Title,
 		Description:        textToPtr(a.Description),
-		ProjectID:          uuidToPtr(a.ProjectID),
 		AssigneeType:       assigneeType,
 		AssigneeID:         uuidToString(a.AssigneeID),
 		Status:             a.Status,
@@ -323,7 +321,6 @@ func runToResponseSlim(r db.AutopilotRun) AutopilotRunResponse {
 type CreateAutopilotRequest struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
-	ProjectID   *string `json:"project_id"`
 	// AssigneeType is optional and defaults to "agent" — preserves backward
 	// compatibility with desktop clients shipped before ENA-2429.
 	AssigneeType       *string           `json:"assignee_type"`
@@ -336,7 +333,6 @@ type CreateAutopilotRequest struct {
 type UpdateAutopilotRequest struct {
 	Title              *string `json:"title"`
 	Description        *string `json:"description"`
-	ProjectID          *string `json:"project_id"`
 	AssigneeType       *string `json:"assignee_type"`
 	AssigneeID         *string `json:"assignee_id"`
 	Status             *string `json:"status"`
@@ -659,11 +655,6 @@ func (h *Handler) CreateAutopilot(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "assignee_type must be agent or squad")
 		return
 	}
-	projectID, ok := h.parseAutopilotProjectID(w, r, req.ProjectID, wsUUID)
-	if !ok {
-		return
-	}
-
 	// Validate before insert so a bad payload doesn't half-create the row.
 	subscriberUUIDs, ok := h.validateAutopilotSubscribers(w, r, req.Subscribers, workspaceID)
 	if !ok {
@@ -696,7 +687,6 @@ func (h *Handler) CreateAutopilot(w http.ResponseWriter, r *http.Request) {
 		CreatedByID:        parseUUID(userID),
 		Description:        ptrToText(req.Description),
 		IssueTitleTemplate: ptrToText(req.IssueTitleTemplate),
-		ProjectID:          projectID,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create autopilot")
@@ -817,7 +807,6 @@ func (h *Handler) UpdateAutopilot(w http.ResponseWriter, r *http.Request) {
 		Description:        prev.Description,
 		AssigneeID:         prev.AssigneeID,
 		IssueTitleTemplate: prev.IssueTitleTemplate,
-		ProjectID:          prev.ProjectID,
 	}
 	if req.Title != nil {
 		params.Title = pgtype.Text{String: *req.Title, Valid: true}
@@ -839,13 +828,6 @@ func (h *Handler) UpdateAutopilot(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		params.IssueTitleTemplate = ptrToText(req.IssueTitleTemplate)
-	}
-	if _, ok := rawFields["project_id"]; ok {
-		projectID, ok := h.parseAutopilotProjectID(w, r, req.ProjectID, prev.WorkspaceID)
-		if !ok {
-			return
-		}
-		params.ProjectID = projectID
 	}
 	// assignee_type and assignee_id are validated as a pair: switching
 	// between agent and squad without supplying a new id would leave the
@@ -1027,9 +1009,9 @@ func (h *Handler) UpdateAutopilot(w http.ResponseWriter, r *http.Request) {
 //     of the instruction / output spec the run produces.
 //
 // Deliberately NOT substantive (cosmetic / routing — they change neither the
-// instruction nor the executor): title (display label) and project_id (which project
-// created issues are filed under). The comparison is faithful because UpdateAutopilot
-// seeds every param from prev, so an omitted field round-trips unchanged.
+// instruction nor the executor): title (display label). The comparison is faithful
+// because UpdateAutopilot seeds every param from prev, so an omitted field
+// round-trips unchanged.
 //
 // Trigger-table edits (cron / timezone / enabled / event_filters) are substantive PER
 // TRIGGER and handled in UpdateAutopilotTrigger; archive and system-pause republish in
@@ -1049,29 +1031,6 @@ func autopilotRuleSubstantiveChange(prev, next db.Autopilot) bool {
 // version is atomic with the autopilot write.
 func (h *Handler) recordAutopilotRuleVersion(ctx context.Context, q *db.Queries, ap db.Autopilot, publishedByType string, publishedByID pgtype.UUID) error {
 	return service.RecordAutopilotRuleVersion(ctx, q, ap, publishedByType, publishedByID)
-}
-
-func (h *Handler) parseAutopilotProjectID(
-	w http.ResponseWriter,
-	r *http.Request,
-	raw *string,
-	workspaceID pgtype.UUID,
-) (pgtype.UUID, bool) {
-	if raw == nil || *raw == "" {
-		return pgtype.UUID{}, true
-	}
-	projectID, ok := parseUUIDOrBadRequest(w, *raw, "project_id")
-	if !ok {
-		return pgtype.UUID{}, false
-	}
-	if _, err := h.Queries.GetProjectInWorkspace(r.Context(), db.GetProjectInWorkspaceParams{
-		ID:          projectID,
-		WorkspaceID: workspaceID,
-	}); err != nil {
-		writeError(w, http.StatusBadRequest, "project_id must reference a project in this workspace")
-		return pgtype.UUID{}, false
-	}
-	return projectID, true
 }
 
 func (h *Handler) DeleteAutopilot(w http.ResponseWriter, r *http.Request) {

@@ -5,7 +5,7 @@
  * dimmed = empty placeholder ("Label", "Cycle", ...).
  *
  * The chip becomes a Pressable when `onPress` is provided. Without onPress
- * it renders as a plain View — used for read-only chips (e.g. project
+ * it renders as a plain View — used for read-only chips (e.g. a
  * chip while picker is deferred).
  */
 import { Pressable, View } from "react-native";

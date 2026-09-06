@@ -162,7 +162,7 @@
     "eyebrow_resume": "继续，或重新开始",
     "headline_first": "给工作区起个名字。",
     "headline_resume": "继续 {{name}}，或新建一个。",
-    "lede_first": "工作区是任务、智能体和项目所在的地方。之后可以邀请同事，或再开一个工作区。",
+    "lede_first": "工作区是你的任务、智能体和 skill 所在的地方。之后你可以邀请同事，或再创建更多工作区。",
     "lede_resume": "用已有的工作区继续，或者另建一个新的——你可以同时属于多个工作区。",
     "name_label": "工作区名称",
     "name_placeholder": "Acme Inc、我的实验室、个人项目...",

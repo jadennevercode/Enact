@@ -3,7 +3,7 @@ title: 核心概念
 description: 一页认识 Enact 的全部核心对象，以及它们之间的关系。
 ---
 
-![Enact 核心对象关系图：Workspace 内，Issue 经分配或提及触发 Agent，Agent 创建 Task，Task 在 Runtime 上执行，结果写回 Issue；Chat 和 Autopilot 是另两个触发源，Skill 和 Squad 挂载于 Agent，Project 组织 issue，通知进入 Inbox](/images/docs/concepts-core-objects.webp)
+![Enact 核心对象关系图：Workspace 内，Issue 经分配或提及触发 Agent，Agent 创建 Task，Task 在 Runtime 上执行，结果写回 Issue；Chat 和 Autopilot 是另两个触发源，Skill 和 Squad 挂载于 Agent，通知进入 Inbox](/images/docs/concepts-core-objects.webp)
 
 ## 基础对象
 
@@ -15,9 +15,13 @@ description: 一页认识 Enact 的全部核心对象，以及它们之间的关
 
 一项要完成的工作，以及围绕它积累的描述、讨论、状态和历史。Issue 是 Enact 中日常工作的基本单位，负责人可以是成员、智能体或小队。详见 [Issues](/issues)。
 
-### 项目
+### 资源
 
-把相关的 issue 组织在一个目标下，跟踪整体进度，并可以绑定仓库、目录等资源供执行时使用。详见[项目](/projects)。
+工作区中的智能体执行时所使用的 GitHub 仓库或本地目录。资源属于工作区，会进入每一次执行的上下文。详见[资源](/resources)。
+
+### 产物
+
+智能体执行产出的文件。产物挂在产出它的 issue 或对话上，并保留全部版本。详见[产物](/artifacts)。
 
 ## 智能体与执行
 
@@ -58,7 +62,7 @@ description: 一页认识 Enact 的全部核心对象，以及它们之间的关
 ## 对象之间的关系
 
 - **工作区**是一切的容器，人和**智能体**都在其中协作。
-- **Issue** 记录一件要做的工作；相关的 issue 用**项目**组织。
+- **Issue** 记录一件要做的工作；工作区本身就是把 issue、**资源**和**产物**圈在一起的边界。
 - 分配、@提及、**对话**或**自动化**触发智能体时，产生一条**执行任务**。
 - 执行任务在某个**运行时**上完成，结果写回触发它的地方。
 - **Skill** 让成功经验跨智能体复用；**小队**让多个智能体协同。

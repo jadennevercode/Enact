@@ -2,10 +2,11 @@ import { useEffect } from "react";
 import { createMemoryRouter, Outlet, useMatches } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 import { IssueDetailPage } from "./pages/issue-detail-page";
-import { ProjectDetailPage } from "./pages/project-detail-page";
-import { ProjectArtifactsPage } from "./pages/project-artifacts-page";
+import { IssueArtifactsPage } from "./pages/issue-artifacts-page";
+import { ChatArtifactsPage } from "./pages/chat-artifacts-page";
 import { AutopilotDetailPage } from "./pages/autopilot-detail-page";
 import { SkillDetailPage } from "./pages/skill-detail-page";
+import { MarketplaceListingPage } from "./pages/marketplace-listing-page";
 import { AgentDetailPage } from "./pages/agent-detail-page";
 import { AiBuilderSessionPage } from "./pages/ai-builder-session-page";
 import { MemberDetailPage } from "./pages/member-detail-page";
@@ -15,12 +16,12 @@ import {
 } from "./pages/runtime-detail-page";
 import { AttachmentPreviewRoute } from "./pages/attachment-preview-page";
 import { IssuesPage } from "@enact/views/issues/components";
-import { ProjectsPage } from "@enact/views/projects/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
 import { MyIssuesPage } from "@enact/views/my-issues";
 import { OntologiesPage } from "@enact/views/ontologies";
 import { SkillsPage } from "@enact/views/skills";
+import { MarketplacePage } from "@enact/views/marketplace";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
 import { DesktopAgentsPage } from "./components/desktop-agents-page";
 import {
@@ -140,18 +141,8 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Issue" },
           },
           {
-            path: "projects",
-            element: <ProjectsPage />,
-            handle: { title: "Projects" },
-          },
-          {
-            path: "projects/:id",
-            element: <ProjectDetailPage />,
-            handle: { title: "Project" },
-          },
-          {
-            path: "projects/:id/artifacts",
-            element: <ProjectArtifactsPage />,
+            path: "issues/:id/artifacts",
+            element: <IssueArtifactsPage />,
             handle: { title: "Artifacts" },
           },
           {
@@ -195,6 +186,16 @@ export const appRoutes: RouteObject[] = [
             element: <SkillDetailPage />,
             handle: { title: "Skill" },
           },
+          {
+            path: "marketplace",
+            element: <MarketplacePage />,
+            handle: { title: "Marketplace" },
+          },
+          {
+            path: "marketplace/:id",
+            element: <MarketplaceListingPage />,
+            handle: { title: "Marketplace" },
+          },
           { path: "agents", element: <DesktopAgentsPage />, handle: { title: "Agents" } },
           {
             path: "agents/new",
@@ -226,14 +227,19 @@ export const appRoutes: RouteObject[] = [
             element: <MemberDetailPage />,
             handle: { title: "Member" },
           },
-          { path: "squads", element: <SquadsPage />, handle: { title: "Squads" } },
+          { path: "squads", element: <SquadsPage />, handle: { title: "Agent Families" } },
           {
             path: "squads/:id",
             element: <SquadDetailPageView />,
-            handle: { title: "Squad" },
+            handle: { title: "Agent Family" },
           },
           { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },
+          {
+            path: "chat/:sessionId/artifacts",
+            element: <ChatArtifactsPage />,
+            handle: { title: "Artifacts" },
+          },
           {
             path: "attachments/:id/preview",
             element: <AttachmentPreviewRoute />,

@@ -15,14 +15,14 @@ An issue is Enact's basic unit for organizing work: a feature, a bug, an investi
 | **Status and priority** | Where the work stands and what to handle first. |
 | **Assignee** | A workspace member, an agent, or a squad. |
 | **Dates, labels, and custom properties** | Planning, categorization, and your team's own fields. |
-| **Project and parent-child relationships** | Fits into a larger body of work, or splits into sub-issues. |
+| **Parent-child relationships** | Splits into sub-issues when the work is too large for one issue. |
 | **Activity and execution log** | Comments, status changes, tasks, and results returned by agents. |
 
 ![Issue detail: description, discussion, properties on the right, and the execution log](/images/docs/quickstart-run-result.webp)
 
 ## Create an issue
 
-Create one from the **Issues** page or inside a project — a title is enough, and every other property can be filled in later.
+Create one from the **Issues** page — a title is enough, and every other property can be filled in later.
 
 Each issue has a number, such as `ENA-123`. The digits increment within the workspace; after an admin changes the workspace's issue prefix, numbers display with the new prefix. See [Workspaces](/workspaces#create-a-workspace).
 
@@ -94,9 +94,7 @@ Built-in statuses are translated into the interface language; a custom status al
 
 An issue is the persistent record of a piece of work; a [task](/tasks) is one concrete run by an agent. One issue can produce several tasks over time — a first implementation, follow-up changes, another check. A completed task only means that run ended; whether the issue is finished is determined by the issue's status.
 
-## Projects and sub-issues
-
-An issue belongs to at most one [project](/projects); the project provides shared instructions and resources for runs inside it. Moving an issue to another project does not create a copy.
+## Sub-issues
 
 Larger work can be split into sub-issues: the parent issue keeps the overall goal while sub-issues progress independently. Parent and child statuses do not affect each other.
 
@@ -104,7 +102,7 @@ Sub-issues can be given a **stage** to advance in batches — 1, 2, 3. When ever
 
 ## Switch views
 
-The Issues page offers five views — list, board, table, Gantt, and swimlane — filterable and sortable by status, assignee, project, and other properties. They all show the same issues.
+The Issues page offers five views — list, board, table, Gantt, and swimlane — filterable and sortable by status, assignee, and other properties. They all show the same issues.
 
 ## Delete an issue
 
@@ -116,7 +114,6 @@ Deletion cannot be undone: the issue with its comments, attachments, and linked 
 
 ## Next steps
 
-- [Projects](/projects) — organize work that takes multiple issues to finish.
 - [Comments](/comments) — discuss, reply, and @mention around an issue.
 - [Assign issues to agents](/assigning-issues) — hand work to an agent and start the first run.
 - [Tasks](/tasks) — learn about queuing, running, retries, and cancellation.

@@ -11,21 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const acquireSDLCDefaultsLock = `-- name: AcquireSDLCDefaultsLock :exec
-SELECT pg_advisory_xact_lock(
-    hashtext('enact-sdlc-defaults:' || $1::uuid::text)
-)
+const acquireCatalogLock = `-- name: AcquireCatalogLock :exec
+SELECT pg_advisory_xact_lock(hashtext('enact-catalog'))
 `
 
-func (q *Queries) AcquireSDLCDefaultsLock(ctx context.Context, workspaceID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, acquireSDLCDefaultsLock, workspaceID)
+// One catalog per deployment, so the key is constant rather than per-workspace:
+// the lock has to be held before the catalog workspace is known, since finding
+// or creating it is the part two booting replicas would race on.
+func (q *Queries) AcquireCatalogLock(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, acquireCatalogLock)
 	return err
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspace (name, slug, description, context, issue_prefix)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
 `
 
 type CreateWorkspaceParams struct {
@@ -54,12 +55,12 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -76,6 +77,13 @@ ws_skills AS (
 ),
 cleared_agent_label_assignments AS (
     DELETE FROM agent_to_label WHERE agent_id IN (SELECT id FROM ws_agents)
+),
+cleared_agent_resources AS (
+    -- agent_resource (knowledge base bindings) carries no FK to either agent
+    -- or workspace_resource, per the repo's no-foreign-key rule, so nothing
+    -- cascades it away. Both of its parents live in this workspace, so reach
+    -- it through the agents.
+    DELETE FROM agent_resource WHERE agent_id IN (SELECT id FROM ws_agents)
 ),
 cleared_skill_label_assignments AS (
     DELETE FROM skill_to_label WHERE skill_id IN (SELECT id FROM ws_skills)
@@ -136,6 +144,12 @@ cleared_issue_properties AS (
 ),
 cleared_quick_actions AS (
     DELETE FROM quick_action WHERE workspace_id = $1
+),
+cleared_recommendation_decisions AS (
+    -- marketplace_recommendation_decision (migration 449) carries no FK, for
+    -- the same reason the marketplace tables do not. Sweep it here so a
+    -- workspace's dismissals commit or roll back with the workspace row.
+    DELETE FROM marketplace_recommendation_decision WHERE workspace_id = $1
 ),
 ws_mcp_servers AS (
     SELECT id FROM workspace_mcp_server WHERE workspace_id = $1
@@ -225,7 +239,7 @@ func (q *Queries) GetDaemonWorkspace(ctx context.Context, id pgtype.UUID) (GetDa
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile FROM workspace
 WHERE id = $1
 `
 
@@ -241,12 +255,12 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -266,7 +280,7 @@ func (q *Queries) GetWorkspaceAttributionFailClosed(ctx context.Context, id pgty
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version FROM workspace
+SELECT id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile FROM workspace
 WHERE slug = $1
 `
 
@@ -282,12 +296,12 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }
@@ -321,7 +335,7 @@ type ListDaemonWorkspacesRow struct {
 // Daemons only need the membership set and display name to discover which
 // workspaces should have local runtimes. Keep this projection intentionally
 // narrow so the periodic consistency check never reads UI-only JSON/text
-// columns such as settings, repos, or context.
+// columns such as settings or context.
 func (q *Queries) ListDaemonWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListDaemonWorkspacesRow, error) {
 	rows, err := q.db.Query(ctx, listDaemonWorkspaces, userID)
 	if err != nil {
@@ -344,8 +358,13 @@ func (q *Queries) ListDaemonWorkspaces(ctx context.Context, userID pgtype.UUID) 
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
-       w.created_at, w.updated_at, w.context, w.repos,
+       w.created_at, w.updated_at, w.context,
        w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
+       -- Dead: nothing reads sdlc_defaults_version since the bundle stopped
+       -- being force-provisioned. The column and this projection stay until a
+       -- release has shipped that does not select it — dropping a column the
+       -- running binary still reads takes /api/workspaces down until every
+       -- replica has restarted. Drop both in a follow-up.
        w.sdlc_defaults_version
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
@@ -353,15 +372,31 @@ WHERE m.user_id = $1
 ORDER BY w.created_at ASC
 `
 
-func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Workspace, error) {
+type ListWorkspacesRow struct {
+	ID                    pgtype.UUID        `json:"id"`
+	Name                  string             `json:"name"`
+	Slug                  string             `json:"slug"`
+	Description           pgtype.Text        `json:"description"`
+	Settings              []byte             `json:"settings"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+	Context               pgtype.Text        `json:"context"`
+	IssuePrefix           string             `json:"issue_prefix"`
+	IssueCounter          int32              `json:"issue_counter"`
+	AvatarUrl             pgtype.Text        `json:"avatar_url"`
+	AttributionFailClosed bool               `json:"attribution_fail_closed"`
+	SdlcDefaultsVersion   int32              `json:"sdlc_defaults_version"`
+}
+
+func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListWorkspacesRow, error) {
 	rows, err := q.db.Query(ctx, listWorkspaces, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Workspace{}
+	items := []ListWorkspacesRow{}
 	for rows.Next() {
-		var i Workspace
+		var i ListWorkspacesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -371,7 +406,6 @@ func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Wor
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Context,
-			&i.Repos,
 			&i.IssuePrefix,
 			&i.IssueCounter,
 			&i.AvatarUrl,
@@ -388,53 +422,38 @@ func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Wor
 	return items, nil
 }
 
-const listWorkspacesNeedingSDLCDefaults = `-- name: ListWorkspacesNeedingSDLCDefaults :many
-SELECT
-    w.id AS workspace_id,
-    owner.user_id AS owner_id,
-    runtime.id AS runtime_id
-FROM workspace w
-JOIN LATERAL (
-    SELECT m.user_id
-    FROM member m
-    WHERE m.workspace_id = w.id
-    ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.id ASC
-    LIMIT 1
-) owner ON TRUE
-LEFT JOIN LATERAL (
-    SELECT ar.id
-    FROM agent_runtime ar
-    WHERE ar.workspace_id = w.id AND ar.status = 'online'
-    ORDER BY (ar.provider = 'codex') DESC,
-             ar.last_seen_at DESC NULLS LAST,
-             ar.created_at ASC,
-             ar.id ASC
-    LIMIT 1
-) runtime ON TRUE
-WHERE w.sdlc_defaults_version < $1
-ORDER BY w.created_at ASC, w.id ASC
+const listWorkspacesWithProfile = `-- name: ListWorkspacesWithProfile :many
+SELECT id, name, slug, profile
+FROM workspace
+WHERE profile <> '{}'::jsonb
+ORDER BY id ASC
 `
 
-type ListWorkspacesNeedingSDLCDefaultsRow struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	OwnerID     pgtype.UUID `json:"owner_id"`
-	RuntimeID   pgtype.UUID `json:"runtime_id"`
+type ListWorkspacesWithProfileRow struct {
+	ID      pgtype.UUID `json:"id"`
+	Name    string      `json:"name"`
+	Slug    string      `json:"slug"`
+	Profile []byte      `json:"profile"`
 }
 
-// Returns one stable owner and the best currently-online runtime for each
-// workspace that has not received the current product-owned SDLC bundle.
-// Codex is preferred because the shipped portfolio was authored and verified
-// against Codex; another online runtime is still a usable portable fallback.
-func (q *Queries) ListWorkspacesNeedingSDLCDefaults(ctx context.Context, sdlcDefaultsVersion int32) ([]ListWorkspacesNeedingSDLCDefaultsRow, error) {
-	rows, err := q.db.Query(ctx, listWorkspacesNeedingSDLCDefaults, sdlcDefaultsVersion)
+// Every workspace that has said what it is, for the recommender's pass over
+// the directory. Sequential by design: one row per workspace is a cardinality
+// where an index costs a write per update and saves nothing.
+func (q *Queries) ListWorkspacesWithProfile(ctx context.Context) ([]ListWorkspacesWithProfileRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspacesWithProfile)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListWorkspacesNeedingSDLCDefaultsRow{}
+	items := []ListWorkspacesWithProfileRow{}
 	for rows.Next() {
-		var i ListWorkspacesNeedingSDLCDefaultsRow
-		if err := rows.Scan(&i.WorkspaceID, &i.OwnerID, &i.RuntimeID); err != nil {
+		var i ListWorkspacesWithProfileRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Profile,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -489,35 +508,17 @@ func (q *Queries) LockWorkspaceForDelete(ctx context.Context, id pgtype.UUID) (p
 	return id_2, err
 }
 
-const setWorkspaceSDLCDefaultsVersion = `-- name: SetWorkspaceSDLCDefaultsVersion :exec
-UPDATE workspace
-SET sdlc_defaults_version = $2,
-    updated_at = now()
-WHERE id = $1
-`
-
-type SetWorkspaceSDLCDefaultsVersionParams struct {
-	ID                  pgtype.UUID `json:"id"`
-	SdlcDefaultsVersion int32       `json:"sdlc_defaults_version"`
-}
-
-func (q *Queries) SetWorkspaceSDLCDefaultsVersion(ctx context.Context, arg SetWorkspaceSDLCDefaultsVersionParams) error {
-	_, err := q.db.Exec(ctx, setWorkspaceSDLCDefaultsVersion, arg.ID, arg.SdlcDefaultsVersion)
-	return err
-}
-
 const updateWorkspace = `-- name: UpdateWorkspace :one
 UPDATE workspace SET
     name = COALESCE($2, name),
     description = COALESCE($3, description),
     context = COALESCE($4, context),
     settings = COALESCE($5, settings),
-    repos = COALESCE($6, repos),
-    issue_prefix = COALESCE($7, issue_prefix),
-    avatar_url = COALESCE($8, avatar_url),
+    issue_prefix = COALESCE($6, issue_prefix),
+    avatar_url = COALESCE($7, avatar_url),
     updated_at = now()
 WHERE id = $1
-RETURNING id, name, slug, description, settings, created_at, updated_at, context, repos, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
 `
 
 type UpdateWorkspaceParams struct {
@@ -526,7 +527,6 @@ type UpdateWorkspaceParams struct {
 	Description pgtype.Text `json:"description"`
 	Context     pgtype.Text `json:"context"`
 	Settings    []byte      `json:"settings"`
-	Repos       []byte      `json:"repos"`
 	IssuePrefix pgtype.Text `json:"issue_prefix"`
 	AvatarUrl   pgtype.Text `json:"avatar_url"`
 }
@@ -538,7 +538,6 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		arg.Description,
 		arg.Context,
 		arg.Settings,
-		arg.Repos,
 		arg.IssuePrefix,
 		arg.AvatarUrl,
 	)
@@ -552,12 +551,50 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Context,
-		&i.Repos,
 		&i.IssuePrefix,
 		&i.IssueCounter,
 		&i.AvatarUrl,
 		&i.AttributionFailClosed,
 		&i.SdlcDefaultsVersion,
+		&i.Profile,
+	)
+	return i, err
+}
+
+const updateWorkspaceProfile = `-- name: UpdateWorkspaceProfile :one
+UPDATE workspace SET
+    profile = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, name, slug, description, settings, created_at, updated_at, context, issue_prefix, issue_counter, avatar_url, attribution_fail_closed, sdlc_defaults_version, profile
+`
+
+type UpdateWorkspaceProfileParams struct {
+	ID      pgtype.UUID `json:"id"`
+	Profile []byte      `json:"profile"`
+}
+
+// The profile is replaced whole, never merged. It is authored in one act — a
+// form submit, or a confirmed interview — and a field the author cleared has
+// to actually clear, which a jsonb merge would silently keep.
+func (q *Queries) UpdateWorkspaceProfile(ctx context.Context, arg UpdateWorkspaceProfileParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, updateWorkspaceProfile, arg.ID, arg.Profile)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.Settings,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Context,
+		&i.IssuePrefix,
+		&i.IssueCounter,
+		&i.AvatarUrl,
+		&i.AttributionFailClosed,
+		&i.SdlcDefaultsVersion,
+		&i.Profile,
 	)
 	return i, err
 }

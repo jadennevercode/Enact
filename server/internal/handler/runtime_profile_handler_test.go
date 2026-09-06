@@ -17,13 +17,25 @@ func insertRuntimeProfileFixture(t *testing.T, ctx context.Context, displayName,
 	t.Helper()
 	var profileID string
 	if err := testPool.QueryRow(ctx, `
-		INSERT INTO runtime_profile (workspace_id, display_name, protocol_family, command_name, created_by)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO runtime_profile (workspace_id, display_name, protocol_family, command_name, created_by, owner_id)
+		VALUES ($1, $2, $3, $4, $5, $5)
 		RETURNING id
 	`, testWorkspaceID, displayName, protocolFamily, commandName, testUserID).Scan(&profileID); err != nil {
 		t.Fatalf("insert runtime_profile fixture: %v", err)
 	}
+	// A profile is only reachable through a publication row (migration 416):
+	// workspace_id records where it was created, but every read path — and the
+	// daemon — resolves access through runtime_profile_workspace. A fixture
+	// without this row is invisible, which is a different test than the ones
+	// below intend to write.
+	if _, err := testPool.Exec(ctx, `
+		INSERT INTO runtime_profile_workspace (profile_id, workspace_id, published_by)
+		VALUES ($1, $2, $3)
+	`, profileID, testWorkspaceID, testUserID); err != nil {
+		t.Fatalf("publish runtime_profile fixture: %v", err)
+	}
 	t.Cleanup(func() {
+		testPool.Exec(context.Background(), `DELETE FROM runtime_profile_workspace WHERE profile_id = $1`, profileID)
 		testPool.Exec(context.Background(), `DELETE FROM runtime_profile WHERE id = $1`, profileID)
 	})
 	return profileID
@@ -249,17 +261,16 @@ func TestRuntimeProfileDeleteLockSerializesRegistration(t *testing.T) {
 		"codex",
 		"profile-lock-codex",
 	)
-	params := db.LockRuntimeProfileForDeleteParams{
-		ID:          parseUUID(profileID),
-		WorkspaceID: parseUUID(testWorkspaceID),
-	}
+	// Deleting the definition is the owner's act and reaches every workspace it
+	// was published into, so the delete lock is keyed on the profile alone.
+	lockTarget := parseUUID(profileID)
 
 	deleteTx, err := testPool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin delete transaction: %v", err)
 	}
 	defer deleteTx.Rollback(ctx)
-	if _, err := testHandler.Queries.WithTx(deleteTx).LockRuntimeProfileForDelete(ctx, params); err != nil {
+	if _, err := testHandler.Queries.WithTx(deleteTx).LockRuntimeProfileForDelete(ctx, lockTarget); err != nil {
 		t.Fatalf("lock profile for delete: %v", err)
 	}
 
@@ -273,7 +284,10 @@ func TestRuntimeProfileDeleteLockSerializesRegistration(t *testing.T) {
 	}
 	_, err = testHandler.Queries.WithTx(registrationTx).LockRuntimeProfileForRegistration(
 		ctx,
-		db.LockRuntimeProfileForRegistrationParams(params),
+		db.LockRuntimeProfileForRegistrationParams{
+			ID:          lockTarget,
+			WorkspaceID: parseUUID(testWorkspaceID),
+		},
 	)
 	if err == nil {
 		t.Fatal("registration lock unexpectedly bypassed the profile delete lock")

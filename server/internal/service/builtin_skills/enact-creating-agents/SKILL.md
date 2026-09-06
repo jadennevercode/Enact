@@ -109,6 +109,44 @@ enact agent copy <source-agent-id> --runtime-id <target> --model <model>  # cros
   `--runtime-config`), or with `agent env set` after the copy exists.
 - `--no-skills` skips copying the source's skill bindings.
 
+## System agents are not created through this path
+
+Two agents in a workspace carry a `system_key` and a product-owned instruction
+layer: **Mika** (`mika`) and the **Retrospect Agent** (`retrospect`). Neither can
+be produced by `agent create` — `CreateAgentRequest` accepts neither `kind` nor
+`system_key`, deliberately, so a client cannot mint an agent that claims the
+system instruction layer. Each has its own endpoint: `POST /api/agents/mika` and
+`POST /api/agents/retrospect`. There is no `enact` subcommand for either yet;
+they are configured from the app's **New agent** page.
+
+The Retrospect Agent reviews finished work and proposes changes to a skill, an
+agent's instructions, or a squad leader's instructions. `POST
+/api/agents/retrospect` takes `runtime_id` (must resolve in this workspace, and
+the caller must be allowed to bind agents to it), `language` (`en`, `zh`, `ko`,
+or `ja` — anything else is a 400; it selects the stored description only), and
+an optional `model`. It creates one agent named `Retrospect`, `visibility:
+workspace`, invocable by the whole workspace, `max_concurrent_tasks: 1`.
+
+Facts that change how you should act on it:
+
+- **Idempotent, and archived still counts as configured.** A second call returns
+  200 with the existing agent — including an archived one — instead of creating
+  a second. It never un-archives. So "the workspace already has one" is the
+  answer to a 200, not a reason to retry, and restoring an archived one is
+  `agent restore`, not another POST.
+- **Its existence is the feature switch.** A workspace files retrospect
+  sub-issues under finished issues exactly when it has one that is neither
+  archived nor unbound. There is no workspace flag mirroring this; archiving
+  the agent is how a workspace turns the loop off.
+- **`instructions` is workspace notes, not the whole prompt.** What you write
+  there is layered UNDER the product-owned contract, and adds to it. It cannot
+  remove the agreement gate before a configuration change, the repetition bar
+  before proposing one, or the duty to report what was rejected. Writing those
+  away is a no-op, not an override.
+- **Everything else is an ordinary agent.** `agent get`, `agent update`, skill
+  binding, env, and MCP all behave as documented above, and the name is free to
+  change — nothing server-side keys off it.
+
 ## Field contracts
 
 | Field | Persisted as | Validated? | Consumed by |
@@ -301,9 +339,30 @@ at compile time and loaded from `SKILL.md` + sibling files. Both reach the
 provider as skill content — which is why capability belongs in a bound skill,
 not pasted into `instructions`.
 
+## Knowledge bases
+
+Skills tell an agent HOW to do something and are loaded into every run that
+uses them. A knowledge base tells it what the team KNOWS, and is loaded
+progressively: the brief carries an index of titles and descriptions, and the
+agent opens individual documents from disk when they are relevant. Put a
+recurring rule in a skill; put domain background, product decisions and
+accumulated context in a knowledge base.
+
+A knowledge base is a workspace resource (`--type knowledge_repo`) bound per
+agent. The resource alone does nothing — an unbound base is invisible to every
+agent, which is what keeps a domain handbook out of the brief of an agent that
+triages inbox mail.
+
+```bash
+enact agent knowledge add <agent-id> --resource-id <resource-id> --output json
+enact agent knowledge list <agent-id> --output json
+```
+
+See the `enact-resources` skill for creating the resource itself.
+
 ## Side effects needing approval
 
-Read-only (safe): `agent get`, `agent skills list`, `agent env get`.
+Read-only (safe): `agent get`, `agent skills list`, `agent knowledge list`, `agent env get`.
 
 State-changing (require an explicit instruction — do not run speculatively):
 
@@ -332,6 +391,9 @@ State-changing (require an explicit instruction — do not run speculatively):
   unknown provider-level literal is — model-specific gaps fail at run time.
 - "`set` and `add` are interchangeable for skills." `set` replaces all
   bindings; using it when you meant `add` silently removes capabilities.
+- "`agent create` can produce Mika or the Retrospect Agent." It cannot —
+  `system_key` is not an accepted field. Use the dedicated endpoint; it is
+  idempotent per workspace and returns the existing agent, archived or not.
 
 ## References
 

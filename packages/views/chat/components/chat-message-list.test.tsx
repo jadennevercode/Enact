@@ -493,7 +493,7 @@ describe("ChatMessageList onboarding starter cards", () => {
     );
     expect(onQuickAction).toHaveBeenCalledWith({
       label: "Get a board up in minutes",
-      prompt: "Turn our current goals into a project board",
+      prompt: "Turn our current goals into an issue board",
     });
   });
 

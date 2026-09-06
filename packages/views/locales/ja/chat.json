@@ -25,12 +25,7 @@
     "runtime_required_toast": "メッセージは送信されませんでした — 先にこのエージェントのランタイムを設定してください",
     "attachment_bind_failed_toast": "メッセージは送信されましたが、ファイルを添付できませんでした。しばらくしてからもう一度お試しください。",
     "add_tooltip": "追加",
-    "upload_file": "画像・ファイル",
-    "project_context": "プロジェクトコンテキスト",
-    "change_project_context": "プロジェクトコンテキストを変更",
-    "remove_project_context": "プロジェクトコンテキストを削除",
-    "no_projects": "プロジェクトがまだありません",
-    "project_context_unsupported": "プロジェクトの説明は適用されません——このエージェントのデーモンのアップグレードが必要です"
+    "upload_file": "画像・ファイル"
   },
   "queue": {
     "title_other": "キュー内のメッセージ {{count}} 件",
@@ -138,7 +133,7 @@
   "empty_state": {
     "first_time_title": "エージェントとチャット",
     "first_time_intro": "✨ エージェントはあなたのワークスペースを把握しています —",
-    "first_time_pillars": "タスク、プロジェクト、スキル",
+    "first_time_pillars": "タスク、エージェント、スキル",
     "first_time_pillars_suffix": "。",
     "first_time_actions": "要約を頼んだり、今日の予定を立てたり、簡単なタスクを任せたりしてみましょう。",
     "returning_title_named": "こんにちは、{{name}} です",
@@ -156,8 +151,8 @@
     "cta": "開始",
     "board": {
       "title": "数分でタスクボードを整える",
-      "desc": "目標をひとこと。プロジェクトを作り、タスクに分けて優先度まで並べます。",
-      "prompt": "今の目標をプロジェクトボードに整理して"
+      "desc": "目標を教えてください。タスクに分解して優先度を設定します。",
+      "prompt": "現在の目標をタスクボードにしてください"
     },
     "delegate": {
       "title": "まず一件任せてみる",
@@ -223,11 +218,11 @@
     "unarchive": "アーカイブ解除",
     "archived_title": "アーカイブ済み",
     "pinned_segment": "ピン留め済み",
-    "no_project_segment": "プロジェクトなし",
     "row_actions_aria": "チャットの操作"
   },
   "header": {
     "view_profile": "Agent のプロフィール",
+    "artifacts": "成果物",
     "rename": "名前を変更",
     "delete": "チャットを削除",
     "archive": "チャットをアーカイブ",

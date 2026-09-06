@@ -45,7 +45,6 @@ describe("ApiClient edit guards", () => {
       creator_type: "member",
       creator_id: "user-1",
       parent_issue_id: null,
-      project_id: null,
       position: 0,
       start_date: null,
       due_date: null,
@@ -1007,11 +1006,10 @@ describe("ApiClient", () => {
     await client.getAutopilot("ap-1");
     await client.createAutopilot({
       title: "Daily triage",
-      project_id: "project-1",
       assignee_id: "agent-1",
       execution_mode: "create_issue",
     });
-    await client.updateAutopilot("ap-1", { status: "paused", project_id: null });
+    await client.updateAutopilot("ap-1", { status: "paused" });
     await client.deleteAutopilot("ap-1");
     await client.triggerAutopilot("ap-1");
     await client.getAutopilotQuotaUsage();
@@ -1040,7 +1038,6 @@ describe("ApiClient", () => {
         method: "POST",
         body: JSON.stringify({
           title: "Daily triage",
-          project_id: "project-1",
           assignee_id: "agent-1",
           execution_mode: "create_issue",
         }),
@@ -1048,7 +1045,7 @@ describe("ApiClient", () => {
       {
         url: "https://api.example.test/api/autopilots/ap-1",
         method: "PATCH",
-        body: JSON.stringify({ status: "paused", project_id: null }),
+        body: JSON.stringify({ status: "paused" }),
       },
       { url: "https://api.example.test/api/autopilots/ap-1", method: "DELETE" },
       {
@@ -1974,6 +1971,21 @@ describe("ApiClient explicit workspace targeting", () => {
     expect(slugHeaderOf(fetchMock)).toBe("proxima-centauri");
   });
 
+  it("sends the given slug on Retrospect Agent creation", async () => {
+    // Same reason as Mika's: on desktop the tab system also writes the ambient
+    // workspace, so a flow acting on a named workspace must say which one
+    // rather than trusting whichever tab happens to be active.
+    const fetchMock = stubOk({ id: "agent-1" });
+    await new ApiClient("https://api.example.test").createRetrospectAgent(
+      { runtime_id: "runtime-1", language: "en" },
+      "proxima-centauri",
+    );
+    expect(slugHeaderOf(fetchMock)).toBe("proxima-centauri");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/agents/retrospect",
+    );
+  });
+
   it("sends the given slug when listing another workspace's runtimes", async () => {
     const fetchMock = stubOk([]);
     await new ApiClient("https://api.example.test").listRuntimes(
@@ -2440,7 +2452,7 @@ describe("clientErrorMessage", () => {
   });
 });
 
-describe("ApiClient project artifacts response schema", () => {
+describe("ApiClient artifacts response schema", () => {
   const validArtifact = {
     id: "att-1",
     workspace_id: "ws-1",
@@ -2482,21 +2494,22 @@ describe("ApiClient project artifacts response schema", () => {
     });
 
     const client = new ApiClient("https://api.example.test");
-    await expect(client.listProjectArtifacts("proj-1", 25)).resolves.toEqual({
+    await expect(client.listIssueArtifacts("iss-1", 25)).resolves.toEqual({
       artifacts: [validArtifact],
       total: 1,
       truncated: false,
+      scope_issue_id: null,
     });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/projects/proj-1/artifacts?limit=25",
+      "https://api.example.test/api/issues/iss-1/artifacts?limit=25",
     );
   });
 
   it("omits the query string when no limit is given", async () => {
     const fetchMock = respondWith({ artifacts: [], total: 0, truncated: false });
-    await new ApiClient("https://api.example.test").listProjectArtifacts("proj-1");
+    await new ApiClient("https://api.example.test").listIssueArtifacts("iss-1");
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/projects/proj-1/artifacts",
+      "https://api.example.test/api/issues/iss-1/artifacts",
     );
   });
 
@@ -2504,28 +2517,69 @@ describe("ApiClient project artifacts response schema", () => {
     respondWith({ artifacts: "not-an-array", total: "lots" });
 
     await expect(
-      new ApiClient("https://api.example.test").listProjectArtifacts("proj-1"),
-    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
+      new ApiClient("https://api.example.test").listIssueArtifacts("iss-1"),
+    ).resolves.toEqual({
+      artifacts: [],
+      total: 0,
+      truncated: false,
+      scope_issue_id: null,
+    });
   });
 
-  // The owner-issue fields are the newest part of the contract, so a server
-  // that predates them must still yield a listing the browser can render —
-  // unfoldered, but never empty.
-  it("keeps files from a server that omits the owner-issue fields", async () => {
-    const { owner_issue_id, owner_issue_number, owner_issue_identifier, owner_issue_title, ...legacy } =
-      validArtifact;
-    respondWith({ artifacts: [legacy], total: 1 });
+  // A chat upload belongs to no issue, so the server omits all four owner
+  // fields. That is the ordinary shape of every row in a chat listing — it
+  // must parse to nulls, never degrade the whole response.
+  it("parses a chat upload, which carries no owner-issue fields, to null owners", async () => {
+    const {
+      owner_issue_id: _id,
+      owner_issue_number: _number,
+      owner_issue_identifier: _identifier,
+      owner_issue_title: _title,
+      ...chatUpload
+    } = validArtifact;
+    respondWith({
+      artifacts: [
+        { ...chatUpload, issue_id: null, chat_session_id: "cs-1", chat_message_id: "cm-1" },
+      ],
+      total: 1,
+    });
 
-    const result = await new ApiClient("https://api.example.test").listProjectArtifacts("proj-1");
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listChatSessionArtifacts("cs-1");
     expect(result.artifacts).toHaveLength(1);
     expect(result.artifacts[0]).toMatchObject({
       id: "att-1",
       filename: "report.pdf",
-      owner_issue_id: "",
-      owner_issue_identifier: "",
-      owner_issue_number: 0,
+      owner_issue_id: null,
+      owner_issue_identifier: null,
+      owner_issue_number: null,
+      owner_issue_title: null,
     });
     expect(result.truncated).toBe(false);
+  });
+
+  // Explicit nulls on the wire are equivalent to omission — a server is free
+  // to send either for a file with no owning issue.
+  it("accepts explicit null owner fields as well as absent ones", async () => {
+    respondWith({
+      artifacts: [
+        {
+          ...validArtifact,
+          owner_issue_id: null,
+          owner_issue_number: null,
+          owner_issue_identifier: null,
+          owner_issue_title: null,
+        },
+      ],
+      total: 1,
+    });
+
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listIssueArtifacts("iss-1");
+    expect(result.artifacts[0]?.owner_issue_id).toBeNull();
+    expect(result.artifacts[0]?.owner_issue_number).toBeNull();
   });
 
   // A single malformed row must not take the rest of the listing with it —
@@ -2534,7 +2588,121 @@ describe("ApiClient project artifacts response schema", () => {
     respondWith({ artifacts: [validArtifact, { filename: "no-id.pdf" }], total: 2 });
 
     await expect(
-      new ApiClient("https://api.example.test").listProjectArtifacts("proj-1"),
-    ).resolves.toEqual({ artifacts: [], total: 0, truncated: false });
+      new ApiClient("https://api.example.test").listIssueArtifacts("iss-1"),
+    ).resolves.toEqual({
+      artifacts: [],
+      total: 0,
+      truncated: false,
+      scope_issue_id: null,
+    });
+  });
+
+  // The issue route accepts a human-readable identifier, so the client cannot
+  // assume the id it asked with is the id its own rows carry. scope_issue_id
+  // is how the server names the issue it resolved.
+  it("keeps scope_issue_id so the caller can tell own files from a child's", async () => {
+    respondWith({
+      artifacts: [validArtifact],
+      total: 1,
+      scope_issue_id: "issue-uuid-1",
+    });
+
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listIssueArtifacts("ENC-42");
+    expect(result.scope_issue_id).toBe("issue-uuid-1");
+  });
+
+  it("targets the chat endpoint for a session listing", async () => {
+    const fetchMock = respondWith({ artifacts: [], total: 0 });
+    await new ApiClient("https://api.example.test").listChatSessionArtifacts(
+      "cs-1",
+      10,
+    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/chat/sessions/cs-1/artifacts?limit=10",
+    );
+  });
+});
+
+// Every new endpoint parses through a schema, so each needs a malformed-response
+// test: the resource list backs the workspace's repos/directories settings, and
+// a drifted row must degrade to an empty (but rendering) list, never throw.
+describe("ApiClient workspace resources response schema", () => {
+  const validResource = {
+    id: "res-1",
+    workspace_id: "ws-1",
+    resource_type: "github_repo",
+    resource_ref: { url: "https://github.com/acme/app" },
+    label: "App",
+    position: 0,
+    created_at: "2026-08-20T00:00:00Z",
+    created_by: "user-1",
+  };
+
+  function respondWith(body: unknown) {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("returns the parsed listing from the workspace-wide endpoint", async () => {
+    const fetchMock = respondWith({ resources: [validResource], total: 1 });
+
+    await expect(
+      new ApiClient("https://api.example.test").listWorkspaceResources(),
+    ).resolves.toEqual({ resources: [validResource], total: 1 });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/resources",
+    );
+  });
+
+  it("falls back to an empty listing when the response is malformed", async () => {
+    respondWith({ resources: "not-an-array", total: "lots" });
+
+    await expect(
+      new ApiClient("https://api.example.test").listWorkspaceResources(),
+    ).resolves.toEqual({ resources: [], total: 0 });
+  });
+
+  // resource_type stays an open string: a server that adds a type must not
+  // blank the whole list in an installed desktop build.
+  it("keeps a row whose resource_type this build does not know", async () => {
+    respondWith({
+      resources: [{ ...validResource, resource_type: "gitlab_repo" }],
+      total: 1,
+    });
+
+    const result = await new ApiClient(
+      "https://api.example.test",
+    ).listWorkspaceResources();
+    expect(result.resources).toHaveLength(1);
+    expect(result.resources[0]?.resource_type).toBe("gitlab_repo");
+  });
+
+  it("falls back to an empty resource when a create response is malformed", async () => {
+    respondWith({ id: 42 });
+
+    await expect(
+      new ApiClient("https://api.example.test").createWorkspaceResource({
+        resource_type: "github_repo",
+        resource_ref: { url: "https://github.com/acme/app" },
+      }),
+    ).resolves.toMatchObject({ id: "", resource_type: "github_repo" });
+  });
+
+  it("falls back to an empty resource when an update response is malformed", async () => {
+    respondWith({ resource_ref: "not-an-object" });
+
+    await expect(
+      new ApiClient("https://api.example.test").updateWorkspaceResource("res-1", {
+        label: "Renamed",
+      }),
+    ).resolves.toMatchObject({ id: "" });
   });
 });

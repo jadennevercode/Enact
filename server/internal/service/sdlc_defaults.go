@@ -6,20 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
-	"path"
 	"strings"
 
+	"github.com/enact-ai/enact/server/internal/skillversion"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"gopkg.in/yaml.v3"
 )
 
-// SDLCDefaultsVersion is persisted per workspace after the product-owned
-// bundle has been provisioned. Bump it whenever an existing deployment must
-// re-apply changed skill files or portfolio metadata.
-const SDLCDefaultsVersion int32 = 2
+// SDLCDefaultsVersion stamps the provenance of a provisioned skill so a later
+// bundle can tell its own writes from a workspace's edits. It no longer drives
+// reconciliation: the bundle is provisioned once, into the catalog workspace,
+// and reaches a team as a Marketplace install.
 
 const (
 	sdlcSkillsRoot       = "builtin_sdlc/skills"
@@ -169,73 +167,7 @@ func SDLCDefaultAgentSystemInstructions(systemKey string) (string, bool) {
 }
 
 func LoadSDLCDefaultSkills() ([]AgentSkillData, error) {
-	entries, err := fs.ReadDir(sdlcSkillsFS, sdlcSkillsRoot)
-	if err != nil {
-		return nil, err
-	}
-	skills := make([]AgentSkillData, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		dir := path.Join(sdlcSkillsRoot, entry.Name())
-		content, err := fs.ReadFile(sdlcSkillsFS, path.Join(dir, "SKILL.md"))
-		if err != nil {
-			return nil, fmt.Errorf("load %s/SKILL.md: %w", entry.Name(), err)
-		}
-		description, err := skillFrontmatterDescription(content)
-		if err != nil {
-			return nil, fmt.Errorf("load %s frontmatter: %w", entry.Name(), err)
-		}
-		skill := AgentSkillData{
-			Name:        entry.Name(),
-			Description: description,
-			Content:     string(content),
-		}
-		err = fs.WalkDir(sdlcSkillsFS, dir, func(filePath string, d fs.DirEntry, walkErr error) error {
-			if walkErr != nil || d.IsDir() {
-				return walkErr
-			}
-			rel := strings.TrimPrefix(filePath, dir+"/")
-			if rel == "SKILL.md" {
-				return nil
-			}
-			data, err := fs.ReadFile(sdlcSkillsFS, filePath)
-			if err != nil {
-				return err
-			}
-			skill.Files = append(skill.Files, AgentSkillFileData{Path: rel, Content: string(data)})
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("load %s files: %w", entry.Name(), err)
-		}
-		skills = append(skills, skill)
-	}
-	return skills, nil
-}
-
-func skillFrontmatterDescription(content []byte) (string, error) {
-	text := string(content)
-	if !strings.HasPrefix(text, "---\n") {
-		return "", errors.New("missing YAML frontmatter")
-	}
-	rest := text[len("---\n"):]
-	end := strings.Index(rest, "\n---")
-	if end < 0 {
-		return "", errors.New("unterminated YAML frontmatter")
-	}
-	var frontmatter struct {
-		Name        string `yaml:"name"`
-		Description string `yaml:"description"`
-	}
-	if err := yaml.Unmarshal([]byte(rest[:end]), &frontmatter); err != nil {
-		return "", err
-	}
-	if strings.TrimSpace(frontmatter.Name) == "" || strings.TrimSpace(frontmatter.Description) == "" {
-		return "", errors.New("name and description are required")
-	}
-	return strings.TrimSpace(frontmatter.Description), nil
+	return loadBundledSkills(sdlcSkillsFS, sdlcSkillsRoot, "")
 }
 
 func sdlcSkillConfig(name string) []byte {
@@ -243,7 +175,7 @@ func sdlcSkillConfig(name string) []byte {
 		"origin": map[string]any{
 			"type":    "enact_builtin_sdlc",
 			"key":     name,
-			"version": SDLCDefaultsVersion,
+			"version": CatalogVersion,
 		},
 	})
 	return config
@@ -269,10 +201,6 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 	if !workspaceID.Valid || !ownerID.Valid {
 		return errors.New("workspace and owner are required")
 	}
-	if err := q.AcquireSDLCDefaultsLock(ctx, workspaceID); err != nil {
-		return fmt.Errorf("lock workspace defaults: %w", err)
-	}
-
 	skills, err := LoadSDLCDefaultSkills()
 	if err != nil {
 		return err
@@ -309,6 +237,7 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 		if err := q.DeleteSkillFilesBySkill(ctx, row.ID); err != nil {
 			return fmt.Errorf("replace files for %s: %w", skill.Name, err)
 		}
+		versionFiles := make([]skillversion.File, 0, len(skill.Files))
 		for _, file := range skill.Files {
 			if _, err := q.UpsertSkillFile(ctx, db.UpsertSkillFileParams{
 				SkillID: row.ID,
@@ -317,6 +246,21 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 			}); err != nil {
 				return fmt.Errorf("write %s/%s: %w", skill.Name, file.Path, err)
 			}
+			versionFiles = append(versionFiles, skillversion.File{Path: file.Path, Content: file.Content})
+		}
+		// Snapshot the bundle the way every other skill write does. Record()
+		// skips unchanged content, so the reconciliation this function runs on
+		// every boot adds a version only when the shipped bundle actually moved
+		// — which is exactly the event a workspace owner wants to see in the
+		// history when a product-owned skill changes under them.
+		if _, _, err := skillversion.Record(ctx, q, skillversion.Input{
+			Skill:   row,
+			Files:   versionFiles,
+			Source:  skillversion.SourceSeed,
+			ActorID: ownerID,
+			Summary: "Provisioned by Enact (catalog " + CatalogVersion + ")",
+		}); err != nil {
+			return fmt.Errorf("record version for %s: %w", skill.Name, err)
 		}
 		skillIDs[skill.Name] = row.ID
 	}
@@ -380,7 +324,7 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 	}
 
 	leaderID := agentIDs[sdlcDefaultSquad.LeaderKey]
-	squad, err := q.FindSDLCDefaultSquadForUpdate(ctx, db.FindSDLCDefaultSquadForUpdateParams{
+	squad, err := q.FindProductSquadForUpdate(ctx, db.FindProductSquadForUpdateParams{
 		WorkspaceID: workspaceID,
 		SystemKey:   pgtype.Text{String: sdlcDefaultSquad.SystemKey, Valid: true},
 		DefaultName: sdlcDefaultSquad.Name,
@@ -445,68 +389,5 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 		}
 	}
 
-	if err := q.SetWorkspaceSDLCDefaultsVersion(ctx, db.SetWorkspaceSDLCDefaultsVersionParams{
-		ID:                  workspaceID,
-		SdlcDefaultsVersion: SDLCDefaultsVersion,
-	}); err != nil {
-		return fmt.Errorf("mark SDLC defaults version: %w", err)
-	}
 	return nil
-}
-
-type SDLCTxStarter interface {
-	Begin(context.Context) (pgx.Tx, error)
-}
-
-// EnsureSDLCDefaultsForAllWorkspaces upgrades every workspace that is behind
-// the embedded bundle. One conflicting workspace does not prevent the server
-// from repairing the rest; callers receive an errors.Join summary to log.
-func EnsureSDLCDefaultsForAllWorkspaces(ctx context.Context, txStarter SDLCTxStarter, q *db.Queries) error {
-	targets, err := q.ListWorkspacesNeedingSDLCDefaults(ctx, SDLCDefaultsVersion)
-	if err != nil {
-		return fmt.Errorf("list workspaces needing SDLC defaults: %w", err)
-	}
-	var failures []error
-	for _, target := range targets {
-		tx, err := txStarter.Begin(ctx)
-		if err != nil {
-			failures = append(failures, fmt.Errorf("workspace %v: begin: %w", target.WorkspaceID.Bytes, err))
-			continue
-		}
-		qtx := q.WithTx(tx)
-		err = EnsureSDLCDefaultsInTx(ctx, qtx, target.WorkspaceID, target.OwnerID, target.RuntimeID)
-		if err == nil {
-			err = tx.Commit(ctx)
-		}
-		if err != nil {
-			_ = tx.Rollback(ctx)
-			failures = append(failures, fmt.Errorf("workspace %v: %w", target.WorkspaceID.Bytes, err))
-		}
-	}
-	return errors.Join(failures...)
-}
-
-// BindUnboundSDLCDefaultAgents attaches newly provisioned portable roles to a
-// real runtime once a daemon has registered one for the workspace.
-func BindUnboundSDLCDefaultAgents(ctx context.Context, txStarter SDLCTxStarter, q *db.Queries, workspaceID, runtimeID pgtype.UUID) error {
-	if !workspaceID.Valid || !runtimeID.Valid {
-		return nil
-	}
-	tx, err := txStarter.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	qtx := q.WithTx(tx)
-	if err := qtx.AcquireSDLCDefaultsLock(ctx, workspaceID); err != nil {
-		return err
-	}
-	if _, err := qtx.BindUnboundSDLCDefaultAgents(ctx, db.BindUnboundSDLCDefaultAgentsParams{
-		WorkspaceID: workspaceID,
-		RuntimeID:   runtimeID,
-		SystemKeys:  SDLCDefaultSystemKeys(),
-	}); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }

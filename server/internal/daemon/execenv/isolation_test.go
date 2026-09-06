@@ -64,8 +64,7 @@ func TestPreparationHelperRoundTripsReuse(t *testing.T) {
 		Task: TaskContextForEnv{
 			IssueID:         "issue-helper-reuse",
 			NewCommentCount: 1,
-			ProjectID:       "project-helper-reuse",
-			ProjectResources: []ProjectResourceForEnv{
+			WorkspaceResources: []WorkspaceResourceForEnv{
 				{
 					ID:           "resource-helper-reuse",
 					ResourceType: "github_repo",
@@ -82,21 +81,20 @@ func TestPreparationHelperRoundTripsReuse(t *testing.T) {
 	}
 }
 
-func TestPreparationHelperRoundTripsProjectResources(t *testing.T) {
+func TestPreparationHelperRoundTripsWorkspaceResources(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	params := PrepareParams{
 		WorkspacesRoot: t.TempDir(),
-		WorkspaceID:    "ws-helper-project-resource",
+		WorkspaceID:    "ws-helper-workspace-resource",
 		TaskID:         "88888888-7777-6666-5555-444444444444",
 		Provider:       "claude",
 		Task: TaskContextForEnv{
-			IssueID:   "issue-helper-project-resource",
-			ProjectID: "project-helper-project-resource",
-			ProjectResources: []ProjectResourceForEnv{
+			IssueID: "issue-helper-workspace-resource",
+			WorkspaceResources: []WorkspaceResourceForEnv{
 				{
-					ID:           "resource-helper-project-resource",
+					ID:           "resource-helper-workspace-resource",
 					ResourceType: "github_repo",
 					ResourceRef:  json.RawMessage(`{"url":"https://github.com/enact-ai/enact"}`),
 					Label:        "Enact",
@@ -113,14 +111,14 @@ func TestPreparationHelperRoundTripsProjectResources(t *testing.T) {
 
 	data, err := os.ReadFile(filepath.Join(env.WorkDir, ".enact", "project", "resources.json"))
 	if err != nil {
-		t.Fatalf("read project resources: %v", err)
+		t.Fatalf("read workspace resources: %v", err)
 	}
-	var got projectResourceFile
+	var got workspaceResourceFile
 	if err := json.Unmarshal(data, &got); err != nil {
-		t.Fatalf("decode project resources: %v", err)
+		t.Fatalf("decode workspace resources: %v", err)
 	}
 	if len(got.Resources) != 1 {
-		t.Fatalf("project resources = %#v, want one resource", got.Resources)
+		t.Fatalf("workspace resources = %#v, want one resource", got.Resources)
 	}
 	resource := got.Resources[0]
 	var ref struct {
@@ -129,11 +127,11 @@ func TestPreparationHelperRoundTripsProjectResources(t *testing.T) {
 	if err := json.Unmarshal(resource.ResourceRef, &ref); err != nil {
 		t.Fatalf("decode resource ref: %v", err)
 	}
-	if resource.ID != "resource-helper-project-resource" ||
+	if resource.ID != "resource-helper-workspace-resource" ||
 		resource.ResourceType != "github_repo" ||
 		ref.URL != "https://github.com/enact-ai/enact" ||
 		resource.Label != "Enact" {
-		t.Fatalf("project resource = %#v, want all fields preserved", resource)
+		t.Fatalf("workspace resource = %#v, want all fields preserved", resource)
 	}
 }
 

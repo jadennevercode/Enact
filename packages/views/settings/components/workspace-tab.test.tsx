@@ -17,7 +17,6 @@ const workspaceRef = vi.hoisted(() => ({
     description: "",
     context: "",
     issue_prefix: "TES",
-    repos: [] as { url: string }[],
   },
 }));
 const membersRef = vi.hoisted(() => ({
@@ -31,6 +30,14 @@ vi.mock("@tanstack/react-query", () => ({
     getQueryData: vi.fn(() => []),
     invalidateQueries: mockInvalidateQueries,
   }),
+}));
+
+// The project-profile section is its own surface with its own query and its
+// own tests. Stubbing it keeps this file's react-query stand-in from having to
+// serve two different queries, which it cannot: it answers every useQuery with
+// the member list.
+vi.mock("./workspace-profile-section", () => ({
+  WorkspaceProfileSection: () => null,
 }));
 
 vi.mock("@enact/core/paths", () => ({
@@ -111,7 +118,6 @@ describe("WorkspaceTab — automatic updates", () => {
       description: "",
       context: "",
       issue_prefix: "TES",
-      repos: [],
     };
     membersRef.current = [{ user_id: "user-1", role: "owner" }];
     mockUpdateWorkspace.mockImplementation(

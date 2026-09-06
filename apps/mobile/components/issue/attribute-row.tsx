@@ -12,13 +12,10 @@
  *   priority  →  issue/[id]/picker/priority
  *   assignee  →  issue/[id]/picker/assignee
  *   labels    →  issue/[id]/picker/label   (multi-select, stays open)
- *   project   →  issue/[id]/picker/project
  *   due_date  →  issue/[id]/picker/due-date
  */
-import { useMemo } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import type {
   Issue,
   IssuePriority,
@@ -28,10 +25,8 @@ import { Text } from "@/components/ui/text";
 import { StatusIcon } from "@/components/ui/status-icon";
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { ActorAvatar } from "@/components/ui/actor-avatar";
-import { ProjectIcon } from "@/components/ui/project-icon";
 import { AttributeChip } from "./attribute-chip";
 import { useActorLookup } from "@/data/use-actor-name";
-import { findProject, projectListOptions } from "@/data/queries/projects";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { PRIORITY_LABEL as PRIORITY_FULL_LABEL } from "@/lib/issue-status";
 import { useIssueStatuses } from "@/lib/use-issue-statuses";
@@ -54,7 +49,6 @@ type IssuePickerField =
   | "priority"
   | "assignee"
   | "label"
-  | "project"
   | "due-date";
 
 const ISSUE_PICKER_PATHNAMES = {
@@ -62,7 +56,6 @@ const ISSUE_PICKER_PATHNAMES = {
   priority: "/[workspace]/issue/[id]/picker/priority",
   assignee: "/[workspace]/issue/[id]/picker/assignee",
   label: "/[workspace]/issue/[id]/picker/label",
-  project: "/[workspace]/issue/[id]/picker/project",
   "due-date": "/[workspace]/issue/[id]/picker/due-date",
 } as const satisfies Record<IssuePickerField, string>;
 
@@ -74,21 +67,12 @@ function formatDueDate(iso: string | null): string | null {
 }
 
 export function AttributeRow({ issue }: { issue: Issue }) {
-  const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const wsSlug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
   const { getName } = useActorLookup();
   // The chip shows the issue's own status, which may be a custom one — name
   // and colour come from the workspace catalog, the glyph from its category.
   // (ENA-6243)
   const { categoryOf, colorOf, labelOf } = useIssueStatuses();
-
-  // Project read-only — fetch list to look up the title + icon. Cheap
-  // (cached after first issue-detail visit).
-  const { data: projects = [] } = useQuery(projectListOptions(wsId));
-  const project = useMemo(
-    () => findProject(projects, issue.project_id),
-    [projects, issue.project_id],
-  );
 
   const labels = issue.labels ?? [];
 
@@ -187,25 +171,6 @@ export function AttributeRow({ issue }: { issue: Issue }) {
           onPress={() => openPicker("label")}
         />
       ) : null}
-
-      {/* Project */}
-      {project ? (
-        <AttributeChip
-          icon={<ProjectIcon icon={project.icon} size="sm" />}
-          label={project.title}
-          variant="filled"
-          onPress={() => openPicker("project")}
-        />
-      ) : (
-        <AttributeChip
-          icon={
-            <View className="size-3.5 rounded-sm border border-dashed border-muted-foreground/40" />
-          }
-          label="Project"
-          variant="dimmed"
-          onPress={() => openPicker("project")}
-        />
-      )}
 
       {/* Due date */}
       <AttributeChip

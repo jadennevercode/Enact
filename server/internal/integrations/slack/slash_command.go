@@ -66,7 +66,7 @@ type slashQueries interface {
 // command needs to hand the invoker's prompt to the agent. *service.TaskService
 // satisfies it; tests supply a fake.
 type quickCreateEnqueuer interface {
-	EnqueueQuickCreateTask(ctx context.Context, workspaceID, requesterID, agentID, squadID pgtype.UUID, prompt, priority, dueDate string, projectID, parentIssueID pgtype.UUID, attachmentIDs []pgtype.UUID) (db.AgentTaskQueue, error)
+	EnqueueQuickCreateTask(ctx context.Context, workspaceID, requesterID, agentID, squadID pgtype.UUID, prompt, priority, dueDate string, parentIssueID pgtype.UUID, attachmentIDs []pgtype.UUID) (db.AgentTaskQueue, error)
 }
 
 // SlashCommandProcessor handles the Slack `/issue` slash command end to end.
@@ -181,7 +181,7 @@ func (p *SlashCommandProcessor) process(ctx context.Context, cmd slack.SlashComm
 
 	// Hand the raw natural-language prompt to the installation's agent as a
 	// quick-create task; the agent authors the well-formed issue in the
-	// background and attributes it to the bound member. No project / parent /
+	// background and attributes it to the bound member. No parent /
 	// attachments and no squad routing — the slash command targets the
 	// installation's own agent directly.
 	if _, err := p.tasks.EnqueueQuickCreateTask(
@@ -193,7 +193,6 @@ func (p *SlashCommandProcessor) process(ctx context.Context, cmd slack.SlashComm
 		prompt,
 		"",            // no explicit priority
 		"",            // no explicit due date
-		pgtype.UUID{}, // no project
 		pgtype.UUID{}, // no parent issue
 		nil,           // no attachments
 	); err != nil {

@@ -24,7 +24,12 @@ export type InboxItemType =
   // Quick create whose outcome could not be verified. Distinct from
   // quick_create_failed because it must NOT be rendered with failure framing:
   // the issue may actually have been created.
-  | "quick_create_unconfirmed";
+  | "quick_create_unconfirmed"
+  // The welcome item a new workspace opens with. It points at the setup
+  // checklist issue, which is where the explanation actually lives — `body`
+  // here renders as plain text, and what a new member needs is headings and
+  // links. Mirrors `workspacesetup.InboxTypeWelcome` on the server.
+  | "workspace_welcome";
 
 /**
  * One workspace's unread inbox count in the cross-workspace summary

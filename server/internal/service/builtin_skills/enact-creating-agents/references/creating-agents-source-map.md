@@ -75,6 +75,19 @@ go test ./internal/service -run TestBuiltinSkillsConformToTemplate
 | `UpdateAgent` persists / clears `mcp_config` | 944–948, 1060–1061 | Tri-state from the raw body: key omitted → no change; literal `null` → `ClearAgentMcpConfig`; object → replace. No 400 like `custom_env` — `mcp_config` IS updatable here |
 | `description` ≤ 255 on update too | 921–924 | same cap re-checked on update |
 
+## System agents — `server/internal/handler/retrospect_agent.go`, `server/internal/service/builtin_agents.go`
+
+| Contract | Line | Behavior |
+|---|---|---|
+| Dedicated routes, not `POST /api/agents` | `cmd/server/router.go` `/api/agents` group | `POST /mika` → `h.CreateMikaAgent`, `POST /retrospect` → `h.CreateRetrospectAgent`; `CreateAgentRequest` exposes no `kind`/`system_key`, so a client cannot mint a system agent through the public create |
+| Retrospect request body | `retrospect_agent.go` `createRetrospectAgentRequest` | `runtime_id`, `language`, optional `model`; `language` must be a key of `retrospectAgentDescriptions` (`en`/`zh`/`ko`/`ja`) or 400, and only selects the stored description |
+| Product-defined identity | `retrospect_agent.go` 22–30 | `max_concurrent_tasks: 1`, `visibility: workspace`, `permission_mode: public_to`, `emoji:🔭` avatar; name is `service.RetrospectDefaultName` (`"Retrospect"`), which nothing keys off |
+| Idempotent, archived counts as configured | `retrospect_agent.go` `resolveRetrospectAgent` | `GetAgentBySystemKeyIncludingArchived` short-circuits with 200 before any create, and never un-archives — the unique system-identity index (migration 172) has no archived predicate, so a second insert would 500 |
+| Two members configuring at once | `retrospect_agent.go` advisory lock | `pg_advisory_xact_lock` on `"retrospect:"+workspaceID` inside the create tx, re-checking after it; the unique index alone does not stop two owners/runtimes |
+| Workspace-invocable on create | `retrospect_agent.go` `replaceInvocationTargetsWithQueries` | One `invocationTargetWorkspace` target, so assignment and @-mention are open to every member |
+| Existence is the feature switch | `internal/service/retrospect.go` `liveRetrospectAgent`; `cmd/server/retrospect_listeners.go` | Sub-issue filing looks up `system_key='retrospect'` and treats archived or `runtime_id IS NULL` as `ErrNoRetrospectAgent`; no workspace column mirrors it (migration 440 dropped the predecessor's flag) |
+| `instructions` are workspace notes under a product prompt | `internal/service/builtin_agents.go` `ComposeSystemAgentInstructions` / `ComposeRetrospectInstructions` | Product text first, then `retrospectWorkspaceNotesSection`, then the agent's own `instructions`; the section states that notes cannot remove the agreement gate, the repetition bar, or the rejection report |
+
 ## Runtime model/thinking discovery — `server/pkg/agent/{models,thinking}.go`
 
 | Contract | Line | Behavior |
@@ -143,3 +156,9 @@ go test ./internal/service -run TestBuiltinSkillsConformToTemplate
 | `CreateAgentParams` | generated from `queries/agent.sql` | typed params include nullable `Model`, `ThinkingLevel`, and `ServiceTier` |
 | `UpdateAgent` SET | generated from `queries/agent.sql` | COALESCE updates include model/thinking/service tier; dedicated clear queries restore each nullable override |
 | `UpdateAgentCustomEnv` (called by the `UpdateAgentEnv` handler) | 2652 | `SET custom_env = $2` — the only write path for env values |
+
+## Knowledge bases
+
+- `enact agent knowledge list/add/remove` live in `server/cmd/enact/cmd_agent_knowledge.go` and call `GET/POST /api/agents/{id}/knowledge` and `DELETE /api/agents/{id}/knowledge/{resourceId}`, served by `server/internal/handler/agent_knowledge.go` and registered in `server/cmd/server/router.go`.
+- Bindings are rows in `agent_resource` (migration `444_agent_resource`). `GET /api/agents/{id}` also returns them as `knowledge_sources` (`agentKnowledgeSummaries`), so the detail view needs no second request; the list endpoint deliberately omits the field rather than pay a per-agent join for something no list view renders.
+- A binding is what puts the brief's `## Knowledge` index in front of the agent; see the `enact-resources` skill's source map for the claim-time routing and the daemon-side checkout and indexing.

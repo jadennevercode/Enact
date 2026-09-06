@@ -1,0 +1,64 @@
+# 变更请求 · history/comments.yaml
+#
+# 字段对齐流程附录 F。这个文件是跨 revision 的：一条变更请求在某一版被提出，
+# 在另一版被关闭，中间可能被延后好几轮。所以它不住在任何 revision 目录里。
+#
+# 检查它的是 changes_closed（状态必须是 resolved 或 deferred，deferred 要有 owner
+# 和 target_revision）和 locators_resolve_or_orphaned（target_object_id 要么在本版
+# 解析得到，要么这条自己带 orphaned: true）。
+
+comments:
+  # --- 一条从 comment 归一化来的变更请求 ---
+  - change_id: chg.001
+    requested_by: DE1
+    source_revision: r0002              # 在哪一版被提出
+    target_object_id: rel.reverses      # locators_resolve_or_orphaned 查这个字段
+    target_object_ids: [rel.reverses]   # 附录 F 允许一条变更动多个对象
+    change_type: comment                # comment | direct_edit | evidence_correction | scope_change
+    intent: 基数 1:1 的依据只有手册 §6.2，确认这是业务规则还是 ERP 的实现限制
+    rationale: 政策 v4 未提这条限制；如果只是系统限制，不该写进本体的基数
+
+    # impact 步骤的产出。这四个字段是给人看的"改这条会动到什么"。
+    affected_layers: [ontology]
+    affected_stages: [candidate, cypher]
+    affected_competency_questions: [cq.003]
+    affected_access_scopes: [gl_reversal]
+
+    new_or_updated_evidence: null       # 证据纠正类的变更在这里指向新快照
+    resolution: 确认为业务规则，基数保持 1:1，在 definition 里写明依据
+    status: resolved                    # resolved | deferred
+    target_revision: r0003              # 在哪一版被关闭
+    semantic_diff_link: revisions/r0003/semantic-diff.yaml
+    validator_and_import_outcome: ready_for_review 通过
+
+  # --- 延后：owner 和 target_revision 缺一不可，否则 changes_closed 不通过 ---
+  - change_id: chg.002
+    requested_by: PO1
+    source_revision: r0002
+    target_object_id: evt.reversal_approved
+    change_type: comment
+    intent: process_ir 补上审批人这个参与者；流程图上有，产物里没有
+    rationale: 缺了审批人，cq.002"该由谁审批"在这一版答不了
+    affected_layers: [process, mapping, ontology]
+    affected_stages: [process_ir, alignment, candidate, cypher]
+    affected_competency_questions: [cq.002]
+    affected_access_scopes: []
+    status: deferred
+    owner: PO1                          # 一个具体的人或角色，不是"团队"
+    target_revision: next               # 可以写 next，但不能空
+    resolution: 等 PO 确认审批人在流程图上的岗位口径后一并改
+
+  # --- 定位符断了：本版里 con.single_reversal 已经不存在 ---
+  # orphaned 标在这里，不标在 trace-index.yaml——变更记录是人会读的地方，
+  # 派生索引重建一次就把标记抹平了，没人会注意到链断过。
+  # 注意 status 仍然要是 resolved 或 deferred：断链是这条待办的属性，不是它的结局。
+  - change_id: chg.004
+    requested_by: OE1
+    source_revision: r0002
+    target_object_id: con.single_reversal
+    change_type: comment
+    intent: 这条约束该不该留
+    orphaned: true
+    orphaned_note: r0003 里这个对象已被 pol.single_reversal 替代，见 semantic-diff 的 removed
+    status: resolved
+    target_revision: r0003

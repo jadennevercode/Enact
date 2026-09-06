@@ -71,6 +71,10 @@ const (
 	EventSkillUpdated = "skill:updated"
 	EventSkillDeleted = "skill:deleted"
 
+	// A retrospect has no events of its own. It is an issue, so it arrives on
+	// the clients through EventIssueCreated and EventIssueUpdated like any
+	// other work, and the caches that already answer those answer it too.
+
 	// Chat events
 	EventChatMessage = "chat:message"
 	EventChatDone    = "chat:done"
@@ -89,13 +93,10 @@ const (
 	EventChatSessionDeleted  = "chat:session_deleted"
 	EventChatSessionUpdated  = "chat:session_updated"
 
-	// Project events
-	EventProjectCreated         = "project:created"
-	EventProjectUpdated         = "project:updated"
-	EventProjectDeleted         = "project:deleted"
-	EventProjectResourceCreated = "project_resource:created"
-	EventProjectResourceUpdated = "project_resource:updated"
-	EventProjectResourceDeleted = "project_resource:deleted"
+	// Workspace resource events
+	EventWorkspaceResourceCreated = "workspace_resource:created"
+	EventWorkspaceResourceUpdated = "workspace_resource:updated"
+	EventWorkspaceResourceDeleted = "workspace_resource:deleted"
 
 	// Label events
 	EventLabelCreated       = "label:created"

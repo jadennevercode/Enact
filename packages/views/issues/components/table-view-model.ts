@@ -107,8 +107,6 @@ function columnValue(
       return issue.assignee_id;
     case "labels":
       return issue.labels?.map((label) => label.name).join(", ");
-    case "project":
-      return issue.project_id;
     case "start_date":
       return issue.start_date;
     case "due_date":

@@ -421,8 +421,8 @@ func TestIssueWriteStoresCanonicalStatusKey(t *testing.T) {
 // TestCustomTerminalStatusCountsAsTerminalInSQL covers the SQL-side consumers
 // the Go resolver cannot reach. Before issue_effective_status existed, each of
 // these read the status literal, so a custom status in the `done` category
-// still counted as open for the duplicate guard and was missed by sub-issue and
-// project completion counts.
+// still counted as open for the duplicate guard and was missed by sub-issue
+// completion counts.
 func TestCustomTerminalStatusCountsAsTerminalInSQL(t *testing.T) {
 	ctx := context.Background()
 	createTestCustomStatus(t, "gate_approved_s", issuestatus.Done)
@@ -453,37 +453,6 @@ func TestCustomTerminalStatusCountsAsTerminalInSQL(t *testing.T) {
 			NormalizedTitle: title,
 		}); err == nil {
 			t.Error("an issue on a custom done status must not count as an active duplicate")
-		}
-	})
-
-	t.Run("project completion counts it as done", func(t *testing.T) {
-		var projectID pgtype.UUID
-		if err := testPool.QueryRow(ctx,
-			`INSERT INTO project (workspace_id, title) VALUES ($1, 'Status SQL Probe') RETURNING id`,
-			parseUUID(testWorkspaceID)).Scan(&projectID); err != nil {
-			t.Fatalf("create project fixture: %v", err)
-		}
-		t.Cleanup(func() { testPool.Exec(ctx, `DELETE FROM project WHERE id = $1`, projectID) })
-
-		for _, id := range []pgtype.UUID{
-			mkIssue("sql project custom done", "gate_approved_s"),
-			mkIssue("sql project open", "todo"),
-		} {
-			if _, err := testPool.Exec(ctx, `UPDATE issue SET project_id = $1 WHERE id = $2`, projectID, id); err != nil {
-				t.Fatalf("attach to project: %v", err)
-			}
-		}
-
-		stats, err := testHandler.Queries.GetProjectIssueStats(ctx, []pgtype.UUID{projectID})
-		if err != nil {
-			t.Fatalf("GetProjectIssueStats: %v", err)
-		}
-		if len(stats) != 1 {
-			t.Fatalf("expected stats for one project, got %d", len(stats))
-		}
-		if stats[0].TotalCount != 2 || stats[0].DoneCount != 1 {
-			t.Errorf("project stats = %d done / %d total, want 1/2 (the custom done status must count)",
-				stats[0].DoneCount, stats[0].TotalCount)
 		}
 	})
 

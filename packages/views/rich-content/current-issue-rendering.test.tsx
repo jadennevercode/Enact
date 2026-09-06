@@ -60,7 +60,6 @@ vi.mock("@enact/core/paths", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@enact/core/paths")>()),
   useWorkspacePaths: () => ({
     issueDetail: (id: string) => `/acme/issues/${id}`,
-    projectDetail: (id: string) => `/acme/projects/${id}`,
   }),
   useWorkspaceSlug: () => "acme",
 }));

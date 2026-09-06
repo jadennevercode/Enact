@@ -9,23 +9,23 @@ describe("useRecentContextStore.recordVisit", () => {
   it("keeps visits namespaced by workspace id", () => {
     const { recordVisit } = useRecentContextStore.getState();
     recordVisit("ws-a", { type: "issue", id: "issue-1" });
-    recordVisit("ws-b", { type: "project", id: "project-1" });
+    recordVisit("ws-b", { type: "issue", id: "issue-2" });
 
     const state = useRecentContextStore.getState().byWorkspace;
     expect(state["ws-a"]?.map((e) => `${e.type}:${e.id}`)).toEqual(["issue:issue-1"]);
-    expect(state["ws-b"]?.map((e) => `${e.type}:${e.id}`)).toEqual(["project:project-1"]);
+    expect(state["ws-b"]?.map((e) => `${e.type}:${e.id}`)).toEqual(["issue:issue-2"]);
   });
 
   it("moves the most recent visit to the front and dedupes by type and id", () => {
     const { recordVisit } = useRecentContextStore.getState();
-    recordVisit("ws-a", { type: "issue", id: "same-id" });
-    recordVisit("ws-a", { type: "project", id: "same-id" });
-    recordVisit("ws-a", { type: "issue", id: "same-id" });
+    recordVisit("ws-a", { type: "issue", id: "issue-1" });
+    recordVisit("ws-a", { type: "issue", id: "issue-2" });
+    recordVisit("ws-a", { type: "issue", id: "issue-1" });
 
     const keys = useRecentContextStore
       .getState()
       .byWorkspace["ws-a"]?.map((e) => `${e.type}:${e.id}`);
-    expect(keys).toEqual(["issue:same-id", "project:same-id"]);
+    expect(keys).toEqual(["issue:issue-1", "issue:issue-2"]);
   });
 
   it("caps each workspace bucket at 20 entries", () => {
@@ -42,7 +42,6 @@ describe("useRecentContextStore.recordVisit", () => {
       label: "ENA-1",
       subtitle: "Fix login redirect",
       status: "todo",
-      projectStatus: "in_progress",
       icon: "🚀",
     });
 
@@ -52,7 +51,6 @@ describe("useRecentContextStore.recordVisit", () => {
       label: "ENA-1",
       subtitle: "Fix login redirect",
       status: "todo",
-      projectStatus: "in_progress",
       icon: "🚀",
     });
   });
@@ -62,10 +60,10 @@ describe("useRecentContextStore.forgetContext", () => {
   it("removes a single context from the workspace bucket", () => {
     const { recordVisit, forgetContext } = useRecentContextStore.getState();
     recordVisit("ws-a", { type: "issue", id: "issue-1" });
-    recordVisit("ws-a", { type: "project", id: "project-1" });
+    recordVisit("ws-a", { type: "issue", id: "issue-3" });
     recordVisit("ws-a", { type: "issue", id: "issue-2" });
 
-    forgetContext("ws-a", { type: "project", id: "project-1" });
+    forgetContext("ws-a", { type: "issue", id: "issue-3" });
 
     const keys = useRecentContextStore
       .getState()

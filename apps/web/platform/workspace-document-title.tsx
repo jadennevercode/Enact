@@ -15,7 +15,7 @@ import { SITE_TITLE, formatDocumentTitle } from "./document-title";
  * The URL → title resolution is not ours: it is the same pure subject parser
  * plus cache-backed presentation hook that names desktop's tabs, so a browser
  * tab and a desktop tab for one URL always read identically, in the user's
- * locale, and a renamed project or a changed issue title re-titles the tab
+ * locale, and a changed issue title re-titles the tab
  * live. Every query behind it is cache-only, so this costs no extra request.
  *
  * Mounted once per dashboard layout — one writer for the whole tree. A page

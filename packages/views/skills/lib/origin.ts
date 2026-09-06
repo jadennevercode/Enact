@@ -7,7 +7,13 @@ import type { Skill, SkillSummary } from "@enact/core/types";
  * `{ type: "manual" }` for them to keep the consumer code uniform.
  */
 export type OriginInfo = {
-  type: "runtime_local" | "clawhub" | "skills_sh" | "github" | "manual";
+  type:
+    | "runtime_local"
+    | "clawhub"
+    | "skills_sh"
+    | "github"
+    | "marketplace"
+    | "manual";
   provider?: string;
   runtime_id?: string;
   source_path?: string;
@@ -18,6 +24,14 @@ export type OriginInfo = {
   path?: string;
   skill?: string;
   slug?: string;
+  // Marketplace provenance. Deliberately not refreshable: a marketplace update
+  // is an install of a version the reader chose, not a re-fetch of whatever a
+  // URL serves today, so it goes through the listing rather than through
+  // `POST /api/skills/:id/refresh`.
+  listing_id?: string;
+  version_id?: string;
+  version?: string;
+  name?: string;
 };
 
 export function readOrigin(skill: SkillSummary): OriginInfo {
@@ -28,6 +42,7 @@ export function readOrigin(skill: SkillSummary): OriginInfo {
   if (raw?.type === "clawhub") return raw;
   if (raw?.type === "skills_sh") return raw;
   if (raw?.type === "github") return raw;
+  if (raw?.type === "marketplace") return raw;
   return { type: "manual" };
 }
 

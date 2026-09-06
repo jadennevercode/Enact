@@ -40,7 +40,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("other daemon is skipped", func(t *testing.T) {
-		got, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		got, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp, DaemonID: otherDaemon})},
 		}, thisDaemon)
 		if err != nil || got != nil {
@@ -49,7 +49,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("non-matching type is skipped", func(t *testing.T) {
-		got, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		got, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: "github_repo", ResourceRef: json.RawMessage(`{"url":"https://x"}`)},
 		}, thisDaemon)
 		if err != nil || got != nil {
@@ -58,7 +58,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("matching daemon returns assignment", func(t *testing.T) {
-		got, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		got, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp, DaemonID: thisDaemon})},
 		}, thisDaemon)
 		if err != nil {
@@ -76,7 +76,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("missing daemon_id is rejected", func(t *testing.T) {
-		_, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		_, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp})},
 		}, thisDaemon)
 		if err == nil {
@@ -85,7 +85,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("relative path is rejected", func(t *testing.T) {
-		_, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		_, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: "relative/path", DaemonID: thisDaemon})},
 		}, thisDaemon)
 		if err == nil {
@@ -94,7 +94,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 	})
 
 	t.Run("malformed ref json fails", func(t *testing.T) {
-		_, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		_, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: json.RawMessage(`{not json`)},
 		}, thisDaemon)
 		if err == nil {
@@ -104,11 +104,11 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 
 	t.Run("two local_directory rows on this daemon fail fast", func(t *testing.T) {
 		// Server-side findLocalDirectoryConflict enforces one
-		// local_directory per (project, daemon). If two rows are
+		// local_directory per (workspace, daemon). If two rows are
 		// somehow present (older API client, direct DB writes), the
 		// daemon must refuse to guess which directory to execute in.
 		tmp2 := t.TempDir()
-		_, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		_, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp, DaemonID: thisDaemon})},
 			{ID: "r2", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp2, DaemonID: thisDaemon})},
 		}, thisDaemon)
@@ -125,7 +125,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 		// different machines is allowed; this daemon only resolves
 		// its own row regardless of how many other-daemon rows are
 		// in the list.
-		got, err := findLocalDirectoryAssignment([]ProjectResourceData{
+		got, err := findLocalDirectoryAssignment([]WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp, DaemonID: thisDaemon})},
 			{ID: "r2", ResourceType: localDirectoryResourceType, ResourceRef: mkRef(t, localDirectoryRef{LocalPath: tmp, DaemonID: otherDaemon})},
 		}, thisDaemon)
@@ -147,13 +147,13 @@ func TestAcquireLocalDirectoryLockSkipsSquadLeaderTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	resources := []ProjectResourceData{
+	resources := []WorkspaceResourceData{
 		{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw},
 	}
 
 	worker := Task{
 		ID:               "worker-task",
-		ProjectResources: resources,
+		WorkspaceResources: resources,
 	}
 	assignment, err := localDirectoryAssignmentForTask(worker, daemonID)
 	if err != nil {
@@ -171,7 +171,7 @@ func TestAcquireLocalDirectoryLockSkipsSquadLeaderTasks(t *testing.T) {
 	leader := Task{
 		ID:               "leader-task",
 		IsLeaderTask:     true,
-		ProjectResources: resources,
+		WorkspaceResources: resources,
 	}
 	leaderAssignment, err := localDirectoryAssignmentForTask(leader, daemonID)
 	if err != nil {
@@ -600,7 +600,7 @@ func TestAcquireLocalDirectoryLock_CancelDuringWait(t *testing.T) {
 	}
 	task := Task{
 		ID: newTaskID,
-		ProjectResources: []ProjectResourceData{
+		WorkspaceResources: []WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: ref},
 		},
 	}
@@ -685,7 +685,7 @@ func TestAcquireLocalDirectoryLock_ParentCancellationReportsWaitFailure(t *testi
 	}
 	task := Task{
 		ID: "task-waiter",
-		ProjectResources: []ProjectResourceData{
+		WorkspaceResources: []WorkspaceResourceData{
 			{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: ref},
 		},
 	}
@@ -771,7 +771,7 @@ func TestAcquireLocalDirectoryLock_EarlyFailureReportsWithCancelledParent(t *tes
 		t.Run(tc.name, func(t *testing.T) {
 			task := Task{
 				ID: "task-invalid-local-directory",
-				ProjectResources: []ProjectResourceData{
+				WorkspaceResources: []WorkspaceResourceData{
 					{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: tc.ref},
 				},
 			}
@@ -808,11 +808,11 @@ func TestAcquireLocalDirectoryLockSkipsWorktreeMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	resources := []ProjectResourceData{
+	resources := []WorkspaceResourceData{
 		{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw},
 	}
 
-	assignment, err := localDirectoryAssignmentForTask(Task{ID: "t1", ProjectResources: resources}, daemonID)
+	assignment, err := localDirectoryAssignmentForTask(Task{ID: "t1", WorkspaceResources: resources}, daemonID)
 	if err != nil {
 		t.Fatalf("assignment: %v", err)
 	}
@@ -831,7 +831,7 @@ func TestAcquireLocalDirectoryLockSkipsWorktreeMode(t *testing.T) {
 	for _, taskID := range []string{"task-a", "task-b"} {
 		release, abort := d.acquireLocalDirectoryLockIfNeeded(
 			context.Background(),
-			Task{ID: taskID, ProjectResources: resources},
+			Task{ID: taskID, WorkspaceResources: resources},
 			slog.Default(),
 		)
 		if abort {
@@ -891,11 +891,11 @@ func TestAcquireLocalDirectoryLockRejectsUnknownExecutionMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	resources := []ProjectResourceData{
+	resources := []WorkspaceResourceData{
 		{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw},
 	}
 
-	assignment, err := localDirectoryAssignmentForTask(Task{ID: "t1", ProjectResources: resources}, daemonID)
+	assignment, err := localDirectoryAssignmentForTask(Task{ID: "t1", WorkspaceResources: resources}, daemonID)
 	if err != nil {
 		t.Fatalf("assignment: %v", err)
 	}
@@ -932,7 +932,7 @@ func TestAcquireLocalDirectoryLockRejectsUnknownExecutionMode(t *testing.T) {
 	}
 	release, abort := d.acquireLocalDirectoryLockIfNeeded(
 		context.Background(),
-		Task{ID: "t1", ProjectResources: resources},
+		Task{ID: "t1", WorkspaceResources: resources},
 		slog.Default(),
 	)
 	if !abort {
@@ -1010,12 +1010,12 @@ func TestChatTaskSkipsPathMutexButKeepsAssignment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	resources := []ProjectResourceData{
+	resources := []WorkspaceResourceData{
 		{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw},
 	}
 
-	worker := Task{ID: "worker-task", IssueID: "issue-1", ProjectResources: resources}
-	chat := Task{ID: "chat-task", ChatSessionID: "sess-1", ProjectResources: resources}
+	worker := Task{ID: "worker-task", IssueID: "issue-1", WorkspaceResources: resources}
+	chat := Task{ID: "chat-task", ChatSessionID: "sess-1", WorkspaceResources: resources}
 
 	// Property 1: the chat task still binds to the user's directory.
 	chatAssignment, err := localDirectoryAssignmentForTask(chat, daemonID)
@@ -1113,7 +1113,7 @@ func TestChatTaskOnWorktreeResourceKeepsAssignment(t *testing.T) {
 	chat := Task{
 		ID:               "chat-task",
 		ChatSessionID:    "sess-1",
-		ProjectResources: []ProjectResourceData{{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw}},
+		WorkspaceResources: []WorkspaceResourceData{{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw}},
 	}
 
 	assignment, err := localDirectoryAssignmentForTask(chat, daemonID)
@@ -1156,11 +1156,11 @@ func TestIssueTasksStillSerialiseOnPathMutex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	resources := []ProjectResourceData{
+	resources := []WorkspaceResourceData{
 		{ID: "r1", ResourceType: localDirectoryResourceType, ResourceRef: raw},
 	}
-	first := Task{ID: "issue-task-1", IssueID: "issue-1", ProjectResources: resources}
-	second := Task{ID: "issue-task-2", IssueID: "issue-2", ProjectResources: resources}
+	first := Task{ID: "issue-task-1", IssueID: "issue-1", WorkspaceResources: resources}
+	second := Task{ID: "issue-task-2", IssueID: "issue-2", WorkspaceResources: resources}
 
 	// Parking calls back to the server to flip the row into
 	// waiting_local_directory, so this daemon — unlike the exempt-path ones

@@ -26,7 +26,7 @@ diff，全都挂在同一个任务下——没人需要重新捋一遍上下文�
 - **[分配任务](https://enact.ai/docs/assigning-issues) →** 像挑同事一样挑个智能体当负责人，剩下的它自己来。
 - **[自动化](https://enact.ai/docs/autopilots) →** 日报、巡检、周报按 cron 自己跑，不用有人催。
 - **[Chat](https://enact.ai/docs/chat) →** 直接问工作区，或者不建任务就把活派出去。
-- **[项目](https://enact.ai/docs/projects) →** 把工作归类，顺手挂上智能体要用的仓库和文档。
+- **[资源](https://enact.ai/docs/resources) →** 挂上智能体要动的仓库和本地目录，每次运行都会拿到。
 
 ## 看得见，也管得住
 
@@ -35,6 +35,7 @@ diff，全都挂在同一个任务下——没人需要重新捋一遍上下文�
 - **[执行日志](https://enact.ai/docs/tasks) →** 每次工具调用、命令和报错都带时间戳，可以完整回放。
 - **Token 用量 →** 每次运行花了多少，按智能体、按任务都看得到。
 - **[人来验收](https://enact.ai/docs/issues) →** 活先进入审核中，不直接进 main。上不上线你说了算。
+- **[产物](https://enact.ai/docs/artifacts) →** 运行产出的每个文件都汇总在一处，版本历史一并保留。
 - **[收件箱](https://enact.ai/docs/inbox) →** 只在智能体需要你拍板时提醒你，而不是每一步都来烦你。
 - **[重试与超时](https://enact.ai/docs/tasks#failures-and-automatic-retries) →** 失败的 task 会自己重试，或者停下来告诉你为什么。
 
@@ -44,7 +45,7 @@ diff，全都挂在同一个任务下——没人需要重新捋一遍上下文�
 
 - **[整套自部署](SELF_HOSTING.md) →** Docker Compose 或 Helm，装在你自己的基础设施上。
 - **[任意 Git 服务](https://enact.ai/docs/vcs-integration) →** GitHub、GitLab、Gitea、Forgejo，自建实例也行。
-- **[工作区](https://enact.ai/docs/workspaces) →** 按团队隔离智能体、任务和设置。
+- **[工作区](https://enact.ai/docs/workspaces) →** 一个工作区就是一个项目：自己的智能体、任务、代码和设置。
 - **[角色](https://enact.ai/docs/members-roles)与[使用权限](https://enact.ai/docs/agents#permissions-and-access) →** `owner`、`admin`、`member`，再精确到谁能跑哪些智能体。
 - **[安全模型](https://enact.ai/docs/security-model) →** 智能体碰得到什么，碰不到什么。
 - **[Slack、飞书、钉钉](https://enact.ai/docs/channels) →** 在团队本来就在聊天的地方，触发和跟进智能体的工作。钉钉由社区维护。

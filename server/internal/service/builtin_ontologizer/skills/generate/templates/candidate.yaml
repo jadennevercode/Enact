@@ -1,0 +1,222 @@
+# revisions/rNNNN/candidate.yaml —— Ontology 层：目标语义模型是什么？
+#
+# 六个核心集合全部要有内容：entities、relationships、attributes、events、
+# lifecycles、constraints。只建名词（没有 event 与 lifecycle）会触发 warning
+# 级检查项 behaviour_present——能支持问答，不能告诉 Agent 什么条件下可以做什么。
+#
+# 每个对象必须有 support。support 三种：
+#   { type: evidence, alignment_id: aln.NNN }     经 alignment 落到带锚点的事实
+#   { type: assumption, id: asm.NNN }             指向 FAGC 登记里的一条显式假设
+#   { type: process_reference, id: proc.step.X }  指向 process_ir 里的 locator
+# 检查项 trace_complete 顺着 evidence 型 support 一路走到锚点；走不通就要么补依据、
+# 要么改挂 assumption、要么删掉这个对象。"看起来应该有"不是依据。
+#
+# 建模判据不在这里重复，见 knowledge/ontology-components.md 与
+# knowledge/modeling-rules.md。例子取自 evals/fixtures/journal-reversal/。
+
+bundle:
+  id: r0001                                  # 与所在 revision 目录同名
+  parent: null                               # 第一版为 null，之后写上一版的 id
+  domain:
+    id: dom.general_ledger_reversal
+    name: General Ledger Reversal
+    goals:
+      - 回答一条已过账分录能否冲销、该谁批、按什么顺序做
+    non_goals:
+      - 应付、应收、固定资产
+      - journal line 级别的明细
+    owners: { domain: DE1, ontology: OO1, process: PO1 }
+    imports: []
+
+  # ======================= 核心模块（V1 必产）=========================
+
+  entities:
+    - id: ent.journal_entry                  # 稳定技术 id，改名不换 id
+      view_label: Journal Entry              # 展示名，可改
+      canonical_name: JournalEntry           # 规范名
+      aliases: [日记账分录, JE, 分录]          # 保留原始短语，不翻译
+      definition: >-                         # 非空、无循环、不能只是名称的复述
+        在总账中登记的一组借贷平衡的会计记录，有唯一编号、所属会计期间与过账状态；
+        工厂口中的纸质「凭证」不属于本类。
+      counter_examples: ["纸质凭证——不是系统对象"]
+      business_purpose: 冲销判断与审批路由的主体
+      inclusion_rationale: 支撑 cq.001、cq.003、cq.005
+      identity_keys: [journal_id]
+      classification: internal
+      support: [{ type: evidence, alignment_id: aln.002 }]
+      cq_links: [cq.001, cq.003]
+
+    - id: ent.reversal_entry
+      view_label: Reversal Entry
+      canonical_name: ReversalEntry
+      aliases: [冲销分录, 反向分录]
+      definition: >-
+        为抵销一条已过账分录而生成的方向相反、金额相同的分录；它本身不可再被冲销，
+        与下一期间做的「调整分录」不是一回事。
+      counter_examples: ["调整分录——下一期间做，不改原分录状态"]
+      business_purpose: 冲销结果的载体
+      inclusion_rationale: 支撑 cq.003
+      identity_keys: [journal_id]
+      classification: internal
+      support: [{ type: evidence, alignment_id: aln.001 }]
+
+    - id: ent.close_period
+      view_label: Close Period
+      canonical_name: ClosePeriod
+      aliases: [会计期间, 账期]
+      definition: >-
+        一段会计核算区间及其关账状态（open / soft_close / hard_close），
+        该状态决定期间内是否允许账务变更。
+      business_purpose: 决定冲销是否被允许
+      inclusion_rationale: 支撑 cq.006
+      identity_keys: [period_code]
+      classification: internal
+      # 证据不足就挂显式假设，不要伪造一条 evidence 型 support
+      support: [{ type: assumption, id: asm.001 }]
+
+  relationships:
+    - id: rel.reverses
+      source: ent.reversal_entry             # 必须是已声明的实体
+      target: ent.journal_entry
+      source_role: reversal                  # 两端角色都要声明
+      target_role: original
+      direction: source_to_target
+      inverse_name: reversed_by
+      cardinality: { source: "1", target: "1" }   # 两端都要，缺一项 relationship_declared 不过
+      semantics: reference                   # ownership | composition | reference | dependency | causal | lineage
+      temporality: { kind: event_time, valid_from_attr: posting_date }
+      reified: false                         # 关系自身带属性或生命周期时为 true，并指向一个实体
+      canonical_name: reverses               # 业务动词，Cypher 关系类型由它派生
+      definition: 把一条冲销分录连到它所抵销的那条原始分录上，一对一且不可再嵌套。
+      support: [{ type: evidence, alignment_id: aln.001 }]
+
+    - id: rel.belongs_to_period
+      source: ent.journal_entry
+      target: ent.close_period
+      source_role: entry
+      target_role: period
+      direction: source_to_target
+      cardinality: { source: "many", target: "1" }
+      semantics: reference
+      canonical_name: belongs_to_period
+      definition: 把一条分录归入它过账所在的会计期间，据此判断期间关账状态是否允许冲销。
+      support: [{ type: assumption, id: asm.001 }]
+
+  attributes:
+    - id: attr.journal_entry.amount
+      owner: ent.journal_entry               # 必须是已声明的实体
+      view_label: 金额
+      datatype: decimal
+      unit_or_format: "本位币 CNY，不含税（假设，见 asm.001 / ud.002）"
+      nullable: false
+      multi_valued: false
+      enum_source: null
+      is_identity: false
+      is_derived: false
+      classification: financial
+      temporal: { valid_time: true, record_time: true }
+      support: [{ type: evidence, alignment_id: aln.004 }]
+
+    - id: attr.journal_entry.status
+      owner: ent.journal_entry
+      view_label: 状态
+      datatype: enum
+      enum_source: [draft, posted, reversed]
+      nullable: false
+      multi_valued: false
+      is_identity: false
+      is_derived: false
+      classification: internal
+      support: [{ type: evidence, alignment_id: aln.007 }]
+
+  events:                                    # 世界如何变化
+    - id: evt.reversal_approved
+      view_label: 冲销审批通过
+      canonical_name: ReversalApproved
+      participants: [ent.journal_entry]      # 必须是已声明的实体
+      time: { event_time: true, record_time: true }
+      changes_state_of: ent.journal_entry
+      process_ref: proc.evt.approved         # 指向 process_ir 里的 locator，两层互查
+      definition: 审批人对一次冲销申请作出通过裁决的时刻，它使原分录进入可被冲销的状态。
+      support: [{ type: evidence, alignment_id: aln.003 }]
+
+    - id: evt.reversal_posted
+      view_label: 冲销分录已过账
+      canonical_name: ReversalPosted
+      participants: [ent.journal_entry, ent.reversal_entry]
+      time: { event_time: true, record_time: true }
+      changes_state_of: ent.journal_entry
+      process_ref: proc.evt.reversal_posted
+      definition: 冲销分录完成过账的时刻，原分录状态在此转为已冲销。
+      support: [{ type: process_reference, id: proc.evt.reversal_posted }]
+
+  lifecycles:                                # 允许怎样变化
+    - id: lc.journal_entry
+      entity: ent.journal_entry
+      states: [draft, posted, reversed]
+      transitions:
+        # from / to 必须都在 states 里；trigger 必须是已声明的事件或 process locator
+        - { from: draft,  to: posted,   trigger: proc.step.post, guard: "period.status == open", actor_roles: [preparer] }
+        - { from: posted, to: reversed, trigger: evt.reversal_posted,
+            guard: "period.status != hard_close（软关账口径未裁决，见 ud.001）",
+            actor_roles: [controller, supervisor] }
+      support: [{ type: evidence, alignment_id: aln.006 }]
+
+  constraints:                               # 三分：axiom | constraint | rule
+    - id: con.single_reversal
+      kind: constraint
+      statement: 一条分录最多被冲销一次；冲销分录本身不可再被冲销。
+      scope: [ent.journal_entry, ent.reversal_entry]   # 成员必须是已声明的对象
+      open_world_note: 缺少冲销记录不等于未被冲销过，需以状态字段为准
+      support: [{ type: evidence, alignment_id: aln.005 }]
+
+    - id: con.segregation_of_duties
+      kind: rule
+      statement: 同一冲销申请的制单人与审批人不得为同一员工。
+      scope: [ent.journal_entry]
+      enforcement: 系统在审批环节拒绝
+      open_world_note: 工厂「财务经理」是否等同总部「财务控制」尚未确认
+      support: [{ type: evidence, alignment_id: aln.008 }]
+
+  # ================ 扩展模块（按 initiate 声明的范围启用）================
+  # 不在范围内就整段删掉，不要留空集合装样子。字段要求同样由 schema_valid 核。
+  #
+  # policies:        # 权利与义务的声明面，与执行面分开（白皮书 §4.9）
+  #   - id: pol.soft_close_reversal
+  #     modality: prohibition          # permission | obligation | prohibition
+  #     subject: proc.role.preparer
+  #     action: evt.reversal_approved
+  #     condition: "period.status == soft_close"
+  #     priority: 1
+  #     effective_from: "2025-04-01"
+  #     exceptions: ["经财务控制批准（手册 §6.3，与本条冲突，ud.001 未裁决）"]
+  #     support: [{ type: evidence, alignment_id: aln.00X }]
+  #
+  # capabilities:    # 业务意图 + action contract（白皮书 §4.10）
+  #   - id: cap.request_reversal
+  #     intent: 对一条已过账分录发起冲销
+  #     target_entity: ent.journal_entry
+  #     parameters: [journal_id, reason_code]
+  #     preconditions: ["status == posted", "未被冲销过", "period.status != hard_close"]
+  #     effects: ["生成冲销申请单", "进入审批"]
+  #     idempotent: false
+  #     approval_required: true
+  #     support: [{ type: process_reference, id: proc.step.request }]
+  #
+  # bindings:        # 与来源系统的挂接（白皮书 §4.12）
+  #   - id: bind.journal_entry.erp
+  #     binding_kind: data             # data | metric | knowledge | action | identity | evidence
+  #     target: ent.journal_entry
+  #     source_system: ERP GL
+  #     refresh: 每日 02:00
+  #     support: [{ type: evidence, alignment_id: aln.00X }]
+  #
+  # metrics:
+  #   - id: met.reversal_rate
+  #     definition: 某期间内被冲销的分录数占已过账分录数的比例
+  #     support: [{ type: evidence, alignment_id: aln.00X }]
+
+  layers:                                    # 另外三层文件，供追溯与审阅跳转
+    process: process_ir.yaml
+    evidence: evidential_ir.yaml
+    mapping: alignment.yaml

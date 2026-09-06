@@ -8,7 +8,7 @@ import { useNavigation } from "./context";
  * they came from.
  *
  * Deleting an issue from its detail page is the canonical case: the user may
- * have opened it from My Issues, a project's list, a search result or a pin,
+ * have opened it from My Issues, a search result or a pin,
  * and every one of those is a better destination than a hardcoded workspace
  * list. Going back is the only thing that knows which — no caller has to
  * thread a "source view" through the URL or a store.

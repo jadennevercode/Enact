@@ -239,69 +239,6 @@ func TestWorkspaceIssueViewVariant(t *testing.T) {
 	}
 }
 
-func TestProjectIssueViewVariant(t *testing.T) {
-
-	w := httptest.NewRecorder()
-	req := newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "variant project",
-	})
-	testHandler.CreateProject(w, req)
-	if w.Code != http.StatusCreated {
-		t.Fatalf("create project: expected 201, got %d: %s", w.Code, w.Body.String())
-	}
-	var project ProjectResponse
-	if err := json.NewDecoder(w.Body).Decode(&project); err != nil {
-		t.Fatalf("decode CreateProject: %v", err)
-	}
-	t.Cleanup(func() {
-		req := newRequest("DELETE", "/api/projects/"+project.ID, nil)
-		req = withURLParam(req, "id", project.ID)
-		testHandler.DeleteProject(httptest.NewRecorder(), req)
-	})
-
-	// Save from the project page's Members tab: variant persists.
-	view, code, body := createIssueViewForTest(t, map[string]any{
-		"name":          "Member work",
-		"scope_type":    "project",
-		"scope_id":      project.ID,
-		"scope_variant": "members",
-		"query":         map[string]any{},
-	})
-	if code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", code, body)
-	}
-	if view.ScopeVariant == nil || *view.ScopeVariant != "members" {
-		t.Fatalf("project variant not persisted: %+v", view.ScopeVariant)
-	}
-
-	// "all" normalizes to NULL, same as workspace views.
-	view2, code, body := createIssueViewForTest(t, map[string]any{
-		"name":          "Whole project",
-		"scope_type":    "project",
-		"scope_id":      project.ID,
-		"scope_variant": "all",
-		"query":         map[string]any{},
-	})
-	if code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", code, body)
-	}
-	if view2.ScopeVariant != nil {
-		t.Fatalf("'all' must normalize to NULL, got %v", *view2.ScopeVariant)
-	}
-
-	// My-only variants are rejected on project views.
-	_, code, _ = createIssueViewForTest(t, map[string]any{
-		"name":          "Bad variant",
-		"scope_type":    "project",
-		"scope_id":      project.ID,
-		"scope_variant": "involved",
-		"query":         map[string]any{},
-	})
-	if code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for my-variant on project view, got %d", code)
-	}
-}
-
 func TestPinIssueView(t *testing.T) {
 
 	shared, code, body := createIssueViewForTest(t, map[string]any{
@@ -363,8 +300,8 @@ func TestPinIssueView(t *testing.T) {
 	}
 }
 
-// Old clients (built before saved views) classify every non-issue pin as a
-// project pin and permanently auto-unpin it on a 404 — the legacy list
+// Old clients (built before saved views) classify every non-issue pin as an
+// issue pin and permanently auto-unpin it on a 404 — the legacy list
 // contract must therefore never expose view pins without the capability
 // opt-in.
 func TestListPinsHidesViewPinsWithoutOptIn(t *testing.T) {
@@ -536,9 +473,9 @@ func TestRevokeMemberSweepsPrivateViewsAndPreferences(t *testing.T) {
 	}
 }
 
-// Deleting a view — directly, or via its project's deletion — must sweep the
-// sidebar pins that point at it: view pins never auto-unpin client-side, so a
-// surviving row would be invisible and unremovable forever.
+// Deleting a view must sweep the sidebar pins that point at it: view pins
+// never auto-unpin client-side, so a surviving row would be invisible and
+// unremovable forever.
 func TestDeletingViewsSweepsTheirPins(t *testing.T) {
 
 	ctx := context.Background()
@@ -561,7 +498,6 @@ func TestDeletingViewsSweepsTheirPins(t *testing.T) {
 		}
 	}
 
-	// 1) Direct handler delete.
 	view, code, body := createIssueViewForTest(t, map[string]any{
 		"name":       "Sweep on delete",
 		"scope_type": "workspace",
@@ -581,35 +517,4 @@ func TestDeletingViewsSweepsTheirPins(t *testing.T) {
 		t.Fatalf("pin survived direct view delete: %d rows", n)
 	}
 
-	// 2) Project deletion cascades through its scoped views.
-	w = httptest.NewRecorder()
-	testHandler.CreateProject(w, newRequest("POST", "/api/projects?workspace_id="+testWorkspaceID, map[string]any{
-		"title": "pin sweep project",
-	}))
-	if w.Code != http.StatusCreated {
-		t.Fatalf("create project: expected 201, got %d: %s", w.Code, w.Body.String())
-	}
-	var project ProjectResponse
-	json.NewDecoder(w.Body).Decode(&project)
-
-	projView, code, body := createIssueViewForTest(t, map[string]any{
-		"name":       "Project pinned view",
-		"scope_type": "project",
-		"scope_id":   project.ID,
-		"query":      map[string]any{},
-	})
-	if code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", code, body)
-	}
-	pinView(projView.ID)
-
-	w = httptest.NewRecorder()
-	req = withURLParam(newRequest("DELETE", "/api/projects/"+project.ID, nil), "id", project.ID)
-	testHandler.DeleteProject(w, req)
-	if w.Code >= 300 {
-		t.Fatalf("delete project: got %d: %s", w.Code, w.Body.String())
-	}
-	if n := countViewPins(); n != 0 {
-		t.Fatalf("pin survived project deletion: %d rows", n)
-	}
 }

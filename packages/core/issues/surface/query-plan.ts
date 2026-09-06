@@ -70,16 +70,6 @@ export function buildIssueSurfaceQueryPlan(
         createDefaults: {},
       };
     }
-    case "project": {
-      const assigneeTypes = assigneeTypesForActorKind(scope.actorKind);
-      return {
-        scopeKey,
-        queryFilter: assigneeTypes
-          ? { project_id: scope.projectId, assignee_types: assigneeTypes }
-          : { project_id: scope.projectId },
-        createDefaults: { project_id: scope.projectId },
-      };
-    }
     case "my":
       return buildMyRelationPlan(scope, scopeKey);
     case "actor":

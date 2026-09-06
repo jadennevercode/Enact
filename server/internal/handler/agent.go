@@ -108,15 +108,19 @@ type AgentResponse struct {
 	// members infer another member's integration footprint. Redacted to
 	// `nil` + `composio_toolkit_allowlist_redacted=true` for non-owners,
 	// mirroring the existing mcp_config redaction contract.
-	ComposioToolkitAllowlist         []string               `json:"composio_toolkit_allowlist,omitempty"`
-	ComposioToolkitAllowlistRedacted bool                   `json:"composio_toolkit_allowlist_redacted,omitempty"`
-	OwnerID                          *string                `json:"owner_id"`
-	Skills                           []AgentSkillSummary    `json:"skills"`
-	DisabledRuntimeSkills            []DisabledRuntimeSkill `json:"disabled_runtime_skills"`
-	CreatedAt                        string                 `json:"created_at"`
-	UpdatedAt                        string                 `json:"updated_at"`
-	ArchivedAt                       *string                `json:"archived_at"`
-	ArchivedBy                       *string                `json:"archived_by"`
+	ComposioToolkitAllowlist         []string            `json:"composio_toolkit_allowlist,omitempty"`
+	ComposioToolkitAllowlistRedacted bool                `json:"composio_toolkit_allowlist_redacted,omitempty"`
+	OwnerID                          *string             `json:"owner_id"`
+	Skills                           []AgentSkillSummary `json:"skills"`
+	// KnowledgeSources are the knowledge bases this agent has opted into.
+	// Only populated on the single-agent response: the list endpoint would
+	// need a per-agent join for a field no list view renders.
+	KnowledgeSources      []AgentKnowledgeSourceResponse `json:"knowledge_sources,omitempty"`
+	DisabledRuntimeSkills []DisabledRuntimeSkill         `json:"disabled_runtime_skills"`
+	CreatedAt             string                         `json:"created_at"`
+	UpdatedAt             string                         `json:"updated_at"`
+	ArchivedAt            *string                        `json:"archived_at"`
+	ArchivedBy            *string                        `json:"archived_by"`
 }
 
 // runtimeConfigGatewayTokenMask is the placeholder the API substitutes for
@@ -268,22 +272,39 @@ func preserveMaskedGatewayToken(incoming any, persistedRuntimeConfig []byte) {
 	gw["token"] = prev.Gateway.Token
 }
 
+// Repo kinds. The zero value (absent on the wire) is code, so every repo an
+// older server sent and every repo an older daemon reads keeps its meaning.
+const (
+	// RepoKindCode is a repository the task works on. Workspace-wide, checked
+	// out by the agent when the task needs it.
+	RepoKindCode = "code"
+	// RepoKindKnowledge is a knowledge base bound to the claiming agent. The
+	// daemon checks it out before the run and indexes it into the brief; it
+	// appears in the repo list so it is inside the checkout allowlist.
+	RepoKindKnowledge = "knowledge"
+)
+
 // RepoData holds repository information included in claim responses so the
 // daemon can set up worktrees for each workspace repo.
 type RepoData struct {
 	URL         string `json:"url"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
+	// Kind separates the code a task works on from a knowledge base bound to
+	// the agent. Empty means code: a daemon built before knowledge bases
+	// existed reads every entry as what it has always been, and this server
+	// omits the field for code repos so that stays true on the wire.
+	Kind string `json:"kind,omitempty"`
 }
 
-// ProjectResourceData is the wire shape for a project resource included in a
+// WorkspaceResourceData is the wire shape for a workspace resource included in a
 // claim response. The daemon reads this list and writes it into the agent's
-// working directory so skills/agents can discover project-scoped context.
+// working directory so skills/agents can discover workspace-scoped context.
 //
 // resource_ref is type-specific JSON; the daemon doesn't interpret it beyond
 // well-known fields like url for github_repo. New types can be added without
 // changing this struct.
-type ProjectResourceData struct {
+type WorkspaceResourceData struct {
 	ID           string          `json:"id"`
 	ResourceType string          `json:"resource_type"`
 	ResourceRef  json.RawMessage `json:"resource_ref"`
@@ -352,6 +373,13 @@ type AgentTaskResponse struct {
 	// regardless of issue / chat / autopilot / quick-create — sees the same
 	// shared context. Empty when the workspace owner hasn't set it.
 	WorkspaceContext string `json:"workspace_context,omitempty"`
+	// WorkspaceProfile is the workspace's project profile, already rendered as
+	// the markdown section the brief carries (workspaceprofile.Brief). The
+	// server renders it rather than shipping the fields because the section's
+	// wording — including the line saying it is context and not an instruction
+	// — is a product decision, and an installed daemon must not be able to
+	// drift from it by being older than the copy.
+	WorkspaceProfile string `json:"workspace_profile,omitempty"`
 	// IssueStatuses is the workspace's ACTIVE CUSTOM status catalog (ENA-6460),
 	// injected into the agent brief so agents can see and use statuses beyond
 	// the seven built-ins. Built-ins are omitted: their keys, names, and
@@ -383,13 +411,21 @@ type AgentTaskResponse struct {
 	Agent                *TaskAgentData         `json:"agent,omitempty"`
 	ConnectedApps        []ConnectedAppData     `json:"connected_apps,omitempty"` // daemon-claim only: per-run app capabilities mounted through runtime MCP overlays
 	Repos                []RepoData             `json:"repos,omitempty"`
-	ProjectID            string                 `json:"project_id,omitempty"`          // issue's project, when present
-	ProjectTitle         string                 `json:"project_title,omitempty"`       // for surfacing in agent context
-	ProjectDescription   string                 `json:"project_description,omitempty"` // durable project-level context injected into the brief
-	ProjectResources     []ProjectResourceData  `json:"project_resources,omitempty"`   // resources attached to the project
-	CreatedAt            string                 `json:"created_at"`
-	PriorSessionID       string                 `json:"prior_session_id,omitempty"` // session ID from a previous task on same issue
-	PriorWorkDir         string                 `json:"prior_work_dir,omitempty"`   // work_dir from a previous task on same issue
+	// WorkspaceResources are the repos and directories the workspace's agents
+	// work in. The JSON name is `project_resources` on purpose: these rows
+	// hung off a project until it was removed, and an installed daemon built
+	// before that still reads them under the old key. Renaming the field on
+	// the wire would silently stop injecting resources into every run on a
+	// daemon that has not been updated. Mirror field: internal/daemon/types.go.
+	WorkspaceResources []WorkspaceResourceData `json:"project_resources,omitempty"`
+	// KnowledgeSources are the knowledge bases the claiming agent has bound.
+	// Unlike WorkspaceResources these are per-agent, and the daemon checks
+	// them out and indexes them before the run rather than leaving them for
+	// the agent to fetch. Mirror field: internal/daemon/types.go.
+	KnowledgeSources []KnowledgeSourceData `json:"knowledge_sources,omitempty"`
+	CreatedAt        string                `json:"created_at"`
+	PriorSessionID   string                `json:"prior_session_id,omitempty"` // session ID from a previous task on same issue
+	PriorWorkDir     string                `json:"prior_work_dir,omitempty"`   // work_dir from a previous task on same issue
 	// PriorSessionResumeUnavailable is set when a more recent Codex session was
 	// withheld because its rollout was missing (ENA-5305); PriorSessionID (if
 	// any) is then an older fallback. The daemon surfaces the continuity gap in
@@ -1051,6 +1087,7 @@ func (h *Handler) GetAgent(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load agent skills")
 		return
 	}
+	resp.KnowledgeSources = h.agentKnowledgeSummaries(r, agent.ID)
 
 	// mcp_config redaction (custom_env was removed from this response shape
 	// in ENA-2600; secrets are now fetched via GET /api/agents/{id}/env).

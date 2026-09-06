@@ -306,6 +306,10 @@ describe("StepWorkspace — issue prefix", () => {
       name: "前端团队",
       slug: "frontend",
       issue_prefix: "FE",
+      // The server writes the setup checklist and its welcome inbox item in
+      // this language. It has no other signal: the reader's locale lives in a
+      // cookie the API never sees.
+      language: "en",
     });
   });
 

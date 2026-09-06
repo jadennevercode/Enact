@@ -12,6 +12,12 @@ import type {
   BillingTopupsPage,
   BillingTransactionsPage,
   CancelTaskResponse,
+  MarketplaceCatalog,
+  MarketplaceInstallResult,
+  MarketplaceFile,
+  MarketplaceRecommendations,
+  WorkspaceProfile,
+  WorkspaceSetup,
   ChatMessage,
   ChatDraftRestoresResponse,
   ChatPendingTask,
@@ -58,7 +64,9 @@ import type {
   IssueTableGroupsResponse,
   IssueTableRowsResponse,
   ListIssuesResponse,
-  ListProjectArtifactsResponse,
+  ListArtifactsResponse,
+  ListAgentKnowledgeResponse,
+  ListWorkspaceResourcesResponse,
   OntologyDetail,
   OntologySummary,
   ListGitHubInstallationsResponse,
@@ -77,7 +85,6 @@ import type {
   ResourceLabelsResponse,
   RuntimeModelListRequest,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   ShareLink,
   ShareLinkInfo,
   Skill,
@@ -86,6 +93,9 @@ import type {
   User,
   WebhookDelivery,
   WorkspaceMcpServer,
+  WorkspaceResource,
+  SkillVersionDetail,
+  ListSkillVersionsResponse,
 } from "../types";
 import type { CloudRuntimeNode } from "../runtimes/cloud-runtime";
 import type { CreateFeedbackResponse } from "../feedback/types";
@@ -560,7 +570,7 @@ export const EMPTY_ISSUE_VIEW_PREFERENCE: IssueViewPreference = {
 
 export interface CreateIssueViewRequest {
   name: string;
-  scope_type: "workspace" | "my" | "project";
+  scope_type: "workspace" | "my";
   scope_id?: string | null;
   scope_variant?: "assigned" | "created" | "involved" | "any" | "members" | "agents" | null;
   visibility: "private" | "workspace";
@@ -1082,7 +1092,6 @@ export const IssueSchema = z.object({
   creator_type: z.string(),
   creator_id: z.string(),
   parent_issue_id: z.string().nullable(),
-  project_id: z.string().nullable(),
   position: z.number(),
   // Older backends predate `stage`; default to null so a missing field parses
   // cleanly into the non-optional Issue.stage (number | null).
@@ -1101,6 +1110,18 @@ export const IssueSchema = z.object({
   // Optional for compatibility with older self-hosted backends; a current
   // backend emits null until its historical backfill reaches the issue.
   last_activity_at: z.string().nullable().optional(),
+  // Provenance for issues nothing typed by hand (autopilot, quick_create,
+  // retrospect, ...). Stays `z.string()` for the same reason the enums above
+  // do: the server grows the set, and a value this build has never heard of
+  // must not fail the row and blank the list.
+  //
+  // Nullable AND optional, and both halves are load-bearing. The server sends
+  // `null` for every ordinary issue — the field is deliberately not omitempty,
+  // so that IssueResponse and service.IssueToMap describe the same shape — and
+  // `.optional()` alone rejects null, which would fail the row and, through
+  // parseWithFallback, blank the whole issue list. Optional covers the
+  // endpoints that do not project the column at all.
+  origin_type: z.string().nullable().optional(),
 }).loose();
 
 export const ListIssuesResponseSchema = z.object({
@@ -1149,43 +1170,6 @@ export const EMPTY_SEARCH_ISSUES_RESPONSE: SearchIssuesResponse = {
   total: 0,
 };
 
-const ProjectSchema = z.object({
-  id: z.string(),
-  workspace_id: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  icon: z.string().nullable(),
-  status: z.string(),
-  priority: z.string(),
-  lead_type: z.string().nullable(),
-  lead_id: z.string().nullable(),
-  // .default(null) so a project from an older backend (frontend deploys before
-  // backend) that omits these keys parses to null instead of failing the whole
-  // object — which would degrade a search/list batch to the empty fallback.
-  start_date: z.string().nullable().default(null),
-  due_date: z.string().nullable().default(null),
-  created_at: z.string(),
-  updated_at: z.string(),
-  issue_count: z.number().default(0),
-  done_count: z.number().default(0),
-  resource_count: z.number().default(0),
-}).loose();
-
-const SearchProjectResultSchema = ProjectSchema.extend({
-  match_source: z.string(),
-  matched_snippet: z.string().optional(),
-}).loose();
-
-export const SearchProjectsResponseSchema = z.object({
-  projects: z.array(SearchProjectResultSchema).default([]),
-  total: z.number().default(0),
-}).loose();
-
-export const EMPTY_SEARCH_PROJECTS_RESPONSE: SearchProjectsResponse = {
-  projects: [],
-  total: 0,
-};
-
 const IssueAssigneeGroupSchema = z.object({
   id: z.string(),
   assignee_type: z.string().nullable(),
@@ -1225,10 +1209,6 @@ const IssueTableGroupValueSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("assignee"),
     actor: IssueTableActorRefSchema.nullable(),
-  }).loose(),
-  z.object({
-    kind: z.literal("project"),
-    project_id: z.string().nullable().optional().default(null),
   }).loose(),
   z.object({
     kind: z.literal("parent"),
@@ -1296,7 +1276,7 @@ const IssueTableFacetValueSchema = z.object({
 }).loose();
 
 const IssueTableFacetSchema = z.object({
-  kind: z.enum(["status", "priority", "assignee", "creator", "project", "label", "property", "working_agents"]),
+  kind: z.enum(["status", "priority", "assignee", "creator", "label", "property", "working_agents"]),
   property_id: z.string().optional(),
   values: z.array(IssueTableFacetValueSchema).default([]),
 }).loose();
@@ -2003,7 +1983,6 @@ const AutopilotListItemSchema = z.object({
   workspace_id: z.string(),
   title: z.string(),
   description: z.string().nullable().optional(),
-  project_id: z.string().nullable().optional(),
   // Older servers (pre-ENA-2429) omit assignee_type; "agent" is the
   // documented default.
   assignee_type: z.string().default("agent"),
@@ -2920,6 +2899,62 @@ export const EMPTY_SKILL: Skill = {
   files: [],
 };
 
+// Skill version history. Lenient the way every schema here is: an unknown
+// `source` parses as a plain string so a backend that grows one does not blank
+// the panel in an installed desktop build. The label switch carries a
+// `default` branch.
+export const SkillVersionFileSchema = z.object({
+  path: z.string().default(""),
+  content: z.string().default(""),
+}).loose();
+
+export const SkillVersionSchema = z.object({
+  id: z.string(),
+  skill_id: z.string().default(""),
+  workspace_id: z.string().default(""),
+  version: z.number().default(0),
+  name: z.string().default(""),
+  description: z.string().default(""),
+  config: z.record(z.string(), z.unknown()).default({}),
+  content_hash: z.string().default(""),
+  source: z.string().default("manual"),
+  created_by: z.string().nullable().default(null),
+  summary: z.string().default(""),
+  created_at: z.string().default(""),
+  is_current: z.boolean().default(false),
+}).loose();
+
+export const SkillVersionDetailSchema = SkillVersionSchema.extend({
+  content: z.string().default(""),
+  files: z.array(SkillVersionFileSchema).default([]),
+}).loose();
+
+export const ListSkillVersionsResponseSchema = z.object({
+  versions: z.array(SkillVersionSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_SKILL_VERSIONS_RESPONSE: ListSkillVersionsResponse = {
+  versions: [],
+};
+
+export const EMPTY_SKILL_VERSION_DETAIL: SkillVersionDetail = {
+  id: "",
+  skill_id: "",
+  workspace_id: "",
+  version: 0,
+  name: "",
+  description: "",
+  config: {},
+  content_hash: "",
+  source: "manual",
+  created_by: null,
+  summary: "",
+  created_at: "",
+  is_current: false,
+  content: "",
+  files: [],
+};
+
 const OntologyCatalogItemWireSchema = z.object({
   name: z.string(),
   name_zh: z.string().nullable().optional().default(null),
@@ -2939,6 +2974,7 @@ const OntologySummaryWireSchema = z.object({
   capability_count: z.number().optional().default(0),
   is_layered: z.boolean().optional().default(false),
   caphub_url: z.string().optional().default(""),
+  attached: z.boolean().optional().default(false),
 }).loose();
 
 function ontologyItemFromWire(
@@ -2967,6 +3003,7 @@ function ontologySummaryFromWire(
     capabilityCount: ontology.capability_count,
     isLayered: ontology.is_layered,
     capHubUrl: ontology.caphub_url,
+    attached: ontology.attached,
   };
 }
 
@@ -3005,6 +3042,7 @@ export const EMPTY_ONTOLOGY_DETAIL: OntologyDetail = {
   capabilityCount: 0,
   isLayered: false,
   capHubUrl: "",
+  attached: false,
   entities: [],
   actions: [],
   policies: [],
@@ -3127,11 +3165,12 @@ export const EMPTY_JOIN_SHARE_LINK_RESPONSE: {
   workspace_slug: "",
 };
 
-// A file in a project's artifact listing. The owner-issue fields are what the
-// artifacts browser builds its folder tree from, so they carry defaults rather
-// than being required: a server that predates them still yields a usable —
-// if unfoldered — listing instead of collapsing the whole response to empty.
-const ProjectArtifactSchema = z.object({
+// A file in an issue's or a chat session's artifact listing. The owner-issue
+// fields are what the browser separates the scope's own files from its
+// children's by. They are nullable AND defaulted: a chat upload has no owning
+// issue, so the server omits all four, and those files must still list rather
+// than collapse the whole response to the empty fallback.
+const ArtifactSchema = z.object({
   id: z.string(),
   workspace_id: z.string().default(""),
   issue_id: z.string().nullable().default(null),
@@ -3148,20 +3187,327 @@ const ProjectArtifactSchema = z.object({
   content_type: z.string().default(""),
   size_bytes: z.number().default(0),
   created_at: z.string().default(""),
-  owner_issue_id: z.string().default(""),
-  owner_issue_number: z.number().default(0),
-  owner_issue_identifier: z.string().default(""),
-  owner_issue_title: z.string().default(""),
+  owner_issue_id: z.string().nullable().optional().default(null),
+  owner_issue_number: z.number().nullable().optional().default(null),
+  owner_issue_identifier: z.string().nullable().optional().default(null),
+  owner_issue_title: z.string().nullable().optional().default(null),
 }).loose();
 
-export const ListProjectArtifactsResponseSchema = z.object({
-  artifacts: z.array(ProjectArtifactSchema).default([]),
+export const ListArtifactsResponseSchema = z.object({
+  artifacts: z.array(ArtifactSchema).default([]),
   total: z.number().default(0),
   truncated: z.boolean().default(false),
+  // Absent on a chat listing, which has no issue to scope to.
+  scope_issue_id: z.string().nullable().optional().default(null),
 }).loose();
 
-export const EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE: ListProjectArtifactsResponse = {
+export const EMPTY_LIST_ARTIFACTS_RESPONSE: ListArtifactsResponse = {
   artifacts: [],
   total: 0,
   truncated: false,
+  scope_issue_id: null,
+};
+
+// Workspace resources — repos and local directories the workspace's agents
+// work in. `resource_ref` is a per-type payload the UI renders by
+// `resource_type`, so it stays an open record rather than a union: a server
+// that adds a type must not blank the list in an installed desktop build.
+const WorkspaceResourceSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().default(""),
+  resource_type: z.string().default(""),
+  resource_ref: z.record(z.string(), z.unknown()).default({}),
+  label: z.string().nullable().default(null),
+  position: z.number().default(0),
+  created_at: z.string().default(""),
+  created_by: z.string().nullable().default(null),
+}).loose();
+
+export const ListWorkspaceResourcesResponseSchema = z.object({
+  resources: z.array(WorkspaceResourceSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE: ListWorkspaceResourcesResponse = {
+  resources: [],
+  total: 0,
+};
+
+/** Single-resource responses (create / update). Same lenience as the listing:
+ *  a row the client cannot fully parse is still usable, because every field
+ *  the UI reads has a default. */
+export const WorkspaceResourceResponseSchema = WorkspaceResourceSchema;
+
+// Agent knowledge bindings. Lenient for the same reason as the resource list:
+// a desktop build older than a server that adds a field must still render the
+// bindings it does understand.
+const AgentKnowledgeSourceSchema = z.object({
+  resource_id: z.string().default(""),
+  url: z.string().default(""),
+  ref: z.string().optional(),
+  path: z.string().optional(),
+  // The server always sends a delivery mode (it applies the default on read),
+  // but an older one would not — and pull_request is the safe assumption,
+  // since it is the mode that asks a person before anything is published.
+  delivery: z.enum(["pull_request", "commit"]).catch("pull_request").default("pull_request"),
+  label: z.string().nullable().default(null),
+}).loose();
+
+export const ListAgentKnowledgeResponseSchema = z.object({
+  knowledge_sources: z.array(AgentKnowledgeSourceSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE: ListAgentKnowledgeResponse = {
+  knowledge_sources: [],
+  total: 0,
+};
+
+export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
+  id: "",
+  workspace_id: "",
+  resource_type: "github_repo",
+  resource_ref: {},
+  label: null,
+  position: 0,
+  created_at: "",
+  created_by: null,
+};
+
+// --- Marketplace -----------------------------------------------------------
+//
+// The directory is read by every workspace in the deployment, so its payloads
+// cross a version boundary the same way any other endpoint does: an installed
+// desktop client may be older than the backend serving it. Every object is
+// `.loose()` and every field defaulted, so a listing that grows a field stays
+// renderable by a client that has never heard of it.
+
+/**
+ * A manifest is kind-specific and the server owns its shape; it is validated
+ * as an object rather than field by field so a newer backend can extend it
+ * without an older client dropping the whole listing.
+ */
+export const MarketplaceManifestSchema = z.object({
+  kind: z.string().optional().default("skill"),
+}).loose();
+
+export const MarketplaceListingSchema = z.object({
+  id: z.string(),
+  kind: z.string().optional().default("skill"),
+  slug: z.string().optional().default(""),
+  name: z.string().optional().default(""),
+  description: z.string().optional().default(""),
+  category: z.string().optional().default(""),
+  tags: z.array(z.string()).optional().default([]),
+  visibility: z.string().optional().default("workspace"),
+  status: z.string().optional().default("draft"),
+  featured: z.boolean().optional().default(false),
+  install_count: z.number().optional().default(0),
+  publisher_workspace_id: z.string().optional().default(""),
+  publisher_workspace_name: z.string().optional().default(""),
+  latest_version: z.string().optional().default(""),
+  latest_version_id: z.string().optional(),
+  can_manage: z.boolean().optional().default(false),
+  installed: z.boolean().optional().default(false),
+  installed_version: z.string().optional(),
+  installed_version_id: z.string().optional(),
+  created_at: z.string().optional().default(""),
+  updated_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceVersionSchema = z.object({
+  id: z.string(),
+  listing_id: z.string().optional().default(""),
+  version: z.string().optional().default(""),
+  changelog: z.string().optional().default(""),
+  digest: z.string().optional().default(""),
+  size_bytes: z.number().optional().default(0),
+  manifest: MarketplaceManifestSchema.optional().default({ kind: "skill" }),
+  published_by: z.string().nullable().optional().default(null),
+  created_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceFacetsSchema = z.object({
+  kinds: z.record(z.string(), z.number()).optional().default({}),
+  categories: z.record(z.string(), z.number()).optional().default({}),
+  tags: z.record(z.string(), z.number()).optional().default({}),
+  installed: z.record(z.string(), z.number()).optional().default({}),
+}).loose();
+
+export const MarketplaceCatalogSchema = z.object({
+  count: z.number().optional().default(0),
+  total: z.number().optional().default(0),
+  listings: z.array(MarketplaceListingSchema).optional().default([]),
+  facets: MarketplaceFacetsSchema.optional().default({ kinds: {}, categories: {}, tags: {}, installed: {} }),
+}).loose();
+
+export const MarketplaceListingDetailSchema = MarketplaceListingSchema.extend({
+  version: MarketplaceVersionSchema.nullable().optional().default(null),
+  file_paths: z.array(z.string()).optional().default([]),
+}).loose();
+
+export const MarketplaceVersionListSchema = z.array(MarketplaceVersionSchema);
+
+export const MarketplaceInstallSchema = z.object({
+  id: z.string(),
+  listing_id: z.string().optional().default(""),
+  version_id: z.string().optional().default(""),
+  version: z.string().optional().default(""),
+  entity_kind: z.string().optional().default("skill"),
+  entity_id: z.string().optional().default(""),
+  created_at: z.string().optional().default(""),
+}).loose();
+
+export const MarketplaceInstallListSchema = z.array(MarketplaceInstallSchema);
+
+export const MarketplaceFileSchema = z.object({
+  path: z.string().optional().default(""),
+  content: z.string().optional().default(""),
+}).loose();
+
+/**
+ * An install result is a decision the UI acts on — it decides whether to show
+ * a conflict dialog or navigate to the new entity — so an unparseable one must
+ * not silently read as success. The fallback is a failure.
+ */
+export const MarketplaceInstallResultSchema = z.object({
+  status: z.string().optional().default("failed"),
+  reason: z.string().optional(),
+  entity_kind: z.string().optional(),
+  entity_id: z.string().optional(),
+  skill: z.unknown().optional(),
+  agent: z.unknown().optional(),
+  mcp_server: z.unknown().optional(),
+  squad: z.unknown().optional(),
+  existing_skill: z.object({
+    id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    created_by: z.string().optional(),
+    can_overwrite: z.boolean().optional(),
+  }).loose().optional(),
+}).loose();
+
+export const EMPTY_MARKETPLACE_CATALOG: MarketplaceCatalog = {
+  count: 0,
+  total: 0,
+  listings: [],
+  facets: { kinds: {}, categories: {}, tags: {}, installed: {} },
+};
+
+export const EMPTY_MARKETPLACE_INSTALL_RESULT: MarketplaceInstallResult = {
+  status: "failed",
+  reason: "the server sent a response this client could not read",
+};
+
+export const EMPTY_MARKETPLACE_FILE: MarketplaceFile = { path: "", content: "" };
+
+export const PublishMarketplaceListingResponseSchema = z.object({
+  listing: MarketplaceListingSchema,
+  version: MarketplaceVersionSchema,
+}).loose();
+
+// --- Recommendations -------------------------------------------------------
+
+/**
+ * One piece of evidence for a recommendation. `kind` is a closed set on the
+ * server, but it is parsed as a bare string here on purpose: a deployment
+ * running a newer server may send a kind this client has no copy for, and a
+ * reason it cannot label is still better rendered as its raw term than dropped.
+ */
+export const MarketplaceRecommendationReasonSchema = z.object({
+  kind: z.string().optional().default(""),
+  term: z.string().optional().default(""),
+  field: z.string().optional().default(""),
+  score: z.number().optional().default(0),
+}).loose();
+
+export const MarketplaceRecommendationSchema = z.object({
+  listing: MarketplaceListingSchema,
+  score: z.number().optional().default(0),
+  reasons: z.array(MarketplaceRecommendationReasonSchema).optional().default([]),
+  /**
+   * Defaults to false, which is the safe direction: an unreadable field must
+   * never let the UI claim a listing matches this workspace's profile.
+   */
+  matched: z.boolean().optional().default(false),
+}).loose();
+
+export const MarketplaceRecommendationsSchema = z.object({
+  recommendations: z.array(MarketplaceRecommendationSchema).optional().default([]),
+  profile_empty: z.boolean().optional().default(false),
+  considered: z.number().optional().default(0),
+}).loose();
+
+export const EMPTY_MARKETPLACE_RECOMMENDATIONS: MarketplaceRecommendations = {
+  recommendations: [],
+  profile_empty: false,
+  considered: 0,
+};
+
+// --- Workspace setup and profile -------------------------------------------
+
+export const WorkspaceProfileSchema = z.object({
+  summary: z.string().optional().default(""),
+  domain: z.string().optional().default(""),
+  stack: z.array(z.string()).optional().default([]),
+  languages: z.array(z.string()).optional().default([]),
+  team_size: z.string().optional().default(""),
+  typical_work: z.array(z.string()).optional().default([]),
+  constraints: z.string().optional().default(""),
+  repo_brief: z.string().optional().default(""),
+  repo_brief_sources: z.array(z.string()).optional().default([]),
+  updated_at: z.string().optional().default(""),
+  updated_by: z.string().optional().default(""),
+  /**
+   * Defaults to true: a profile this client could not read is one it must not
+   * present as answered, because the surfaces that consult it — the checklist,
+   * the recommendation rail — all treat "answered" as permission to move on.
+   */
+  empty: z.boolean().optional().default(true),
+}).loose();
+
+export const EMPTY_WORKSPACE_PROFILE: WorkspaceProfile = {
+  summary: "",
+  domain: "",
+  stack: [],
+  languages: [],
+  team_size: "",
+  typical_work: [],
+  constraints: "",
+  repo_brief: "",
+  repo_brief_sources: [],
+  updated_at: "",
+  updated_by: "",
+  empty: true,
+};
+
+export const WorkspaceSetupStepSchema = z.object({
+  key: z.string().optional().default(""),
+  done: z.boolean().optional().default(false),
+  issue_id: z.string().optional().default(""),
+  issue_identifier: z.string().optional().default(""),
+}).loose();
+
+export const WorkspaceSetupSchema = z.object({
+  steps: z.array(WorkspaceSetupStepSchema).optional().default([]),
+  complete: z.boolean().optional().default(false),
+  parent_issue_id: z.string().optional().default(""),
+  parent_issue_identifier: z.string().optional().default(""),
+  // Spread into a fresh literal rather than referencing the constant: a loose
+  // schema's inferred default carries an index signature the exported type
+  // does not, and sharing the object would also hand every caller the same
+  // mutable arrays.
+  profile: WorkspaceProfileSchema.optional().default({ ...EMPTY_WORKSPACE_PROFILE }),
+  repo_analysis_issue_id: z.string().optional().default(""),
+}).loose();
+
+/**
+ * The fallback is an EMPTY step list rather than four not-done steps. A
+ * checklist this client could not read must render as nothing to show, not as
+ * four things the member has supposedly failed to do.
+ */
+export const EMPTY_WORKSPACE_SETUP: WorkspaceSetup = {
+  steps: [],
+  complete: false,
+  profile: EMPTY_WORKSPACE_PROFILE,
 };

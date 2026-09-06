@@ -148,7 +148,7 @@ interface ContentEditorBaseProps {
    * Opt-in ON PURPOSE, and today only chat passes it: a wall of pasted text
    * there is context handed to an agent for one turn, and reads better as an
    * attachment than as a body nobody scrolls. Every other editor keeps the
-   * paste inline — in issue and project descriptions a long paste IS the
+   * paste inline — in an issue description a long paste IS the
    * content, and in issue comments it is prose a human reader is expected to
    * see in the thread.
    */
@@ -185,7 +185,7 @@ interface ContentEditorBaseProps {
    * prompts) but *preserving* an existing one still matters.
    */
   disableMentions?: boolean;
-  /** Chat can surface current/recent issue/project suggestions. Other editors use default mention behavior. */
+  /** Chat can surface current/recent issue suggestions. Other editors use default mention behavior. */
   mentionMode?: "default" | "context";
   mentionContextItems?: MentionItem[];
   /** Enable the `/` command picker. Defaults false. */

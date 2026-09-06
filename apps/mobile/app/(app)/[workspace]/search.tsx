@@ -6,8 +6,8 @@
  * workspace switching in Settings, so a command-palette here would
  * duplicate them (see feedback_mobile_ia_main_vs_more).
  *
- * Result categories, ordering (live projects, then live issues, then a
- * trailing Cancelled section — see lib/search-rows.ts), debounce (300ms),
+ * Result ordering (live issues, then a trailing Cancelled section — see
+ * lib/search-rows.ts), debounce (300ms),
  * abort policy, and Recent rendering mirror the web source.
  * Highlight + snippet line for `match_source` matches preserves the
  * "why did this match" signal users rely on when scanning results.
@@ -31,13 +31,10 @@ import type {
   Issue,
   IssueStatusCategory,
   SearchIssueResult,
-  SearchProjectResult,
 } from "@enact/core/types";
 import { Text } from "@/components/ui/text";
 import { StatusIcon } from "@/components/ui/status-icon";
 import { PriorityIcon } from "@/components/ui/priority-icon";
-import { ProjectIcon } from "@/components/ui/project-icon";
-import { ProjectStatusIcon } from "@/components/ui/project-status-icon";
 import { api } from "@/data/api";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import {
@@ -47,12 +44,10 @@ import {
 import { issueDetailOptions } from "@/data/queries/issues";
 import { issueColumnCategory } from "@/lib/issue-status";
 import { useIssueStatuses } from "@/lib/use-issue-statuses";
-import { projectStatusLabel } from "@/lib/project-status";
 import { buildSearchRows, type RowItem } from "@/lib/search-rows";
 
 const DEBOUNCE_MS = 300;
 const ISSUE_LIMIT = 20;
-const PROJECT_LIMIT = 10;
 const RECENT_LIMIT = 5;
 
 // =====================================================
@@ -216,53 +211,6 @@ function SearchIssueRow({ item, query, slug }: SearchIssueRowProps) {
   );
 }
 
-interface SearchProjectRowProps {
-  item: SearchProjectResult;
-  query: string;
-  slug: string | null;
-}
-
-function SearchProjectRow({ item, query, slug }: SearchProjectRowProps) {
-  const showSnippet =
-    item.match_source === "description" && !!item.matched_snippet;
-  return (
-    <Pressable
-      onPress={() => navigateOnTap(slug, `/${slug}/project/${item.id}`)}
-      className="active:bg-secondary px-4 py-3"
-    >
-      <View className="flex-row items-center gap-3">
-        <ProjectIcon icon={item.icon} size="md" />
-        <View className="flex-1">
-          <HighlightText
-            text={item.title}
-            query={query}
-            className="text-sm text-foreground"
-            numberOfLines={1}
-          />
-        </View>
-        <View className="flex-row items-center gap-1.5 shrink-0">
-          <ProjectStatusIcon status={item.status} size={12} />
-          <Text className="text-xs text-muted-foreground">
-            {projectStatusLabel(item.status)}
-          </Text>
-        </View>
-      </View>
-      {showSnippet ? (
-        <View className="flex-row items-start mt-1 pl-[36px]">
-          <View className="flex-1">
-            <HighlightText
-              text={item.matched_snippet ?? ""}
-              query={query}
-              className="text-xs text-muted-foreground"
-              numberOfLines={1}
-            />
-          </View>
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
 interface RecentRowProps {
   item: Issue;
   slug: string | null;
@@ -302,19 +250,14 @@ function RecentRow({ item, slug }: RecentRowProps) {
 // Screen
 // =====================================================
 
-interface SearchResultsState {
-  issues: SearchIssueResult[];
-  projects: SearchProjectResult[];
-}
-
-const EMPTY_RESULTS: SearchResultsState = { issues: [], projects: [] };
+const EMPTY_RESULTS: SearchIssueResult[] = [];
 
 export default function SearchModal() {
   const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const slug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResultsState>(EMPTY_RESULTS);
+  const [results, setResults] = useState<SearchIssueResult[]>(EMPTY_RESULTS);
   const [isLoading, setIsLoading] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -367,18 +310,12 @@ export default function SearchModal() {
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const [issueRes, projectRes] = await Promise.all([
-          api.searchIssues(
-            { q: q.trim(), limit: ISSUE_LIMIT, include_closed: true },
-            { signal: controller.signal },
-          ),
-          api.searchProjects(
-            { q: q.trim(), limit: PROJECT_LIMIT, include_closed: true },
-            { signal: controller.signal },
-          ),
-        ]);
+        const issueRes = await api.searchIssues(
+          { q: q.trim(), limit: ISSUE_LIMIT, include_closed: true },
+          { signal: controller.signal },
+        );
         if (!controller.signal.aborted) {
-          setResults({ issues: issueRes.issues, projects: projectRes.projects });
+          setResults(issueRes.issues);
           setIsLoading(false);
         }
       } catch {
@@ -399,8 +336,7 @@ export default function SearchModal() {
   );
 
   const trimmedQuery = query.trim();
-  const hasResults =
-    results.issues.length > 0 || results.projects.length > 0;
+  const hasResults = results.length > 0;
 
   // Build the FlatList data. One flat array of discriminated rows means a
   // single virtualised list covers Recent (empty-state) and the search results
@@ -408,12 +344,7 @@ export default function SearchModal() {
   // buildSearchRows (lib/search-rows.ts).
   const data = useMemo<RowItem[]>(
     () =>
-      buildSearchRows({
-        query,
-        issues: results.issues,
-        projects: results.projects,
-        recentIssues,
-      }),
+      buildSearchRows({ query, issues: results, recentIssues }),
     [query, results, recentIssues],
   );
 
@@ -428,8 +359,6 @@ export default function SearchModal() {
           );
         case "issue":
           return <SearchIssueRow item={item.issue} query={item.query} slug={slug} />;
-        case "project":
-          return <SearchProjectRow item={item.project} query={item.query} slug={slug} />;
         case "recent":
           return <RecentRow item={item.issue} slug={slug} />;
       }
@@ -449,7 +378,7 @@ export default function SearchModal() {
           <TextInput
             value={query}
             onChangeText={handleChange}
-            placeholder="Search issues and projects"
+            placeholder="Search issues"
             placeholderTextColor="#a1a1aa"
             autoFocus
             autoCorrect={false}
@@ -481,7 +410,7 @@ export default function SearchModal() {
             ) : !trimmedQuery && recentIssues.length === 0 ? (
               <View className="items-center justify-center py-12 px-6">
                 <Text className="text-sm text-muted-foreground text-center">
-                  Type to search issues and projects.
+                  Type to search issues.
                 </Text>
               </View>
             ) : null

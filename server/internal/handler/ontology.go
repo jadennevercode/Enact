@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/skillversion"
+	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -71,6 +73,10 @@ type OntologySummaryResponse struct {
 	IsLayered       bool    `json:"is_layered"`
 	CapabilityCount int     `json:"capability_count"`
 	CapHubURL       string  `json:"caphub_url"`
+	// Attached is whether this workspace already holds a skill projected from
+	// this domain — the ontology's equivalent of "installed" in the
+	// Marketplace, where it sits beside listings that are.
+	Attached bool `json:"attached"`
 }
 
 type OntologyDetailResponse struct {
@@ -178,11 +184,36 @@ func (h *Handler) ListOntologies(w http.ResponseWriter, r *http.Request) {
 		h.writeCapHubError(w, err)
 		return
 	}
+	attached := h.attachedOntologyDomains(r)
 	out := make([]OntologySummaryResponse, len(domains))
 	for i, domain := range domains {
 		out[i] = ontologySummary(domain, h.capHubDomainURL(domain.Name))
+		out[i].Attached = attached[domain.Name]
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// attachedOntologyDomains is the set of domains the caller's workspace has
+// already projected into a skill, read once for the whole catalog. Advisory:
+// a workspace that cannot be resolved, or whose skills cannot be read, gets a
+// catalog with nothing marked rather than no catalog.
+func (h *Handler) attachedOntologyDomains(r *http.Request) map[string]bool {
+	attached := map[string]bool{}
+	wsUUID, err := util.ParseUUID(h.resolveWorkspaceID(r))
+	if err != nil {
+		return attached
+	}
+	skills, err := h.Queries.ListSkillSummariesByWorkspace(r.Context(), wsUUID)
+	if err != nil {
+		return attached
+	}
+	for _, skill := range skills {
+		config := parseStoredOntologyConfig(skill.Config)
+		if config.Kind == "ontology" && config.Ontology.Domain != "" {
+			attached[config.Ontology.Domain] = true
+		}
+	}
+	return attached
 }
 
 func (h *Handler) GetOntology(w http.ResponseWriter, r *http.Request) {
@@ -382,6 +413,8 @@ func (h *Handler) AttachAgentOntology(w http.ResponseWriter, r *http.Request) {
 			Content:        bundle.Content,
 			Config:         config,
 			Files:          bundle.Files,
+			Source:         skillversion.SourceImport,
+			ActorID:        parseUUID(userID),
 		}); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to sync ontology")
 			return
@@ -406,6 +439,7 @@ func (h *Handler) AttachAgentOntology(w http.ResponseWriter, r *http.Request) {
 			Content:     bundle.Content,
 			Config:      config,
 			Files:       bundle.Files,
+			Source:      skillversion.SourceImport,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to import ontology")

@@ -62,7 +62,10 @@ ORDER BY
 -- name: ListAllSquads :many
 SELECT * FROM squad WHERE workspace_id = $1 ORDER BY created_at ASC;
 
--- name: FindSDLCDefaultSquadForUpdate :one
+-- name: FindProductSquadForUpdate :one
+-- Resolves a product-owned family by its stable system_key, falling back to a
+-- pre-system_key row with the same name and leader so an existing family is
+-- adopted rather than duplicated. Used by both the SDLC bundle and the catalog.
 SELECT * FROM squad
 WHERE workspace_id = @workspace_id
   AND (

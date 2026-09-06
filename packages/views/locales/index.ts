@@ -13,9 +13,11 @@ import enMyIssues from "./en/my-issues.json";
 import enSearch from "./en/search.json";
 import enInbox from "./en/inbox.json";
 import enWorkspace from "./en/workspace.json";
-import enProjects from "./en/projects.json";
+import enArtifacts from "./en/artifacts.json";
+import enResources from "./en/resources.json";
 import enAutopilots from "./en/autopilots.json";
 import enSkills from "./en/skills.json";
+import enMarketplace from "./en/marketplace.json";
 import enChat from "./en/chat.json";
 import enModals from "./en/modals.json";
 import enRuntimes from "./en/runtimes.json";
@@ -38,9 +40,11 @@ import zhHansMyIssues from "./zh-Hans/my-issues.json";
 import zhHansSearch from "./zh-Hans/search.json";
 import zhHansInbox from "./zh-Hans/inbox.json";
 import zhHansWorkspace from "./zh-Hans/workspace.json";
-import zhHansProjects from "./zh-Hans/projects.json";
+import zhHansArtifacts from "./zh-Hans/artifacts.json";
+import zhHansResources from "./zh-Hans/resources.json";
 import zhHansAutopilots from "./zh-Hans/autopilots.json";
 import zhHansSkills from "./zh-Hans/skills.json";
+import zhHansMarketplace from "./zh-Hans/marketplace.json";
 import zhHansChat from "./zh-Hans/chat.json";
 import zhHansModals from "./zh-Hans/modals.json";
 import zhHansRuntimes from "./zh-Hans/runtimes.json";
@@ -63,9 +67,11 @@ import koMyIssues from "./ko/my-issues.json";
 import koSearch from "./ko/search.json";
 import koInbox from "./ko/inbox.json";
 import koWorkspace from "./ko/workspace.json";
-import koProjects from "./ko/projects.json";
+import koArtifacts from "./ko/artifacts.json";
+import koResources from "./ko/resources.json";
 import koAutopilots from "./ko/autopilots.json";
 import koSkills from "./ko/skills.json";
+import koMarketplace from "./ko/marketplace.json";
 import koChat from "./ko/chat.json";
 import koModals from "./ko/modals.json";
 import koRuntimes from "./ko/runtimes.json";
@@ -88,9 +94,11 @@ import jaMyIssues from "./ja/my-issues.json";
 import jaSearch from "./ja/search.json";
 import jaInbox from "./ja/inbox.json";
 import jaWorkspace from "./ja/workspace.json";
-import jaProjects from "./ja/projects.json";
+import jaArtifacts from "./ja/artifacts.json";
+import jaResources from "./ja/resources.json";
 import jaAutopilots from "./ja/autopilots.json";
 import jaSkills from "./ja/skills.json";
+import jaMarketplace from "./ja/marketplace.json";
 import jaChat from "./ja/chat.json";
 import jaModals from "./ja/modals.json";
 import jaRuntimes from "./ja/runtimes.json";
@@ -119,9 +127,11 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     search: enSearch,
     inbox: enInbox,
     workspace: enWorkspace,
-    projects: enProjects,
+    artifacts: enArtifacts,
+    resources: enResources,
     autopilots: enAutopilots,
     skills: enSkills,
+    marketplace: enMarketplace,
     chat: enChat,
     modals: enModals,
     runtimes: enRuntimes,
@@ -146,9 +156,11 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     search: zhHansSearch,
     inbox: zhHansInbox,
     workspace: zhHansWorkspace,
-    projects: zhHansProjects,
+    artifacts: zhHansArtifacts,
+    resources: zhHansResources,
     autopilots: zhHansAutopilots,
     skills: zhHansSkills,
+    marketplace: zhHansMarketplace,
     chat: zhHansChat,
     modals: zhHansModals,
     runtimes: zhHansRuntimes,
@@ -173,9 +185,11 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     search: koSearch,
     inbox: koInbox,
     workspace: koWorkspace,
-    projects: koProjects,
+    artifacts: koArtifacts,
+    resources: koResources,
     autopilots: koAutopilots,
     skills: koSkills,
+    marketplace: koMarketplace,
     chat: koChat,
     modals: koModals,
     runtimes: koRuntimes,
@@ -200,9 +214,11 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     search: jaSearch,
     inbox: jaInbox,
     workspace: jaWorkspace,
-    projects: jaProjects,
+    artifacts: jaArtifacts,
+    resources: jaResources,
     autopilots: jaAutopilots,
     skills: jaSkills,
+    marketplace: jaMarketplace,
     chat: jaChat,
     modals: jaModals,
     runtimes: jaRuntimes,

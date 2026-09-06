@@ -7,7 +7,6 @@ import type {
   GroupedIssuesResponse,
   ListIssuesResponse,
   SearchIssuesResponse,
-  SearchProjectsResponse,
   UpdateMeRequest,
   CreateMemberRequest,
   UpdateMemberRequest,
@@ -36,6 +35,7 @@ import type {
   WorkspaceWorkingAgentMineRelation,
   WorkspaceWorkingAgentType,
   AgentRuntime,
+  Machine,
   RuntimeProfile,
   CreateRuntimeProfileRequest,
   UpdateRuntimeProfileRequest,
@@ -49,12 +49,28 @@ import type {
   Reaction,
   IssueReaction,
   Workspace,
-  WorkspaceRepo,
   WorkspaceMcpServer,
   MemberWithUser,
   User,
   Skill,
   SkillSummary,
+  SkillVersionDetail,
+  ListSkillVersionsResponse,
+  MarketplaceCatalog,
+  MarketplaceInstall,
+  MarketplaceInstalledFilter,
+  MarketplaceRecommendations,
+  WorkspaceSetup,
+  WorkspaceProfile,
+  UpdateWorkspaceProfileRequest,
+  MarketplaceInstallRequest,
+  MarketplaceInstallResult,
+  MarketplaceListingDetail,
+  MarketplaceFile,
+  MarketplaceVersion,
+  PublishMarketplaceListingRequest,
+  PublishMarketplaceListingResponse,
+  UpdateMarketplaceListingRequest,
   OntologyDetail,
   OntologySummary,
   CreateSkillRequest,
@@ -96,15 +112,12 @@ import type {
   SendChatMessageResponse,
   StartMikaOnboardingResponse,
   CancelTaskResponse,
-  Project,
-  CreateProjectRequest,
-  UpdateProjectRequest,
-  ListProjectsResponse,
-  ProjectResource,
-  CreateProjectResourceRequest,
-  UpdateProjectResourceRequest,
-  ListProjectArtifactsResponse,
-  ListProjectResourcesResponse,
+  WorkspaceResource,
+  ListAgentKnowledgeResponse,
+  CreateWorkspaceResourceRequest,
+  UpdateWorkspaceResourceRequest,
+  ListArtifactsResponse,
+  ListWorkspaceResourcesResponse,
   Label,
   IssueProperty,
   IssuePropertyValue,
@@ -277,10 +290,12 @@ import {
   EMPTY_ISSUE_TABLE_GROUPS_RESPONSE,
   EMPTY_ISSUE_TABLE_ROWS_RESPONSE,
   EMPTY_LIST_ISSUES_RESPONSE,
-  EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
+  EMPTY_LIST_ARTIFACTS_RESPONSE,
+  EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+  EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
+  EMPTY_WORKSPACE_RESOURCE,
   EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
-  EMPTY_SEARCH_PROJECTS_RESPONSE,
   EMPTY_SQUAD,
   EMPTY_SQUAD_LIST,
   EMPTY_SQUAD_MEMBER_STATUS_LIST,
@@ -302,7 +317,10 @@ import {
   CronPreviewResponseSchema,
   UNREADABLE_CRON_PREVIEW_RESPONSE,
   ListIssuesResponseSchema,
-  ListProjectArtifactsResponseSchema,
+  ListArtifactsResponseSchema,
+  ListAgentKnowledgeResponseSchema,
+  ListWorkspaceResourcesResponseSchema,
+  WorkspaceResourceResponseSchema,
   OntologyDetailSchema,
   OntologyListSchema,
   CreateIssueResponseSchema,
@@ -313,7 +331,6 @@ import {
   RuntimeUsageByHourListSchema,
   RuntimeUsageListSchema,
   SearchIssuesResponseSchema,
-  SearchProjectsResponseSchema,
   SquadSchema,
   SquadListSchema,
   SquadMemberStatusListResponseSchema,
@@ -411,6 +428,26 @@ import {
   MALFORMED_RUNTIME_MODEL_LIST_REQUEST,
   SkillSchema,
   EMPTY_SKILL,
+  SkillVersionDetailSchema,
+  ListSkillVersionsResponseSchema,
+  EMPTY_LIST_SKILL_VERSIONS_RESPONSE,
+  EMPTY_SKILL_VERSION_DETAIL,
+  MarketplaceCatalogSchema,
+  MarketplaceListingDetailSchema,
+  MarketplaceVersionListSchema,
+  MarketplaceRecommendationsSchema,
+  PublishMarketplaceListingResponseSchema,
+  MarketplaceInstallListSchema,
+  MarketplaceInstallResultSchema,
+  MarketplaceFileSchema,
+  EMPTY_MARKETPLACE_CATALOG,
+  EMPTY_MARKETPLACE_INSTALL_RESULT,
+  EMPTY_MARKETPLACE_FILE,
+  EMPTY_MARKETPLACE_RECOMMENDATIONS,
+  WorkspaceSetupSchema,
+  WorkspaceProfileSchema,
+  EMPTY_WORKSPACE_SETUP,
+  EMPTY_WORKSPACE_PROFILE,
   IssueViewSchema,
   IssueViewListSchema,
   IssueViewPreferenceSchema,
@@ -844,7 +881,6 @@ export class ApiClient {
     if (params?.assignee_ids?.length) search.set("assignee_ids", params.assignee_ids.join(","));
     if (params?.assignee_types?.length) search.set("assignee_types", params.assignee_types.join(","));
     if (params?.creator_id) search.set("creator_id", params.creator_id);
-    if (params?.project_id) search.set("project_id", params.project_id);
     if (params?.assignee_filters?.length) {
       search.set("assignee_filters", params.assignee_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
@@ -852,8 +888,6 @@ export class ApiClient {
     if (params?.creator_filters?.length) {
       search.set("creator_filters", params.creator_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
-    if (params?.project_ids?.length) search.set("project_ids", params.project_ids.join(","));
-    if (params?.include_no_project) search.set("include_no_project", "true");
     if (params?.label_ids?.length) search.set("label_ids", params.label_ids.join(","));
     if (params?.top_level_only) search.set("top_level_only", "true");
     // No `.length` guard on purpose: an empty ids array must still send
@@ -905,7 +939,6 @@ export class ApiClient {
     if (params.assignee_id) search.set("assignee_id", params.assignee_id);
     if (params.assignee_ids?.length) search.set("assignee_ids", params.assignee_ids.join(","));
     if (params.creator_id) search.set("creator_id", params.creator_id);
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.involves_user_id) search.set("involves_user_id", params.involves_user_id);
     if (params.metadata && Object.keys(params.metadata).length > 0) {
       search.set("metadata", JSON.stringify(params.metadata));
@@ -920,8 +953,6 @@ export class ApiClient {
     if (params.creator_filters?.length) {
       search.set("creator_filters", params.creator_filters.map((f) => `${f.type}:${f.id}`).join(","));
     }
-    if (params.project_ids?.length) search.set("project_ids", params.project_ids.join(","));
-    if (params.include_no_project) search.set("include_no_project", "true");
     if (params.label_ids?.length) search.set("label_ids", params.label_ids.join(","));
     if (params.group_assignee_type) search.set("group_assignee_type", params.group_assignee_type);
     if (params.group_assignee_id) search.set("group_assignee_id", params.group_assignee_id);
@@ -989,20 +1020,6 @@ export class ApiClient {
     });
   }
 
-  async searchProjects(params: { q: string; limit?: number; offset?: number; include_closed?: boolean; signal?: AbortSignal }): Promise<SearchProjectsResponse> {
-    const search = new URLSearchParams({ q: params.q });
-    if (params.limit !== undefined) search.set("limit", String(params.limit));
-    if (params.offset !== undefined) search.set("offset", String(params.offset));
-    if (params.include_closed) search.set("include_closed", "true");
-    const raw = await this.fetch<unknown>(
-      `/api/projects/search?${search}`,
-      params.signal ? { signal: params.signal } : undefined,
-    );
-    return parseWithFallback(raw, SearchProjectsResponseSchema, EMPTY_SEARCH_PROJECTS_RESPONSE, {
-      endpoint: "GET /api/projects/search",
-    });
-  }
-
   /**
    * Fetch one issue by UUID **or** by bare identifier ("ENA-123"): the server
    * resolves `PREFIX-NUMBER` against the workspace's own prefix through the
@@ -1064,7 +1081,6 @@ export class ApiClient {
     prompt: string;
     priority?: IssuePriority;
     due_date?: string;
-    project_id?: string | null;
     parent_issue_id?: string | null;
     attachment_ids?: string[];
   }): Promise<{ task_id: string }> {
@@ -1387,6 +1403,33 @@ export class ApiClient {
     workspaceSlug?: string,
   ): Promise<MikaBootstrapResponse> {
     return this.fetch("/api/agents/mika", {
+      method: "POST",
+      headers: workspaceHeader(workspaceSlug),
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Provisions the workspace's Retrospect Agent, or returns the one it already
+   * has.
+   *
+   * Same shape and the same reasoning as `createMikaAgent`: only a runtime, a
+   * language and an optional model travel, because name, avatar, permissions
+   * and the system instruction layer are server constants the public
+   * CreateAgent API cannot set. The server is also the idempotency boundary —
+   * a second call answers 200 with the existing agent (an archived one
+   * included), so callers treat 200 and 201 the same way.
+   */
+  async createRetrospectAgent(
+    data: {
+      runtime_id: string;
+      language: "en" | "zh" | "ko" | "ja";
+      /** Empty means "whatever the runtime defaults to". */
+      model?: string;
+    },
+    workspaceSlug?: string,
+  ): Promise<Agent> {
+    return this.fetch("/api/agents/retrospect", {
       method: "POST",
       headers: workspaceHeader(workspaceSlug),
       body: JSON.stringify(data),
@@ -1915,9 +1958,80 @@ export class ApiClient {
   }
 
   // ---------------------------------------------------------------------
-  // Custom runtime profiles (ENA-3284). All workspace-scoped: the caller
-  // passes the workspace id the same way the runtimes list resolves it.
+  // Machines. A machine is the computer a daemon runs on, owned by a user and
+  // shared across every workspace it is registered in. These endpoints are
+  // deliberately NOT workspace-scoped: routing them through a workspace is
+  // what forced the same host to be named and tracked once per workspace.
   // ---------------------------------------------------------------------
+
+  async listMachines(): Promise<Machine[]> {
+    const res = await this.fetch<{ machines?: Machine[] }>("/api/machines");
+    return res?.machines ?? [];
+  }
+
+  async getMachine(machineId: string): Promise<Machine> {
+    return this.fetch(`/api/machines/${machineId}`);
+  }
+
+  async updateMachine(
+    machineId: string,
+    patch: {
+      /**
+       * Machine display name. Pass an empty string to clear it and revert to
+       * the daemon-proposed device name — the same convention the per-runtime
+       * rename uses. One write reaches every workspace the host serves.
+       */
+      custom_name: string;
+    },
+  ): Promise<Machine> {
+    return this.fetch(`/api/machines/${machineId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Custom runtime profiles (ENA-3284). Workspace-scoped reads and writes act
+  // on what a workspace may use; the owner's own list and the publish call
+  // below act on the definition, which can reach several workspaces.
+  // ---------------------------------------------------------------------
+
+  /** Every profile the caller owns, across all workspaces. */
+  async listMyRuntimeProfiles(): Promise<RuntimeProfile[]> {
+    const res = await this.fetch<{ runtime_profiles?: RuntimeProfile[] }>(
+      "/api/runtime-profiles",
+    );
+    return res?.runtime_profiles ?? [];
+  }
+
+  /**
+   * Make a profile the caller owns available in `workspaceId`. Requires both
+   * ownership of the profile and admin of the target workspace.
+   */
+  async publishRuntimeProfile(
+    workspaceId: string,
+    profileId: string,
+  ): Promise<RuntimeProfile> {
+    return this.fetch(`/api/workspaces/${workspaceId}/runtime-profiles/publish`, {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId }),
+    });
+  }
+
+  /**
+   * This workspace's own on/off switch for a published profile. Distinct from
+   * the owner's global `enabled`, and from withdrawing it entirely (DELETE).
+   */
+  async setRuntimeProfileWorkspaceEnabled(
+    workspaceId: string,
+    profileId: string,
+    enabled: boolean,
+  ): Promise<{ profile_id: string; workspace_enabled: boolean }> {
+    return this.fetch(
+      `/api/workspaces/${workspaceId}/runtime-profiles/${profileId}/enabled`,
+      { method: "PATCH", body: JSON.stringify({ enabled }) },
+    );
+  }
 
   async listRuntimeProfiles(workspaceId: string): Promise<RuntimeProfile[]> {
     const res = await this.fetch<{ runtime_profiles?: RuntimeProfile[] }>(
@@ -2044,17 +2158,15 @@ export class ApiClient {
 
   // ---------------------------------------------------------------------------
   // Workspace dashboard — three independent rollups for `/{slug}/dashboard`.
-  // Each accepts an optional `project_id` to narrow the scope to one project.
   // Cost is computed client-side from the model pricing table (same contract
   // as the per-runtime endpoints above).
   // ---------------------------------------------------------------------------
 
   async getDashboardUsageDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardUsageDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/usage/daily?${search}`);
     return parseWithFallback<DashboardUsageDaily[]>(
@@ -2066,11 +2178,10 @@ export class ApiClient {
   }
 
   async getDashboardUsageByAgent(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardUsageByAgent[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/usage/by-agent?${search}`);
     return parseWithFallback<DashboardUsageByAgent[]>(
@@ -2082,11 +2193,10 @@ export class ApiClient {
   }
 
   async getDashboardAgentRunTime(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardAgentRunTime[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` aligns the "last N days" cutoff with the viewer's calendar,
     // matching the per-agent token card.
     if (params.tz) search.set("tz", params.tz);
@@ -2100,11 +2210,10 @@ export class ApiClient {
   }
 
   async getDashboardRunTimeDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardRunTimeDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` cuts the day buckets in the viewer's calendar so Time / Tasks
     // align with the Cost / Tokens charts.
     if (params.tz) search.set("tz", params.tz);
@@ -2118,11 +2227,10 @@ export class ApiClient {
   }
 
   async getDashboardFailuresDaily(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardFailureDaily[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     // `tz` cuts the day buckets in the viewer's calendar so the Errors chart
     // shares an x-axis with the other four metrics.
     if (params.tz) search.set("tz", params.tz);
@@ -2136,11 +2244,10 @@ export class ApiClient {
   }
 
   async getDashboardFailuresByAgent(
-    params: { days?: number; project_id?: string | null; tz?: string },
+    params: { days?: number; tz?: string },
   ): Promise<DashboardFailureByAgent[]> {
     const search = new URLSearchParams();
     if (params.days) search.set("days", String(params.days));
-    if (params.project_id) search.set("project_id", params.project_id);
     if (params.tz) search.set("tz", params.tz);
     const raw = await this.fetch<unknown>(`/api/dashboard/failures/by-agent?${search}`);
     return parseWithFallback<DashboardFailureByAgent[]>(
@@ -2434,14 +2541,60 @@ export class ApiClient {
     return this.fetch(`/api/workspaces/${id}`);
   }
 
-  async createWorkspace(data: { name: string; slug: string; description?: string; context?: string; issue_prefix?: string }): Promise<Workspace> {
+  /**
+   * `language` selects the copy the setup checklist and its welcome inbox item
+   * are written in. The server has no other signal — the locale lives in a
+   * cookie the API never sees — so a caller that omits it gets English.
+   */
+  async createWorkspace(data: { name: string; slug: string; description?: string; context?: string; issue_prefix?: string; language?: string }): Promise<Workspace> {
     return this.fetch("/api/workspaces", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateWorkspace(id: string, data: { name?: string; description?: string; context?: string; settings?: Record<string, unknown>; repos?: WorkspaceRepo[]; issue_prefix?: string; avatar_url?: string }): Promise<Workspace> {
+  /**
+   * The setup checklist. This GET writes on the server: it files what the
+   * workspace is missing and closes the steps that have become true, which is
+   * how a step closes when a member connects a runtime without touching the
+   * issue. Calling it is therefore also how a workspace created before the
+   * checklist existed gets one.
+   */
+  async getWorkspaceSetup(id: string, language?: string): Promise<WorkspaceSetup> {
+    const suffix = language ? `?language=${encodeURIComponent(language)}` : "";
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/setup${suffix}`);
+    return parseWithFallback(raw, WorkspaceSetupSchema, EMPTY_WORKSPACE_SETUP, {
+      endpoint: "GET /api/workspaces/{id}/setup",
+    }) as WorkspaceSetup;
+  }
+
+  async getWorkspaceProfile(id: string): Promise<WorkspaceProfile> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/profile`);
+    return parseWithFallback(raw, WorkspaceProfileSchema, EMPTY_WORKSPACE_PROFILE, {
+      endpoint: "GET /api/workspaces/{id}/profile",
+    }) as WorkspaceProfile;
+  }
+
+  /**
+   * Replaces the profile. Not a patch: an omitted field is cleared, except
+   * `repo_brief` and `repo_brief_sources`, which the server carries forward
+   * when the key is absent so a form that does not show them cannot discard
+   * what the repository analysis found.
+   */
+  async updateWorkspaceProfile(
+    id: string,
+    data: UpdateWorkspaceProfileRequest,
+  ): Promise<WorkspaceProfile> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${id}/profile`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, WorkspaceProfileSchema, EMPTY_WORKSPACE_PROFILE, {
+      endpoint: "PUT /api/workspaces/{id}/profile",
+    }) as WorkspaceProfile;
+  }
+
+  async updateWorkspace(id: string, data: { name?: string; description?: string; context?: string; settings?: Record<string, unknown>; issue_prefix?: string; avatar_url?: string }): Promise<Workspace> {
     return this.fetch(`/api/workspaces/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -2899,6 +3052,164 @@ export class ApiClient {
     });
   }
 
+  // Marketplace
+  //
+  // Every response goes through a schema: the directory is read across a
+  // version boundary — a workspace browsing listings published by a deployment
+  // running newer code — so a field this client has never seen must not drop
+  // the listing that carries it.
+
+  async listMarketplaceListings(params?: {
+    kind?: string;
+    category?: string;
+    tag?: string;
+    q?: string;
+    includeDeprecated?: boolean;
+    mine?: boolean;
+    installed?: MarketplaceInstalledFilter;
+  }): Promise<MarketplaceCatalog> {
+    const query = new URLSearchParams();
+    if (params?.kind) query.set("kind", params.kind);
+    if (params?.category) query.set("category", params.category);
+    if (params?.tag) query.set("tag", params.tag);
+    if (params?.q) query.set("q", params.q);
+    if (params?.includeDeprecated) query.set("include_deprecated", "true");
+    if (params?.mine) query.set("mine", "true");
+    if (params?.installed) {
+      query.set("installed", params.installed === "installed" ? "true" : "false");
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    const raw = await this.fetch<unknown>(`/api/marketplace/listings${suffix}`);
+    return parseWithFallback(raw, MarketplaceCatalogSchema, EMPTY_MARKETPLACE_CATALOG, {
+      endpoint: "GET /api/marketplace/listings",
+    }) as MarketplaceCatalog;
+  }
+
+  /**
+   * The directory ranked against this workspace's project profile. Recomputed
+   * server-side on every call against the listings as they are right now, so
+   * this is never cached client-side beyond a normal query staleness window.
+   */
+  async listMarketplaceRecommendations(limit?: number): Promise<MarketplaceRecommendations> {
+    const suffix = limit ? `?limit=${limit}` : "";
+    const raw = await this.fetch<unknown>(`/api/marketplace/recommendations${suffix}`);
+    return parseWithFallback(raw, MarketplaceRecommendationsSchema, EMPTY_MARKETPLACE_RECOMMENDATIONS, {
+      endpoint: "GET /api/marketplace/recommendations",
+    }) as MarketplaceRecommendations;
+  }
+
+  /**
+   * "Not this one." Scoped server-side to the version the member was shown, so
+   * a new version of the same listing comes back.
+   */
+  async dismissMarketplaceRecommendation(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/recommendations/${encodeURIComponent(id)}/dismiss`, {
+      method: "POST",
+    });
+  }
+
+  async restoreMarketplaceRecommendation(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/recommendations/${encodeURIComponent(id)}/dismiss`, {
+      method: "DELETE",
+    });
+  }
+
+  async getMarketplaceListing(
+    id: string,
+    versionId?: string,
+  ): Promise<MarketplaceListingDetail | null> {
+    const suffix = versionId ? `?version_id=${encodeURIComponent(versionId)}` : "";
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}${suffix}`,
+    );
+    // A detail page cannot render a half-parsed listing, and inventing an empty
+    // one would show the reader a listing that does not exist, so the fallback
+    // is null and the caller renders "unavailable".
+    const parsed = MarketplaceListingDetailSchema.safeParse(raw);
+    return parsed.success ? (parsed.data as MarketplaceListingDetail) : null;
+  }
+
+  async listMarketplaceVersions(id: string): Promise<MarketplaceVersion[]> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/versions`,
+    );
+    return parseWithFallback(raw, MarketplaceVersionListSchema, [], {
+      endpoint: "GET /api/marketplace/listings/:id/versions",
+    }) as MarketplaceVersion[];
+  }
+
+  async getMarketplaceFile(
+    id: string,
+    path: string,
+    versionId?: string,
+  ): Promise<MarketplaceFile> {
+    const query = new URLSearchParams({ path });
+    if (versionId) query.set("version_id", versionId);
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/file?${query.toString()}`,
+    );
+    return parseWithFallback(raw, MarketplaceFileSchema, EMPTY_MARKETPLACE_FILE, {
+      endpoint: "GET /api/marketplace/listings/:id/file",
+    }) as MarketplaceFile;
+  }
+
+  async listMarketplaceInstalls(): Promise<MarketplaceInstall[]> {
+    const raw = await this.fetch<unknown>("/api/marketplace/installs");
+    return parseWithFallback(raw, MarketplaceInstallListSchema, [], {
+      endpoint: "GET /api/marketplace/installs",
+    }) as MarketplaceInstall[];
+  }
+
+  /**
+   * Publishes a workspace entity. Only its id travels — the server reads the
+   * entity and redacts it, so nothing this client sends can become the
+   * published content.
+   */
+  async publishMarketplaceListing(
+    data: PublishMarketplaceListingRequest,
+  ): Promise<PublishMarketplaceListingResponse> {
+    const raw = await this.fetch<unknown>("/api/marketplace/listings", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    const parsed = PublishMarketplaceListingResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new Error("the server sent a publish response this client could not read");
+    }
+    return parsed.data as PublishMarketplaceListingResponse;
+  }
+
+  async updateMarketplaceListing(
+    id: string,
+    data: UpdateMarketplaceListingRequest,
+  ): Promise<MarketplaceListingDetail | null> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+    const parsed = MarketplaceListingDetailSchema.safeParse(raw);
+    return parsed.success ? (parsed.data as MarketplaceListingDetail) : null;
+  }
+
+  async deleteMarketplaceListing(id: string): Promise<void> {
+    await this.fetch(`/api/marketplace/listings/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  }
+
+  async installMarketplaceListing(
+    id: string,
+    data: MarketplaceInstallRequest,
+  ): Promise<MarketplaceInstallResult> {
+    const raw = await this.fetch<unknown>(
+      `/api/marketplace/listings/${encodeURIComponent(id)}/install`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+    return parseWithFallback(raw, MarketplaceInstallResultSchema, EMPTY_MARKETPLACE_INSTALL_RESULT, {
+      endpoint: "POST /api/marketplace/listings/:id/install",
+    }) as MarketplaceInstallResult;
+  }
+
   // Skills
   async listSkills(): Promise<SkillSummary[]> {
     return this.fetch("/api/skills");
@@ -2924,6 +3235,29 @@ export class ApiClient {
 
   async deleteSkill(id: string): Promise<void> {
     await this.fetch(`/api/skills/${id}`, { method: "DELETE" });
+  }
+
+  // Skill versions
+
+  async listSkillVersions(skillId: string): Promise<ListSkillVersionsResponse> {
+    const raw = await this.fetch<unknown>(`/api/skills/${skillId}/versions`);
+    return parseWithFallback(raw, ListSkillVersionsResponseSchema, EMPTY_LIST_SKILL_VERSIONS_RESPONSE, {
+      endpoint: "GET /api/skills/:id/versions",
+    });
+  }
+
+  async getSkillVersion(skillId: string, versionId: string): Promise<SkillVersionDetail> {
+    const raw = await this.fetch<unknown>(`/api/skills/${skillId}/versions/${versionId}`);
+    return parseWithFallback(raw, SkillVersionDetailSchema, EMPTY_SKILL_VERSION_DETAIL, {
+      endpoint: "GET /api/skills/:id/versions/:versionId",
+    });
+  }
+
+  async restoreSkillVersion(skillId: string, versionId: string, summary?: string): Promise<Skill> {
+    return this.fetch(`/api/skills/${skillId}/versions/${versionId}/restore`, {
+      method: "POST",
+      body: JSON.stringify({ summary: summary ?? "" }),
+    });
   }
 
   async importSkill(data: { url: string }): Promise<Skill> {
@@ -3108,7 +3442,6 @@ export class ApiClient {
     data: {
       agent_id: string;
       title?: string;
-      project_id?: string | null;
     },
     workspaceSlug?: string,
   ): Promise<ChatSession> {
@@ -3145,7 +3478,7 @@ export class ApiClient {
 
   async updateChatSession(
     id: string,
-    data: { title: string } | { project_id: string | null },
+    data: { title: string },
   ): Promise<ChatSession> {
     return this.fetch(`/api/chat/sessions/${id}`, {
       method: "PATCH",
@@ -3442,90 +3775,133 @@ export class ApiClient {
     return res.blob();
   }
 
-  // Projects
-  async listProjects(params?: { status?: string }): Promise<ListProjectsResponse> {
-    const search = new URLSearchParams();
-    if (params?.status) search.set("status", params.status);
-    return this.fetch(`/api/projects?${search}`);
-  }
-
-  async getProject(id: string): Promise<Project> {
-    return this.fetch(`/api/projects/${id}`);
-  }
-
-  async createProject(data: CreateProjectRequest): Promise<Project> {
-    return this.fetch("/api/projects", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateProject(id: string, data: UpdateProjectRequest): Promise<Project> {
-    return this.fetch(`/api/projects/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteProject(id: string): Promise<void> {
-    await this.fetch(`/api/projects/${id}`, { method: "DELETE" });
-  }
-
-  // Project artifacts — every file produced under a project, resolved through
-  // the issues in it. Schema-parsed rather than cast: the artifacts browser
-  // builds its whole tree from this response, and a drifted field must degrade
-  // to an empty tree rather than throw inside the render.
-  async listProjectArtifacts(
-    projectId: string,
+  // Artifacts — the files one issue produced, including the files its direct
+  // children produced. Schema-parsed rather than cast: the browser builds its
+  // whole tree from this response, and a drifted field must degrade to an
+  // empty tree rather than throw inside the render.
+  async listIssueArtifacts(
+    issueId: string,
     limit?: number,
-  ): Promise<ListProjectArtifactsResponse> {
+  ): Promise<ListArtifactsResponse> {
     const query = limit === undefined ? "" : `?limit=${limit}`;
     const raw = await this.fetch<unknown>(
-      `/api/projects/${projectId}/artifacts${query}`,
+      `/api/issues/${encodeURIComponent(issueId)}/artifacts${query}`,
     );
     return parseWithFallback(
       raw,
-      ListProjectArtifactsResponseSchema,
-      EMPTY_LIST_PROJECT_ARTIFACTS_RESPONSE,
-      { endpoint: "GET /api/projects/{id}/artifacts" },
+      ListArtifactsResponseSchema,
+      EMPTY_LIST_ARTIFACTS_RESPONSE,
+      { endpoint: "GET /api/issues/{id}/artifacts" },
     );
   }
 
-  // Project resources
-  async listProjectResources(
-    projectId: string,
-  ): Promise<ListProjectResourcesResponse> {
-    return this.fetch(`/api/projects/${projectId}/resources`);
+  // Artifacts — the files uploaded into one chat session, by the member or by
+  // the agent.
+  async listChatSessionArtifacts(
+    sessionId: string,
+    limit?: number,
+  ): Promise<ListArtifactsResponse> {
+    const query = limit === undefined ? "" : `?limit=${limit}`;
+    const raw = await this.fetch<unknown>(
+      `/api/chat/sessions/${encodeURIComponent(sessionId)}/artifacts${query}`,
+    );
+    return parseWithFallback(
+      raw,
+      ListArtifactsResponseSchema,
+      EMPTY_LIST_ARTIFACTS_RESPONSE,
+      { endpoint: "GET /api/chat/sessions/{id}/artifacts" },
+    );
   }
 
-  async createProjectResource(
-    projectId: string,
-    data: CreateProjectResourceRequest,
-  ): Promise<ProjectResource> {
-    return this.fetch(`/api/projects/${projectId}/resources`, {
+  // Workspace resources — the repos and local directories agents work in.
+  async listWorkspaceResources(): Promise<ListWorkspaceResourcesResponse> {
+    const raw = await this.fetch<unknown>("/api/resources");
+    return parseWithFallback(
+      raw,
+      ListWorkspaceResourcesResponseSchema,
+      EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
+      { endpoint: "GET /api/resources" },
+    );
+  }
+
+  // Knowledge bases an agent reads. Per-agent, unlike every other resource
+  // surface: the binding is what puts the document index in that agent's
+  // brief, so these endpoints hang off the agent rather than the workspace.
+  async listAgentKnowledge(agentId: string): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(`/api/agents/${agentId}/knowledge`);
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "GET /api/agents/{id}/knowledge" },
+    );
+  }
+
+  async attachAgentKnowledge(
+    agentId: string,
+    resourceId: string,
+  ): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(`/api/agents/${agentId}/knowledge`, {
+      method: "POST",
+      body: JSON.stringify({ resource_id: resourceId }),
+    });
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "POST /api/agents/{id}/knowledge" },
+    );
+  }
+
+  async removeAgentKnowledge(
+    agentId: string,
+    resourceId: string,
+  ): Promise<ListAgentKnowledgeResponse> {
+    const raw = await this.fetch<unknown>(
+      `/api/agents/${agentId}/knowledge/${resourceId}`,
+      { method: "DELETE" },
+    );
+    return parseWithFallback(
+      raw,
+      ListAgentKnowledgeResponseSchema,
+      EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
+      { endpoint: "DELETE /api/agents/{id}/knowledge/{resourceId}" },
+    );
+  }
+
+  async createWorkspaceResource(
+    data: CreateWorkspaceResourceRequest,
+  ): Promise<WorkspaceResource> {
+    const raw = await this.fetch<unknown>("/api/resources", {
       method: "POST",
       body: JSON.stringify(data),
     });
+    return parseWithFallback(
+      raw,
+      WorkspaceResourceResponseSchema,
+      EMPTY_WORKSPACE_RESOURCE,
+      { endpoint: "POST /api/resources" },
+    );
   }
 
-  async updateProjectResource(
-    projectId: string,
+  async updateWorkspaceResource(
     resourceId: string,
-    data: UpdateProjectResourceRequest,
-  ): Promise<ProjectResource> {
-    return this.fetch(`/api/projects/${projectId}/resources/${resourceId}`, {
+    data: UpdateWorkspaceResourceRequest,
+  ): Promise<WorkspaceResource> {
+    const raw = await this.fetch<unknown>(`/api/resources/${resourceId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
+    return parseWithFallback(
+      raw,
+      WorkspaceResourceResponseSchema,
+      EMPTY_WORKSPACE_RESOURCE,
+      { endpoint: "PUT /api/resources/{id}" },
+    );
   }
 
-  async deleteProjectResource(
-    projectId: string,
-    resourceId: string,
-  ): Promise<void> {
-    await this.fetch(`/api/projects/${projectId}/resources/${resourceId}`, {
-      method: "DELETE",
-    });
+  async deleteWorkspaceResource(resourceId: string): Promise<void> {
+    await this.fetch(`/api/resources/${resourceId}`, { method: "DELETE" });
   }
 
   // Labels

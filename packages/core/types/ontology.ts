@@ -17,6 +17,12 @@ export interface OntologySummary {
   capabilityCount: number;
   isLayered: boolean;
   capHubUrl: string;
+  /**
+   * Whether this workspace already holds a skill projected from this domain.
+   * The ontology's equivalent of a listing's `installed`, so the Marketplace
+   * can badge every tab the same way.
+   */
+  attached: boolean;
 }
 
 export interface OntologyDetail extends OntologySummary {

@@ -72,15 +72,13 @@ export function IssueSurface({
   contentClassName,
 }: IssueSurfaceComponentProps) {
   const wsId = useWorkspaceId();
-  // Saved views exist on workspace / my / project surfaces only.
+  // Saved views exist on workspace / my surfaces only.
   const viewScope: IssueViewScope | null =
     scope.type === "workspace"
       ? { scope_type: "workspace" }
       : scope.type === "my"
         ? { scope_type: "my" }
-        : scope.type === "project"
-          ? { scope_type: "project", scope_id: scope.projectId }
-          : null;
+        : null;
   const { activeView } = useActiveIssueView(wsId, viewScope);
 
   // An open saved view swaps the surface onto its own view-preference key:
@@ -97,13 +95,13 @@ export function IssueSurface({
     [activeView],
   );
   // While a view is open, the scope axis the view captured belongs to the
-  // VIEW, not to whichever tab the user stood on: workspace/project views
-  // carry an assignee-type variant, my views a relation variant. The user's
+  // VIEW, not to whichever tab the user stood on: workspace views carry an
+  // assignee-type variant, my views a relation variant. The user's
   // own tab state is never touched — it is exactly where they left it when
   // the view closes (or vanishes). A variant-free view resolves to the
   // unrestricted axis value.
   const effectiveScope: IssueScope =
-    activeView && (scope.type === "workspace" || scope.type === "project")
+    activeView && scope.type === "workspace"
       ? { ...scope, actorKind: actorKindForViewVariant(activeView.scope_variant) }
       : activeView && scope.type === "my"
         ? { ...scope, relation: myRelationForViewVariant(activeView.scope_variant) }
@@ -138,8 +136,8 @@ export function IssueSurface({
       {/* Remount on data-window change: the list queries keep the previous
           key's data as a placeholder (keepPreviousData) so sort/filter
           changes within ONE surface never flash a skeleton — but reusing the
-          mounted observer across windows made project A's cards impersonate
-          project B (with isLoading=false, so no skeleton either) until B's
+          mounted observer across windows made scope A's cards impersonate
+          scope B (with isLoading=false, so no skeleton either) until B's
           fetch landed. A window-keyed remount gives the new window a fresh
           observer: cold window → skeleton, warm window → instant cache hit.
           The window identity is wsId + scope — wsId is required because the
@@ -178,7 +176,7 @@ function IssueSurfaceContent({
   batchToolbar,
   contentClassName,
 }: Omit<IssueSurfaceComponentProps, "surfaceKey">) {
-  const { t } = useT("projects");
+  const { t } = useT("issues");
   const controller = useIssueSurfaceController({
     scope,
     modes,
@@ -253,11 +251,7 @@ function IssueSurfaceContent({
             tableFacetCounts={controller.tableFacetCounts}
             onTableFacetChange={controller.setActiveTableFacet}
             saveViewScope={
-              scope.type === "project"
-                ? { kind: "project", projectId: scope.projectId }
-                : scope.type === "workspace"
-                  ? { kind: "workspace" }
-                  : null
+              scope.type === "workspace" ? { kind: "workspace" } : null
             }
           />
         )}
@@ -287,8 +281,8 @@ function IssueSurfaceContent({
           ) : (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
               <ListTodo className="h-10 w-10 text-faint-foreground" />
-              <p className="text-body">{t(($) => $.detail.empty_issues_title)}</p>
-              <p className="text-caption">{t(($) => $.detail.empty_issues_hint)}</p>
+              <p className="text-body">{t(($) => $.surface.empty_title)}</p>
+              <p className="text-caption">{t(($) => $.surface.empty_hint)}</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -296,7 +290,7 @@ function IssueSurfaceContent({
                 onClick={() => controller.openCreateIssue()}
               >
                 <Plus className="size-3.5 mr-1.5" />
-                {t(($) => $.detail.empty_issues_new_button)}
+                {t(($) => $.surface.empty_new_button)}
               </Button>
             </div>
           )
@@ -309,8 +303,6 @@ function IssueSurfaceContent({
                 hiddenStatuses={controller.hiddenStatuses}
                 onMoveIssue={controller.moveIssue}
                 childProgressMap={controller.childProgressMap}
-                projectMap={controller.projectMap}
-                projectId={controller.projectId}
                 onCreateIssue={openCreateIssue}
                 statusPagination={controller.statusPagination}
                 groupBranches={controller.groupBranches}
@@ -321,8 +313,6 @@ function IssueSurfaceContent({
                 issues={issues}
                 visibleStatuses={controller.visibleStatuses}
                 childProgressMap={controller.childProgressMap}
-                projectMap={controller.projectMap}
-                projectId={controller.projectId}
                 onMoveIssue={controller.moveIssue}
                 onCreateIssue={openCreateIssue}
                 statusPagination={controller.statusPagination!}
@@ -352,8 +342,6 @@ function IssueSurfaceContent({
                 hiddenStatuses={controller.hiddenStatuses}
                 onMoveIssue={controller.moveIssue}
                 childProgressMap={controller.childProgressMap}
-                projectMap={controller.projectMap}
-                projectId={controller.projectId}
                 onCreateIssue={openCreateIssue}
                 groupBranches={controller.groupBranches}
               />
