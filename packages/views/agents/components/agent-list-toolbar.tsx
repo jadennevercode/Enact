@@ -204,7 +204,7 @@ export function AgentListToolbar({
   );
 
   return (
-    <div className={cn("h-12 shrink-0 overflow-x-auto [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
+    <div className={cn("enact-management-toolbar h-12 shrink-0 overflow-x-auto [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
       <div className="flex h-full w-max min-w-full items-center justify-between gap-2">
         {/* Left: local search + scope buttons + result count. Scope mixes the
           ownership lens (mine/all) with the archived lifecycle stage. Button
@@ -228,11 +228,8 @@ export function AgentListToolbar({
               key={s}
               variant="outline"
               size="sm"
-              className={
-                scope === s
-                  ? "gap-1.5 bg-accent text-accent-foreground hover:bg-accent/80"
-                  : "gap-1.5 text-muted-foreground"
-              }
+              className="enact-management-scope-trigger gap-1.5 text-muted-foreground"
+              data-active={scope === s ? "true" : undefined}
               onClick={() => onScopeChange(s)}
             >
               {SCOPE_LABELS[s]}
@@ -291,11 +288,8 @@ export function AgentListToolbar({
               <Button
                 variant={hasActiveFilters ? "default" : "outline"}
                 size="sm"
-                className={
-                  hasActiveFilters
-                    ? "h-8 w-8 gap-1 bg-brand px-0 text-white hover:bg-brand/90 md:w-auto md:px-2.5"
-                    : "h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
-                }
+                className="enact-management-filter-trigger h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
+                data-active={hasActiveFilters ? "true" : undefined}
               >
                 <Filter className="size-3.5" />
                 {hasActiveFilters ? (
@@ -319,7 +313,7 @@ export function AgentListToolbar({
                     role="button"
                     tabIndex={-1}
                     aria-label={t(($) => $.toolbar.clear_filters)}
-                    className="-mr-1 ml-0.5 hidden rounded-sm p-0.5 hover:bg-white/20 md:inline-flex"
+                    className="enact-management-filter-clear -mr-1 ml-0.5 hidden p-0.5 md:inline-flex"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

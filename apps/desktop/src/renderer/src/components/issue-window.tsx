@@ -66,7 +66,7 @@ function IssueWindowRoute() {
   if (!ready) {
     return (
       <IssueWindowFrame>
-        <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="enact-issue-window-state flex min-h-0 flex-1 items-center justify-center">
           <EnactIcon className="size-6 animate-pulse" />
         </div>
       </IssueWindowFrame>
@@ -94,7 +94,7 @@ function IssueWindowFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-dedicated-issue-window="true"
-      className="flex h-screen min-h-0 flex-col bg-page-canvas text-foreground"
+      className="enact-issue-window flex h-screen min-h-0 flex-col"
     >
       <DragStrip />
       <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
@@ -105,7 +105,7 @@ function IssueWindowFrame({ children }: { children: React.ReactNode }) {
 function IssueWindowUnavailable() {
   return (
     <IssueWindowFrame>
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className="enact-issue-window-state flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <div className="rounded-full bg-muted p-3 text-muted-foreground">
           <AlertTriangle className="size-6" aria-hidden="true" />
         </div>
@@ -131,7 +131,7 @@ function IssueWindowRouteError() {
     <IssueWindowFrame>
       <div
         role="alert"
-        className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center"
+        className="enact-issue-window-state flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center"
       >
         <div className="rounded-full bg-destructive/10 p-3 text-destructive">
           <AlertTriangle className="size-6" aria-hidden="true" />

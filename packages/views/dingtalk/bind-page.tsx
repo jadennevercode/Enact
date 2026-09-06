@@ -64,15 +64,15 @@ export function DingTalkBindPage({ token }: { token: string | null }) {
   }, [token, user, isAuthLoading, state.kind]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-6">
-      <Card className="w-full">
-        <CardContent className="space-y-4">
-          <h1 className="text-title font-semibold">{t(($) => $.dingtalk_bind.page_title)}</h1>
+    <div className="enact-integration-bind-page">
+      <Card className="enact-integration-bind-card" data-state={state.kind}>
+        <CardContent className="enact-integration-bind-content">
+          <h1 className="enact-integration-bind-title">{t(($) => $.dingtalk_bind.page_title)}</h1>
           {state.kind === "idle" || state.kind === "redeeming" ? (
-            <p className="text-body text-muted-foreground">{t(($) => $.dingtalk_bind.redeeming)}</p>
+            <p className="enact-integration-bind-copy">{t(($) => $.dingtalk_bind.redeeming)}</p>
           ) : state.kind === "needs-auth" ? (
             <>
-              <p className="text-body text-muted-foreground">
+              <p className="enact-integration-bind-copy">
                 {t(($) => $.dingtalk_bind.needs_auth_description)}
               </p>
               <Button
@@ -91,15 +91,15 @@ export function DingTalkBindPage({ token }: { token: string | null }) {
             </>
           ) : state.kind === "done" ? (
             <>
-              <p className="text-body font-medium">{t(($) => $.dingtalk_bind.done_title)}</p>
-              <p className="text-caption text-muted-foreground">
+              <p className="enact-integration-bind-state-title">{t(($) => $.dingtalk_bind.done_title)}</p>
+              <p className="enact-integration-bind-detail">
                 {t(($) => $.dingtalk_bind.done_description)}
               </p>
             </>
           ) : (
             <>
-              <p className="text-body font-medium">{t(($) => $.dingtalk_bind.error_title)}</p>
-              <p className="text-caption text-muted-foreground">
+              <p className="enact-integration-bind-state-title">{t(($) => $.dingtalk_bind.error_title)}</p>
+              <p className="enact-integration-bind-detail">
                 {(() => {
                   switch (state.reason) {
                     case "missing_token":
@@ -115,7 +115,7 @@ export function DingTalkBindPage({ token }: { token: string | null }) {
                   }
                 })()}
               </p>
-              <p className="text-micro text-muted-foreground">
+              <p className="enact-integration-bind-hint">
                 {t(($) => $.dingtalk_bind.error_admin_hint)}
               </p>
             </>

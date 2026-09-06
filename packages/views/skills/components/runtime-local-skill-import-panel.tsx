@@ -123,13 +123,13 @@ function defaultRenameName(name: string): string {
 function ResultIcon({ status }: { status: BulkImportResult["status"] }) {
   switch (status) {
     case "created":
-      return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-600" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />;
     case "updated":
-      return <RefreshCw className="h-3.5 w-3.5 shrink-0 text-blue-600" />;
+      return <RefreshCw className="h-3.5 w-3.5 shrink-0 text-info" />;
     case "conflict":
-      return <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />;
+      return <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning" />;
     case "skipped":
-      return <SkipForward className="h-3.5 w-3.5 shrink-0 text-yellow-600" />;
+      return <SkipForward className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
     case "failed":
       return <AlertCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />;
   }
@@ -264,40 +264,40 @@ function BulkImportSummary({ results }: { results: BulkImportResult[] }) {
     <div className="space-y-4 py-2">
       {/* Summary counts */}
       <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-5">
-        <div className="rounded-md bg-green-50 px-3 py-2 dark:bg-green-950/30">
-          <div className="text-title font-semibold text-green-700 dark:text-green-400">
+        <div className="rounded-md bg-success/10 px-3 py-2">
+          <div className="text-title font-semibold text-success">
             {created.length}
           </div>
           <div className="text-caption text-muted-foreground">
             {t(($) => $.runtime_import.bulk_summary_created)}
           </div>
         </div>
-        <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-950/30">
-          <div className="text-title font-semibold text-blue-700 dark:text-blue-400">
+        <div className="rounded-md bg-info/10 px-3 py-2">
+          <div className="text-title font-semibold text-info">
             {updated.length}
           </div>
           <div className="text-caption text-muted-foreground">
             {t(($) => $.runtime_import.bulk_summary_updated)}
           </div>
         </div>
-        <div className="rounded-md bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
-          <div className="text-title font-semibold text-amber-700 dark:text-amber-400">
+        <div className="rounded-md bg-warning/10 px-3 py-2">
+          <div className="text-title font-semibold text-warning">
             {conflicts.length}
           </div>
           <div className="text-caption text-muted-foreground">
             {t(($) => $.runtime_import.bulk_summary_conflicts)}
           </div>
         </div>
-        <div className="rounded-md bg-yellow-50 px-3 py-2 dark:bg-yellow-950/30">
-          <div className="text-title font-semibold text-yellow-700 dark:text-yellow-400">
+        <div className="rounded-md bg-muted px-3 py-2">
+          <div className="text-title font-semibold text-muted-foreground">
             {skipped.length}
           </div>
           <div className="text-caption text-muted-foreground">
             {t(($) => $.runtime_import.bulk_summary_skipped)}
           </div>
         </div>
-        <div className="rounded-md bg-red-50 px-3 py-2 dark:bg-red-950/30">
-          <div className="text-title font-semibold text-red-700 dark:text-red-400">
+        <div className="rounded-md bg-destructive/10 px-3 py-2">
+          <div className="text-title font-semibold text-destructive">
             {failed.length}
           </div>
           <div className="text-caption text-muted-foreground">
@@ -350,7 +350,7 @@ function ConflictResolutionPanel({
 
   return (
     <div className="space-y-4 py-2">
-      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-body text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+      <div className="enact-feedback text-body" data-tone="warning">
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0">
@@ -402,7 +402,7 @@ function ConflictResolutionPanel({
           return (
             <div key={r.key} className="rounded-lg border bg-card p-3">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-body font-medium">{r.name}</div>
                   {r.error && (

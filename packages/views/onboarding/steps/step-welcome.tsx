@@ -72,54 +72,46 @@ export function StepWelcome({
   };
 
   return (
-    <div className="animate-onboarding-enter flex h-full min-h-[640px] flex-col lg:flex-row">
-      {/* Left — prose + CTA */}
-      <div className="flex flex-col lg:flex-1">
+    <div className="enact-onboarding-welcome">
+      <div className="enact-onboarding-welcome-copy-pane">
         <DragStrip />
-        <div className="flex flex-1 flex-col justify-center px-6 pb-12 sm:px-10 md:px-20 lg:px-20 xl:px-24">
-          <div className="flex w-full max-w-[540px] flex-col gap-8">
-            <div className="flex items-center gap-2.5">
-              <EnactIcon className="size-5 text-foreground" noSpin />
-              <span className="font-serif text-title-lg font-medium tracking-tight">
+        <div className="enact-onboarding-welcome-copy-body">
+          <div className="enact-onboarding-welcome-copy">
+            <div className="enact-onboarding-welcome-brand">
+              <EnactIcon className="enact-onboarding-welcome-brand-icon" noSpin />
+              <span className="enact-onboarding-welcome-wordmark">
                 {t(($) => $.welcome.wordmark)}
               </span>
             </div>
 
-            <h1 className="text-balance font-serif text-5xl font-medium leading-[1.04] tracking-tight sm:text-6xl">
+            <h1 className="enact-onboarding-welcome-headline">
               {t(($) => $.welcome.headline_line1)}
               <br />
               {t(($) => $.welcome.headline_line2)}{" "}
-              <em className="italic text-brand">{t(($) => $.welcome.headline_emphasis)}</em>
+              <em className="enact-onboarding-welcome-emphasis">{t(($) => $.welcome.headline_emphasis)}</em>
             </h1>
 
-            <div className="flex flex-col gap-4">
-              <p className="text-title leading-relaxed text-foreground">
+            <div className="enact-onboarding-welcome-lede">
+              <p className="enact-onboarding-welcome-lede-primary">
                 {t(($) => $.welcome.lede)}
               </p>
-              <p className="text-body leading-relaxed text-muted-foreground">
+              <p className="enact-onboarding-welcome-lede-secondary">
                 {isWeb
                   ? t(($) => $.welcome.lede_web)
                   : t(($) => $.welcome.lede_desktop)}
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="enact-onboarding-welcome-actions">
               {isWeb ? (
                 <>
-                  {/* `<a>` rather than `<Button onClick={window.open}>`
-                      so middle-click / cmd-click / "Copy link" all
-                      behave and screen readers announce it as a link
-                      (it navigates; `Continue on web` is the button
-                      that mutates flow state). New tab preserves this
-                      onboarding tab in case the desktop install
-                      stalls and the user falls back here. */}
                   <a
                     href="/download"
                     target="_blank"
                     rel="noopener noreferrer"
                     className={buttonVariants({ size: "lg" })}
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="enact-onboarding-action-icon" />
                     {t(($) => $.welcome.download_desktop)}
                   </a>
                   <Button
@@ -129,10 +121,13 @@ export function StepWelcome({
                     disabled={pending !== null}
                   >
                     {pending === "next" && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2
+                        className="enact-onboarding-action-icon"
+                        data-spinning="true"
+                      />
                     )}
                     {t(($) => $.welcome.continue_on_web)}
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="enact-onboarding-action-icon" />
                   </Button>
                 </>
               ) : (
@@ -142,10 +137,13 @@ export function StepWelcome({
                   disabled={pending !== null}
                 >
                   {pending === "next" && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      className="enact-onboarding-action-icon"
+                      data-spinning="true"
+                    />
                   )}
                   {t(($) => $.welcome.start_exploring)}
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="enact-onboarding-action-icon" />
                 </Button>
               )}
               {onSkip && (
@@ -156,7 +154,10 @@ export function StepWelcome({
                   disabled={pending !== null}
                 >
                   {pending === "skip" && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      className="enact-onboarding-action-icon"
+                      data-spinning="true"
+                    />
                   )}
                   {t(($) => $.welcome.skip_existing)}
                 </Button>
@@ -166,16 +167,10 @@ export function StepWelcome({
         </div>
       </div>
 
-      {/* Right — mock issue cards illustration. Hidden on < lg.
-          Flex row on lg+ with `items-stretch` (default) makes both
-          columns take the container's full height, so the muted bg
-          fills the viewport edge-to-edge. `justify-center` inside
-          centers the mock cards vertically, mirroring the left
-          column's copy-center layout. */}
-      <div className="hidden border-l bg-muted/40 lg:flex lg:flex-1 lg:flex-col lg:overflow-hidden">
+      <div className="enact-onboarding-welcome-illustration-pane">
         <DragStrip />
-        <div className="flex flex-1 flex-col items-center justify-center gap-7 px-8 py-8">
-          <p className="max-w-[440px] text-balance text-center font-serif text-body-lg italic leading-snug text-muted-foreground">
+        <div className="enact-onboarding-welcome-illustration-body">
+          <p className="enact-onboarding-welcome-caption">
             {t(($) => $.welcome.illustration_caption)}
           </p>
           <WelcomeIllustration />
@@ -199,7 +194,7 @@ export function StepWelcome({
 function WelcomeIllustration() {
   const { t } = useT("onboarding");
   return (
-    <div className="flex w-full max-w-[460px] flex-col gap-3">
+    <div className="enact-onboarding-welcome-activity-list">
       <MockActivityCard
         actor={{
           kind: "user",
@@ -217,7 +212,7 @@ function WelcomeIllustration() {
         }
       />
       <MockActivityCard
-        className="-translate-x-5 -rotate-[1.2deg]"
+        offset="left"
         actor={{
           kind: "agent",
           name: t(($) => $.welcome.illustration.card2_actor_name),
@@ -228,7 +223,7 @@ function WelcomeIllustration() {
         status="in_progress"
       />
       <MockActivityCard
-        className="translate-x-8 rotate-[1.6deg]"
+        offset="right-wide"
         actor={{
           kind: "agent",
           name: t(($) => $.welcome.illustration.card3_actor_name),
@@ -240,7 +235,7 @@ function WelcomeIllustration() {
         timestamp={t(($) => $.welcome.illustration.card3_timestamp)}
       />
       <MockActivityCard
-        className="-translate-x-6 -rotate-[0.8deg]"
+        offset="left-wide"
         actor={{
           kind: "agent",
           name: t(($) => $.welcome.illustration.card4_actor_name),
@@ -251,7 +246,7 @@ function WelcomeIllustration() {
         status="in_review"
       />
       <MockActivityCard
-        className="translate-x-6 rotate-[1deg]"
+        offset="right"
         actor={{
           kind: "agent",
           name: t(($) => $.welcome.illustration.card5_actor_name),
@@ -295,40 +290,33 @@ function MockActivityCard({
   content,
   status,
   timestamp,
-  className,
+  offset,
 }: {
   actor: ActivityActor;
   issueId: string;
   content: React.ReactNode;
   status?: Extract<IssueStatus, "in_progress" | "done" | "in_review">;
   timestamp?: string;
-  className?: string;
+  offset?: "left" | "left-wide" | "right" | "right-wide";
 }) {
   return (
     <div
-      className={cn(
-        "rounded-lg border bg-card px-4 py-3.5 shadow-sm",
-        // Decorative hover: lift, straighten, deeper shadow. Cards aren't
-        // clickable — this is ambient polish so the illustration feels like
-        // real app UI rather than a flat screenshot.
-        "transition-all duration-200 ease-out will-change-transform",
-        "hover:-translate-y-0.5 hover:rotate-0 hover:shadow-md",
-        className,
-      )}
+      className="enact-onboarding-welcome-activity-card"
+      data-offset={offset}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="enact-onboarding-welcome-activity-header">
+        <div className="enact-onboarding-welcome-actor">
           <MockAvatar actor={actor} />
-          <span className="truncate text-body font-medium text-foreground">
+          <span className="enact-onboarding-welcome-actor-name">
             {actor.name}
           </span>
         </div>
-        <span className="shrink-0 font-mono text-micro text-muted-foreground">
+        <span className="enact-onboarding-welcome-issue-key">
           {issueId}
         </span>
       </div>
 
-      <p className="mt-2.5 text-body leading-snug text-foreground">
+      <p className="enact-onboarding-welcome-activity-copy">
         {content}
       </p>
 
@@ -342,7 +330,8 @@ function MockAvatar({ actor }: { actor: ActivityActor }) {
     return (
       <div
         aria-hidden
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-micro font-semibold text-background"
+        className="enact-onboarding-welcome-avatar"
+        data-kind="user"
       >
         {actor.initial}
       </div>
@@ -351,9 +340,13 @@ function MockAvatar({ actor }: { actor: ActivityActor }) {
   return (
     <div
       aria-hidden
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-muted/40 text-foreground"
+      className="enact-onboarding-welcome-avatar"
+      data-kind="agent"
     >
-      <ProviderLogo provider={actor.provider} className="h-3.5 w-3.5" />
+      <ProviderLogo
+        provider={actor.provider}
+        className="enact-onboarding-welcome-provider-icon"
+      />
     </div>
   );
 }
@@ -367,23 +360,21 @@ function StatusFooter({
 }) {
   const cfg = STATUS_CONFIG[statusCategoryOfKey(status)];
   return (
-    <div className="mt-3 flex items-center gap-2 text-caption">
+    <div className="enact-onboarding-welcome-status">
       <span
-        className={cn("flex items-center gap-1.5 font-medium", cfg.iconColor)}
+        className={cn("enact-onboarding-welcome-status-label", cfg.iconColor)}
       >
         <StatusIcon
           status={status}
-          className={cn(
-            "h-3.5 w-3.5",
-            status === "in_progress" && "animate-pulse",
-          )}
+          className="enact-onboarding-welcome-status-icon"
+          data-active={status === "in_progress"}
         />
         {cfg.label}
       </span>
       {timestamp && (
         <>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground">{timestamp}</span>
+          <span className="enact-onboarding-welcome-status-meta">·</span>
+          <span className="enact-onboarding-welcome-status-meta">{timestamp}</span>
         </>
       )}
     </div>
@@ -391,5 +382,5 @@ function StatusFooter({
 }
 
 function Mention({ children }: { children: React.ReactNode }) {
-  return <span className="font-medium text-brand">{children}</span>;
+  return <span className="enact-onboarding-welcome-mention">{children}</span>;
 }

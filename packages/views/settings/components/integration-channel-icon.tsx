@@ -13,18 +13,18 @@ type IntegrationChannel = "lark" | "slack" | "dingtalk" | "wecom" | "telegram";
 // listed here.
 export function IntegrationChannelIcon({ channel }: { channel: IntegrationChannel }) {
   const icon = {
-    lark: <LarkMark className="h-4 w-4" />,
-    slack: <SlackMark className="h-4 w-4" />,
-    dingtalk: <DingTalkMark className="h-5 w-5" />,
-    wecom: <WecomMark className="h-4 w-4" />,
-    telegram: <TelegramMark className="h-4 w-4" />,
+    lark: <LarkMark className="enact-integration-provider-mark" />,
+    slack: <SlackMark className="enact-integration-provider-mark" />,
+    dingtalk: <DingTalkMark className="enact-integration-provider-mark enact-integration-provider-mark-section" />,
+    wecom: <WecomMark className="enact-integration-provider-mark" />,
+    telegram: <TelegramMark className="enact-integration-provider-mark" />,
   }[channel];
 
   return (
     <span
       aria-hidden="true"
       data-testid={`integration-channel-icon-${channel}`}
-      className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+      className="enact-integration-channel-icon"
     >
       {icon}
     </span>

@@ -79,11 +79,9 @@ function ListRowContent({
         ref={containerRef}
         style={containerStyle}
         {...containerProps}
-        className={`group/row flex h-9 items-center gap-2 px-4 text-body transition-colors ${
-          selected
-            ? "bg-surface-selected hover:not-data-[popup-open]:bg-surface-selected data-[popup-open]:bg-surface-selected"
-            : "hover:not-data-[popup-open]:bg-surface-hover data-[popup-open]:bg-surface-hover"
-        } ${isDragging ? "opacity-30" : ""}`}
+        data-selected={selected ? "true" : undefined}
+        data-dragging={isDragging ? "true" : undefined}
+        className="enact-issue-list-row group/row flex h-9 items-center gap-2 px-4 text-body"
       >
         <div
           className="relative flex shrink-0 items-center justify-center w-4 h-4"
@@ -118,7 +116,7 @@ function ListRowContent({
                 itself on the row. Silent for built-ins. (ENA-6243) */}
             <CustomStatusChip status={issue.status} className="shrink-0" />
             {showChildProgress && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5">
+              <span className="enact-issue-metadata-chip inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5">
                 <ProgressRing done={childProgress!.done} total={childProgress!.total} size={14} />
                 <span className="text-micro text-muted-foreground tabular-nums font-medium">
                   {childProgress!.done}/{childProgress!.total}

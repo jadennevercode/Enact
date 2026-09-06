@@ -158,11 +158,11 @@ export function BillingReturnPage() {
 
   return (
     <div
-      className="flex min-h-dvh items-center justify-center bg-background p-6"
+      className="enact-billing-return-page"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 text-body text-muted-foreground">
+      <div className="enact-billing-return-status">
         <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
         <span>{t(($) => $.return_page.redirecting)}</span>
       </div>
@@ -180,17 +180,17 @@ function ReturnMessage({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background p-6">
+    <div className="enact-billing-return-page">
       <div
-        className="flex max-w-[60ch] flex-col items-start gap-3"
+        className="enact-billing-return-message"
         role="alert"
         aria-live="polite"
       >
-        <div className="flex items-center gap-2 text-body font-medium">
+        <div className="enact-billing-return-title">
           <AlertCircle className="size-4 text-destructive" />
           <span>{title}</span>
         </div>
-        <p className="text-caption leading-5 text-muted-foreground">
+        <p className="enact-billing-return-detail">
           {description}
         </p>
         {action}

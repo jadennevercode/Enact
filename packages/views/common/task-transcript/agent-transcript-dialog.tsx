@@ -1157,7 +1157,7 @@ export function AgentTranscriptDialog({
               <Virtuoso
                 key={listEpoch}
                 ref={virtuosoRef}
-                style={{ height: "100%" }}
+                className="h-full"
                 data={displayRows}
                 firstItemIndex={firstItemIndex}
                 // Open a live chronological transcript pinned to the newest

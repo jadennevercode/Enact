@@ -106,14 +106,14 @@ export function LarkTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="enact-integrations-stack">
       {!configured ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.lark.not_enabled_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.lark.not_enabled_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.lark.not_enabled_description_prefix)}{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-micro">
+              <code className="enact-integration-inline-code">
                 ENACT_LARK_SECRET_KEY
               </code>{" "}
               {t(($) => $.lark.not_enabled_description_suffix)}{" "}
@@ -129,27 +129,27 @@ export function LarkTab() {
         // via the branch below; this only hides the empty-state CTA
         // when there is nothing to manage.
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.lark.preview_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.lark.preview_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.lark.preview_description)}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-3">
-          <h2 className="text-body font-semibold">{t(($) => $.lark.connected_bots)}</h2>
+        <section className="enact-integration-section">
+          <h2 className="enact-integration-section-title">{t(($) => $.lark.connected_bots)}</h2>
           {isLoading ? (
             <Card>
               <CardContent>
-                <p className="text-body text-muted-foreground">{t(($) => $.lark.loading)}</p>
+                <p className="enact-integration-description">{t(($) => $.lark.loading)}</p>
               </CardContent>
             </Card>
           ) : installations.length === 0 ? (
             <Card>
-              <CardContent className="space-y-2">
-                <p className="text-body font-medium">{t(($) => $.lark.empty_title)}</p>
-                <p className="text-caption text-muted-foreground">
+              <CardContent className="enact-integration-state-card">
+                <p className="enact-integration-row-title">{t(($) => $.lark.empty_title)}</p>
+                <p className="enact-integration-meta">
                   {t(($) => $.lark.empty_description_prefix)}{" "}
                   <strong>{t(($) => $.lark.empty_description_cta)}</strong>{" "}
                   {t(($) => $.lark.empty_description_suffix)}
@@ -158,7 +158,7 @@ export function LarkTab() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="divide-y">
+              <CardContent className="enact-integration-list">
                 {installations.map((inst) => (
                   <InstallationRow
                     key={inst.id}
@@ -224,8 +224,8 @@ function InstallationRow({
   const isActive = installation.status === "active";
   const agentName = getAgentName(installation.agent_id);
   return (
-    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
+    <div className="enact-integration-row">
+      <div className="enact-integration-row-main">
         <ActorAvatar
           actorType="agent"
           actorId={installation.agent_id}
@@ -233,21 +233,21 @@ function InstallationRow({
           enableHoverCard
           profileLink
         />
-        <div className="space-y-1">
-          <p className="text-body font-medium">
+        <div className="enact-integration-copy">
+          <p className="enact-integration-row-title">
             {agentName}
-            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+            <span className="enact-integration-chip" data-inline="true">
               {installation.region === "lark"
                 ? t(($) => $.lark.region_lark)
                 : t(($) => $.lark.region_feishu)}
             </span>
             {!isActive && (
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+              <span className="enact-integration-chip" data-inline="true">
                 {t(($) => $.lark.revoked_badge)}
               </span>
             )}
           </p>
-          <p className="text-micro text-muted-foreground">
+          <p className="enact-integration-detail">
             {t(($) => $.lark.installed_at_label, {
               when: new Date(installation.installed_at).toLocaleString(),
             })}
@@ -256,7 +256,7 @@ function InstallationRow({
       </div>
       {canManage && isActive && (
         <Button variant="outline" size="sm" onClick={onDisconnect}>
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {t(($) => $.lark.disconnect)}
         </Button>
       )}
@@ -389,7 +389,7 @@ export function LarkAgentBindButton({
   return (
     <>
       <div
-        className={cn("flex flex-wrap items-center gap-2", className)}
+        className={cn("enact-integration-connect-actions", className)}
         data-testid="lark-agent-bind-buttons"
       >
         <Button
@@ -404,7 +404,7 @@ export function LarkAgentBindButton({
           }
           data-testid="lark-agent-bind-feishu"
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="enact-integration-action-icon" />
           {t(($) => $.lark.bind_button_feishu)}
         </Button>
         {/* ENA-3083: Lark (international) bind entry is temporarily hidden —
@@ -423,7 +423,7 @@ export function LarkAgentBindButton({
             }
             data-testid="lark-agent-bind-lark"
           >
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="enact-integration-action-icon" />
             {t(($) => $.lark.bind_button_lark)}
           </Button>
         )}
@@ -462,19 +462,19 @@ function LarkAgentBotStatusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "enact-integration-status-row",
         className,
       )}
       data-testid="lark-agent-bot-status"
     >
-      <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-      <span className="rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+      <span className="enact-integration-status-dot" data-status="active" />
+      <span className="enact-integration-chip">
         {installation.region === "lark"
           ? t(($) => $.lark.region_lark)
           : t(($) => $.lark.region_feishu)}
       </span>
-      <span className="truncate">{t(($) => $.lark.agent_bot_connected_label)}</span>
-      <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0" />
+      <span className="enact-integration-truncate">{t(($) => $.lark.agent_bot_connected_label)}</span>
+      <ChevronRight className="enact-integration-status-chevron" />
     </button>
   );
 }
@@ -545,7 +545,7 @@ function LarkAgentBotConnectedBadge({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("enact-integration-connected", className)}
       data-testid="lark-agent-bot-connected"
     >
       {/* Row 1: connection status (left) and the destructive unbind
@@ -556,15 +556,15 @@ function LarkAgentBotConnectedBadge({
           zombie-bot trap (server/internal/handler/lark.go). Confirmation
           is mandatory: the backend disconnect tears down the WebSocket
           and stops message delivery. */}
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-          <span className="rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+      <div className="enact-integration-connected-header">
+        <span className="enact-integration-connected-status">
+          <span className="enact-integration-status-dot" data-status="active" />
+          <span className="enact-integration-chip">
             {installation.region === "lark"
               ? t(($) => $.lark.region_lark)
               : t(($) => $.lark.region_feishu)}
           </span>
-          <span className="truncate">{t(($) => $.lark.agent_bot_connected_label)}</span>
+          <span className="enact-integration-truncate">{t(($) => $.lark.agent_bot_connected_label)}</span>
         </span>
         <Button
           variant="destructive"
@@ -575,7 +575,7 @@ function LarkAgentBotConnectedBadge({
           aria-label={t(($) => $.lark.disconnect)}
           data-testid="lark-agent-bot-disconnect"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {disconnecting
             ? t(($) => $.lark.disconnecting)
             : t(($) => $.lark.disconnect)}
@@ -590,14 +590,14 @@ function LarkAgentBotConnectedBadge({
         href={manageHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-caption text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+        className="enact-integration-manage-link"
         title={
           installation.region === "lark"
             ? t(($) => $.lark.agent_bot_manage_tooltip_lark)
             : t(($) => $.lark.agent_bot_manage_tooltip_feishu)
         }
       >
-        <ExternalLink className="h-3 w-3" />
+        <ExternalLink className="enact-integration-action-icon" />
         {installation.region === "lark"
           ? t(($) => $.lark.agent_bot_manage_link_lark)
           : t(($) => $.lark.agent_bot_manage_link_feishu)}
@@ -826,7 +826,7 @@ function LarkInstallDialog({
         if (!o) onClose();
       }}
     >
-      <DialogContent className="max-w-sm">
+      <DialogContent className="enact-integration-dialog" data-size="compact">
         <DialogHeader>
           <DialogTitle>
             {region === "lark"
@@ -844,19 +844,19 @@ function LarkInstallDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-4 py-2">
+        <div className="enact-integration-qr-layout">
           {beginning && !session && (
-            <p className="text-body text-muted-foreground">{t(($) => $.lark.install_starting)}</p>
+            <p className="enact-integration-description">{t(($) => $.lark.install_starting)}</p>
           )}
 
           {session && status === "pending" && (
             <>
-              <div className="rounded-md border bg-white p-3">
+              <div className="enact-integration-qr-frame">
                 {/* react-qr-code renders an inline SVG — no external
                   network image dependency, prints at any DPI. */}
                 <QRCode value={session.qrCodeURL} size={192} />
               </div>
-              <p className="text-center text-caption text-muted-foreground">
+              <p className="enact-integration-install-message">
                 {region === "lark"
                   ? t(($) => $.lark.install_scan_hint_lark)
                   : t(($) => $.lark.install_scan_hint_feishu)}
@@ -865,7 +865,7 @@ function LarkInstallDialog({
                 href={session.qrCodeURL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-caption underline text-muted-foreground"
+                className="enact-integration-manage-link"
               >
                 {region === "lark"
                   ? t(($) => $.lark.install_open_link_fallback_lark)
@@ -875,12 +875,12 @@ function LarkInstallDialog({
           )}
 
           {status === "success" && (
-            <p className="text-body font-medium">{t(($) => $.lark.install_success)}</p>
+            <p className="enact-integration-install-message" data-state="success">{t(($) => $.lark.install_success)}</p>
           )}
 
           {status === "error" && (
-            <div className="space-y-2 text-center">
-              <p className="text-body font-medium text-destructive">
+            <div className="enact-integration-state-card" data-state="error">
+              <p className="enact-integration-install-message" data-state="error">
                 {(() => {
                   switch (errorReason) {
                     case "expired":
@@ -905,7 +905,7 @@ function LarkInstallDialog({
                 })()}
               </p>
               {errorMessage && (
-                <p className="text-micro text-muted-foreground break-all">
+                <p className="enact-integration-error-detail">
                   {errorMessage}
                 </p>
               )}
@@ -920,7 +920,7 @@ function LarkInstallDialog({
                 {t(($) => $.lark.install_close)}
               </Button>
               <Button size="sm" onClick={beginSession} disabled={beginning}>
-                <RefreshCw className="h-3 w-3" />
+                <RefreshCw className="enact-integration-action-icon" />
                 {t(($) => $.lark.install_retry)}
               </Button>
             </>

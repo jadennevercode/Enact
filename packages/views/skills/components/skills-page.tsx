@@ -836,7 +836,7 @@ export default function SkillsPage() {
   return (
     // relative: positioning anchor for the batch toolbar (page-centered,
     // not viewport-centered).
-    <div className="relative flex flex-1 min-h-0 flex-col">
+    <div className="enact-management-page relative flex flex-1 min-h-0 flex-col">
       <PageHeaderBar
         totalCount={totalCount}
         onCreate={() => setCreateOpen(true)}
@@ -845,7 +845,7 @@ export default function SkillsPage() {
       {supportingQueryDown && (
         <div
           role="status"
-          className="flex shrink-0 items-start gap-2 border-b bg-warning/10 px-6 py-2 text-caption text-muted-foreground"
+          className="enact-management-warning flex shrink-0 items-start gap-2 px-6 py-2 text-caption"
         >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
           <span>{t(($) => $.page.supporting_data_warning)}</span>
@@ -912,9 +912,8 @@ export default function SkillsPage() {
                 return (
               <ListGridRow
                 key={row.skill.id}
-                className={`cursor-pointer ${
-                  selectedIds.has(row.skill.id) ? "bg-accent/30" : ""
-                }`}
+                className="enact-management-row cursor-pointer"
+                data-selected={selectedIds.has(row.skill.id) ? "true" : undefined}
                 {...rowLink(paths.skillDetail(row.skill.id), row.skill.name)}
               >
                 <CheckboxCell

@@ -330,10 +330,12 @@ describe("InboxPage", () => {
     // Mobile swaps the list out for the detail, so the row is gone…
     expect(screen.queryByTestId("row")).toBeNull();
 
-    // …and the only thing that can bring it back is the bar this branch adds.
-    // Located structurally: the test's `useT` returns one string for every key,
+    // …and the only thing that can bring it back is the semantic back bar
+    // this branch adds. The test's `useT` returns one string for every key,
     // so every button in this detail shares an accessible name.
-    const back = document.querySelector<HTMLButtonElement>(".h-12.border-b button");
+    const back = document.querySelector<HTMLButtonElement>(
+      ".enact-inbox-compact-back button",
+    );
     expect(back).not.toBeNull();
 
     fireEvent.click(back!);

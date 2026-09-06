@@ -4,7 +4,9 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-const Toaster = ({ ...props }: ToasterProps) => {
+import { cn } from "@enact/ui/lib/utils"
+
+const Toaster = ({ className, ...props }: ToasterProps) => {
   // Use `resolvedTheme` (the concrete "light" / "dark" value) instead of
   // `theme` (which can be "system"). When we forward "system", sonner reads
   // `prefers-color-scheme` itself, and the Electron renderer's media query
@@ -15,7 +17,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={resolvedTheme as ToasterProps["theme"]}
-      className="toaster group"
+      className={cn("enact-sonner-theme toaster group", className)}
       icons={{
         success: (
           <CircleCheckIcon className="size-4 text-success" />
@@ -33,14 +35,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <Loader2Icon className="size-4 animate-spin text-brand" />
         ),
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
       toastOptions={{
         classNames: {
           toast: "cn-toast",

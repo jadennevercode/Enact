@@ -96,7 +96,7 @@ export function LabelsTab() {
       title={t(($) => $.labels.title)}
       description={t(($) => $.labels.description)}
     >
-      <div className="space-y-5">
+      <div className="enact-settings-catalog-stack">
         <div className="flex flex-wrap items-center gap-2 border-b border-surface-border pb-3">
           {RESOURCE_TYPES.map((type) => (
             <Button
@@ -122,8 +122,8 @@ export function LabelsTab() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-sm">
+        <div className="enact-settings-catalog-toolbar">
+          <div className="enact-settings-catalog-search">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -138,8 +138,8 @@ export function LabelsTab() {
           </Button>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-surface-border bg-card">
-          <div className="hidden grid-cols-[minmax(11rem,1fr)_minmax(12rem,1.4fr)_6rem_7rem_2rem] gap-4 border-b border-surface-border bg-muted/20 px-4 py-2.5 text-caption font-medium text-muted-foreground md:grid">
+        <div className="enact-settings-catalog">
+          <div className="enact-settings-catalog-header" data-catalog="labels">
             <span>{t(($) => $.labels.columns.name)}</span>
             <span>{t(($) => $.labels.columns.description)}</span>
             <span>{t(($) => $.labels.columns.usage)}</span>
@@ -148,11 +148,11 @@ export function LabelsTab() {
           </div>
 
           {isLoading ? (
-            <div className="px-4 py-12 text-center text-body text-muted-foreground">
+            <div className="enact-settings-catalog-loading">
               {t(($) => $.labels.loading)}
             </div>
           ) : filteredLabels.length === 0 ? (
-            <div className="px-4 py-12 text-center">
+            <div className="enact-settings-catalog-empty">
               <Tag className="mx-auto size-6 text-faint-foreground" />
               <p className="mt-3 text-body font-medium">
                 {query
@@ -161,16 +161,17 @@ export function LabelsTab() {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-surface-border">
+            <div className="enact-settings-catalog-body">
               {filteredLabels.map((label) => (
                 <div
                   key={label.id}
-                  className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(11rem,1fr)_minmax(12rem,1.4fr)_6rem_7rem_2rem] md:items-center md:gap-4"
+                  className="enact-settings-catalog-row"
+                  data-catalog="labels"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: label.color }}
+                      className="enact-settings-color-swatch"
+                      style={{ "--enact-settings-color": label.color } as React.CSSProperties}
                     />
                     <span className="truncate text-body font-medium">{label.name}</span>
                   </div>
@@ -350,11 +351,12 @@ function LabelEditorDialog({
                 <button
                   type="button"
                   aria-label={t(($) => $.labels.editor.color)}
-                  className="flex h-9 items-center gap-2.5 rounded-md border border-surface-border px-2.5 transition-colors hover:bg-surface-hover"
+                  className="enact-settings-color-trigger"
                 >
                   <span
-                    className="size-5 rounded-full"
-                    style={{ backgroundColor: draft.color }}
+                    className="enact-settings-color-swatch"
+                    data-size="control"
+                    style={{ "--enact-settings-color": draft.color } as React.CSSProperties}
                   />
                   <span className="font-mono text-caption uppercase text-muted-foreground">
                     {draft.color}

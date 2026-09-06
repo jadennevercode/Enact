@@ -112,12 +112,12 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
   if (isLoading) {
     return (
       <InviteShell onBack={onBack}>
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-9 w-32 rounded-md" />
+        <Card className="enact-invite-card">
+          <CardContent className="enact-invite-state">
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="icon" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="title" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="copy" />
+            <Skeleton className="enact-invite-loading-skeleton" data-shape="action" />
           </CardContent>
         </Card>
       </InviteShell>
@@ -127,13 +127,13 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
   if (fetchError || !invitation) {
     return (
       <InviteShell onBack={onBack}>
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <X className="h-6 w-6 text-muted-foreground" />
+        <Card className="enact-invite-card">
+          <CardContent className="enact-invite-state">
+            <div className="enact-invite-icon-frame">
+              <X className="enact-invite-icon" />
             </div>
-            <h2 className="text-title font-semibold">{t(($) => $.not_found.title)}</h2>
-            <p className="text-body text-muted-foreground text-center">
+            <h2 className="enact-invite-title">{t(($) => $.not_found.title)}</h2>
+            <p className="enact-invite-description">
               {t(($) => $.not_found.description)}
             </p>
             <Button
@@ -152,15 +152,15 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
   if (done === "accepted") {
     return (
       <InviteShell onBack={onBack}>
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Check className="h-6 w-6 text-primary" />
+        <Card className="enact-invite-card">
+          <CardContent className="enact-invite-state">
+            <div className="enact-invite-icon-frame" data-tone="success">
+              <Check className="enact-invite-icon" />
             </div>
-            <h2 className="text-title font-semibold">
+            <h2 className="enact-invite-title">
               {t(($) => $.accepted.title, { workspace_name: invitation.workspace_name })}
             </h2>
-            <p className="text-body text-muted-foreground">
+            <p className="enact-invite-description">
               {t(($) => $.accepted.redirecting)}
             </p>
           </CardContent>
@@ -172,10 +172,10 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
   if (done === "declined") {
     return (
       <InviteShell onBack={onBack}>
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <h2 className="text-title font-semibold">{t(($) => $.declined.title)}</h2>
-            <p className="text-body text-muted-foreground">{t(($) => $.declined.description)}</p>
+        <Card className="enact-invite-card">
+          <CardContent className="enact-invite-state">
+            <h2 className="enact-invite-title">{t(($) => $.declined.title)}</h2>
+            <p className="enact-invite-description">{t(($) => $.declined.description)}</p>
             <Button
               variant="outline"
               render={<AppLink href={fallbackDest} />}
@@ -194,19 +194,19 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
 
   return (
     <InviteShell onBack={onBack}>
-      <Card className="w-full max-w-md">
-        <CardContent className="flex flex-col items-center gap-6 py-12">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <Users className="h-7 w-7 text-primary" />
+      <Card className="enact-invite-card">
+        <CardContent className="enact-invite-state" data-density="roomy">
+          <div className="enact-invite-icon-frame" data-size="large" data-tone="primary">
+            <Users className="enact-invite-icon" />
           </div>
 
-          <div className="text-center space-y-2">
-            <h2 className="text-title-lg font-semibold">
+          <div className="enact-invite-copy">
+            <h2 className="enact-invite-title" data-size="large">
               {t(($) => $.main.join_title, {
                 workspace_name: invitation.workspace_name ?? t(($) => $.main.fallback_workspace_name),
               })}
             </h2>
-            <p className="text-body text-muted-foreground">
+            <p className="enact-invite-description">
               <strong>{invitation.inviter_name || invitation.inviter_email}</strong>{" "}
               {invitation.role === "admin"
                 ? t(($) => $.main.invited_role_admin)
@@ -215,27 +215,25 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
           </div>
 
           {isAlreadyHandled ? (
-            <div className="text-body text-muted-foreground">
+            <div className="enact-invite-status">
               {invitation.status === "accepted"
                 ? t(($) => $.main.already_handled_accepted)
                 : t(($) => $.main.already_handled_declined)}
             </div>
           ) : isExpired ? (
-            <div className="text-body text-muted-foreground">
+            <div className="enact-invite-status">
               {t(($) => $.main.expired)}
             </div>
           ) : (
-            <div className="flex gap-3 w-full">
+            <div className="enact-invite-actions">
               <Button
                 variant="outline"
-                className="flex-1"
                 onClick={handleDecline}
                 disabled={accepting || declining}
               >
                 {declining ? t(($) => $.main.declining) : t(($) => $.main.decline)}
               </Button>
               <Button
-                className="flex-1"
                 onClick={handleAccept}
                 disabled={accepting || declining}
               >
@@ -244,9 +242,7 @@ export function InvitePage({ invitationId, onBack }: InvitePageProps) {
             </div>
           )}
 
-          {error && (
-            <p className="text-body text-destructive text-center">{error}</p>
-          )}
+          {error && <p className="enact-invite-error">{error}</p>}
         </CardContent>
       </Card>
     </InviteShell>
@@ -268,13 +264,14 @@ function InviteShell({
   const { t } = useT("invite");
   const logout = useLogout();
   return (
-    <div className="relative flex min-h-svh flex-col bg-background">
+    <div className="enact-invite-page">
       <DragStrip />
       {onBack && (
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-16 left-12 text-muted-foreground"
+          className="enact-invite-chrome-action"
+          data-position="back"
           onClick={onBack}
         >
           <ArrowLeft />
@@ -284,13 +281,14 @@ function InviteShell({
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-16 right-12 text-muted-foreground hover:text-destructive"
+        className="enact-invite-chrome-action"
+        data-position="logout"
         onClick={logout}
       >
         <LogOut />
         {t(($) => $.header.log_out)}
       </Button>
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-12">
+      <div className="enact-invite-content">
         {children}
       </div>
     </div>

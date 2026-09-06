@@ -438,7 +438,7 @@ describe("SlashCommandList keyboard handling", () => {
 
     const highlightedLabel = () => {
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
-      return buttons.find((b) => b.classList.contains("bg-accent"))?.textContent ?? "";
+      return buttons.find((b) => b.dataset.active === "true")?.textContent ?? "";
     };
     let handled: boolean | undefined;
     const press = (init: KeyboardEventInit) =>

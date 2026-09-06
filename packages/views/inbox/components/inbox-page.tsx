@@ -520,7 +520,7 @@ export function InboxPage() {
     <button
       type="button"
       onClick={() => setView("inbox")}
-      className="flex w-full shrink-0 items-center gap-1.5 border-b px-3 py-2 text-left text-caption font-medium text-muted-foreground outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+      className="enact-inbox-archive-back flex w-full shrink-0 items-center gap-1.5 px-3 py-2 text-left text-caption font-medium text-muted-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
     >
       <ChevronLeft className="size-4 shrink-0" />
       <span className="truncate">{t(($) => $.list.archived_title)}</span>
@@ -588,7 +588,7 @@ export function InboxPage() {
   ) : undefined;
 
   const compactBackBar = compactBackAction ? (
-    <div className={cn("flex h-12 shrink-0 items-center gap-2 border-b", PAGE_GUTTER)}>
+    <div className={cn("enact-inbox-compact-back flex h-12 shrink-0 items-center gap-2", PAGE_GUTTER)}>
       {compactBackAction}
     </div>
   ) : null;
@@ -758,9 +758,9 @@ export function InboxPage() {
 
   if (viewLoading) {
     return (
-      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
+      <ResizablePanelGroup orientation="horizontal" className="enact-inbox-page flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
         <ResizablePanel id="list" defaultSize={320} minSize={240} maxSize={480} groupResizeBehavior="preserve-pixel-size">
-          <div className="flex flex-col border-r h-full">
+          <div className="enact-inbox-list-panel flex flex-col h-full">
             <div className={cn("flex h-12 shrink-0 items-center border-b", PAGE_GUTTER)}>
               <Skeleton className="h-5 w-16" />
             </div>
@@ -789,9 +789,9 @@ export function InboxPage() {
   }
 
   return (
-    <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
+    <ResizablePanelGroup orientation="horizontal" className="enact-inbox-page flex-1 min-h-0" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
       <ResizablePanel id="list" defaultSize={320} minSize={240} maxSize={480} groupResizeBehavior="preserve-pixel-size">
-      <div className="flex flex-col border-r h-full">
+      <div className="enact-inbox-list-panel flex flex-col h-full">
         {listPanel}
       </div>
       </ResizablePanel>

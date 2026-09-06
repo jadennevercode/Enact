@@ -19,7 +19,7 @@ function InlineMathView({ node }: NodeViewProps) {
   return (
     <NodeViewWrapper
       as="span"
-      className="math-node inline"
+      className="math-node inline enact-rich-content-math-inline"
       data-type="inline-math"
       data-expression={expression}
       contentEditable={false}
@@ -34,7 +34,7 @@ function BlockMathView({ node }: NodeViewProps) {
   return (
     <NodeViewWrapper
       as="div"
-      className="math-node block"
+      className="math-node block enact-rich-content-math-block"
       data-type="block-math"
       data-expression={expression}
       contentEditable={false}

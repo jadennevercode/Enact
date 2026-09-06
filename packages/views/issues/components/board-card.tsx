@@ -171,7 +171,7 @@ export const BoardCardContent = memo(function BoardCardContent({
   const showRightMeta = !!showStartDate || !!showDueDate || !!showChildProgress || showUpdatedHint;
 
   return (
-    <div className="rounded-lg border-[0.5px] border-surface-border bg-surface py-3 px-2.5 shadow-[var(--surface-shadow)] transition-colors group-hover/card:border-foreground/15 group-hover/card:bg-surface-hover group-data-[popup-open]/card:border-foreground/15 group-data-[popup-open]/card:bg-surface-hover">
+    <div className="enact-issue-board-card py-3 px-2.5">
       {/* Row 1: priority + identifier (left), agent activity + assignee (right) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -182,7 +182,7 @@ export const BoardCardContent = memo(function BoardCardContent({
       </div>
 
       {/* Row 2: Title */}
-      <p className="mt-1 text-body font-medium leading-snug line-clamp-2">
+      <p className="enact-issue-card-title mt-1 line-clamp-2">
         {issue.title}
       </p>
 
@@ -350,7 +350,8 @@ export const DraggableBoardCard = memo(function DraggableBoardCard({
         data-board-card=""
         {...attributes}
         {...listeners}
-        className={`group/card ${isDragging ? "opacity-30" : ""}`}
+        data-dragging={isDragging ? "true" : undefined}
+        className="enact-issue-board-card-frame group/card"
       >
         <AppLink
           href={p.issueDetail(issue.id)}

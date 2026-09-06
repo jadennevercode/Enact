@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState  } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -8,7 +8,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@enact/ui/components/ui/button";
-import { cn } from "@enact/ui/lib/utils";
 import { runtimeKeys } from "@enact/core/runtimes/queries";
 import {
   runtimeDisplayLabel,
@@ -224,14 +223,7 @@ function FancyView({
 
   return (
     <>
-      {/* key=phase forces a remount on phase transition so the
-          `animate-onboarding-enter` animation replays — otherwise CSS
-          only runs on initial mount and scanning→found would be a
-          hard cut. */}
-      <div
-        key={phase}
-        className="animate-onboarding-enter flex flex-col gap-8 pt-2 sm:pt-6"
-      >
+      <div key={phase} className="enact-onboarding-step-stack">
         <MikaIntro />
 
         {phase === "scanning" && <ScanningView />}
@@ -255,32 +247,28 @@ function FancyView({
             refreshing={refreshing}
           />
         )}
-
-        {/* Footer action bar. The controls are phase-scoped so no dead or
-            duplicated affordance ever shows:
-              - Skip: shown while scanning / found. The empty phase owns its
-                own prominent Skip card, so the footer Skip is dropped there
-                to avoid two "Skip for now" buttons on one screen.
-              - Continue: only actionable once a runtime is picked, so
-                it renders only in the found phase instead of sitting
-                permanently disabled through scanning / empty. */}
       </div>
 
       <StepFooter hint={footerHint}>
         {phase === "found" && (
           <Button
-            className="w-full"
+            className="enact-onboarding-action"
             disabled={!canContinue || submitting}
             onClick={handleContinue}
           >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting && (
+              <Loader2
+                className="enact-onboarding-action-icon"
+                data-spinning="true"
+              />
+            )}
             {t(($) => $.step_runtime.continue)}
           </Button>
         )}
         {phase !== "empty" && (
           <Button
             variant="ghost"
-            className="w-full"
+            className="enact-onboarding-action"
             disabled={submitting}
             onClick={handleSkip}
           >
@@ -300,19 +288,19 @@ function ScanningView() {
   const { t } = useT("onboarding");
   return (
     <div>
-      <h2 className="text-title-sm font-medium tracking-tight text-foreground">
+      <h2 className="enact-onboarding-runtime-section-title">
         {t(($) => $.step_runtime.scanning_headline)}
       </h2>
-      <p className="mt-2 text-body text-muted-foreground">
+      <p className="enact-onboarding-runtime-section-copy">
         {t(($) => $.step_runtime.scanning_lede_prefix)}
-        <span className="font-medium text-foreground">{"Claude Code"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Claude Code"}</span>
         {", "}
-        <span className="font-medium text-foreground">{"Codex"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Codex"}</span>
         {", "}
-        <span className="font-medium text-foreground">{"Cursor"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Cursor"}</span>
         {t(($) => $.step_runtime.scanning_lede_suffix)}
       </p>
-      <div className="mt-10 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="enact-onboarding-runtime-skeleton-grid">
         <SkeletonRuntimeCard />
         <SkeletonRuntimeCard />
       </div>
@@ -349,41 +337,36 @@ function FoundView({
       : onlineCount === 0
         ? t(($) => $.step_runtime.status_none_online)
         : t(($) => $.step_runtime.status_n_online, { count: onlineCount });
-  const statusTone =
-    onlineCount === 0 ? "text-muted-foreground" : "text-success";
 
   return (
     <div>
-      <h2 className="text-title-sm font-medium tracking-tight text-foreground">
+      <h2 className="enact-onboarding-runtime-section-title">
         {t(($) => $.step_runtime.found_headline)}
       </h2>
-      <p className="mt-2 text-body text-muted-foreground">
+      <p className="enact-onboarding-runtime-section-copy">
         {t(($) => $.step_runtime.found_lede)}
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-muted/60 px-4 py-2.5 text-caption">
-        <span className="font-semibold text-foreground">
+      <div className="enact-onboarding-runtime-summary">
+        <span className="enact-onboarding-runtime-count">
           {t(($) => $.step_runtime.runtime_count, { count: total })}
         </span>
-        <span className="text-muted-foreground">·</span>
-        <span className={cn("flex items-center gap-1", statusTone)}>
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              onlineCount === 0 ? "bg-muted-foreground/40" : "bg-success",
-            )}
-            aria-hidden
-          />
+        <span className="enact-onboarding-runtime-divider">·</span>
+        <span
+          className="enact-onboarding-runtime-status"
+          data-online={onlineCount !== 0}
+        >
+          <span className="enact-onboarding-runtime-status-dot" aria-hidden />
           {statusLabel}
         </span>
         <RefreshButton
           onClick={onRefresh}
           refreshing={refreshing}
-          className="ml-auto"
+          className="enact-onboarding-runtime-refresh"
         />
       </div>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="enact-onboarding-runtime-picker">
         <MikaRuntimeChoice
           runtimes={runtimes}
           currentUserId={currentUserId}
@@ -411,27 +394,28 @@ function EmptyView({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
-        <h2 className="text-title-sm font-medium tracking-tight text-foreground">
+      <div className="enact-onboarding-runtime-empty-heading">
+        <h2 className="enact-onboarding-runtime-section-title">
           {t(($) => $.step_runtime.empty_headline)}
         </h2>
         <RefreshButton
           onClick={onRefresh}
           refreshing={refreshing}
-          className="mt-2 shrink-0"
+          className="enact-onboarding-runtime-refresh"
+          position="heading"
         />
       </div>
-      <p className="mt-2 text-body text-muted-foreground">
+      <p className="enact-onboarding-runtime-section-copy">
         {t(($) => $.step_runtime.empty_lede_prefix)}
-        <span className="font-medium text-foreground">{"Claude Code"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Claude Code"}</span>
         {", "}
-        <span className="font-medium text-foreground">{"Codex"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Codex"}</span>
         {", "}
-        <span className="font-medium text-foreground">{"Cursor"}</span>
+        <span className="enact-onboarding-runtime-section-emphasis">{"Cursor"}</span>
         {t(($) => $.step_runtime.empty_lede_suffix)}
       </p>
 
-      <div className="mt-10 flex flex-col gap-3.5">
+      <div className="enact-onboarding-runtime-empty-list">
         <EmptyCard
           title={t(($) => $.step_runtime.empty_skip_title)}
           subtitle={t(($) => $.step_runtime.empty_skip_subtitle)}
@@ -465,20 +449,12 @@ function ComingSoonCard({
   badgeLabel: string;
 }) {
   return (
-    <div
-      aria-disabled
-      className="flex items-center justify-between gap-4 rounded-lg border border-dashed bg-muted/20 px-5 py-4 opacity-70"
-    >
-      <div className="min-w-0">
-        <div className="text-body font-medium text-foreground">{title}</div>
-        <p className="mt-1 text-caption leading-[1.55] text-muted-foreground">
-          {subtitle}
-        </p>
+    <div aria-disabled className="enact-onboarding-runtime-card">
+      <div className="enact-onboarding-fork-copy">
+        <div className="enact-onboarding-runtime-card-title">{title}</div>
+        <p className="enact-onboarding-runtime-card-copy">{subtitle}</p>
       </div>
-      <span
-        aria-hidden
-        className="inline-flex shrink-0 items-center rounded-full border bg-background px-3 py-1.5 text-caption font-medium uppercase tracking-wide text-muted-foreground"
-      >
+      <span aria-hidden className="enact-onboarding-coming-soon-badge">
         {badgeLabel}
       </span>
     </div>
@@ -489,10 +465,12 @@ function RefreshButton({
   onClick,
   refreshing,
   className,
+  position,
 }: {
   onClick: () => void;
   refreshing: boolean;
   className?: string;
+  position?: "heading";
 }) {
   const { t } = useT("onboarding");
   return (
@@ -503,9 +481,11 @@ function RefreshButton({
       disabled={refreshing}
       onClick={onClick}
       className={className}
+      data-position={position}
     >
       <RefreshCw
-        className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+        className="enact-onboarding-runtime-refresh-icon"
+        data-spinning={refreshing}
         aria-hidden
       />
       {refreshing
@@ -535,20 +515,15 @@ function EmptyCard({
     <button
       type="button"
       onClick={onAction}
-      className="group flex items-center justify-between gap-4 rounded-lg border bg-card px-5 py-4 text-left transition-colors hover:border-foreground/30 hover:bg-muted/30"
+      className="enact-onboarding-runtime-card"
     >
-      <div className="min-w-0">
-        <div className="text-body font-medium text-foreground">{title}</div>
-        <p className="mt-1 text-caption leading-[1.55] text-muted-foreground">
-          {subtitle}
-        </p>
+      <div className="enact-onboarding-fork-copy">
+        <div className="enact-onboarding-runtime-card-title">{title}</div>
+        <p className="enact-onboarding-runtime-card-copy">{subtitle}</p>
       </div>
-      <span
-        aria-hidden
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-background px-4 py-2 text-label font-medium text-foreground transition-colors group-hover:border-foreground group-hover:bg-foreground group-hover:text-background"
-      >
+      <span aria-hidden className="enact-onboarding-runtime-card-action">
         {actionLabel}
-        <ArrowRight className="h-3.5 w-3.5" />
+        <ArrowRight className="enact-onboarding-fork-action-icon" />
       </span>
     </button>
   );
@@ -560,16 +535,16 @@ function EmptyCard({
 
 function SkeletonRuntimeCard() {
   return (
-    <div
-      aria-hidden
-      className="flex animate-pulse items-center gap-3 rounded-lg border bg-card p-4"
-    >
-      <div className="h-7 w-7 shrink-0 rounded-md bg-muted" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3 w-28 rounded bg-muted" />
-        <div className="h-2.5 w-16 rounded bg-muted/70" />
+    <div aria-hidden className="enact-onboarding-runtime-skeleton">
+      <div className="enact-onboarding-runtime-skeleton-icon" />
+      <div className="enact-onboarding-runtime-skeleton-copy">
+        <div className="enact-onboarding-runtime-skeleton-line" />
+        <div
+          className="enact-onboarding-runtime-skeleton-line"
+          data-size="short"
+        />
       </div>
-      <div className="h-4 w-4 shrink-0 rounded-full border-[1.5px] border-muted" />
+      <div className="enact-onboarding-runtime-skeleton-radio" />
     </div>
   );
 }

@@ -175,48 +175,48 @@ export function ComposioTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-1">
-        <p className="text-body text-muted-foreground">{t(($) => $.composio.page_description)}</p>
+    <div className="enact-integrations-stack" data-density="compact">
+      <section className="enact-integration-section">
+        <p className="enact-integration-description">{t(($) => $.composio.page_description)}</p>
       </section>
 
       {toolkitsQuery.isLoading ? (
         <Card>
           <CardContent>
-            <p className="text-body text-muted-foreground">{t(($) => $.composio.loading)}</p>
+            <p className="enact-integration-description">{t(($) => $.composio.loading)}</p>
           </CardContent>
         </Card>
       ) : toolkitsQuery.isError ? (
         <Card>
           <CardContent>
-            <p className="text-body text-destructive">{t(($) => $.composio.load_failed)}</p>
+            <p className="enact-integration-state-copy" data-state="error">{t(($) => $.composio.load_failed)}</p>
           </CardContent>
         </Card>
       ) : toolkits.length === 0 ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.composio.empty_title)}</p>
-            <p className="text-caption text-muted-foreground">{t(($) => $.composio.empty_description)}</p>
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-card-title">{t(($) => $.composio.empty_title)}</p>
+            <p className="enact-integration-meta">{t(($) => $.composio.empty_description)}</p>
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-3">
+        <section className="enact-integration-section">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t(($) => $.composio.search_placeholder)}
-            className="max-w-xs"
+            className="enact-integration-provider-search"
           />
           {connectionsQuery.isError && (
             // Don't silently treat a failed connections fetch as "nothing
             // connected" — that would hide real connections and offer Connect
             // on something already linked. Surface it so the user knows the
             // connected state may be incomplete; the catalog still renders.
-            <p className="text-caption text-destructive">
+            <p className="enact-integration-state-copy" data-state="error">
               {t(($) => $.composio.connections_load_failed)}
             </p>
           )}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="enact-integration-provider-grid">
             {filtered.map((tk) => (
               <ToolkitCard
                 key={tk.slug}
@@ -290,34 +290,34 @@ function ToolkitCard({
 
   return (
     <Card>
-      <CardContent className="flex items-center gap-3 p-3">
+      <CardContent className="enact-integration-provider-card">
         <ComposioToolkitLogo
           slug={toolkit.slug}
           name={toolkit.name}
           fallbackLogo={toolkit.logo}
         />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body font-medium">{toolkit.name || toolkit.slug}</p>
+        <div className="enact-integration-provider-copy">
+          <p className="enact-integration-provider-name">{toolkit.name || toolkit.slug}</p>
           {isConnected ? (
             // Last-used line. Backend leaves last_used_at null until Stage 3
             // dispatch stamps it, so show a localized "never used" placeholder
             // rather than hiding the line entirely.
-            <p className="truncate text-micro text-muted-foreground">
+            <p className="enact-integration-provider-meta">
               {lastUsedAt
                 ? t(($) => $.composio.last_used, { when: timeAgo(lastUsedAt) })
                 : t(($) => $.composio.last_used_never)}
             </p>
           ) : toolkit.category ? (
-            <p className="truncate text-micro uppercase tracking-wide text-muted-foreground">
+            <p className="enact-integration-provider-meta" data-kind="category">
               {toolkit.category}
             </p>
           ) : null}
         </div>
 
         {isConnected ? (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-caption text-emerald-600">
-              <Check className="h-3 w-3" />
+          <div className="enact-integration-actions">
+            <span className="enact-integration-status" data-status="connected">
+              <Check className="enact-integration-status-icon" />
               {t(($) => $.composio.connected)}
             </span>
             <Button
@@ -326,22 +326,22 @@ function ToolkitCard({
               onClick={() => onDisconnect(connectionId!, toolkit.name || toolkit.slug)}
               aria-label={t(($) => $.composio.disconnect)}
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="enact-integration-status-icon" />
             </Button>
           </div>
         ) : expired ? (
           // Token-expired connection: surface the failure and let the user
           // re-run the same connect flow in one click (no disconnect step).
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-caption text-amber-600">
-              <AlertTriangle className="h-3 w-3" />
+          <div className="enact-integration-actions">
+            <span className="enact-integration-status" data-status="expired">
+              <AlertTriangle className="enact-integration-status-icon" />
               {t(($) => $.composio.expired)}
             </span>
             <Button size="sm" variant="outline" onClick={onConnect} disabled={anyConnecting}>
               {connecting ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="enact-integration-status-icon" data-loading="true" />
               ) : (
-                <RefreshCw className="h-3 w-3" />
+                <RefreshCw className="enact-integration-status-icon" />
               )}
               {connecting ? t(($) => $.composio.connecting) : t(($) => $.composio.reconnect)}
             </Button>
@@ -349,9 +349,9 @@ function ToolkitCard({
         ) : toolkit.connectable ? (
           <Button size="sm" onClick={onConnect} disabled={anyConnecting}>
             {connecting ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="enact-integration-status-icon" data-loading="true" />
             ) : (
-              <Plug className="h-3 w-3" />
+              <Plug className="enact-integration-status-icon" />
             )}
             {connecting ? t(($) => $.composio.connecting) : t(($) => $.composio.connect)}
           </Button>

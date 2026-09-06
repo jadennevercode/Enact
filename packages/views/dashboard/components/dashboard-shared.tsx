@@ -72,7 +72,7 @@ export function Segmented<T extends string | number>({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex items-center gap-0.5 rounded-md bg-muted p-0.5"
+      className="enact-usage-segmented inline-flex items-center gap-0.5 p-0.5"
     >
       {options.map((o) => (
         <button
@@ -80,11 +80,7 @@ export function Segmented<T extends string | number>({
           type="button"
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
-          className={`rounded-sm px-2.5 py-1 text-caption font-medium transition-colors ${
-            o.value === value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className="enact-usage-segment px-2.5 py-1 text-caption font-medium"
         >
           {o.label}
         </button>

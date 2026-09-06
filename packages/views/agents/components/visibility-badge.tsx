@@ -33,7 +33,8 @@ export function VisibilityBadge({
       <TooltipTrigger
         render={
           <span
-            className={`inline-flex items-center gap-1 text-caption text-muted-foreground ${className}`}
+            className={`enact-agent-visibility-badge inline-flex items-center gap-1 text-muted-foreground ${className}`}
+            data-visibility={value}
             aria-label={tooltip}
           >
             <Icon className="h-3 w-3 shrink-0" />

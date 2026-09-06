@@ -40,7 +40,7 @@ export function FileCardView({ node, editor, deleteNode }: NodeViewProps) {
   const editable = editor?.isEditable ?? false;
 
   return (
-    <NodeViewWrapper as="div" className="file-card-node" data-type="fileCard">
+    <NodeViewWrapper as="div" className="file-card-node enact-attachment-node" data-type="fileCard">
       <div contentEditable={false}>
         <Attachment
           attachment={{ kind: "url", url: href, filename, uploading }}

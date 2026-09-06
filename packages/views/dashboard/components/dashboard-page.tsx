@@ -446,7 +446,7 @@ export function DashboardPage() {
     <Tabs
       value={tab}
       onValueChange={handleTabChange}
-      className="flex h-full min-h-0 flex-col gap-0"
+      className="enact-usage-page flex h-full min-h-0 flex-col gap-0"
     >
       <CollectionPageHeader
         icon={BarChart3}
@@ -483,7 +483,7 @@ export function DashboardPage() {
           switching on the left, page-scoped filters on the right. Both tabs
           share the range filter, which is why it lives here and not inside a
           tab. */}
-      <div className={cn("h-12 shrink-0 overflow-x-auto border-b [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
+      <div className={cn("enact-usage-toolbar h-12 shrink-0 overflow-x-auto [-webkit-overflow-scrolling:touch]", PAGE_GUTTER)}>
         <div className="flex h-full w-max min-w-full items-center justify-between gap-2">
           <TabsList variant="line" className="gap-0 p-0 group-data-horizontal/tabs:h-full">
             <TabsTrigger
@@ -516,7 +516,7 @@ export function DashboardPage() {
               <>
                 {/* KPI row — same 3-divide-x card grid the runtime usage
                     section uses, expanded to four tiles. */}
-                <div className="grid grid-cols-1 divide-y rounded-lg border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+                <div className="enact-usage-kpi-grid grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
                   <KpiCard
                     label={t(($) => $.kpi.cost_label, { days })}
                     value={<CurrencyNumberFlow value={totals.cost} locales={locales} />}
@@ -634,7 +634,7 @@ function DashboardSkeleton() {
 function DashboardEmpty() {
   const { t } = useT("usage");
   return (
-    <div className="flex flex-col items-center rounded-lg border border-dashed py-12 text-center">
+    <div className="enact-usage-empty flex flex-col items-center py-12 text-center">
       <BarChart3 className="h-6 w-6 text-faint-foreground" />
       <p className="mt-3 text-body font-medium">{t(($) => $.empty.title)}</p>
       <p className="mt-1 max-w-md text-caption text-muted-foreground">

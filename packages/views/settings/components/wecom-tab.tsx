@@ -87,14 +87,14 @@ export function WecomTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="enact-integrations-stack">
       {!configured ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.wecom.not_enabled_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.wecom.not_enabled_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.wecom.not_enabled_description_prefix)}{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-micro">
+              <code className="enact-integration-inline-code">
                 ENACT_WECOM_SECRET_KEY
               </code>{" "}
               {t(($) => $.wecom.not_enabled_description_suffix)}{" "}
@@ -104,27 +104,27 @@ export function WecomTab() {
         </Card>
       ) : !installSupported && installations.length === 0 ? (
         <Card>
-          <CardContent className="space-y-2">
-            <p className="text-body font-medium">{t(($) => $.wecom.preview_title)}</p>
-            <p className="text-caption text-muted-foreground">
+          <CardContent className="enact-integration-state-card">
+            <p className="enact-integration-row-title">{t(($) => $.wecom.preview_title)}</p>
+            <p className="enact-integration-meta">
               {t(($) => $.wecom.preview_description)}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <section className="space-y-3">
-          <h2 className="text-body font-semibold">{t(($) => $.wecom.connected_bots)}</h2>
+        <section className="enact-integration-section">
+          <h2 className="enact-integration-section-title">{t(($) => $.wecom.connected_bots)}</h2>
           {isLoading ? (
             <Card>
               <CardContent>
-                <p className="text-body text-muted-foreground">{t(($) => $.wecom.loading)}</p>
+                <p className="enact-integration-description">{t(($) => $.wecom.loading)}</p>
               </CardContent>
             </Card>
           ) : installations.length === 0 ? (
             <Card>
-              <CardContent className="space-y-2">
-                <p className="text-body font-medium">{t(($) => $.wecom.empty_title)}</p>
-                <p className="text-caption text-muted-foreground">
+              <CardContent className="enact-integration-state-card">
+                <p className="enact-integration-row-title">{t(($) => $.wecom.empty_title)}</p>
+                <p className="enact-integration-meta">
                   {t(($) => $.wecom.empty_description_prefix)}{" "}
                   <strong>{t(($) => $.wecom.empty_description_cta)}</strong>{" "}
                   {t(($) => $.wecom.empty_description_suffix)}
@@ -133,7 +133,7 @@ export function WecomTab() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="divide-y">
+              <CardContent className="enact-integration-list">
                 {installations.map((inst) => (
                   <InstallationRow
                     key={inst.id}
@@ -193,8 +193,8 @@ function InstallationRow({
   const isActive = installation.status === "active";
   const agentName = getAgentName(installation.agent_id);
   return (
-    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
+    <div className="enact-integration-row">
+      <div className="enact-integration-row-main">
         <ActorAvatar
           actorType="agent"
           actorId={installation.agent_id}
@@ -202,23 +202,23 @@ function InstallationRow({
           enableHoverCard
           profileLink
         />
-        <div className="space-y-1">
-          <p className="text-body font-medium">
+        <div className="enact-integration-copy">
+          <p className="enact-integration-row-title">
             {agentName}
             {!isActive && (
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-micro text-muted-foreground">
+              <span className="enact-integration-chip" data-inline="true">
                 {t(($) => $.wecom.revoked_badge)}
               </span>
             )}
           </p>
-          <p className="text-micro text-muted-foreground">
+          <p className="enact-integration-detail">
             {t(($) => $.wecom.bot_id_label, { botId: installation.bot_id })}
           </p>
         </div>
       </div>
       {canManage && isActive && (
         <Button variant="outline" size="sm" onClick={onDisconnect}>
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {t(($) => $.wecom.disconnect)}
         </Button>
       )}
@@ -360,7 +360,7 @@ export function WecomAgentBindButton({
 
   return (
     <div
-      className={cn("flex flex-wrap items-center gap-2", className)}
+      className={cn("enact-integration-connect-actions", className)}
       data-testid="wecom-agent-bind-buttons"
     >
       <Button
@@ -375,7 +375,7 @@ export function WecomAgentBindButton({
         }
         data-testid="wecom-agent-connect"
       >
-        <WecomMark className="h-3 w-3" />
+        <WecomMark className="enact-integration-provider-mark-compact" />
         {t(($) => $.wecom.bind_button)}
       </Button>
 
@@ -383,13 +383,13 @@ export function WecomAgentBindButton({
         open={dialogOpen}
         onOpenChange={(v) => (v ? setDialogOpen(true) : closeDialog())}
       >
-        <DialogContent className="sm:max-w-lg" data-testid="wecom-byo-dialog">
+        <DialogContent className="enact-integration-dialog" data-testid="wecom-byo-dialog">
           <DialogHeader>
             <DialogTitle>{t(($) => $.wecom.byo_dialog_title)}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="enact-integration-form">
+            <div className="enact-integration-field">
               <Label htmlFor="wecom-byo-bot-id">
                 {t(($) => $.wecom.byo_bot_id_label)}
               </Label>
@@ -405,7 +405,7 @@ export function WecomAgentBindButton({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="enact-integration-field">
               <Label htmlFor="wecom-byo-secret">
                 {t(($) => $.wecom.byo_secret_label)}
               </Label>
@@ -422,7 +422,7 @@ export function WecomAgentBindButton({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="enact-integration-field">
               <Label htmlFor="wecom-byo-bot-name">
                 {t(($) => $.wecom.byo_bot_name_label)}
               </Label>
@@ -436,7 +436,7 @@ export function WecomAgentBindButton({
                 spellCheck={false}
                 disabled={submitting}
               />
-              <p className="text-caption text-muted-foreground">
+              <p className="enact-integration-meta">
                 {t(($) => $.wecom.byo_bot_name_hint)}
               </p>
             </div>
@@ -481,14 +481,14 @@ function WecomAgentBotStatusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-caption text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "enact-integration-status-row",
         className,
       )}
       data-testid="wecom-agent-bot-status"
     >
-      <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-      <span className="truncate">{t(($) => $.wecom.agent_bot_connected_label)}</span>
-      <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0" />
+      <span className="enact-integration-status-dot" data-status="active" />
+      <span className="enact-integration-truncate">{t(($) => $.wecom.agent_bot_connected_label)}</span>
+      <ChevronRight className="enact-integration-status-chevron" />
     </button>
   );
 }
@@ -526,13 +526,13 @@ function WecomAgentBotConnectedBadge({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("enact-integration-connected", className)}
       data-testid="wecom-agent-bot-connected"
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-          <span className="truncate">
+      <div className="enact-integration-connected-header">
+        <span className="enact-integration-connected-status">
+          <span className="enact-integration-status-dot" data-status="active" />
+          <span className="enact-integration-truncate">
             {t(($) => $.wecom.agent_bot_connected_label_with_id, {
               botId: installation.bot_id,
             })}
@@ -547,7 +547,7 @@ function WecomAgentBotConnectedBadge({
           aria-label={t(($) => $.wecom.disconnect)}
           data-testid="wecom-agent-bot-disconnect"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="enact-integration-action-icon" />
           {disconnecting
             ? t(($) => $.wecom.disconnecting)
             : t(($) => $.wecom.disconnect)}

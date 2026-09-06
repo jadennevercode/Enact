@@ -19,8 +19,8 @@ export function AgentAccessRevokedBanner({ agentName }: { agentName?: string }) 
   const name = agentName?.trim() || t(($) => $.offline_banner.fallback_name);
   return (
     <div className={cn(CHAT_GUTTER, "mb-1.5")}>
-      <div className={cn(CHAT_COLUMN, "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-caption bg-muted text-muted-foreground ring-1 ring-border")}>
-        <Lock className="size-3.5 shrink-0" />
+      <div className={cn(CHAT_COLUMN, "enact-chat-banner flex items-center gap-1.5 px-2.5 py-1.5")} data-tone="destructive">
+        <Lock className="enact-chat-banner-icon size-3.5 shrink-0" />
         <span className="truncate">
           {t(($) => $.agent_access_revoked_banner, { name })}
         </span>

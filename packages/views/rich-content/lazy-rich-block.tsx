@@ -165,7 +165,7 @@ export function LazyRichBlock({
 function RichBlockPlaceholder() {
   return (
     <div
-      className="my-3 h-full w-full rounded-md border border-border/50 bg-muted/20"
+      className="enact-rich-content-lazy-placeholder"
       aria-hidden="true"
     />
   );

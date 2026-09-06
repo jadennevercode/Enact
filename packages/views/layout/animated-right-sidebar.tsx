@@ -7,7 +7,7 @@ import { cn } from "@enact/ui/lib/utils";
 
 export const rightSidebarPanelMotionProps = {
   "data-right-sidebar-panel": "true",
-  style: { overflowX: "hidden" },
+  className: "enact-right-sidebar-frame",
 } as const;
 
 const RIGHT_SIDEBAR_PANEL_TRANSITION_MS = 220;
@@ -96,14 +96,14 @@ export function AnimatedRightSidebar({
     <motion.div
       animate={{ opacity: open ? 1 : 0, x: open ? 0 : 12 }}
       className={cn(
-        "h-full overflow-x-hidden overflow-y-auto border-l",
+        "enact-right-sidebar-panel",
         !open && "pointer-events-none",
         className,
       )}
       initial={false}
       transition={motionEnabled ? rightSidebarTransition : { duration: 0 }}
     >
-      <div className="p-4">{children}</div>
+      <div className="enact-right-sidebar-content">{children}</div>
     </motion.div>
   );
 }

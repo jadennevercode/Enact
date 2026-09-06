@@ -915,7 +915,9 @@ describe("AttachmentPreviewModal — image zoom", () => {
 
     expect(document.querySelector(".zoom-canvas-content")).toBeNull();
     expect(document.querySelector(".zoom-canvas-fit")).not.toBeNull();
-    expect(document.querySelector("img")?.className).toContain("object-contain");
+    const image = document.querySelector("img");
+    expect(image?.className).toContain("enact-attachment-image-preview");
+    expect(image).not.toHaveAttribute("data-measured");
     expect(screen.queryByRole("button", { name: "Zoom in" })).toBeNull();
   });
 
@@ -947,9 +949,8 @@ describe("AttachmentPreviewModal — image zoom", () => {
     renderImagePreview();
 
     const body = zoomCanvas().parentElement!;
-    expect(body.className).toContain("flex-col");
-    expect(body.className).toContain("flex-1");
-    expect(body.className).toContain("overflow-hidden");
+    expect(body).toHaveClass("enact-attachment-modal-body");
+    expect(body).toHaveAttribute("data-kind", "image");
   });
 
   it("keeps the scrolling block body for non-image kinds", () => {
@@ -969,9 +970,8 @@ describe("AttachmentPreviewModal — image zoom", () => {
 
     // A flex column here would let a tall markdown preview shrink to fit
     // instead of scrolling.
-    const body = document.querySelector(".min-h-0.flex-1")!;
-    expect(body.className).toContain("overflow-auto");
-    expect(body.className).not.toContain("flex-col");
+    const body = document.querySelector(".enact-attachment-modal-body")!;
+    expect(body).not.toHaveAttribute("data-kind");
   });
 
   it("shows no zoom controls for non-image kinds", () => {

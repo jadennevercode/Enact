@@ -28,38 +28,44 @@ export function UpdateNotification() {
   if (dismissed) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 rounded-lg border border-border bg-background p-4 shadow-lg animate-in slide-in-from-bottom-2 fade-in duration-300">
+    <div
+      data-enact-platform="desktop"
+      className="enact-update-notification"
+    >
       <button
         type="button"
+        aria-label="Dismiss update notification"
         onClick={() => setDismissed(true)}
-        className="absolute top-2 right-2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+        className="enact-update-notification-close"
       >
-        <X className="size-3.5" />
+        <X className="enact-update-notification-close-icon" />
       </button>
 
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-md bg-success/10 p-1.5">
-          <RefreshCw className="size-4 text-success" />
+      <div className="enact-update-notification-layout">
+        <div className="enact-update-notification-icon-frame">
+          <RefreshCw className="enact-update-notification-icon" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-body font-medium">Update ready</p>
-          <p className="text-caption text-muted-foreground mt-0.5">
+        <div className="enact-update-notification-copy">
+          <p className="enact-update-notification-title">Update ready</p>
+          <p className="enact-update-notification-description">
             v{state.version} will be applied on next launch.
           </p>
-          <div className="mt-2 flex items-center gap-1.5">
+          <div className="enact-update-notification-actions">
             <button
               type="button"
               onClick={() =>
                 window.desktopAPI.openExternal(changelogUrl(state.version))
               }
-              className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-caption font-medium text-foreground hover:bg-accent transition-colors"
+              className="enact-update-notification-action"
+              data-variant="secondary"
             >
               See changelog
             </button>
             <button
               type="button"
               onClick={() => window.updater.installUpdate()}
-              className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-caption font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="enact-update-notification-action"
+              data-variant="primary"
             >
               Restart now
             </button>

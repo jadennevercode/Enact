@@ -67,7 +67,6 @@ import {
   CollectionPageHeaderAction,
   CollectionPageState,
 } from "../../layout/collection-page";
-import { availabilityConfig } from "../presence";
 import { AgentRowActions } from "./agent-row-actions";
 import {
   AgentListToolbar,
@@ -430,9 +429,9 @@ function StatusCell({ row }: { row: AgentListRow }) {
   }
   if (!isAgentRuntimeBound(agent)) {
     return (
-      <ListGridCell className="gap-1.5">
-        <AlertCircle className="size-3.5 shrink-0 text-amber-500" />
-        <span className="truncate text-caption text-amber-600 dark:text-amber-400">
+      <ListGridCell className="enact-agent-status gap-1.5" data-state="needs-runtime">
+        <AlertCircle className="size-3.5 shrink-0" />
+        <span className="truncate text-caption">
           {t(($) => $.row.needs_runtime)}
         </span>
       </ListGridCell>
@@ -445,12 +444,18 @@ function StatusCell({ row }: { row: AgentListRow }) {
       </ListGridCell>
     );
   }
-  const visual = availabilityConfig[presence.availability];
   const active = presence.runningCount + presence.queuedCount;
   return (
-    <ListGridCell className="gap-1.5">
-      <span className={`size-1.5 shrink-0 rounded-full ${visual.dotClass}`} />
-      <span className={`truncate text-caption ${visual.textClass}`}>
+    <ListGridCell
+      className="enact-agent-status gap-1.5"
+      data-availability={presence.availability}
+    >
+      <span
+        className="enact-agent-status-dot size-1.5 shrink-0"
+        data-availability={presence.availability}
+        aria-hidden="true"
+      />
+      <span className="truncate text-caption">
         {t(($) => $.availability[presence.availability])}
         {active > 0 && (
           <span className="text-muted-foreground">
@@ -519,7 +524,7 @@ function RuntimeCell({ row }: { row: AgentListRow }) {
   if (!isAgentRuntimeBound(row.agent)) {
     return (
       <ListGridCell className="hidden @2xl:flex">
-        <span className="truncate text-caption text-amber-600 dark:text-amber-400">
+        <span className="enact-agent-status truncate text-caption" data-state="needs-runtime">
           {t(($) => $.row.needs_runtime)}
         </span>
       </ListGridCell>
@@ -1033,7 +1038,7 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
   return (
     // relative: positioning anchor for the batch toolbar (page-centered,
     // not viewport-centered).
-    <div className="relative flex flex-1 min-h-0 flex-col">
+    <div className="enact-management-page relative flex flex-1 min-h-0 flex-col">
       <PageHeaderBar
         totalCount={totalCount}
         onCreate={() => navigation.push(paths.newAgent())}
@@ -1103,9 +1108,8 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
                   return (
                     <ListGridRow
                       key={row.agent.id}
-                      className={`h-16 cursor-pointer ${
-                        selectedIds.has(row.agent.id) ? "bg-accent/30" : ""
-                      }`}
+                      className="enact-management-row h-16 cursor-pointer"
+                      data-selected={selectedIds.has(row.agent.id) ? "true" : undefined}
                       {...rowLink(paths.agentDetail(row.agent.id), row.agent.name)}
                     >
                       <CheckboxCell

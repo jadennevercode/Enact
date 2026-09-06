@@ -564,7 +564,7 @@ export function ManualCreatePanel({
         toast.custom((toastId) => (
           <div className="bg-popover text-popover-foreground border rounded-lg shadow-lg p-4 w-[360px]">
             <div className="flex items-center gap-2 mb-2">
-              <div className="flex items-center justify-center size-5 rounded-full bg-emerald-500/15 text-emerald-500">
+              <div className="enact-modal-toast-status" data-tone="success">
                 <Check className="size-3" />
               </div>
               <span className="text-body font-medium">{t(($) => $.create_issue.toast_created)}</span>
@@ -611,7 +611,7 @@ export function ManualCreatePanel({
             (toastId) => (
               <div className="bg-popover text-popover-foreground border rounded-lg shadow-lg p-4 w-[360px]">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center justify-center size-5 rounded-full bg-amber-500/15 text-amber-500">
+                  <div className="enact-modal-toast-status" data-tone="warning">
                     <AlertTriangle className="size-3" />
                   </div>
                   <span className="text-body font-medium">
@@ -763,7 +763,7 @@ export function ManualCreatePanel({
       // would otherwise stay a fully lit, pressable-looking primary button.
       // Deliberately no `pointer-events-none`: this control still has to hover
       // its tooltip and take the click that focuses the title.
-      className="justify-self-end aria-disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:active:translate-y-0"
+      className="enact-modal-submit"
     >
       {submitState === "submitting" ? (
         t(($) => $.create_issue.submitting)
@@ -794,20 +794,20 @@ export function ManualCreatePanel({
             <DialogTitle className="sr-only">{t(($) => $.create_issue.sr_manual)}</DialogTitle>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
-              <div className="flex items-center gap-1.5 text-caption">
-                <span className="text-muted-foreground">{workspaceName}</span>
+            <div className="enact-modal-breadcrumb-header">
+              <div className="enact-modal-breadcrumb">
+                <span className="enact-modal-breadcrumb-context">{workspaceName}</span>
                 <ChevronRight className="size-3 text-faint-foreground" />
-                <span className="font-medium">{t(($) => $.create_issue.manual_breadcrumb)}</span>
+                <span className="enact-modal-breadcrumb-title">{t(($) => $.create_issue.manual_breadcrumb)}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="enact-modal-breadcrumb-actions">
                 <Tooltip>
                   <TooltipTrigger
                     render={
                       <button
                         type="button"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+                        className="enact-modal-icon-action"
                       >
                         {isExpanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
                       </button>
@@ -825,7 +825,7 @@ export function ManualCreatePanel({
                       <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-sm p-1.5 opacity-70 hover:opacity-100 hover:bg-accent/60 transition-all cursor-pointer"
+                        className="enact-modal-icon-action"
                       >
                         <XIcon className="size-4" />
                       </button>
@@ -837,14 +837,14 @@ export function ManualCreatePanel({
             </div>
 
             {/* Title */}
-            <div className="px-5 pb-2 shrink-0">
+            <div className="enact-modal-title-region">
               <TitleEditor
                 key={formResetKey}
                 ref={titleEditorRef}
                 autoFocus
                 defaultValue={draft.manual.title}
                 placeholder={t(($) => $.create_issue.title_placeholder)}
-                className="text-title font-semibold"
+                className="enact-editor-title"
                 onChange={(v) => updateTitle(v)}
                 // Chord only — plain Enter still just ends title editing (#5532).
                 onSubmitShortcut={handleSubmit}
@@ -852,7 +852,7 @@ export function ManualCreatePanel({
             </div>
 
             {/* Description — takes remaining space */}
-            <div {...descDropZoneProps} className="relative flex flex-1 min-h-0 overflow-y-auto px-5">
+            <div {...descDropZoneProps} className="enact-modal-editor-region">
               <ContentEditor
                 ref={descEditorRef}
                 defaultValue={draft.manual.description}
@@ -874,7 +874,7 @@ export function ManualCreatePanel({
 
             {/* Property toolbar — each field renders per the Settings → Issue
                 selection (see showField above). */}
-            <div className="flex items-center gap-1.5 px-4 py-2 shrink-0 flex-wrap">
+            <div className="enact-modal-property-toolbar">
               {/* Status */}
               {showField.status && (
                 <StatusPicker
@@ -1228,8 +1228,8 @@ export function ManualCreatePanel({
                 for why (ENA-6236). TooltipProvider/Tooltip render no DOM and
                 TooltipContent is portaled, so the Create button stays a direct
                 grid child in both branches below. */}
-            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-2.5 border-t px-4 py-3 shrink-0 sm:flex sm:flex-wrap">
-              <div className="flex min-h-7 items-center gap-2 sm:mr-auto">
+            <div className="enact-modal-create-footer">
+              <div className="enact-modal-footer-leading">
                 <FileUploadButton
                   multiple
                   onSelect={(file) => descEditorRef.current?.uploadFile(file)}
@@ -1242,12 +1242,12 @@ export function ManualCreatePanel({
                 aria-disabled={gate.uploading || undefined}
                 aria-busy={gate.uploading || undefined}
                 title={t(($) => $.create_issue.switch_to_agent_tooltip)}
-                className="border-beam group flex shrink-0 items-center gap-1.5 justify-self-end text-caption px-2 py-1 rounded-sm text-muted-foreground bg-brand/5 hover:bg-brand/10 hover:text-foreground transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="border-beam group enact-modal-mode-switch"
               >
                 <ArrowLeftRight className="size-3.5 text-brand transition-transform duration-300 group-hover:rotate-180" />
                 {t(($) => $.create_issue.switch_to_agent)}
               </button>
-              <label className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground cursor-pointer select-none">
+              <label className="enact-modal-keep-open">
                 <Switch
                   size="sm"
                   checked={keepOpen}
@@ -1276,21 +1276,8 @@ export function ManualCreatePanel({
 /** className for DialogContent in manual mode — depends on isExpanded.
  *  Exported so the shell (which now owns the DialogContent) can apply the same
  *  visual treatment without duplicating it. */
-export function manualDialogContentClass(isExpanded: boolean) {
-  return cn(
-    "p-0 gap-0 flex flex-col overflow-hidden",
-    "!top-1/2 !left-1/2 !-translate-x-1/2",
-    "!transition-all !duration-300 !ease-out",
-    // Phone gutter — see the matching note in create-issue-dialog.tsx: the
-    // `!important` widths below also override DialogContent's
-    // `max-w-[calc(100%-2rem)]`, leaving the card edge to edge on a phone
-    // (ENA-6236). `!h-96` stays a hard height; it already fits the shortest
-    // phone we support.
-    "!w-full !max-w-[calc(100vw-1.5rem)]",
-    isExpanded
-      ? "!h-5/6 !-translate-y-1/2 sm:!max-w-4xl"
-      : "!h-96 !-translate-y-1/2 sm:!max-w-2xl",
-  );
+export function manualDialogContentClass(_isExpanded: boolean) {
+  return "enact-modal-create-issue";
 }
 
 // Thin Dialog-wrapping export — registry mounts the panel directly under the
@@ -1309,6 +1296,8 @@ export function CreateIssueModal(props: {
         finalFocus={false}
         showCloseButton={false}
         className={manualDialogContentClass(isExpanded)}
+        data-mode="manual"
+        data-expanded={isExpanded ? "true" : "false"}
       >
         <ManualCreatePanel
           {...props}

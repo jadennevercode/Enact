@@ -1,0 +1,18 @@
+/*
+ * Authoritative application theme entry shared by Web and Desktop.
+ *
+ * Import order is part of the cascade contract. Keep tokens before base styles,
+ * and append shared primitives and feature styles only after both.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./primitives.css";
+@import "./features/shell.css";
+@import "./features/issues.css";
+@import "./features/projects.css";
+@import "./features/chat-inbox.css";
+@import "./features/agents-runtimes.css";
+@import "./features/settings.css";
+@import "./features/integrations.css";
+@import "./features/editor.css";
+@import "./features/onboarding-auth.css";

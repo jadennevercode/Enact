@@ -59,23 +59,26 @@ export function AppCrashBoundary({ children }: { children: ReactNode }) {
  */
 function CrashFallback({ error }: { error: Error }) {
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className="enact-desktop-crash-shell">
       <DragStrip />
       <div
         role="alert"
-        className="flex flex-1 items-center justify-center overflow-auto p-8"
+        className="enact-desktop-crash-body"
       >
-        <div className="max-w-xl rounded-lg border bg-card p-6 shadow-sm">
-          <h1 className="text-title font-semibold">Something went wrong</h1>
-          <p className="mt-3 text-body text-muted-foreground">
+        <div className="enact-desktop-crash-card">
+          <h1 className="enact-desktop-edge-title">Something went wrong</h1>
+          <p className="enact-desktop-crash-copy">
             Enact Desktop hit an unexpected error and could not keep
             rendering. Reloading usually recovers — your work is stored on the
             server.
           </p>
-          <pre className="mt-4 max-h-48 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-caption text-muted-foreground">
+          <pre className="enact-desktop-crash-detail">
             {error.message || "An unexpected error occurred."}
           </pre>
-          <Button className="mt-4" onClick={() => window.location.reload()}>
+          <Button
+            className="enact-desktop-crash-action"
+            onClick={() => window.location.reload()}
+          >
             Reload
           </Button>
         </div>

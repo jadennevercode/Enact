@@ -334,7 +334,7 @@ function SquadRowActions({ squad }: { squad: Squad }) {
             <button
               type="button"
               aria-label={t(($) => $.page.row_menu)}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover/row:opacity-100 data-popup-open:bg-accent data-popup-open:opacity-100 data-popup-open:text-accent-foreground"
+              className="enact-management-row-action flex size-7 items-center justify-center opacity-0 transition-opacity group-hover/row:opacity-100 data-popup-open:opacity-100"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -500,7 +500,7 @@ function SquadListToolbar({
   const sortLabel = SORT_LABELS[sortField];
 
   return (
-    <div className={PAGE_TOOLBAR}>
+    <div className={`enact-management-toolbar ${PAGE_TOOLBAR}`}>
       <div className="flex min-w-0 items-center gap-2">
         <div className="hidden shrink-0 items-center gap-1 md:flex">
           {SQUAD_SCOPES.map((s) => (
@@ -508,11 +508,8 @@ function SquadListToolbar({
               key={s}
               variant="outline"
               size="sm"
-              className={
-                scope === s
-                  ? "gap-1.5 bg-accent text-accent-foreground hover:bg-accent/80"
-                  : "gap-1.5 text-muted-foreground"
-              }
+              className="enact-management-scope-trigger gap-1.5 text-muted-foreground"
+              data-active={scope === s ? "true" : undefined}
               onClick={() => onScopeChange(s)}
             >
               {SCOPE_LABELS[s]}
@@ -570,11 +567,8 @@ function SquadListToolbar({
             <Button
               variant={hasActiveFilters ? "default" : "outline"}
               size="sm"
-              className={
-                hasActiveFilters
-                  ? "h-8 w-8 gap-1 bg-brand px-0 text-white hover:bg-brand/90 md:w-auto md:px-2.5"
-                  : "h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
-              }
+              className="enact-management-filter-trigger h-8 w-8 gap-1 px-0 text-muted-foreground md:w-auto md:px-2.5"
+              data-active={hasActiveFilters ? "true" : undefined}
             >
               <Filter className="size-3.5" />
               {hasActiveFilters ? (
@@ -592,7 +586,7 @@ function SquadListToolbar({
                   role="button"
                   tabIndex={-1}
                   aria-label={t(($) => $.toolbar.clear_filters)}
-                  className="-mr-1 ml-0.5 hidden rounded-sm p-0.5 hover:bg-white/20 md:inline-flex"
+                  className="enact-management-filter-clear -mr-1 ml-0.5 hidden p-0.5 md:inline-flex"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -909,7 +903,7 @@ export function SquadsPage() {
   );
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col">
+    <div className="enact-management-page flex flex-1 min-h-0 flex-col">
       <CollectionPageHeader
         icon={Users}
         title={t(($) => $.page.title)}
@@ -981,7 +975,7 @@ export function SquadsPage() {
                 rows.map((squad) => (
                   <ListGridRow
                     key={squad.id}
-                    className="cursor-pointer"
+                    className="enact-management-row cursor-pointer"
                     {...rowLink(p.squadDetail(squad.id), squad.name)}
                   >
                     <NameCell squad={squad} />

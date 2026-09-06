@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { HTMLAttributes, ReactNode } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
@@ -22,11 +24,15 @@ vi.mock("@enact/ui/components/ui/dialog", () => ({
   DialogContent: ({
     className,
     children,
-  }: {
-    className?: string;
+    finalFocus: _finalFocus,
+    showCloseButton: _showCloseButton,
+    ...props
+  }: HTMLAttributes<HTMLDivElement> & {
     children: ReactNode;
+    finalFocus?: boolean;
+    showCloseButton?: boolean;
   }) => (
-    <div data-testid="dialog-content" className={className}>
+    <div data-testid="dialog-content" className={className} {...props}>
       {children}
     </div>
   ),
@@ -38,40 +44,46 @@ vi.mock("./quick-create-issue", () => ({
 
 vi.mock("./create-issue", () => ({
   ManualCreatePanel: () => <div>manual panel</div>,
-  manualDialogContentClass: () => "manual-dialog-class",
 }));
 
-// `cn` is deliberately NOT mocked here: the whole point of these assertions is
-// that tailwind-merge keeps the phone cap and the `sm:` width as two separate
-// groups instead of collapsing them into one max-width.
 import { CreateIssueDialog } from "./create-issue-dialog";
 
-function contentClass() {
-  return screen.getByTestId("dialog-content").className;
-}
+const editorCss = readFileSync(
+  resolve(process.cwd(), "../ui/styles/features/editor.css"),
+  "utf8",
+);
 
 describe("CreateIssueDialog sizing", () => {
-  // ENA-6236: every width the shell sets is `!important` so it can beat
-  // DialogContent's own sizing — which also beat DialogContent's
-  // `max-w-[calc(100%-2rem)]` gutter, so the card ran the full width of a
-  // phone screen with no margin on either side.
-  it("caps the agent dialog inside the viewport on phones", () => {
+  it("uses the shared semantic shell for agent mode", () => {
     render(<CreateIssueDialog onClose={vi.fn()} initialMode="agent" />);
 
-    expect(contentClass()).toContain("!max-w-[calc(100vw-1.5rem)]");
-    expect(contentClass()).toContain("sm:!max-w-xl");
+    const content = screen.getByTestId("dialog-content");
+    expect(content).toHaveClass("enact-modal-create-issue");
+    expect(content).toHaveAttribute("data-mode", "agent");
+    expect(content).toHaveAttribute("data-expanded", "false");
   });
 
-  it("uses dvh so mobile browser chrome cannot hide the agent footer", () => {
-    render(<CreateIssueDialog onClose={vi.fn()} initialMode="agent" />);
-
-    expect(contentClass()).toContain("!max-h-[80dvh]");
-    expect(contentClass()).not.toContain("!max-h-[80vh]");
-  });
-
-  it("hands manual mode its own sizing", () => {
+  it("keeps manual sizing state on the same persistent shell", () => {
     render(<CreateIssueDialog onClose={vi.fn()} initialMode="manual" />);
 
-    expect(contentClass()).toBe("manual-dialog-class");
+    const content = screen.getByTestId("dialog-content");
+    expect(content).toHaveClass("enact-modal-create-issue");
+    expect(content).toHaveAttribute("data-mode", "manual");
+    expect(content).toHaveAttribute("data-expanded", "false");
+  });
+
+  it("preserves phone gutter, dynamic viewport, and expanded width contracts", () => {
+    expect(editorCss).toMatch(
+      /\.enact-modal-create-issue \{[\s\S]*?max-width: calc\(100vw - var\(--space-unit\) \* 6\)/,
+    );
+    expect(editorCss).toMatch(
+      /data-mode="agent"\]\[data-expanded="false"\] \{[\s\S]*?max-height: 80dvh/,
+    );
+    expect(editorCss).toMatch(
+      /\.enact-modal-create-issue\[data-expanded="true"\] \{[\s\S]*?max-width: calc\(var\(--space-unit\) \* 224\)/,
+    );
+    expect(editorCss).toMatch(
+      /\.enact-modal-project\[data-expanded="true"\] \{[\s\S]*?max-width: calc\(var\(--space-unit\) \* 224\)/,
+    );
   });
 });

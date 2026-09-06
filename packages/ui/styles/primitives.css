@@ -1,0 +1,389 @@
+/* Shared semantic presentation primitives for Web and Desktop. */
+
+@layer utilities {
+  .enact-dialog-wide {
+    max-width: min(
+      calc(var(--space-unit) * 256),
+      calc(100vw - var(--space-unit) * 8)
+    );
+  }
+
+  .enact-surface-canvas {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .enact-surface-panel,
+  .enact-surface-card {
+    min-width: 0;
+    border: var(--border-width) solid var(--surface-border);
+    background-color: var(--surface);
+    color: var(--surface-foreground);
+  }
+
+  .enact-surface-panel {
+    border-radius: var(--radius-lg);
+  }
+
+  .enact-surface-card {
+    border-radius: var(--radius-xl);
+    box-shadow: var(--surface-shadow);
+  }
+
+  .enact-surface-raised,
+  .enact-popup-surface,
+  .enact-overlay-surface {
+    min-width: 0;
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  .enact-surface-raised,
+  .enact-popup-surface {
+    box-shadow: var(--menu-shadow);
+  }
+
+  .enact-overlay-surface {
+    box-shadow: var(--floating-shadow);
+  }
+
+  .enact-control {
+    outline: none;
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-control:focus-visible {
+    border-color: var(--ring);
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-control[aria-invalid="true"] {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 var(--focus-ring-width)
+      color-mix(in oklab, var(--destructive) 20%, transparent);
+  }
+
+  .enact-control:is(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: not-allowed;
+    opacity: var(--disabled-opacity);
+    pointer-events: none;
+  }
+
+  .enact-form-control {
+    border: var(--border-width) solid var(--input);
+    background-color: transparent;
+    color: var(--foreground);
+  }
+
+  .enact-form-control::placeholder,
+  .enact-form-control[data-placeholder] {
+    color: var(--muted-foreground);
+  }
+
+  .enact-form-control:is(:disabled, [aria-disabled="true"], [data-disabled]) {
+    background-color: color-mix(in oklab, var(--input) 50%, transparent);
+  }
+
+  .enact-dialog-backdrop {
+    background-color: color-mix(in oklab, var(--foreground) 10%, transparent);
+    backdrop-filter: blur(calc(var(--space-unit) / 2));
+    animation-duration: var(--motion-fast);
+  }
+
+  .enact-popup-surface,
+  .enact-overlay-surface {
+    animation-duration: var(--motion-fast);
+  }
+
+  .enact-menu-item {
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    outline: none;
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-menu-item:focus,
+  .enact-menu-item:is([data-open], [data-popup-open]) {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .enact-menu-item[data-variant="destructive"] {
+    color: var(--destructive);
+  }
+
+  .enact-menu-item[data-variant="destructive"]:focus {
+    background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .enact-menu-item[data-disabled] {
+    opacity: var(--disabled-opacity);
+    pointer-events: none;
+  }
+
+  .enact-tab-trigger {
+    color: var(--muted-foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-tab-trigger:hover {
+    color: var(--foreground);
+  }
+
+  .enact-tab-trigger[data-active],
+  .enact-tab-trigger[data-active]:hover {
+    border-color: var(--surface-border);
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  [data-variant="line"] > .enact-tab-trigger[data-active],
+  [data-variant="line"] > .enact-tab-trigger[data-active]:hover {
+    border-color: transparent;
+    background-color: transparent;
+  }
+
+  .enact-tab-trigger:focus-visible {
+    border-color: var(--ring);
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .enact-tab-trigger:is(:disabled, [aria-disabled="true"]) {
+    opacity: var(--disabled-opacity);
+    pointer-events: none;
+  }
+
+  .enact-table-row {
+    border-bottom: var(--border-width) solid var(--border);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-table-row:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-table-row[data-state="selected"],
+  .enact-table-row[data-state="selected"]:hover {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-data-table-pinned-shadow {
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--foreground) 7%, transparent),
+      transparent
+    );
+  }
+
+  .enact-sonner-theme {
+    --normal-bg: var(--popover);
+    --normal-text: var(--popover-foreground);
+    --normal-border: var(--border);
+    --border-radius: var(--radius);
+  }
+
+  .enact-feedback {
+    --enact-feedback-tone: var(--muted-foreground);
+
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: calc(var(--space-unit) * 3);
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--muted);
+    padding: calc(var(--space-unit) * 3);
+    color: var(--foreground);
+  }
+
+  .enact-feedback[data-tone="success"] {
+    --enact-feedback-tone: var(--success);
+    border-color: color-mix(in oklab, var(--success) 36%, var(--surface-border));
+    background-color: color-mix(in oklab, var(--success) 9%, var(--surface));
+  }
+
+  .enact-feedback[data-tone="warning"] {
+    --enact-feedback-tone: var(--warning);
+    border-color: color-mix(in oklab, var(--warning) 36%, var(--surface-border));
+    background-color: color-mix(in oklab, var(--warning) 9%, var(--surface));
+  }
+
+  .enact-feedback[data-tone="info"] {
+    --enact-feedback-tone: var(--info);
+    border-color: color-mix(in oklab, var(--info) 36%, var(--surface-border));
+    background-color: color-mix(in oklab, var(--info) 9%, var(--surface));
+  }
+
+  .enact-feedback[data-tone="destructive"] {
+    --enact-feedback-tone: var(--destructive);
+    border-color: color-mix(in oklab, var(--destructive) 36%, var(--surface-border));
+    background-color: color-mix(in oklab, var(--destructive) 9%, var(--surface));
+  }
+
+  .enact-feedback-icon {
+    width: calc(var(--space-unit) * 4);
+    height: calc(var(--space-unit) * 4);
+    flex: 0 0 auto;
+    color: var(--enact-feedback-tone);
+  }
+
+  .enact-feedback[aria-busy="true"] .enact-feedback-icon {
+    animation: enact-feedback-spin var(--motion-slow) linear infinite;
+  }
+
+  .enact-feedback-copy {
+    display: grid;
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: var(--space-unit);
+  }
+
+  .enact-feedback-title {
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-body--line-height);
+  }
+
+  .enact-feedback-detail {
+    color: var(--muted-foreground);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    overflow-wrap: anywhere;
+  }
+
+  .enact-feedback-action {
+    flex: 0 0 auto;
+  }
+
+  .enact-toolbar {
+    display: flex;
+    min-width: 0;
+    min-height: calc(var(--space-unit) * 12);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--space-unit) * 2);
+    padding-inline: calc(var(--space-unit) * 4);
+  }
+
+  .enact-selection-item {
+    min-width: 0;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    color: var(--foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-selection-item:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-selection-item[data-active="true"],
+  .enact-selection-item[aria-current="page"],
+  .enact-selection-item[aria-selected="true"] {
+    border-color: var(--surface-border);
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-selection-item[data-active="true"]:hover,
+  .enact-selection-item[aria-current="page"]:hover,
+  .enact-selection-item[aria-selected="true"]:hover {
+    background-color: var(--surface-selected);
+    color: var(--surface-selected-foreground);
+  }
+
+  .enact-selection-item:focus-visible,
+  .enact-feedback-action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  :where(
+      .enact-selection-item,
+      .enact-feedback-action
+    ):is(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: not-allowed;
+    opacity: var(--disabled-opacity);
+  }
+
+  @keyframes enact-feedback-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-control,
+    .enact-popup-surface,
+    .enact-overlay-surface,
+    .enact-menu-item,
+    .enact-tab-trigger,
+    .enact-table-row,
+    .enact-selection-item {
+      transition: none;
+    }
+
+    [data-slot].enact-dialog-backdrop:is([data-open], [data-closed]),
+    [data-slot].enact-popup-surface:is(
+        [data-open],
+        [data-closed],
+        [data-state="delayed-open"]
+      ),
+    [data-slot].enact-overlay-surface:is([data-open], [data-closed]) {
+      animation: none;
+    }
+
+    .enact-feedback[aria-busy="true"] .enact-feedback-icon {
+      animation: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .enact-surface-panel,
+    .enact-surface-card,
+    .enact-surface-raised,
+    .enact-overlay-surface,
+    .enact-feedback {
+      border-color: CanvasText;
+    }
+
+    .enact-selection-item[data-active="true"],
+    .enact-selection-item[aria-current="page"],
+    .enact-selection-item[aria-selected="true"],
+    .enact-tab-trigger[data-active],
+    .enact-table-row[data-state="selected"] {
+      border-color: Highlight;
+      outline: var(--border-width) solid Highlight;
+    }
+  }
+}

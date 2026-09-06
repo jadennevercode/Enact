@@ -209,7 +209,7 @@ export function TaskStatusPill({
 
   return (
     <div
-      className="flex items-center gap-1.5 px-1 text-caption text-muted-foreground"
+      className="enact-chat-task-status flex items-center gap-1.5 px-1"
       aria-live="polite"
     >
       {!stage.static && (

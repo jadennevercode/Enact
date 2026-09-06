@@ -191,19 +191,17 @@ function LinkHoverCard({
   return createPortal(
     <div
       ref={setCardRef}
-      className="link-hover-card"
+      className="link-hover-card enact-editor-link-hover"
       style={{
-        position: "fixed",
         top: pos.top,
         left: pos.left,
-        zIndex: 50,
         display: positioned ? undefined : "none",
       }}
       onMouseEnter={onCardEnter}
       onMouseLeave={onCardLeave}
     >
       <span
-        className="min-w-0 flex-1 truncate text-caption text-muted-foreground px-1"
+        className="enact-editor-link-copy"
         title={href}
       >
         {truncateUrl(href)}

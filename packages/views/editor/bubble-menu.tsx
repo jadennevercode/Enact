@@ -210,7 +210,7 @@ function LinkEditBar({
   }, [editor, onClose]);
 
   return (
-    <div className="bubble-menu-link-edit" onMouseDown={(e) => e.preventDefault()}>
+    <div className="bubble-menu-link-edit enact-editor-link-edit" onMouseDown={(e) => e.preventDefault()}>
       <Input
         ref={inputRef}
         value={url}
@@ -279,7 +279,7 @@ function HeadingDropdown({ editor, onOpenChange, activeLevel }: { editor: Editor
   return (
     <Popover modal={false} open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        className="inline-flex h-7 items-center gap-0.5 rounded-md px-1.5 text-caption font-medium hover:bg-muted"
+        className="enact-editor-menu-trigger"
         onMouseDown={(e) => e.preventDefault()}
       >
         {label}
@@ -297,7 +297,7 @@ function HeadingDropdown({ editor, onOpenChange, activeLevel }: { editor: Editor
           <button
             type="button"
             key={item.label}
-            className="flex w-full cursor-default items-center gap-2 rounded-md px-1.5 py-1 text-caption outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+            className="enact-editor-menu-item"
             onMouseDown={(e) => {
               e.preventDefault();
               item.action();
@@ -332,7 +332,7 @@ function ListDropdown({ editor, onOpenChange, isBullet, isOrdered, isTask }: { e
       <Tooltip>
         <TooltipTrigger render={
           <PopoverTrigger
-            className="inline-flex h-7 items-center gap-0.5 rounded-md px-1.5 text-caption font-medium hover:bg-muted aria-pressed:bg-muted"
+            className="enact-editor-menu-trigger"
             aria-label={t(($) => $.bubble_menu.list)}
             aria-pressed={isBullet || isOrdered || isTask}
             onMouseDown={(e) => e.preventDefault()}
@@ -621,19 +621,15 @@ function EditorBubbleMenu({
   return (
     <div
       ref={floatingRef}
-      style={{
-        position: "fixed",
-        zIndex: 50,
-        width: "max-content",
-        visibility: visible ? "visible" : "hidden",
-      }}
+      className="enact-editor-floating"
+      style={{ visibility: visible ? "visible" : "hidden" }}
       onMouseDown={(e) => e.preventDefault()}
     >
       {mode === "link-edit" ? (
         <LinkEditBar editor={editor} onClose={() => { setMode("toolbar"); editor.commands.focus(); }} />
       ) : (
         <TooltipProvider delay={300}>
-          <div className="bubble-menu">
+          <div className="bubble-menu enact-editor-bubble-menu">
             <MarkButton editor={editor} mark="bold" icon={Bold} label={t(($) => $.bubble_menu.bold)} shortcut={createShortcutChord("B", { primary: true })} isActive={fmt.bold} />
             <MarkButton editor={editor} mark="italic" icon={Italic} label={t(($) => $.bubble_menu.italic)} shortcut={createShortcutChord("I", { primary: true })} isActive={fmt.italic} />
             <MarkButton editor={editor} mark="strike" icon={Strikethrough} label={t(($) => $.bubble_menu.strikethrough)} shortcut={createShortcutChord("S", { primary: true, shift: true })} isActive={fmt.strike} />

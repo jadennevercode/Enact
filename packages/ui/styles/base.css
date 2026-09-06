@@ -56,73 +56,20 @@
   animation: entrance-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.enact-unicode-spinner {
+  display: inline-block;
+  min-width: 1ch;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .enact-mark-lift {
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--motion-standard) var(--ease-standard);
 }
 
 .enact-mark-lift:hover {
   transform: translateY(-1px) scale(1.06);
-}
-
-/* Onboarding: step / phase entry — 400ms fade.
- * Applied on mount so every new step (and intra-step phase switch, via
- * key=phase remount) plays once. `both` fill-mode commits the `from`
- * styles pre-animation to avoid a single-frame flash at natural state
- * before the animation grabs.
- *
- * Earlier iteration also included a 4px translateY rise. Removed because
- * the transform on h-full step roots was getting counted into the
- * parent's scrollable overflow (web onboarding page + desktop
- * WindowOverlay both wrap with overflow-y-auto), producing a brief
- * scrollbar flash on each step entry. Pure opacity has no such side
- * effect. */
-@keyframes onboarding-enter {
-  from { opacity: 0; }
-}
-
-.animate-onboarding-enter {
-  animation: onboarding-enter 0.4s ease both;
-}
-
-/* Welcome-after-onboarding Modal: emoji pops in with two quick scale
- * bounces so the celebration registers visually without being
- * disruptive. ~700ms total. */
-@keyframes welcome-emoji-pop {
-  0%   { transform: scale(0.4); opacity: 0; }
-  35%  { transform: scale(1.25); opacity: 1; }
-  55%  { transform: scale(0.92); }
-  75%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-.animate-welcome-emoji-pop {
-  animation: welcome-emoji-pop 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-/* Onboarding completion: success badge spring-pop.
- * Lands with a subtle overshoot (scale 1.12 → 1) so the circle feels
- * physical rather than linearly interpolated. Paired with the drawn
- * checkmark below which kicks in after the badge has settled. */
-@keyframes completion-badge {
-  0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-completion-badge {
-  animation: completion-badge 500ms cubic-bezier(0.5, 1.5, 0.4, 1) both;
-}
-
-/* Onboarding completion: SVG checkmark drawn by animating
- * stroke-dashoffset from 1 → 0. Requires the target <path> to declare
- * `pathLength={1}` and `strokeDasharray={1}` so the stroke length is
- * normalized and the animation is geometry-agnostic. */
-@keyframes completion-check {
-  from { stroke-dashoffset: 1; }
-  to { stroke-dashoffset: 0; }
-}
-
-.animate-completion-check {
-  animation: completion-check 400ms ease-out 350ms both;
 }
 
 /* Chat FAB: gentle color + border tint while a chat task is running.
@@ -185,6 +132,11 @@
 }
 
 .animate-nav-progress-sweep {
+  box-shadow:
+    0 0 calc(var(--space-unit) * 2)
+      color-mix(in oklab, var(--brand) 60%, transparent),
+    0 0 calc(var(--space-unit) / 2)
+      color-mix(in oklab, var(--brand) 80%, transparent);
   animation: nav-progress-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -221,16 +173,16 @@
     from var(--border-beam-angle),
     transparent 0deg,
     transparent 220deg,
-    #ffbe7b 245deg,
-    #ff777f 270deg,
-    #ff8ab4 295deg,
-    #a07cfe 320deg,
-    #5b9dff 345deg,
+    var(--warning) 245deg,
+    var(--destructive) 270deg,
+    color-mix(in oklab, var(--destructive) 45%, var(--brand)) 295deg,
+    var(--brand) 320deg,
+    var(--info) 345deg,
     transparent 360deg
   );
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--foreground) 0 0) content-box,
+    linear-gradient(var(--foreground) 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
   animation: border-beam-rotate 3.2s linear infinite;
@@ -242,11 +194,11 @@
     animation: none;
     background: linear-gradient(
       90deg,
-      #ffbe7b,
-      #ff777f,
-      #ff8ab4,
-      #a07cfe,
-      #5b9dff
+      var(--warning),
+      var(--destructive),
+      color-mix(in oklab, var(--destructive) 45%, var(--brand)),
+      var(--brand),
+      var(--info)
     );
   }
 }
@@ -303,10 +255,6 @@ html[data-dnd-dragging="true"] * {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-entrance-rise,
-  .animate-onboarding-enter,
-  .animate-welcome-emoji-pop,
-  .animate-completion-badge,
-  .animate-completion-check,
   .animate-chat-impulse,
   .animate-chat-text-shimmer,
   .animate-nav-progress-sweep {
@@ -381,18 +329,4 @@ html[data-dnd-dragging="true"] * {
       font-size: 16px !important;
     }
   }
-}
-
-/* In-page find (Cmd/Ctrl+F on the issue detail page). Matches are painted with
- * the CSS Custom Highlight API — ranges only, no DOM mutation — so the tint
- * layers cleanly over React-rendered markdown and the contenteditable
- * title/description editors. `enact-find-active` is registered with a higher
- * priority so the current match paints on top of the dimmer all-matches tint. */
-::highlight(enact-find) {
-  background-color: var(--find-match);
-  color: var(--find-match-foreground);
-}
-::highlight(enact-find-active) {
-  background-color: var(--find-match-active);
-  color: var(--find-match-foreground);
 }

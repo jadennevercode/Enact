@@ -25,7 +25,7 @@ export function DesktopLoginPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="enact-auth-desktop-shell" data-enact-platform="desktop">
       <DragStrip />
       <LoginPage
         logo={<EnactIcon bordered size="lg" />}

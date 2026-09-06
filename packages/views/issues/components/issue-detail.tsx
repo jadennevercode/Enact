@@ -2302,7 +2302,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
   };
 
   const sidebarContent = (
-    <div className="space-y-5">
+    <div className="enact-issue-inspector space-y-5">
       {/* Properties */}
       <div>
         <button
@@ -2707,7 +2707,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
     // editor's images and the timeline's images share one sequence.
     <CurrentIssueRenderContextProvider value={currentIssueRenderContext}>
     <ImageSequenceProvider items={imageSequence}>
-    <div className="relative flex h-full min-w-0 flex-1 flex-col">
+    <div className="enact-issue-detail-content relative flex h-full min-w-0 flex-1 flex-col">
         {/* In-page find bar — floats over the top-right of the content column
             (below the breadcrumb header), outside the scroll container so it
             stays put while the timeline scrolls and its own text isn't walked.
@@ -2865,7 +2865,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
         <div
           ref={attachScrollContainer}
           data-tab-scroll-root={scrollContainerKey}
-          className="relative flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]"
+          className="enact-issue-detail-scroller relative flex-1 overflow-y-auto"
         >
         {/* Gutters: 32px is a comfortable reading margin on a desktop column
             but eats 16% of a 393px phone, so below `md` they drop to 12px.
@@ -3260,7 +3260,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
           <div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h2 className="text-title-sm font-semibold">{t(($) => $.detail.activity_section)}</h2>
+                <h2 className="enact-issue-detail-section-title">{t(($) => $.detail.activity_section)}</h2>
               </div>
               <div className="flex items-center gap-2">
                 {/* A delegated subscription is one the user never opted into

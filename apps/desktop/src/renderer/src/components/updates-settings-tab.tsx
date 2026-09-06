@@ -80,7 +80,10 @@ export function UpdatesSettingsTab() {
     >
       <SettingsCard>
         <SettingsRow label={t(($) => $.desktop.updates.current_version)}>
-          <span className="font-mono text-caption text-muted-foreground">
+          <span
+            className="enact-settings-update-status"
+            data-status="current"
+          >
             v{currentVersion}
           </span>
         </SettingsRow>
@@ -104,22 +107,31 @@ export function UpdatesSettingsTab() {
             <>
               <p>{t(($) => $.desktop.updates.check_section_description)}</p>
               {state.status === "up-to-date" && (
-                <p className="mt-2 inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-success" />
+                <p
+                  className="enact-settings-update-status"
+                  data-status={state.status}
+                >
+                  <Check className="enact-settings-update-status-icon" />
                   {t(($) => $.desktop.updates.up_to_date)}
                 </p>
               )}
               {state.status === "available" && (
-                <p className="mt-2 inline-flex items-center gap-1.5">
-                  <ArrowDownToLine className="size-3.5 text-primary" />
+                <p
+                  className="enact-settings-update-status"
+                  data-status={state.status}
+                >
+                  <ArrowDownToLine className="enact-settings-update-status-icon" />
                   {t(($) => $.desktop.updates.downloading, {
                     version: state.latestVersion,
                   })}
                 </p>
               )}
               {state.status === "error" && (
-                <p className="mt-2 inline-flex items-center gap-1.5 text-destructive">
-                  <AlertCircle className="size-3.5" />
+                <p
+                  className="enact-settings-update-status"
+                  data-status={state.status}
+                >
+                  <AlertCircle className="enact-settings-update-status-icon" />
                   {state.message}
                 </p>
               )}

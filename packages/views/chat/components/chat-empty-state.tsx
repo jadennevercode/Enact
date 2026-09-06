@@ -10,7 +10,7 @@ export function EmptyState({ agent }: { agent: Agent | null }) {
   const description = agent?.description?.trim();
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-8">
+    <div className="enact-chat-empty-state flex flex-1 flex-col items-center justify-center gap-4 px-6 py-8">
       {agent && (
         <ActorAvatar
           actorType="agent"

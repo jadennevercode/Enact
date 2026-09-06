@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "../../lib/utils";
 import spinners, { type BrailleSpinnerName } from "unicode-animations";
 
 interface Props {
@@ -32,14 +33,7 @@ export function UnicodeSpinner({ name = "braille", className, paused }: Props) {
   return (
     <span
       aria-hidden="true"
-      className={className}
-      style={{
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-        display: "inline-block",
-        minWidth: "1ch",
-        textAlign: "center",
-        fontVariantNumeric: "tabular-nums",
-      }}
+      className={cn("enact-unicode-spinner", className)}
     >
       {spec.frames[frame]}
     </span>

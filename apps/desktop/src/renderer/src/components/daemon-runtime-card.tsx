@@ -142,7 +142,11 @@ export function DaemonRuntimeActions() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
+      <div
+        data-enact-platform="desktop"
+        data-state={status.state}
+        className="enact-daemon-runtime-actions flex flex-wrap items-center justify-end gap-1.5"
+      >
         {isRunning && (
           <>
             <Button size="sm" variant="ghost" onClick={() => setPanelOpen(true)}>
@@ -150,7 +154,7 @@ export function DaemonRuntimeActions() {
               View logs
             </Button>
             {externallyManaged ? (
-              <span className="inline-flex items-center gap-1.5 text-caption text-muted-foreground">
+              <span className="enact-daemon-status inline-flex items-center gap-1.5 text-caption text-muted-foreground">
                 <Info className="size-3.5 shrink-0" />
                 Managed outside the app
               </span>
@@ -204,7 +208,7 @@ export function DaemonRuntimeActions() {
 
         {isAuthExpired && (
           <>
-            <span className="inline-flex items-center gap-1.5 text-caption text-destructive">
+            <span className="enact-daemon-status inline-flex items-center gap-1.5 text-caption text-destructive">
               <AlertCircle className="size-3.5 shrink-0" />
               Sign-in expired
             </span>

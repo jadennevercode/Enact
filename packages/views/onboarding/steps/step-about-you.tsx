@@ -65,27 +65,27 @@ export function StepAboutYou({
   const { t } = useT("onboarding");
 
   const roleOptions: QuestionOption[] = [
-    { slug: "engineer", icon: <Code2 className="h-4 w-4" />, label: t(($) => $.questions.role.engineer) },
-    { slug: "product", icon: <Briefcase className="h-4 w-4" />, label: t(($) => $.questions.role.product) },
-    { slug: "designer", icon: <Palette className="h-4 w-4" />, label: t(($) => $.questions.role.designer) },
-    { slug: "founder", icon: <Rocket className="h-4 w-4" />, label: t(($) => $.questions.role.founder) },
-    { slug: "marketing", icon: <Megaphone className="h-4 w-4" />, label: t(($) => $.questions.role.marketing) },
-    { slug: "writer", icon: <PenLine className="h-4 w-4" />, label: t(($) => $.questions.role.writer) },
-    { slug: "research", icon: <Search className="h-4 w-4" />, label: t(($) => $.questions.role.research) },
-    { slug: "ops", icon: <Settings2 className="h-4 w-4" />, label: t(($) => $.questions.role.ops) },
-    { slug: "student", icon: <GraduationCap className="h-4 w-4" />, label: t(($) => $.questions.role.student) },
-    { slug: "other", icon: <MoreHorizontal className="h-4 w-4" />, label: t(($) => $.questions.role.other), isOther: true },
+    { slug: "engineer", icon: <Code2 />, label: t(($) => $.questions.role.engineer) },
+    { slug: "product", icon: <Briefcase />, label: t(($) => $.questions.role.product) },
+    { slug: "designer", icon: <Palette />, label: t(($) => $.questions.role.designer) },
+    { slug: "founder", icon: <Rocket />, label: t(($) => $.questions.role.founder) },
+    { slug: "marketing", icon: <Megaphone />, label: t(($) => $.questions.role.marketing) },
+    { slug: "writer", icon: <PenLine />, label: t(($) => $.questions.role.writer) },
+    { slug: "research", icon: <Search />, label: t(($) => $.questions.role.research) },
+    { slug: "ops", icon: <Settings2 />, label: t(($) => $.questions.role.ops) },
+    { slug: "student", icon: <GraduationCap />, label: t(($) => $.questions.role.student) },
+    { slug: "other", icon: <MoreHorizontal />, label: t(($) => $.questions.role.other), isOther: true },
   ];
 
   const useCaseOptions: QuestionOption[] = [
-    { slug: "ship_code", icon: <Code2 className="h-4 w-4" />, label: t(($) => $.questions.use_case.ship_code) },
-    { slug: "manage_team", icon: <ListChecks className="h-4 w-4" />, label: t(($) => $.questions.use_case.manage_team) },
-    { slug: "personal_tasks", icon: <User className="h-4 w-4" />, label: t(($) => $.questions.use_case.personal_tasks) },
-    { slug: "plan_research", icon: <Brain className="h-4 w-4" />, label: t(($) => $.questions.use_case.plan_research) },
-    { slug: "write_publish", icon: <FileEdit className="h-4 w-4" />, label: t(($) => $.questions.use_case.write_publish) },
-    { slug: "automate_ops", icon: <Settings2 className="h-4 w-4" />, label: t(($) => $.questions.use_case.automate_ops) },
-    { slug: "evaluate", icon: <Compass className="h-4 w-4" />, label: t(($) => $.questions.use_case.evaluate) },
-    { slug: "other", icon: <MoreHorizontal className="h-4 w-4" />, label: t(($) => $.questions.use_case.other), isOther: true },
+    { slug: "ship_code", icon: <Code2 />, label: t(($) => $.questions.use_case.ship_code) },
+    { slug: "manage_team", icon: <ListChecks />, label: t(($) => $.questions.use_case.manage_team) },
+    { slug: "personal_tasks", icon: <User />, label: t(($) => $.questions.use_case.personal_tasks) },
+    { slug: "plan_research", icon: <Brain />, label: t(($) => $.questions.use_case.plan_research) },
+    { slug: "write_publish", icon: <FileEdit />, label: t(($) => $.questions.use_case.write_publish) },
+    { slug: "automate_ops", icon: <Settings2 />, label: t(($) => $.questions.use_case.automate_ops) },
+    { slug: "evaluate", icon: <Compass />, label: t(($) => $.questions.use_case.evaluate) },
+    { slug: "other", icon: <MoreHorizontal />, label: t(($) => $.questions.use_case.other), isOther: true },
   ];
 
   // Role stays single-select — downstream personalization wants one
@@ -173,7 +173,7 @@ export function StepAboutYou({
 
   return (
     <>
-      <div className="flex flex-col gap-8 pt-2 sm:pt-6">
+      <div className="enact-onboarding-step-stack">
         <StepHeading title={t(($) => $.questions.about_you.question)} />
 
         <QuestionGroup
@@ -198,14 +198,13 @@ export function StepAboutYou({
           onConfirm={confirmAdvance}
           multiSelect
         />
-
       </div>
 
       <StepFooter hint={footerHint}>
-        <Button className="w-full" disabled={!canContinue} onClick={confirmAdvance}>
+        <Button className="enact-onboarding-action" disabled={!canContinue} onClick={confirmAdvance}>
           {t(($) => $.common.continue)}
         </Button>
-        <Button variant="ghost" className="w-full" onClick={handleSkip}>
+        <Button variant="ghost" className="enact-onboarding-action" onClick={handleSkip}>
           {t(($) => $.common.skip)}
         </Button>
       </StepFooter>
@@ -248,12 +247,12 @@ function QuestionGroup({
     : false;
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-label font-medium text-foreground">{question}</h2>
+    <section className="enact-onboarding-question-group">
+      <h2 className="enact-onboarding-question-title">{question}</h2>
       <fieldset
         role={multiSelect ? "group" : "radiogroup"}
         aria-label={question}
-        className="m-0 flex flex-row flex-wrap gap-2 p-0"
+        className="enact-onboarding-option-grid"
       >
         {options.map((option) =>
           option.isOther ? (

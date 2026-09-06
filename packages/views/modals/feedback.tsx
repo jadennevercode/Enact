@@ -130,26 +130,26 @@ export function FeedbackModal({
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-2xl !h-[28rem] p-0 gap-0 flex flex-col overflow-hidden">
-        <DialogHeader className="px-5 pt-4 pb-2 shrink-0">
+      <DialogContent className="enact-modal-feedback">
+        <DialogHeader className="enact-modal-feedback-header">
           <DialogTitle>{t(($) => $.feedback.title)}</DialogTitle>
-          <p className="mt-1 text-caption text-muted-foreground">
+          <p className="enact-modal-feedback-copy">
             {t(($) => $.feedback.github_hint_prefix)}
             <a
               href="https://github.com/enact-ai/enact/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
+              className="enact-modal-feedback-link"
             >
               {t(($) => $.feedback.github_hint_link)}
             </a>
           </p>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 px-5 pb-3">
+        <div className="enact-modal-feedback-body">
           <div
             {...dropZoneProps}
-            className="relative h-full overflow-y-auto rounded-lg border-1 border-border transition-colors focus-within:border-brand"
+            className="enact-modal-feedback-editor"
           >
             <ContentEditor
               ref={editorRef}
@@ -167,7 +167,7 @@ export function FeedbackModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-4 py-3 border-t shrink-0">
+        <div className="enact-modal-footer" data-align="between">
           <FileUploadButton
             size="sm"
             multiple

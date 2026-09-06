@@ -76,13 +76,13 @@ import { PageHeader } from "../../layout/page-header";
 type RunStatus = "issue_created" | "running" | "skipped" | "completed" | "failed";
 
 const RUN_VISUAL: Record<RunStatus, { color: string; icon: typeof CheckCircle2; spin?: boolean }> = {
-  issue_created: { color: "text-blue-500", icon: Clock },
-  running: { color: "text-blue-500", icon: Loader2, spin: true },
+  issue_created: { color: "text-info", icon: Clock },
+  running: { color: "text-info", icon: Loader2, spin: true },
   // `skipped` (admission check found the assignee runtime offline,
   // ENA-1899) is muted so it doesn't read as a failure-ratio inflator.
   // The row still shows failure_reason which carries the skip context.
   skipped: { color: "text-muted-foreground", icon: Ban },
-  completed: { color: "text-emerald-500", icon: CheckCircle2 },
+  completed: { color: "text-success", icon: CheckCircle2 },
   failed: { color: "text-destructive", icon: XCircle },
 };
 
@@ -422,7 +422,7 @@ function TriggerRow({ trigger, autopilotId, canWrite }: { trigger: AutopilotTrig
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting
                 ? t(($) => $.trigger_row.delete_dialog.deleting)
@@ -788,8 +788,8 @@ export function AutopilotDetailPage({ autopilotId }: { autopilotId: string }) {
               />
               <span className={cn(
                 "text-caption font-medium hidden sm:inline",
-                autopilot.status === "active" ? "text-emerald-500" :
-                autopilot.status === "paused" ? "text-amber-500" :
+                autopilot.status === "active" ? "text-success" :
+                autopilot.status === "paused" ? "text-warning" :
                 "text-muted-foreground",
               )}>
                 {t(($) => $.status[autopilot.status])}
@@ -828,8 +828,8 @@ export function AutopilotDetailPage({ autopilotId }: { autopilotId: string }) {
       />
 
       {autopilot.pause_reason === "agent_runtime_required" && (
-        <div className="flex shrink-0 items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-6 py-2 text-caption text-amber-900 dark:text-amber-100">
-          <Server className="size-3.5 shrink-0" />
+        <div className="enact-management-warning flex shrink-0 items-center gap-2 px-6 py-2 text-caption">
+          <Server className="size-3.5 shrink-0 text-warning" />
           <span className="flex-1">
             {t(($) => $.detail.paused_runtime_required)}
           </span>
@@ -1034,7 +1034,7 @@ export function AutopilotDetailPage({ autopilotId }: { autopilotId: string }) {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting
                 ? t(($) => $.detail.delete_dialog.deleting)

@@ -38,7 +38,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@enact/ui/components/ui/tooltip";
-import { cn } from "@enact/ui/lib/utils";
 import type { IssueStatus, IssueStatusCategory } from "@enact/core/types";
 import type { SuggestionOptions } from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
@@ -423,7 +422,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
         (isSearching || searchedQuery !== normalizedQuery);
 
       return (
-        <div className="rounded-md border bg-popover p-2 text-caption text-muted-foreground shadow-md">
+        <div className="enact-editor-suggestion-empty">
           {isWaitingForServer
             ? t(($) => $.mention.searching)
             : t(($) => $.mention.no_results)}
@@ -469,22 +468,12 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     // variant only differs in width / max-height / chrome.
     return (
       <div
-        className={cn(
-          "flex flex-col overflow-y-auto overscroll-contain border bg-popover py-1",
-          // Height budget: clamp to whichever is smaller — the design max or the
-          // viewport-aware `--suggestion-available-height` published by the
-          // floating-ui `size` middleware (suggestion-popup.tsx). The var falls
-          // back to the design max when the popup renders outside that
-          // controller. This is the single height authority; do not add a second
-          // fixed max-height above it or the list can overflow the viewport.
-          contextLayout
-            ? "max-h-[min(420px,var(--suggestion-available-height,420px))] w-96 rounded-lg shadow-xl"
-            : "max-h-[min(300px,var(--suggestion-available-height,300px))] w-72 rounded-md shadow-md",
-        )}
+        className="enact-editor-suggestion"
+        data-layout={contextLayout ? "context" : "default"}
       >
         {groups.map((group) => (
           <div key={group.label}>
-            <div className="px-3 py-2 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="enact-editor-suggestion-group">
               {groupLabel(group.label)}
             </div>
             {renderRows(group)}
@@ -521,9 +510,9 @@ function MentionRow({
       <button
         type="button"
         ref={buttonRef}
-        className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-caption transition-colors ${
-          selected ? "bg-accent" : "hover:bg-accent/50"
-        } ${isClosed ? "opacity-60" : ""}`}
+        className="enact-editor-suggestion-item"
+        data-active={selected ? "true" : undefined}
+        data-closed={isClosed ? "true" : undefined}
         onClick={onSelect}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center">
@@ -564,9 +553,8 @@ function MentionRow({
       aria-label={
         disabledMessage ? `${item.label}: ${disabledMessage}` : undefined
       }
-      className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-caption transition-colors ${
-        selected ? "bg-accent" : disabledMessage ? "" : "hover:bg-accent/50"
-      } ${disabledMessage ? "cursor-not-allowed opacity-50" : ""}`}
+      className="enact-editor-suggestion-item"
+      data-active={selected ? "true" : undefined}
       onClick={onSelect}
     >
       <ActorAvatar

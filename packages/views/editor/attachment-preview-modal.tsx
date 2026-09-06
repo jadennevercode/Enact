@@ -57,7 +57,6 @@ import {
 } from "lucide-react";
 import type { Attachment } from "@enact/core/types";
 import { paths, useWorkspaceSlug } from "@enact/core/paths";
-import { cn } from "@enact/ui/lib/utils";
 import { resolvePublicFileUrl } from "@enact/core/workspace/avatar-url";
 import {
   UI_EASE_OUT,
@@ -395,7 +394,7 @@ export function AttachmentPreviewModal({
     <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="enact-attachment-modal-backdrop"
           // Only a click that lands on the backdrop itself closes. A pan that
           // starts on the zoom canvas and releases out here retargets its
           // click through pointer capture, but this makes the intent explicit
@@ -427,7 +426,7 @@ export function AttachmentPreviewModal({
               minus the surrounding p-4 (1rem each side) so it never overflows
               the screen on small displays / split panes. */}
           <motion.div
-            className="flex h-[min(90vh,calc(100vh-2rem))] w-full max-w-6xl flex-col overflow-hidden rounded-lg bg-background shadow-xl"
+            className="enact-attachment-modal"
             onClick={(e) => e.stopPropagation()}
             initial={{
               opacity: 0,
@@ -552,32 +551,32 @@ function PreviewPanel({
 
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
+      <div className="enact-attachment-modal-header">
         <FileText className="size-4 shrink-0 text-muted-foreground" />
         {/* Baseline group: filename (text-body) and type (text-caption) are
             different type sizes on one line — the row's items-center would
             center their unequal line boxes and visibly offset the smaller
             text. Mixed-size text aligns by baseline. */}
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="enact-attachment-modal-title">
           <p className="truncate text-body font-medium">{state.filename}</p>
           <span className="shrink-0 text-caption text-muted-foreground">
             {state.contentType || "—"}
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="enact-attachment-modal-actions">
           {/* Navigation leads the action cluster, arrows off the image
               (they covered exactly the content being looked at) and the
               counter between the arrows it describes. min-w keeps the
               arrows from shifting as digit counts change. */}
           {sequence && (
-            <div className="mr-1 flex shrink-0 items-center gap-0.5">
+            <div className="enact-attachment-sequence">
               <SequenceButton
                 side="prev"
                 label={t(($) => $.image.previous)}
                 onClick={sequence.onPrev}
               />
               <span
-                className="min-w-10 select-none text-center text-caption tabular-nums text-muted-foreground"
+                className="enact-attachment-sequence-count"
                 aria-live="polite"
               >
                 {t(($) => $.image.sequence_position, {
@@ -604,7 +603,7 @@ function PreviewPanel({
           {onOpenInNewTab && (
             <button
               type="button"
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="enact-attachment-action"
               title={t(($) => $.attachment.open_in_new_tab)}
               aria-label={t(($) => $.attachment.open_in_new_tab)}
               onClick={onOpenInNewTab}
@@ -640,10 +639,8 @@ function PreviewPanel({
           making them flex items would let tall text previews shrink to fit
           instead of scrolling. */}
       <div
-        className={cn(
-          "relative min-h-0 flex-1 bg-background",
-          kind === "image" ? "flex flex-col overflow-hidden" : "overflow-auto",
-        )}
+        className="enact-attachment-modal-body"
+        data-kind={kind === "image" ? "image" : undefined}
       >
         {kind === "image" ? (
           <ImagePreview
@@ -690,7 +687,7 @@ function SequenceButton({
   return (
     <button
       type="button"
-      className="rounded-md p-1.5 text-muted-foreground transition-colors enabled:hover:bg-secondary enabled:hover:text-foreground disabled:opacity-30"
+      className="enact-attachment-action"
       title={label}
       aria-label={label}
       disabled={!onClick}
@@ -743,7 +740,7 @@ function ImagePreview({
       canvas={canvas}
       content={natural}
       label={t(($) => $.image.canvas_label)}
-      className="bg-black/40"
+      className="enact-attachment-image-canvas"
       autoFocus
     >
       <img
@@ -754,12 +751,8 @@ function ImagePreview({
         onError={onError}
         src={url}
         alt={state.filename}
-        className={cn(
-          "select-none",
-          natural
-            ? "block size-full"
-            : "max-h-full max-w-full rounded-lg object-contain",
-        )}
+        className="enact-attachment-image-preview"
+        data-measured={natural ? "true" : undefined}
         // Native image dragging would hijack the pan gesture.
         draggable={false}
       />
@@ -819,13 +812,13 @@ function PreviewContent({
       return (
         <iframe
           src={state.mediaUrl}
-          className="h-full w-full bg-background"
+          className="enact-attachment-document-frame"
           title={state.filename}
         />
       );
     case "video":
       return (
-        <div className="flex h-full w-full items-center justify-center bg-black">
+        <div className="enact-attachment-media-center" data-kind="video">
           <video
             src={state.mediaUrl}
             controls
@@ -835,7 +828,7 @@ function PreviewContent({
       );
     case "audio":
       return (
-        <div className="flex h-full w-full items-center justify-center p-8">
+        <div className="enact-attachment-media-center" data-kind="audio">
           <audio src={state.mediaUrl} controls className="w-full max-w-xl" />
         </div>
       );
@@ -907,7 +900,7 @@ function TextBackedPreview({
 
   if (query.isLoading) {
     return (
-      <div className="flex h-full items-center justify-center gap-2 text-body text-muted-foreground">
+      <div className="enact-attachment-loading">
         <Loader2 className="size-4 animate-spin" />
         {t(($) => $.attachment.preview_loading)}
       </div>
@@ -954,12 +947,12 @@ function UnsupportedFallback({
 }) {
   const { t } = useT("editor");
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
+    <div className="enact-attachment-fallback">
       <FileText className="size-8 text-muted-foreground" />
       <p className="text-body text-muted-foreground">{message}</p>
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-body transition-colors hover:bg-muted"
+        className="enact-attachment-fallback-action"
         onClick={onDownload}
       >
         <Download className="size-4" />

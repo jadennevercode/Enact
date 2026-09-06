@@ -102,7 +102,7 @@ export function IssuePickerModal({
         />
         <CommandList>
           {isLoading && (
-            <div className="py-6 text-center text-body text-muted-foreground">
+            <div className="enact-modal-picker-state">
               {t(($) => $.issue_picker.searching)}
             </div>
           )}
@@ -110,7 +110,7 @@ export function IssuePickerModal({
             <CommandEmpty>{t(($) => $.issue_picker.no_results)}</CommandEmpty>
           )}
           {!isLoading && !query.trim() && (
-            <div className="py-6 text-center text-body text-muted-foreground">
+            <div className="enact-modal-picker-state">
               {t(($) => $.issue_picker.prompt_to_search)}
             </div>
           )}
@@ -118,6 +118,7 @@ export function IssuePickerModal({
             <CommandGroup>
               {results.map((issue) => (
                 <CommandItem
+                  className="enact-modal-picker-row"
                   key={issue.id}
                   value={issue.id}
                   onSelect={() => {
@@ -130,8 +131,8 @@ export function IssuePickerModal({
                     category={issueStatusCategory(issue) ?? undefined}
                     className="h-3.5 w-3.5 shrink-0"
                   />
-                  <span className="text-muted-foreground shrink-0">{issue.identifier}</span>
-                  <span className="truncate">{issue.title}</span>
+                  <span className="enact-modal-picker-identifier">{issue.identifier}</span>
+                  <span className="enact-modal-picker-title">{issue.title}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -42,7 +42,7 @@ export function TimeRangeFilter({
             variant="outline"
             size="sm"
             aria-label={t(($) => $.filter.period_label)}
-            className="gap-1 px-2.5"
+            className="enact-management-filter-trigger gap-1 px-2.5"
           >
             <CalendarDays className="size-3.5 text-muted-foreground" />
             <span className="tabular-nums">{current.label}</span>

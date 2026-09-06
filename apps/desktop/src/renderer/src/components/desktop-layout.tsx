@@ -48,22 +48,22 @@ const toolbarMotion = {
 function WindowToolbar() {
   const { canGoBack, canGoForward, goBack, goForward } = useTabHistory();
   const navButtonClassName =
-    "flex size-7 items-center justify-center rounded-md text-faint-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-30";
+    "enact-desktop-toolbar-button flex size-7 items-center justify-center";
 
   return (
     <div
       className={cn(
-        "fixed left-0 top-0 z-30 flex w-[184px] shrink-0 items-center px-3",
+        "enact-desktop-window-toolbar fixed left-0 top-0 z-30 flex w-[184px] shrink-0 items-center px-3",
         TOP_BAR_HEIGHT_CLASS,
       )}
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
       <div
-        className="flex items-center gap-1 pl-[70px]"
+        className="enact-desktop-toolbar-controls flex items-center gap-1 pl-[70px]"
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
         <SidebarTrigger
-          className="size-7 text-faint-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="enact-desktop-toolbar-trigger size-7"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         />
         <div className="flex items-center gap-1">
@@ -124,19 +124,19 @@ function MainTopBar() {
   return (
     <motion.header
       animate={{ paddingLeft: sidebarHidden ? WINDOW_TOOLBAR_CLEARANCE : 0 }}
-      className={cn("relative shrink-0 flex items-center gap-2", TOP_BAR_HEIGHT_CLASS)}
+      className={cn("enact-desktop-main-topbar relative shrink-0 flex items-center gap-2", TOP_BAR_HEIGHT_CLASS)}
       initial={false}
       transition={toolbarMotion}
     >
       <motion.div
         aria-hidden
         animate={{ left: sidebarHidden ? WINDOW_TOOLBAR_CLEARANCE : 0 }}
-        className="absolute inset-y-0 right-0"
+        className="enact-desktop-main-drag-region absolute inset-y-0 right-0"
         initial={false}
         transition={toolbarMotion}
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
-      <div className="relative z-10 flex h-full min-w-0 max-w-full items-center">
+      <div className="enact-desktop-tab-host relative z-10 flex h-full min-w-0 max-w-full items-center">
         <TabBar />
       </div>
     </motion.header>
@@ -153,7 +153,7 @@ function MainCanvas({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       animate={{ marginLeft: sidebarHidden ? 8 : 2 }}
-      className="relative flex flex-1 min-h-0 flex-col overflow-hidden mr-2 mb-2 rounded-xl bg-page-canvas ring-1 ring-surface-border shadow-[var(--surface-shadow)]"
+      className="enact-desktop-canvas relative flex flex-1 min-h-0 flex-col overflow-hidden mr-2 mb-2"
       initial={false}
       transition={toolbarMotion}
     >
@@ -269,7 +269,7 @@ export function DesktopShell() {
           IndexRedirect, not a route. */}
       <WorkspaceSlugProvider slug={slug}>
         <DesktopInboxBridge />
-        <div className="flex h-screen bg-app-shell">
+        <div className="enact-desktop-shell flex h-screen">
           {/* bg-app-shell is the wrapper's non-inset fill, so it also owns the
               non-inset half of --sidebar-wrapper-fill. sidebar.tsx supplies the
               inset half of both. Anything that has to paint an opaque layer
@@ -283,13 +283,13 @@ export function DesktopShell() {
               50px under this one (ENA-6218). */}
           <SidebarProvider
             hasExternalTrigger
-            className="flex-1 bg-app-shell [--sidebar-wrapper-fill:var(--app-shell)]"
+            className="enact-desktop-provider flex-1"
           >
             {slug && <GlobalShortcuts />}
             {slug && <WindowToolbar />}
             {slug && <AppSidebar topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
             {/* Right side: header + content container */}
-            <div className="flex flex-1 min-w-0 flex-col">
+            <div className="enact-desktop-main flex flex-1 min-w-0 flex-col">
               <MainTopBar />
               <MainCanvas>
                 {/* Same indicator, same anchor as web: DashboardLayout puts it

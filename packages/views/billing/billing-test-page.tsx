@@ -70,7 +70,7 @@ export function BillingTestPage() {
   const sessionId = searchParams.get("session_id") ?? "";
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="enact-billing-test-page">
       <header>
         <h1 className="text-title-lg font-semibold">{t(($) => $.title)}</h1>
         <p className="mt-1 text-body text-muted-foreground">
@@ -212,7 +212,7 @@ function BalanceCard() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="enact-billing-card-header">
         <div>
           <CardTitle className="text-body">{t(($) => $.balance.title)}</CardTitle>
           <CardDescription className="text-caption">
@@ -388,7 +388,7 @@ function TierButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-md border bg-background p-3 text-left transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+      className="enact-billing-tier"
     >
       <div className="flex items-center justify-between">
         <div className="text-body font-medium">{display}</div>
@@ -412,7 +412,7 @@ function TransactionsCard() {
   const txs = useQuery(billingTransactionsOptions({ page: 1, page_size: 20 }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="enact-billing-card-header">
         <div>
           <CardTitle className="text-body">{t(($) => $.transactions.title)}</CardTitle>
           <CardDescription className="text-caption">
@@ -430,7 +430,7 @@ function TransactionsCard() {
         ) : txs.isError ? (
           <ErrorText error={txs.error} />
         ) : txs.data?.items.length ? (
-          <ul className="space-y-2 text-caption">
+          <ul className="enact-billing-list">
             {txs.data.items.map((row) => (
               <TransactionRow key={row.id} row={row} />
             ))}
@@ -452,7 +452,7 @@ function TransactionRow({ row }: { row: BillingTransaction }) {
   const { t } = useT("billing");
   const credit = row.amount_micro / MICRO_PER_CREDIT;
   return (
-    <li className="rounded-md border bg-background p-2.5">
+    <li className="enact-billing-list-row">
       <div className="flex items-center justify-between gap-2">
         <span className="text-caption font-medium">
           {row.tx_type}
@@ -461,11 +461,8 @@ function TransactionRow({ row }: { row: BillingTransaction }) {
           </span>
         </span>
         <span
-          className={`text-body tabular-nums ${
-            credit >= 0
-              ? "text-green-700 dark:text-green-400"
-              : "text-red-700 dark:text-red-400"
-          }`}
+          className="enact-billing-amount"
+          data-sign={credit >= 0 ? "positive" : "negative"}
         >
           {t(($) => $.transactions.credits_value, {
             value: `${credit >= 0 ? "+" : ""}${credit.toLocaleString()}`,
@@ -491,7 +488,7 @@ function BatchesCard() {
   const batches = useQuery(billingBatchesOptions({ page: 1, page_size: 20 }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="enact-billing-card-header">
         <div>
           <CardTitle className="text-body">{t(($) => $.batches.title)}</CardTitle>
           <CardDescription className="text-caption">
@@ -509,7 +506,7 @@ function BatchesCard() {
         ) : batches.isError ? (
           <ErrorText error={batches.error} />
         ) : batches.data?.items.length ? (
-          <ul className="space-y-2 text-caption">
+          <ul className="enact-billing-list">
             {batches.data.items.map((row) => (
               <BatchRow key={row.id} row={row} />
             ))}
@@ -533,7 +530,7 @@ function BatchRow({ row }: { row: BillingBatch }) {
   const remaining = row.remaining_micro / MICRO_PER_CREDIT;
   const consumed = total - remaining;
   return (
-    <li className="rounded-md border bg-background p-2.5">
+    <li className="enact-billing-list-row">
       <div className="flex items-center justify-between gap-2">
         <span className="text-caption font-medium">
           {row.source_type}
@@ -563,7 +560,7 @@ function TopupsCard() {
   const topups = useQuery(billingTopupsOptions({ page: 1, page_size: 20 }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="enact-billing-card-header">
         <div>
           <CardTitle className="text-body">{t(($) => $.topups.title)}</CardTitle>
           <CardDescription className="text-caption">
@@ -581,7 +578,7 @@ function TopupsCard() {
         ) : topups.isError ? (
           <ErrorText error={topups.error} />
         ) : topups.data?.items.length ? (
-          <ul className="space-y-2 text-caption">
+          <ul className="enact-billing-list">
             {topups.data.items.map((row) => (
               <TopupRow key={row.id} row={row} />
             ))}
@@ -602,18 +599,13 @@ function TopupsCard() {
 function TopupRow({ row }: { row: BillingTopup }) {
   const { t } = useT("billing");
   return (
-    <li className="rounded-md border bg-background p-2.5">
+    <li className="enact-billing-list-row">
       <div className="flex items-center justify-between gap-2">
         <span className="text-caption font-medium">
           {row.tier_id || row.id.slice(0, 8)}
           <span
-            className={`ml-1.5 rounded px-1.5 py-0.5 font-mono text-micro ${
-              row.status === "credited"
-                ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                : row.status === "failed" || row.status === "canceled"
-                  ? "bg-red-500/10 text-red-700 dark:text-red-400"
-                  : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-            }`}
+            className="enact-billing-status"
+            data-status={row.status}
           >
             {row.status}
           </span>

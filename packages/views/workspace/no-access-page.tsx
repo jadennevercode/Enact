@@ -47,18 +47,18 @@ export function NoAccessPage() {
   };
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="enact-workspace-no-access">
       <DragStrip />
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 pb-12 text-center">
-        <div className="space-y-2">
-          <h1 className="text-display-sm font-semibold tracking-tight">
+      <div className="enact-workspace-no-access-body">
+        <div className="enact-workspace-no-access-copy">
+          <h1 className="enact-workspace-no-access-title">
             {t(($) => $.no_access.title)}
           </h1>
-          <p className="max-w-md text-muted-foreground">
+          <p className="enact-workspace-no-access-description">
             {t(($) => $.no_access.description)}
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="enact-workspace-no-access-actions">
           <Button onClick={recover}>
             {t(($) => $.no_access.go_to_workspaces)}
           </Button>

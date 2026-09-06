@@ -381,7 +381,7 @@ function ListViewImpl({
 
   if (!dragEnabled) {
     return (
-      <div ref={attachScroller} data-tab-scroll-root="list" className="flex-1 min-h-0 overflow-y-auto p-2 pt-0">
+      <div ref={attachScroller} data-tab-scroll-root="list" className="enact-issue-list flex-1 min-h-0 overflow-y-auto p-2 pt-0">
         {content}
       </div>
     );
@@ -396,13 +396,13 @@ function ListViewImpl({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div ref={attachScroller} data-tab-scroll-root="list" className="flex-1 min-h-0 overflow-y-auto p-2 pt-0">
+      <div ref={attachScroller} data-tab-scroll-root="list" className="enact-issue-list flex-1 min-h-0 overflow-y-auto p-2 pt-0">
         {content}
       </div>
 
       <DragOverlay dropAnimation={null}>
         {activeIssue ? (
-          <div className="max-w-2xl rotate-1 cursor-grabbing opacity-90 shadow-lg shadow-black/10 rounded-md border border-border bg-card px-4 py-2">
+          <div className="enact-issue-drag-overlay max-w-2xl rotate-1 cursor-grabbing opacity-90 px-4 py-2">
             <span className="text-caption text-muted-foreground mr-2">{activeIssue.identifier}</span>
             <span className="text-body">{activeIssue.title}</span>
           </div>
@@ -528,7 +528,7 @@ function StatusAccordionItem({
   return (
     <Accordion.Item value={status} ref={dragEnabled ? setDroppableRef : undefined}>
       <Accordion.Header
-        className={`group/header sticky top-0 z-10 flex h-10 items-center rounded-lg bg-muted transition-colors hover:bg-accent ${
+        className={`enact-issue-list-section group/header sticky top-0 z-10 flex h-10 items-center ${
           isOver && !isExpanded
             ? "ring-2 ring-brand/25 bg-accent/15"
             : ""

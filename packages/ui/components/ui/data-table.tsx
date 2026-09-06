@@ -535,12 +535,8 @@ export function DataTable<TData>({
         <div
           aria-hidden
           data-slot="data-table-pinned-shadow"
-          className="pointer-events-none absolute inset-y-0 w-3"
-          style={{
-            left: `${pinnedEdge}px`,
-            background:
-              "linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent), transparent)",
-          }}
+          className="enact-data-table-pinned-shadow pointer-events-none absolute inset-y-0 w-3"
+          style={{ left: `${pinnedEdge}px` }}
         />
       )}
       </div>

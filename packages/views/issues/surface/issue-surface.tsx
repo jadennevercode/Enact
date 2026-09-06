@@ -279,7 +279,7 @@ function IssueSurfaceContent({
           ) : renderEmpty ? (
             renderEmpty(renderContext)
           ) : (
-            <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
+            <div className="enact-issue-state flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
               <ListTodo className="h-10 w-10 text-faint-foreground" />
               <p className="text-body">{t(($) => $.surface.empty_title)}</p>
               <p className="text-caption">{t(($) => $.surface.empty_hint)}</p>
@@ -372,7 +372,7 @@ function StatusCatalogErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div
       role="alert"
-      className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground"
+      className="enact-issue-state flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground"
     >
       <AlertTriangle className="h-10 w-10 text-faint-foreground" />
       <p className="text-body">{t(($) => $.status_catalog_error.title)}</p>
@@ -396,7 +396,7 @@ function FilteredEmptyState() {
     : clearFilters;
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
+    <div className="enact-issue-state flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-muted-foreground">
       <FilterX className="h-10 w-10 text-faint-foreground" />
       <p className="text-body">{t(($) => $.filtered_empty.title)}</p>
       <p className="text-caption">{t(($) => $.filtered_empty.hint)}</p>

@@ -24,10 +24,11 @@ export function RuntimeRequiredBanner({
       <div
         className={cn(
           CHAT_COLUMN,
-          "flex items-center gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-caption text-amber-900 ring-1 ring-amber-200/60 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-900/40",
+          "enact-chat-banner flex items-center gap-2 px-2.5 py-1.5",
         )}
+        data-tone="warning"
       >
-        <Server className="size-3.5 shrink-0" />
+        <Server className="enact-chat-banner-icon size-3.5 shrink-0" />
         <span className="min-w-0 flex-1 truncate">
           {t(($) => $.runtime_required_banner.message, { name })}
         </span>

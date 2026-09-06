@@ -152,12 +152,8 @@ function BarTabButton({
     <Button
       variant="outline"
       size="sm"
-      className={cn(
-        TAB_MAX_W,
-        active
-          ? "bg-accent text-accent-foreground hover:bg-accent/80"
-          : "text-muted-foreground",
-      )}
+      data-active={active ? "true" : undefined}
+      className={cn(TAB_MAX_W, "enact-issue-view-tab")}
       onClick={onClick}
       tabIndex={onClick ? undefined : -1}
     >
@@ -429,7 +425,7 @@ export function ViewBar({
   return (
     <div
       ref={containerRef}
-      className="relative flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-hidden"
+      className="enact-issue-view-bar relative flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-hidden"
     >
       {/* Measurement mirror: every visible candidate at natural width. */}
       <div

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { AlertCircle, Info, LogIn } from "lucide-react";
 import { Button } from "@enact/ui/components/ui/button";
 import { Switch } from "@enact/ui/components/ui/switch";
-import { cn } from "@enact/ui/lib/utils";
 import { toast } from "sonner";
 import {
   SettingsCard,
@@ -13,7 +12,6 @@ import {
 import { reauthenticateDaemon } from "../platform/daemon-reauth";
 import type { DaemonPrefs, DaemonStatus } from "../../../shared/daemon-types";
 import {
-  DAEMON_STATE_COLORS,
   DAEMON_STATE_LABELS,
   formatUptime,
 } from "../../../shared/daemon-types";
@@ -30,13 +28,11 @@ function DiagnosticsRow({
   mono?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[140px_minmax(0,1fr)] items-baseline gap-3 py-1.5">
-      <span className="text-caption text-muted-foreground">{label}</span>
+    <div className="enact-settings-diagnostics-row">
+      <span className="enact-settings-diagnostics-label">{label}</span>
       <span
-        className={cn(
-          "min-w-0 truncate text-body",
-          mono && "font-mono text-caption",
-        )}
+        className="enact-settings-diagnostics-value"
+        data-mono={mono ? "true" : undefined}
         title={typeof value === "string" ? value : undefined}
       >
         {value}
@@ -96,20 +92,20 @@ export function DaemonSettingsTab() {
     >
 
       {status.state === "auth_expired" && (
-        <div className="mt-4 flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="min-w-0 flex-1">
-            <p className="text-body font-medium text-destructive">
+        <div className="enact-settings-notice" data-tone="destructive">
+          <AlertCircle className="enact-settings-notice-icon" />
+          <div className="enact-settings-notice-copy">
+            <p className="enact-settings-notice-title">
               Sign-in expired
             </p>
-            <p className="mt-0.5 text-body text-muted-foreground">
+            <p className="enact-settings-notice-description">
               The local daemon couldn&apos;t authenticate, so this device
               can&apos;t take tasks. Sign in again to restore it.
             </p>
           </div>
           <Button
             size="sm"
-            className="shrink-0"
+            className="enact-settings-notice-action"
             onClick={handleReauth}
             disabled={reauthLoading}
           >
@@ -120,14 +116,14 @@ export function DaemonSettingsTab() {
       )}
 
       {externallyManaged && (
-        <div className="mt-4 flex items-start gap-3 rounded-lg border bg-muted/30 px-4 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          <p className="min-w-0 text-body text-muted-foreground">
+        <div className="enact-settings-notice" data-tone="info">
+          <Info className="enact-settings-notice-icon" />
+          <p className="enact-settings-notice-description enact-settings-notice-copy">
             This device&apos;s daemon runs outside the app — for example inside
             WSL2 — so the app can&apos;t start or stop it. Start or stop it from
             that environment with{" "}
-            <code className="font-mono text-caption">enact daemon start</code> /{" "}
-            <code className="font-mono text-caption">enact daemon stop</code>.
+            <code className="enact-settings-notice-code">enact daemon start</code> /{" "}
+            <code className="enact-settings-notice-code">enact daemon stop</code>.
           </p>
         </div>
       )}
@@ -190,56 +186,55 @@ export function DaemonSettingsTab() {
         description="Identification and connection details. Useful when filing a bug report or investigating why a runtime isn't showing up."
       >
         <SettingsCard>
-          <div className="px-4 py-2">
-          <DiagnosticsRow
-            label="State"
-            value={
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    DAEMON_STATE_COLORS[status.state],
-                  )}
-                />
-                {DAEMON_STATE_LABELS[status.state]}
-              </span>
-            }
-          />
-          <DiagnosticsRow
-            label="Uptime"
-            value={status.uptime ? formatUptime(status.uptime) : "—"}
-          />
-          <DiagnosticsRow
-            label="PID"
-            value={status.pid ?? "—"}
-            mono={!!status.pid}
-          />
-          <DiagnosticsRow
-            label="Daemon ID"
-            value={status.daemonId ?? "—"}
-            mono={!!status.daemonId}
-          />
-          <DiagnosticsRow
-            label="Profile"
-            value={status.profile || "default"}
-          />
-          <DiagnosticsRow
-            label="Server URL"
-            value={status.serverUrl ?? "—"}
-            mono={!!status.serverUrl}
-          />
-          <DiagnosticsRow
-            label="Device name"
-            value={status.deviceName ?? "—"}
-          />
-          <DiagnosticsRow
-            label="Workspaces"
-            value={
-              typeof status.workspaceCount === "number"
-                ? status.workspaceCount
-                : "—"
-            }
-          />
+          <div className="enact-settings-diagnostics">
+            <DiagnosticsRow
+              label="State"
+              value={
+                <span className="enact-settings-diagnostics-status">
+                  <span
+                    className="enact-daemon-status-dot enact-settings-diagnostics-status-dot"
+                    data-state={status.state}
+                    aria-hidden="true"
+                  />
+                  {DAEMON_STATE_LABELS[status.state]}
+                </span>
+              }
+            />
+            <DiagnosticsRow
+              label="Uptime"
+              value={status.uptime ? formatUptime(status.uptime) : "—"}
+            />
+            <DiagnosticsRow
+              label="PID"
+              value={status.pid ?? "—"}
+              mono={!!status.pid}
+            />
+            <DiagnosticsRow
+              label="Daemon ID"
+              value={status.daemonId ?? "—"}
+              mono={!!status.daemonId}
+            />
+            <DiagnosticsRow
+              label="Profile"
+              value={status.profile || "default"}
+            />
+            <DiagnosticsRow
+              label="Server URL"
+              value={status.serverUrl ?? "—"}
+              mono={!!status.serverUrl}
+            />
+            <DiagnosticsRow
+              label="Device name"
+              value={status.deviceName ?? "—"}
+            />
+            <DiagnosticsRow
+              label="Workspaces"
+              value={
+                typeof status.workspaceCount === "number"
+                  ? status.workspaceCount
+                  : "—"
+              }
+            />
           </div>
         </SettingsCard>
       </SettingsSection>

@@ -94,21 +94,18 @@ function Segmented<T extends string | number>({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-0.5 rounded-md bg-muted p-0.5 ${
-        disabled ? "opacity-50" : ""
-      }`}
+      role="group"
+      className="enact-usage-segmented inline-flex items-center gap-0.5 p-0.5"
+      data-disabled={disabled ? "true" : undefined}
     >
       {options.map((o) => (
         <button
           key={String(o.value)}
           type="button"
           disabled={disabled}
+          aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
-          className={`rounded-sm px-2.5 py-1 text-caption font-medium transition-colors disabled:cursor-not-allowed ${
-            o.value === value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className="enact-usage-segment px-2.5 py-1 text-caption font-medium disabled:cursor-not-allowed"
         >
           {o.label}
         </button>
@@ -179,7 +176,7 @@ export function UsageSection({ runtime }: { runtime: AgentRuntime }) {
   const locales = i18n.resolvedLanguage ?? i18n.language;
 
   return (
-    <div className="space-y-5">
+    <div className="enact-usage-page space-y-5">
       {/* Page-wide period selector. Lives at the top because it controls
           basically everything below: the KPI numbers and labels, the
           daily / weekly chart window, and the cost-by aggregations. The
@@ -224,7 +221,7 @@ export function UsageSection({ runtime }: { runtime: AgentRuntime }) {
           if the user has saved overrides, so those rates remain editable. */}
       <CustomPricingBar usage={filtered} />
 
-      <div className="grid grid-cols-3 divide-x rounded-lg border bg-card">
+      <div className="enact-usage-kpi-grid grid grid-cols-3 divide-x">
         <KpiCard
           label={t(($) => $.usage.kpi_cost_label, { days })}
           value={
@@ -372,7 +369,7 @@ function WhenChart({
   const legendIncludesCacheRead = !showHeatmap;
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="enact-usage-card p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h4 className="text-body font-semibold">{t(($) => $.usage.when_title)}</h4>
@@ -510,7 +507,7 @@ function EmptyChartState({ usage }: { usage: RuntimeUsage[] }) {
   const unmapped = collectUnmappedModels(usage);
 
   return (
-    <div className="flex aspect-[3/1] flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 p-6 text-center">
+    <div className="enact-usage-empty flex aspect-[3/1] flex-col items-center justify-center gap-2 p-6 text-center">
       <BarChart3 className="h-5 w-5 text-faint-foreground" />
       {!hasTokens ? (
         <p className="text-caption text-muted-foreground">
@@ -621,20 +618,21 @@ function ChartLegend({ includeCacheRead = false }: { includeCacheRead?: boolean 
   // segment order both the token and the cost stacks draw. Only the heatmap,
   // which has no stack at all, leaves it out.
   const items = [
-    { label: t(($) => $.usage.legend_input), color: "var(--color-chart-1)" },
-    { label: t(($) => $.usage.legend_output), color: "var(--color-chart-2)" },
+    { label: t(($) => $.usage.legend_input), series: "1" },
+    { label: t(($) => $.usage.legend_output), series: "2" },
     ...(includeCacheRead
-      ? [{ label: t(($) => $.usage.legend_cache_read), color: "var(--color-chart-4)" }]
+      ? [{ label: t(($) => $.usage.legend_cache_read), series: "4" }]
       : []),
-    { label: t(($) => $.usage.legend_cache_write), color: "var(--color-chart-3)" },
+    { label: t(($) => $.usage.legend_cache_write), series: "3" },
   ];
   return (
     <div className="flex items-center gap-3 text-caption text-muted-foreground">
       {items.map((it) => (
         <span key={it.label} className="inline-flex items-center gap-1.5">
           <span
-            className="h-2 w-2 rounded-sm"
-            style={{ background: it.color }}
+            className="enact-usage-legend-swatch h-2 w-2 rounded-sm"
+            data-series={it.series}
+            aria-hidden="true"
           />
           {it.label}
         </span>
@@ -773,9 +771,9 @@ function CostByList({
             className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_5rem_5rem] items-center gap-3 py-1"
           >
             <div className="min-w-0">{renderKey(row.key)}</div>
-            <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+            <div className="enact-usage-bar-track relative h-2">
               <div
-                className="h-full rounded-full bg-chart-1"
+                className="enact-usage-bar-fill h-full"
                 style={{ width: `${pct}%` }}
               />
             </div>

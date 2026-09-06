@@ -133,19 +133,19 @@ export function GitHubTab() {
       title={t(($) => $.page.tabs.github)}
       description={t(($) => $.github.page_description)}
     >
-      <section className="space-y-3">
+      <section className="enact-integration-section">
         <Card>
           <CardContent>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-md border bg-muted/50 p-2 text-muted-foreground">
-                  <GitHubMark className="h-4 w-4" />
+            <div className="enact-integration-layout-row">
+              <div className="enact-integration-feature-main">
+                <div className="enact-integration-feature-icon">
+                  <GitHubMark className="enact-integration-provider-mark" />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="github-master" className="text-body font-medium">
+                <div className="enact-integration-copy">
+                  <Label htmlFor="github-master" className="enact-integration-row-title">
                     {t(($) => $.github.section_master)}
                   </Label>
-                  <p className="text-body text-muted-foreground">
+                  <p className="enact-integration-description">
                     {flags.enabled
                       ? t(($) => $.github.master_description_on)
                       : t(($) => $.github.master_description_off)}
@@ -163,24 +163,24 @@ export function GitHubTab() {
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-body font-semibold">{t(($) => $.github.section_connection)}</h2>
+      <section className="enact-integration-section">
+        <h2 className="enact-integration-section-title">{t(($) => $.github.section_connection)}</h2>
         <Card>
-          <CardContent className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <GitHubMark className="h-6 w-6 mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-body font-medium">{t(($) => $.github.connection_title)}</p>
+          <CardContent className="enact-integration-card-body">
+            <div className="enact-integration-layout-row">
+              <div className="enact-integration-feature-main">
+                <GitHubMark className="enact-integration-provider-mark enact-integration-provider-mark-hero" />
+                <div className="enact-integration-copy">
+                  <p className="enact-integration-row-title">{t(($) => $.github.connection_title)}</p>
                   {connected ? (
                     <>
-                      <p className="text-caption text-muted-foreground">
+                      <p className="enact-integration-meta">
                         {t(($) => $.github.connected_to, {
                           login: installations.map((i) => i.account_login).join(", "),
                         })}
                       </p>
                       {primaryInstallation?.connected_by && (
-                        <p className="text-caption text-muted-foreground">
+                        <p className="enact-integration-meta">
                           {t(($) => $.github.connected_by, {
                             name: primaryInstallation.connected_by!,
                           })}
@@ -188,23 +188,23 @@ export function GitHubTab() {
                       )}
                     </>
                   ) : canManage ? (
-                    <p className="text-caption text-muted-foreground">
+                    <p className="enact-integration-meta">
                       {t(($) => $.github.connection_description_prefix)}{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 text-micro">
+                      <code className="enact-integration-inline-code">
                         {t(($) => $.github.connection_identifier_example)}
                       </code>{" "}
                       {t(($) => $.github.connection_description_suffix)}{" "}
                       <strong>{t(($) => $.github.connection_description_done)}</strong>.
                     </p>
                   ) : (
-                    <p className="text-caption text-muted-foreground">
+                    <p className="enact-integration-meta">
                       {t(($) => $.github.contact_admin_to_connect)}
                     </p>
                   )}
                 </div>
               </div>
               {canManage && (
-                <div className="flex items-center gap-2">
+                <div className="enact-integration-actions">
                   {connected && primaryInstallation ? (
                     // Disconnect must stay reachable even when the master switch
                     // is off — disconnect is a separate intent (revoke the App
@@ -237,16 +237,16 @@ export function GitHubTab() {
             </div>
 
             {canManage && !configured && (
-              <p className="text-caption text-muted-foreground">
+              <p className="enact-integration-meta">
                 {t(($) => $.github.not_configured)}{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-micro">GITHUB_APP_SLUG</code>{" "}
+                <code className="enact-integration-inline-code">GITHUB_APP_SLUG</code>{" "}
                 {t(($) => $.github.not_configured_and)}{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-micro">GITHUB_WEBHOOK_SECRET</code>.
+                <code className="enact-integration-inline-code">GITHUB_WEBHOOK_SECRET</code>.
               </p>
             )}
 
             {!canManage && connected && (
-              <p className="text-caption text-muted-foreground">
+              <p className="enact-integration-meta">
                 {t(($) => $.github.read_only_hint)}
               </p>
             )}
@@ -254,16 +254,16 @@ export function GitHubTab() {
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-body font-semibold">{t(($) => $.github.section_features)}</h2>
-        <Card className="gap-0 py-0">
-          <CardContent className="divide-y divide-surface-border px-0">
+      <section className="enact-integration-section">
+        <h2 className="enact-integration-section-title">{t(($) => $.github.section_features)}</h2>
+        <Card className="enact-integration-card-flush">
+          <CardContent className="enact-integration-feature-list">
             <FeatureRow
               id="github-pr-sidebar"
-              icon={<PanelRight className="h-4 w-4" />}
+              icon={<PanelRight className="enact-integration-provider-mark" />}
               label={t(($) => $.github.feature_pr_sidebar_label)}
               description={
-                <p className="text-body text-muted-foreground">
+                <p className="enact-integration-description">
                   {t(($) => $.github.feature_pr_sidebar_description)}
                 </p>
               }
@@ -274,12 +274,12 @@ export function GitHubTab() {
 
             <FeatureRow
               id="github-coauthor"
-              icon={<GitCommitHorizontal className="h-4 w-4" />}
+              icon={<GitCommitHorizontal className="enact-integration-provider-mark" />}
               label={t(($) => $.github.feature_co_author_label)}
               description={
-                <p className="text-body text-muted-foreground">
+                <p className="enact-integration-description">
                   {t(($) => $.github.feature_co_author_description_prefix)}{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 text-caption">
+                  <code className="enact-integration-inline-code">
                     {"Co-authored-by: enact-agent <github@enact.ai>"}
                   </code>{" "}
                   {t(($) => $.github.feature_co_author_description_suffix)}
@@ -292,10 +292,10 @@ export function GitHubTab() {
 
             <FeatureRow
               id="github-auto-link"
-              icon={<Link2 className="h-4 w-4" />}
+              icon={<Link2 className="enact-integration-provider-mark" />}
               label={t(($) => $.github.feature_auto_link_label)}
               description={
-                <p className="text-body text-muted-foreground">
+                <p className="enact-integration-description">
                   {t(($) => $.github.feature_auto_link_description)}
                 </p>
               }
@@ -307,12 +307,12 @@ export function GitHubTab() {
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-body font-semibold">{t(($) => $.github.section_repositories)}</h2>
+      <section className="enact-integration-section">
+        <h2 className="enact-integration-section-title">{t(($) => $.github.section_repositories)}</h2>
         <Card>
           <CardContent>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-body font-medium">
+            <div className="enact-integration-repository-row">
+              <p className="enact-integration-row-title">
                 {t(($) => $.github.repositories_shortcut_label)}
               </p>
               <Button
@@ -321,7 +321,7 @@ export function GitHubTab() {
                 render={<AppLink href={repositoriesHref} />}
                 nativeButton={false}
               >
-                <ExternalLink className="h-3 w-3" />
+                <ExternalLink className="enact-integration-action-icon" />
                 {t(($) => $.github.repositories_shortcut_link)}
               </Button>
             </div>
@@ -378,11 +378,11 @@ function FeatureRow({
   onCheckedChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 px-4 py-3.5">
-      <div className="flex items-start gap-3">
-        <div className="rounded-md border bg-muted/50 p-2 text-muted-foreground">{icon}</div>
-        <div className="space-y-1">
-          <Label htmlFor={id} className="text-body font-medium">
+    <div className="enact-integration-feature-row">
+      <div className="enact-integration-feature-main">
+        <div className="enact-integration-feature-icon">{icon}</div>
+        <div className="enact-integration-copy">
+          <Label htmlFor={id} className="enact-integration-row-title">
             {label}
           </Label>
           {description}

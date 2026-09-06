@@ -256,7 +256,8 @@ function NameCell({ autopilot }: { autopilot: Autopilot }) {
               ? t(($) => $.status.paused_runtime_required)
               : t(($) => $.status.paused)
           }
-          className="flex shrink-0 items-center text-amber-500"
+          className="enact-autopilot-status flex shrink-0 items-center"
+          data-status="paused"
         >
           <Pause className="size-3" />
         </span>
@@ -322,24 +323,6 @@ function TriggerCell({ autopilot }: { autopilot: Autopilot }) {
   );
 }
 
-// Dot color per last run outcome. Server-driven enum — unknown values fall
-// through to the neutral dot, never crash (API compatibility rule).
-function runStatusDotClass(status: string | null | undefined): string {
-  switch (status) {
-    case "completed":
-    case "issue_created":
-      return "bg-emerald-500";
-    case "failed":
-      return "bg-red-500";
-    case "skipped":
-      return "bg-amber-500";
-    case "running":
-      return "bg-blue-500";
-    default:
-      return "bg-muted-foreground/40";
-  }
-}
-
 function LastRunCell({ autopilot }: { autopilot: Autopilot }) {
   const { t } = useT("autopilots");
   const timeAgo = useTimeAgo();
@@ -359,12 +342,18 @@ function LastRunCell({ autopilot }: { autopilot: Autopilot }) {
     status === "skipped"
       ? status
       : null;
+  const statusLabel = knownStatus
+    ? t(($) => $.run_status[knownStatus])
+    : status;
   return (
     <ListGridCell className="hidden gap-1.5 @2xl:flex">
       <span
-        title={knownStatus ? t(($) => $.run_status[knownStatus]) : status ?? undefined}
-        className={`size-1.5 shrink-0 rounded-full ${runStatusDotClass(status)}`}
+        title={statusLabel ?? undefined}
+        className="enact-autopilot-status-dot size-1.5 shrink-0"
+        data-status={knownStatus ?? "unknown"}
+        aria-hidden="true"
       />
+      {statusLabel && <span className="sr-only">{statusLabel}</span>}
       <span className="whitespace-nowrap text-caption tabular-nums text-muted-foreground">
         {timeAgo(autopilot.last_run_at)}
       </span>
@@ -762,7 +751,7 @@ export function AutopilotsPage() {
   return (
     // relative: positioning anchor for the batch toolbar (page-centered,
     // not viewport-centered).
-    <div className="relative flex flex-1 min-h-0 flex-col">
+    <div className="enact-management-page relative flex flex-1 min-h-0 flex-col">
       {/* Header */}
       <CollectionPageHeader
         icon={Zap}
@@ -816,7 +805,7 @@ export function AutopilotsPage() {
                 <button
                   key={tpl.id}
                   type="button"
-                  className="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent/40"
+                  className="enact-autopilot-template-card flex items-start gap-3 p-3 text-left"
                   onClick={() => openCreate(tpl)}
                 >
                   <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
@@ -895,9 +884,8 @@ export function AutopilotsPage() {
                   return (
                     <ListGridRow
                       key={autopilot.id}
-                      className={`cursor-pointer ${
-                        selectedIds.has(autopilot.id) ? "bg-accent/30" : ""
-                      }`}
+                      className="enact-management-row cursor-pointer"
+                      data-selected={selectedIds.has(autopilot.id) ? "true" : undefined}
                       {...rowLink(wsPaths.autopilotDetail(autopilot.id), autopilot.title)}
                     >
                       <CheckboxCell

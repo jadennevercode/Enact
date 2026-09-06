@@ -9,7 +9,6 @@ import { KpiCard } from "../../runtimes/components/shared";
 import {
   DailyErrorsChart,
   WeeklyErrorsChart,
-  FAILURE_CLASS_COLOR,
   formatRate,
 } from "../../runtimes/components/charts";
 import { AppLink } from "../../navigation";
@@ -115,8 +114,8 @@ export function ErrorsTab({
     : null;
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 divide-y rounded-lg border bg-card sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <div className="enact-usage-page space-y-5">
+      <div className="enact-usage-kpi-grid grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <KpiCard
           label={t(($) => $.errors.kpi_failed_label, { days })}
           value={
@@ -165,7 +164,7 @@ export function ErrorsTab({
       </div>
 
       {totals.failed === 0 ? (
-        <div className="flex flex-col items-center rounded-lg border border-dashed py-12 text-center">
+        <div className="enact-usage-empty flex flex-col items-center py-12 text-center">
           <BarChart3 className="h-6 w-6 text-faint-foreground" />
           <p className="mt-3 text-caption text-muted-foreground">
             {t(($) => $.errors.no_data)}
@@ -213,7 +212,7 @@ function ErrorTrendCard({
   const weekly = effectiveDim === "weekly";
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="enact-usage-card p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h4 className="text-body font-semibold">
           {weekly ? t(($) => $.weekly.title_errors) : t(($) => $.daily.title_errors)}
@@ -248,8 +247,8 @@ function FailureMixCard({
   const [showReasons, setShowReasons] = useState(false);
 
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 pt-4 pb-3">
+    <div className="enact-usage-card">
+      <div className="enact-usage-card-header flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
         {/* Spells out its own denominator: the rate tile above quotes a rate
             over every run, this section splits the failures alone. */}
         <h4 className="text-body font-semibold">
@@ -316,8 +315,8 @@ function OffendersCard({
     : sortedAgents.slice(0, TOP_OFFENDER_LIMIT);
 
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 pt-4 pb-3">
+    <div className="enact-usage-card">
+      <div className="enact-usage-card-header flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
         <h4 className="text-body font-semibold">{t(($) => $.errors.by_agent)}</h4>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <Segmented
@@ -402,15 +401,13 @@ function ClassComposition({
     <div className="space-y-2.5">
       {/* Segments are ordered by count desc (the aggregator's order), so the
           bar reads heaviest-first left to right. */}
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="enact-usage-bar-track flex h-2 w-full">
         {rows.map((row) => (
           <div
             key={row.failureClass}
-            className="h-full transition-[width] duration-300 ease-out"
-            style={{
-              width: `${(row.count / total) * 100}%`,
-              backgroundColor: FAILURE_CLASS_COLOR[row.failureClass],
-            }}
+            className="enact-usage-failure-segment h-full"
+            data-failure-class={row.failureClass}
+            style={{ width: `${(row.count / total) * 100}%` }}
           />
         ))}
       </div>
@@ -422,8 +419,8 @@ function ClassComposition({
           <li key={row.failureClass} className="flex items-center gap-1.5">
             <span
               aria-hidden
-              className="h-2 w-2 shrink-0 rounded-[2px]"
-              style={{ backgroundColor: FAILURE_CLASS_COLOR[row.failureClass] }}
+              className="enact-usage-failure-swatch h-2 w-2 shrink-0"
+              data-failure-class={row.failureClass}
             />
             <span className="text-caption">{classLabel(row.failureClass)}</span>
             <span className="text-caption tabular-nums text-muted-foreground">
@@ -453,8 +450,8 @@ function ReasonList({ rows }: { rows: FailureReasonRow[] }) {
           <span className="flex min-w-0 items-center gap-2">
             <span
               aria-hidden
-              className="h-2 w-2 shrink-0 rounded-[2px]"
-              style={{ backgroundColor: FAILURE_CLASS_COLOR[row.failureClass] }}
+              className="enact-usage-failure-swatch h-2 w-2 shrink-0"
+              data-failure-class={row.failureClass}
             />
             <code className="truncate text-caption text-muted-foreground">
               {row.reason}
@@ -544,22 +541,20 @@ function AgentFailureItem({
       ) : (
         label
       )}
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+      <div className="enact-usage-bar-track h-1.5">
         <div
           role="img"
           aria-label={composition}
           title={composition}
-          className="flex h-full overflow-hidden rounded-full transition-[width] duration-300 ease-out"
+          className="enact-usage-bar-fill flex h-full overflow-hidden"
           style={{ width: `${pct}%` }}
         >
           {segments.map((c) => (
             <div
               key={c}
-              className="h-full"
-              style={{
-                width: `${(row.classes[c] / row.failed) * 100}%`,
-                backgroundColor: FAILURE_CLASS_COLOR[c],
-              }}
+              className="enact-usage-failure-segment h-full"
+              data-failure-class={c}
+              style={{ width: `${(row.classes[c] / row.failed) * 100}%` }}
             />
           ))}
         </div>

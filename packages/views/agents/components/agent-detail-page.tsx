@@ -399,8 +399,8 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
       )}
 
       {!isArchived && !runtimeBound && (
-        <div className="flex shrink-0 items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-6 py-2 text-caption text-amber-900 dark:text-amber-100">
-          <Server className="h-3.5 w-3.5 shrink-0" />
+        <div className="enact-management-warning flex shrink-0 items-center gap-2 px-6 py-2 text-caption">
+          <Server className="h-3.5 w-3.5 shrink-0 text-warning" />
           <span className="flex-1">
             {t(($) => $.detail.runtime_required_banner)}
           </span>
@@ -408,7 +408,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-6 border-amber-500/40 bg-background/70 text-caption"
+              className="h-6 border-warning/40 bg-background/70 text-caption"
               onClick={() => setTabNavIntent("general")}
             >
               {t(($) => $.detail.bind_runtime)}

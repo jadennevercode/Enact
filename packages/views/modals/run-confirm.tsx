@@ -269,8 +269,8 @@ export function RunConfirmModal({
 
         {/* Always mounted and always usable on the first frame — nothing about
             this box depends on a server answer. */}
-        <div className="grid gap-1.5">
-          <label className="text-body font-medium" htmlFor="handoff-note">
+        <div className="enact-modal-run-field">
+          <label className="enact-modal-run-label" htmlFor="handoff-note">
             {t(($) => $.run_confirm.note_label)}
           </label>
           <Textarea
@@ -283,7 +283,7 @@ export function RunConfirmModal({
             rows={3}
           />
           {noteDisabled ? (
-            <p className="text-caption text-muted-foreground">{t(($) => $.run_confirm.note_unsupported)}</p>
+            <p className="enact-modal-run-help">{t(($) => $.run_confirm.note_unsupported)}</p>
           ) : null}
         </div>
 

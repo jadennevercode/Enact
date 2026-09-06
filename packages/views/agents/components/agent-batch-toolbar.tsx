@@ -143,7 +143,7 @@ export function AgentBatchToolbar({
             className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 max-md:above-chat-launcher"
           >
             <motion.div
-              className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg"
+              className="enact-management-batch-toolbar flex items-center gap-1 px-2 py-1.5"
               initial={{
                 opacity: 0,
                 transform: shouldReduceMotion

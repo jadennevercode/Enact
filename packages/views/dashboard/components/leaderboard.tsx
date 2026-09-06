@@ -95,8 +95,8 @@ export function Leaderboard({
     `text-right ${sortBy === key ? "text-foreground" : "text-muted-foreground"}`;
 
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 pt-4 pb-3">
+    <div className="enact-usage-card">
+      <div className="enact-usage-card-header flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
         <h4 className="text-body font-semibold">{t(($) => $.leaderboard.title)}</h4>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <Segmented
@@ -204,9 +204,9 @@ export function Leaderboard({
                       </>
                     )}
                   </div>
-                  <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="enact-usage-bar-track relative h-2">
                     <div
-                      className="h-full rounded-full bg-chart-1 transition-[width] duration-300 ease-out"
+                      className="enact-usage-bar-fill h-full"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

@@ -42,19 +42,17 @@ export function CollectionPageHeader({
 }: CollectionPageHeaderProps) {
   return (
     <PageHeader className={className}>
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="enact-collection-heading flex min-w-0 flex-1 items-center gap-2">
         <Icon
           aria-hidden="true"
-          className="size-4 shrink-0 text-muted-foreground"
+          className="enact-collection-icon size-4 shrink-0"
         />
-        <h1 className="truncate text-body font-medium">{title}</h1>
+        <h1 className="enact-collection-title truncate">{title}</h1>
         {typeof count === "number" && count > 0 ? (
-          <span className="shrink-0 font-mono text-caption tabular-nums text-muted-foreground">
-            {count}
-          </span>
+          <span className="enact-collection-count shrink-0">{count}</span>
         ) : null}
         {description ? (
-          <p className="ml-2 hidden min-w-0 truncate text-caption text-muted-foreground md:block">
+          <p className="enact-collection-description ml-2 hidden min-w-0 truncate md:block">
             {description}
             {learnMore ? (
               <>
@@ -63,7 +61,7 @@ export function CollectionPageHeader({
                   href={learnMore.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline decoration-muted-foreground/30 underline-offset-4 transition-colors hover:text-foreground"
+                  className="enact-collection-learn-more underline"
                 >
                   {learnMore.label}
                 </a>
@@ -73,7 +71,7 @@ export function CollectionPageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="enact-collection-actions flex shrink-0 items-center justify-end gap-2">
           {actions}
         </div>
       ) : null}
@@ -104,7 +102,10 @@ export function CollectionPageHeaderAction({
       type={type}
       size={size}
       variant={variant}
-      className={cn("h-8 w-8 gap-1 px-0 md:w-auto md:px-2.5", className)}
+      className={cn(
+        "enact-collection-action h-8 w-8 gap-1 px-0 md:w-auto md:px-2.5",
+        className,
+      )}
       aria-label={accessibleLabel}
       {...props}
     >
@@ -126,12 +127,6 @@ interface CollectionPageStateProps {
   className?: string;
 }
 
-const stateToneClass: Record<PageStateTone, string> = {
-  muted: "text-muted-foreground",
-  destructive: "text-destructive",
-  warning: "text-warning",
-};
-
 /** Shared centered state for collection empty, error and not-found views. */
 export function CollectionPageState({
   icon: Icon,
@@ -145,25 +140,28 @@ export function CollectionPageState({
   return (
     <Empty
       role={role}
-      className={cn("rounded-none border-0 px-6 py-16", className)}
+      className={cn(
+        "enact-collection-state rounded-none border-0 px-6 py-16",
+        className,
+      )}
     >
       <EmptyHeader>
         <EmptyMedia
           variant="icon"
-          className={cn(
-            "size-12 rounded-full [&_svg]:size-6",
-            stateToneClass[tone],
-          )}
+          data-tone={tone}
+          className="enact-collection-state-media size-12 rounded-full [&_svg]:size-6"
         >
           <Icon aria-hidden="true" />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         {description ? (
-          <EmptyDescription className="max-w-md">{description}</EmptyDescription>
+          <EmptyDescription className="enact-collection-state-description max-w-md">
+            {description}
+          </EmptyDescription>
         ) : null}
       </EmptyHeader>
       {actions ? (
-        <EmptyContent className="mt-1 flex-row justify-center">
+        <EmptyContent className="enact-collection-state-actions mt-1 flex-row justify-center">
           {actions}
         </EmptyContent>
       ) : null}

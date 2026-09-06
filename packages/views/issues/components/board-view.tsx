@@ -579,7 +579,7 @@ function BoardViewImpl({
         onPointerUp={pan.onPointerUp}
         onPointerCancel={pan.onPointerCancel}
         onLostPointerCapture={pan.onLostPointerCapture}
-        className="flex flex-1 min-h-0 gap-4 overflow-x-auto p-2"
+        className="enact-issue-board flex flex-1 min-h-0 gap-4 overflow-x-auto p-2"
       >
         {groups.length === 0 ? (
           groupBranches?.isError ? (
@@ -655,7 +655,7 @@ function BoardViewImpl({
 
       <DragOverlay dropAnimation={null}>
         {activeIssue ? (
-          <div style={{ width: BOARD_CARD_WIDTH }} className="rotate-1 cursor-grabbing opacity-90 shadow-lg shadow-black/10">
+          <div style={{ width: BOARD_CARD_WIDTH }} className="enact-issue-drag-overlay rotate-1 cursor-grabbing opacity-90">
             <BoardCardContent
               issue={activeIssue}
               childProgress={childProgressMap.get(activeIssue.id)}

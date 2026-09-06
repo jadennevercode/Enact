@@ -43,7 +43,7 @@ export function IntegrationsTab() {
     <SettingsTab title={t(($) => $.page.tabs.integrations)}>
       <SettingsSection
         title={
-          <span className="flex items-center gap-2">
+          <span className="enact-integration-section-heading">
             <IntegrationChannelIcon channel="lark" />
             {t(($) => $.lark.section_title)}
           </span>
@@ -59,7 +59,7 @@ export function IntegrationsTab() {
       )}
       <SettingsSection
         title={
-          <span className="flex items-center gap-2">
+          <span className="enact-integration-section-heading">
             <IntegrationChannelIcon channel="slack" />
             {t(($) => $.slack.section_title)}
           </span>
@@ -70,7 +70,7 @@ export function IntegrationsTab() {
       </SettingsSection>
       <SettingsSection
         title={
-          <span className="flex items-center gap-2">
+          <span className="enact-integration-section-heading">
             <IntegrationChannelIcon channel="dingtalk" />
             {t(($) => $.dingtalk.section_title)}
           </span>
@@ -86,7 +86,7 @@ export function IntegrationsTab() {
       )}
       <SettingsSection
         title={
-          <span className="flex items-center gap-2">
+          <span className="enact-integration-section-heading">
             <IntegrationChannelIcon channel="wecom" />
             {t(($) => $.wecom.section_title)}
           </span>
@@ -97,7 +97,7 @@ export function IntegrationsTab() {
       </SettingsSection>
       <SettingsSection
         title={
-          <span className="flex items-center gap-2">
+          <span className="enact-integration-section-heading">
             <IntegrationChannelIcon channel="telegram" />
             {t(($) => $.telegram.section_title)}
           </span>

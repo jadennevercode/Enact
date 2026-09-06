@@ -88,7 +88,7 @@ function ToolbarButton({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+      className="enact-editor-toolbar-action"
     >
       {children}
     </button>
@@ -114,7 +114,7 @@ export function MermaidViewer({
         // panes `vh` includes retracted browser chrome, which would push the
         // toolbar off-screen — the exact "can't find the close button"
         // failure this viewer exists to remove.
-        className="!max-w-[calc(100vw-2rem)] !h-[min(90dvh,calc(100dvh-2rem))] !w-[calc(100vw-2rem)] flex flex-col gap-0 overflow-hidden p-0 xl:!max-w-[80rem]"
+        className="enact-modal-mermaid"
         aria-label={t(($) => $.mermaid.viewer_title)}
       >
         {/* Body state (zoom, pan, source toggle) deliberately lives below the
@@ -201,7 +201,7 @@ function MermaidViewerContent({
     <>
       {/* Sibling of the scrolling canvas, never inside it: the toolbar must
           stay put no matter how far the diagram is panned or zoomed. */}
-      <header className="flex shrink-0 items-center gap-1 border-b border-border bg-muted/30 px-3 py-2">
+      <header className="enact-modal-mermaid-header">
           <DialogTitle className="mr-1 truncate text-body font-medium">
             {t(($) => $.mermaid.viewer_title)}
           </DialogTitle>
@@ -232,7 +232,7 @@ function MermaidViewerContent({
                     type="button"
                     title={t(($) => $.mermaid.export)}
                     aria-label={t(($) => $.mermaid.export)}
-                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    className="enact-editor-toolbar-action"
                   >
                     <Download className="size-4" />
                   </button>
@@ -263,7 +263,7 @@ function MermaidViewerContent({
         </header>
 
         {showSource ? (
-          <div className="min-h-0 flex-1 overflow-auto bg-background p-3">
+          <div className="enact-modal-mermaid-source">
             <CodeBlockStatic language="mermaid" body={chart} />
           </div>
         ) : (

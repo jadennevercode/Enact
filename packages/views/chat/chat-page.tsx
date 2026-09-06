@@ -233,7 +233,7 @@ export function ChatPage() {
   // THIS pane, which the user resizes independently of the browser window.
   const queuedTasks = c.pendingTask?.queued_tasks ?? [];
   const conversation = (
-    <div className="flex flex-1 flex-col min-h-0 @container">
+    <div className="enact-chat-page flex flex-1 flex-col min-h-0 @container">
       {c.currentSession && (
         <ChatSessionHeader
           session={c.currentSession}

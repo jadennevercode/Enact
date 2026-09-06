@@ -248,8 +248,8 @@ export function QuickActionsTab() {
       title={t(($) => $.quick_actions.title)}
       description={t(($) => $.quick_actions.description)}
     >
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="enact-settings-catalog-stack">
+        <div className="enact-settings-catalog-toolbar">
           <div className="relative w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -265,8 +265,8 @@ export function QuickActionsTab() {
           </Button>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-surface-border bg-card">
-          <div className="hidden grid-cols-[minmax(10rem,1fr)_minmax(9rem,1fr)_6rem_5rem_7rem_2rem] gap-4 border-b border-surface-border bg-muted/20 px-4 py-2.5 text-caption font-medium text-muted-foreground md:grid">
+        <div className="enact-settings-catalog">
+          <div className="enact-settings-catalog-header" data-catalog="quick-actions">
             <span>{t(($) => $.quick_actions.columns.name)}</span>
             <span>{t(($) => $.quick_actions.columns.target)}</span>
             <span>{t(($) => $.quick_actions.columns.visibility)}</span>
@@ -276,11 +276,11 @@ export function QuickActionsTab() {
           </div>
 
           {isLoading ? (
-            <div className="px-4 py-12 text-center text-body text-muted-foreground">
+            <div className="enact-settings-catalog-loading">
               {t(($) => $.quick_actions.loading)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="px-4 py-12 text-center">
+            <div className="enact-settings-catalog-empty">
               <Zap className="mx-auto size-6 text-faint-foreground" />
               <p className="mt-3 text-body font-medium">
                 {query
@@ -294,16 +294,15 @@ export function QuickActionsTab() {
               ) : null}
             </div>
           ) : (
-            <div className="divide-y divide-surface-border">
+            <div className="enact-settings-catalog-body">
               {filtered.map((action) => {
                 const stale = isStale(action);
                 return (
                   <div
                     key={action.id}
-                    className={cn(
-                      "grid gap-2 px-4 py-3 md:grid-cols-[minmax(10rem,1fr)_minmax(9rem,1fr)_6rem_5rem_7rem_2rem] md:items-center md:gap-4",
-                      action.status !== "active" && "opacity-60",
-                    )}
+                    className="enact-settings-catalog-row"
+                    data-archived={action.status !== "active"}
+                    data-catalog="quick-actions"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <Zap className="size-3.5 shrink-0 text-muted-foreground" />

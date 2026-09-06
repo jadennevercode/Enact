@@ -238,7 +238,7 @@ export function ChatThreadList({
       );
     } else if (isRunning) {
       previewNode = (
-        <span className="flex min-w-0 items-center gap-1.5 text-emerald-500">
+        <span className="enact-chat-running-indicator flex min-w-0 items-center gap-1.5">
           <Loader2 className="size-3 shrink-0 animate-spin" />
           <span className="truncate">{t(($) => $.list.typing)}</span>
         </span>
@@ -358,12 +358,10 @@ export function ChatThreadList({
           handleRowActivationKey(e, () => onSelectSession(session));
         }}
         className={cn(
-          // Fixed height so nothing (hover actions, confirm prompts) can change
-          // the row size and make the list jump. Content is vertically centered.
-          "group/row relative flex h-14 min-w-0 cursor-default items-center gap-3 rounded-md px-2 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring",
-          isCurrent ? "bg-accent" : "hover:bg-accent/50",
-          isConfirmingAction && "bg-destructive/5 hover:bg-destructive/5",
+          "enact-chat-thread-row group/row relative flex h-14 min-w-0 cursor-default items-center gap-3 px-2 outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          isConfirmingAction && "data-[confirming=true]",
         )}
+        data-confirming={isConfirmingAction ? "true" : undefined}
       >
         {/* Thin ring keeps photo + fallback avatars reading as the same circle
             (the fallback's faint bg otherwise looks smaller). */}
@@ -436,7 +434,7 @@ export function ChatThreadList({
                       aria-label={t(($) => $.session_history.row_subtitle.new_reply)}
                       // Softer, warmer red than the vivid `destructive` token —
                       // an IM unread badge, not an error.
-                      className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[oklch(0.62_0.14_18)] px-1 text-micro font-semibold text-white"
+                      className="enact-chat-unread-badge inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-1 text-micro font-semibold"
                     >
                       {unread > 99 ? "99+" : unread}
                     </span>

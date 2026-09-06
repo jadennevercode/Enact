@@ -57,14 +57,14 @@ export function AttachmentPreviewPage({
   const isError = !isLoading && (!!query.error || !text);
 
   return (
-    <div className="flex h-full w-full flex-col bg-background">
+    <div className="enact-attachment-preview-page">
       {isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-body text-muted-foreground">
+        <div className="enact-attachment-preview-page-state">
           {t(($) => $.attachment.preview_loading)}
         </div>
       ) : isError ? (
         <div
-          className="flex flex-1 items-center justify-center px-4 text-body text-muted-foreground"
+          className="enact-attachment-preview-page-state"
           data-testid="attachment-preview-page-error"
         >
           {t(($) => $.attachment.preview_failed)}
@@ -77,7 +77,7 @@ export function AttachmentPreviewPage({
           srcDoc={buildSrcDoc(text as string)}
           sandbox="allow-scripts"
           title={filename ?? "HTML attachment"}
-          className="flex-1 w-full border-0 bg-background"
+          className="enact-attachment-preview-page-frame"
         />
       )}
     </div>

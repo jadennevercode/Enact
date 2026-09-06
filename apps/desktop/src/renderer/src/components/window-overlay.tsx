@@ -57,7 +57,7 @@ function WindowOverlayInner() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-auto bg-background">
+    <div className="enact-window-overlay fixed inset-0 z-50 flex flex-col overflow-auto">
       {/* Creating a workspace is the onboarding flow entered at the
           workspace step: a second workspace still needs its own runtime and
           its own Mika, so running one flow keeps the two from drifting. */}

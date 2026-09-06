@@ -18,6 +18,16 @@ import { isImeComposing } from "@enact/core/utils";
 
 const HIGHLIGHT_NAME = "enact-find";
 const ACTIVE_HIGHLIGHT_NAME = "enact-find-active";
+const HIGHLIGHT_STYLE_ID = "enact-find-highlight-styles";
+const HIGHLIGHT_STYLES = `
+::highlight(${HIGHLIGHT_NAME}) {
+  background-color: var(--find-match);
+  color: var(--find-match-foreground);
+}
+::highlight(${ACTIVE_HIGHLIGHT_NAME}) {
+  background-color: var(--find-match-active);
+  color: var(--find-match-foreground);
+}`;
 
 // Feature detection, evaluated lazily per call site. On browsers without the
 // CSS Custom Highlight API the bar still opens and navigates, it just paints
@@ -28,6 +38,21 @@ function highlightApiSupported(): boolean {
     "highlights" in CSS &&
     typeof Highlight !== "undefined"
   );
+}
+
+// The current CSS optimizer does not recognize the standards-defined
+// ::highlight() pseudo-element yet. Inject this token-only stylesheet only in
+// engines where the API is available, keeping it out of the build transform
+// without changing the find feature's DOM-range behavior.
+function ensureHighlightStyles(): void {
+  if (typeof document === "undefined" || document.getElementById(HIGHLIGHT_STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement("style");
+  style.id = HIGHLIGHT_STYLE_ID;
+  style.textContent = HIGHLIGHT_STYLES;
+  document.head.append(style);
 }
 
 // Element text we never search.
@@ -206,6 +231,7 @@ export function useInPageFind(options: {
       }
 
       if (supported) {
+        ensureHighlightStyles();
         CSS.highlights.set(HIGHLIGHT_NAME, new Highlight(...ranges));
       }
       setMatchCount(ranges.length);

@@ -228,11 +228,8 @@ function RuntimeKindBadge({ runtime }: { runtime: AgentRuntime }) {
   const isCustom = !!runtime.profile_id;
   return (
     <span
-      className={
-        isCustom
-          ? "inline-flex shrink-0 items-center rounded bg-info/10 px-1 text-micro font-medium text-info"
-          : "inline-flex shrink-0 items-center rounded bg-muted px-1 text-micro font-medium text-muted-foreground"
-      }
+      className="enact-runtime-kind-badge inline-flex shrink-0 items-center px-1"
+      data-kind={isCustom ? "custom" : "builtin"}
     >
       {isCustom
         ? t(($) => $.list.badge_custom)
@@ -246,13 +243,13 @@ function PendingRuntimeBadge({ runtime }: { runtime: AgentRuntime }) {
   if (!isPendingCustomRuntime(runtime)) return null;
   if (isDisabledCustomRuntime(runtime)) {
     return (
-      <span className="inline-flex shrink-0 items-center rounded bg-muted px-1 text-micro font-medium text-muted-foreground">
+      <span className="enact-runtime-status-badge inline-flex shrink-0 items-center px-1" data-status="disabled">
         {t(($) => $.list.badge_disabled)}
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center rounded bg-warning/10 px-1 text-micro font-medium text-warning">
+    <span className="enact-runtime-status-badge inline-flex shrink-0 items-center px-1" data-status="registering">
       {t(($) => $.list.badge_registering)}
     </span>
   );
@@ -267,7 +264,7 @@ function VisibilityBadge({ runtime }: { runtime: AgentRuntime }) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-info/10 px-1 text-micro font-medium text-info">
+          <span className="enact-runtime-status-badge inline-flex shrink-0 items-center gap-0.5 px-1" data-status="public">
             <Globe className="h-2.5 w-2.5" />
             {t(($) => $.detail.visibility_label.public)}
           </span>
@@ -573,7 +570,7 @@ export function RuntimeRowMenu({
             <button
               type="button"
               aria-label={t(($) => $.list.row_actions_aria)}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100 data-popup-open:bg-accent data-popup-open:opacity-100 data-popup-open:text-accent-foreground"
+              className="enact-management-row-action flex size-7 items-center justify-center opacity-0 transition-opacity focus-visible:opacity-100 group-hover/row:opacity-100 data-popup-open:opacity-100"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -736,7 +733,7 @@ export function RuntimeList({
   return (
     <div className="overflow-x-auto overflow-y-hidden @container">
       <ListGrid
-        className={`${GRID_COLS} @2xl:min-w-[var(--rtc-minw)]`}
+        className={`enact-management-list ${GRID_COLS} @2xl:min-w-[var(--rtc-minw)]`}
         style={columnTrackVars(showOwner, showActions)}
       >
         <ListGridHeader>
@@ -771,7 +768,8 @@ export function RuntimeList({
           return (
             <ListGridRow
               key={row.runtime.id}
-              className={pending ? "cursor-default" : "cursor-pointer"}
+              className={`enact-management-row ${pending ? "cursor-default" : "cursor-pointer"}`}
+              data-status={pending ? "pending" : "registered"}
               {...(detailHref ? rowLink(detailHref) : {})}
             >
               <RuntimeNameCell runtime={row.runtime} machineTitle={machineTitle} />

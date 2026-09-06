@@ -17,7 +17,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@enact/ui/components/ui/dropdown-menu";
-import { STATUS_CONFIG } from "@enact/core/issues/config";
 import { useViewStoreApi } from "@enact/core/issues/stores/view-store-context";
 import { useViewBaseline } from "../surface/view-baseline-context";
 import { StatusHeading } from "./status-heading";
@@ -106,7 +105,6 @@ export const BoardColumn = memo(function BoardColumn({
   sortLabel?: string | null;
 }) {
   const status = group.status;
-  const cfg = status ? STATUS_CONFIG[status] : null;
   const { setNodeRef, isOver } = useDroppable({ id: group.id });
   const viewStoreApi = useViewStoreApi();
   // A status fixed by the open saved view cannot be hidden from the board —
@@ -170,7 +168,11 @@ export const BoardColumn = memo(function BoardColumn({
   );
 
   return (
-    <div style={{ width: BOARD_COL_WIDTH }} className={`flex shrink-0 flex-col rounded-xl ${cfg?.columnBg ?? "bg-muted/40"} p-2`}>
+    <div
+      data-status={status}
+      style={{ width: BOARD_COL_WIDTH }}
+      className="enact-issue-board-column flex shrink-0 flex-col p-2"
+    >
       <div className="mb-2 flex items-center justify-between px-1.5">
         <BoardGroupHeading group={group} count={totalCount ?? issueIds.length} />
 
@@ -328,8 +330,12 @@ function BoardGroupHeading({
     return (
       <div className="flex min-w-0 items-center gap-2">
         <span
-          className="size-2.5 shrink-0 rounded-full bg-muted-foreground/30"
-          style={group.propertyOptionColor ? { backgroundColor: group.propertyOptionColor } : undefined}
+          className="enact-issue-filter-dot size-2.5 shrink-0 rounded-full"
+          style={
+            group.propertyOptionColor
+              ? ({ "--enact-issue-color": group.propertyOptionColor } as React.CSSProperties)
+              : undefined
+          }
         />
         <span className="truncate text-body font-medium" title={group.title}>
           {group.title}

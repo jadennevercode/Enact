@@ -33,14 +33,14 @@ import { StepHeading } from "./step-shell";
 export function MikaIntro() {
   const { t } = useT("onboarding");
   return (
-    <div className="flex flex-col gap-5">
+    <div className="enact-onboarding-mika-intro">
       <StepHeading title={t(($) => $.mika_intro.headline)} />
       <Item variant="outline">
         <ItemMedia>
           <span
             role="img"
             aria-label={t(($) => $.mika_intro.name)}
-            className="flex size-9 shrink-0 select-none items-center justify-center rounded-full bg-muted text-title leading-none"
+            className="enact-onboarding-mika-avatar"
           >
             {MIKA_PLACEHOLDER_EMOJI}
           </span>
@@ -48,7 +48,7 @@ export function MikaIntro() {
         <ItemContent>
           <ItemTitle>
             {t(($) => $.mika_intro.name)}
-            <span className="text-muted-foreground">
+            <span className="enact-onboarding-mika-role">
               {" · "}
               {t(($) => $.mika_intro.role)}
             </span>

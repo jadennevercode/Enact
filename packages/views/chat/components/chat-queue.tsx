@@ -95,7 +95,7 @@ export function ChatQueue({
             // behind the composer plus a visible 4px breathing room above it.
             // mx-3 pulls the rear card in from the composer's edges so the
             // stack reads as two distinct layers.
-            "mx-3 overflow-hidden rounded-lg border border-surface-border bg-surface pb-4",
+            "enact-chat-queue mx-3 overflow-hidden pb-4",
             "animate-in fade-in slide-in-from-bottom-2 duration-300",
           )}
         >
@@ -112,7 +112,7 @@ export function ChatQueue({
                 <div
                   key={task.task_id}
                   data-slot="chat-queue-row"
-                  className="flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 text-caption animate-in fade-in duration-200"
+          className="enact-chat-queue-row flex min-h-7 min-w-0 items-center gap-2 px-1.5 py-0.5 animate-in fade-in duration-200"
                 >
                   <ListEnd
                     data-slot="chat-queue-item-icon"

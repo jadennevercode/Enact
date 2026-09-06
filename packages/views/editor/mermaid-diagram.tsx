@@ -435,7 +435,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
 
   if (error) {
     return (
-      <div ref={containerRef} className="mermaid-diagram mermaid-diagram-error">
+      <div ref={containerRef} className="mermaid-diagram mermaid-diagram-error enact-rich-content-mermaid">
         <div className="mermaid-diagram-error-head">
           <p>{t(($) => $.mermaid.render_error)}</p>
           <button
@@ -468,7 +468,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
   return (
     <div
       ref={containerRef}
-      className="mermaid-diagram"
+      className="mermaid-diagram enact-rich-content-mermaid"
       aria-label="Mermaid diagram"
       style={containerStyle}
       data-overflow-start={overflow.start ? "" : undefined}
@@ -485,11 +485,11 @@ export function MermaidDiagram({ chart }: { chart: string }) {
               a user who was only trying to look at the rest of a wide chart. */}
           <div
             ref={scrollRef}
-            className="mermaid-diagram-scroll"
+            className="mermaid-diagram-scroll enact-rich-content-mermaid-scroll"
             {...dragToScroll}
           >
             <iframe
-              className="mermaid-diagram-frame"
+              className="mermaid-diagram-frame enact-rich-content-mermaid-frame"
               sandbox=""
               srcDoc={rendered.inlineDocument}
               style={{
@@ -499,7 +499,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
               title="Mermaid diagram"
             />
           </div>
-          <div className="mermaid-diagram-toolbar">
+          <div className="mermaid-diagram-toolbar enact-rich-content-mermaid-toolbar">
             <button
               type="button"
               onClick={handleCopySource}

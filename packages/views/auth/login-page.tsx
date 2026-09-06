@@ -279,22 +279,22 @@ export function LoginPage({
 
   if (step === "cli_confirm" && existingUser) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            {logo && <div className="mx-auto mb-4">{logo}</div>}
-            <CardTitle className="text-display-sm">
+      <div className="enact-auth-page">
+        <Card className="enact-auth-card">
+          <CardHeader className="enact-auth-header">
+            {logo && <div className="enact-auth-logo">{logo}</div>}
+            <CardTitle className="enact-auth-title">
               {t(($) => $.cli.title)}
             </CardTitle>
             <CardDescription>
               {t(($) => $.cli.description, { email: existingUser.email })}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="enact-auth-stack">
             <Button
               onClick={handleCliAuthorize}
               disabled={loading}
-              className="w-full"
+              className="enact-auth-action"
               size="lg"
             >
               {loading
@@ -303,7 +303,7 @@ export function LoginPage({
             </Button>
             <Button
               variant="ghost"
-              className="w-full"
+              className="enact-auth-action"
               onClick={() => {
                 setExistingUser(null);
                 setStep("email");
@@ -322,11 +322,11 @@ export function LoginPage({
   // -------------------------------------------------------------------------
 
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          {logo && <div className="mx-auto mb-4">{logo}</div>}
-          <CardTitle className="text-display-sm">
+    <div className="enact-auth-page">
+      <Card className="enact-auth-card">
+        <CardHeader className="enact-auth-header">
+          {logo && <div className="enact-auth-logo">{logo}</div>}
+          <CardTitle className="enact-auth-title">
             {mode === "register"
               ? t(($) => $.signup.title)
               : t(($) => $.signin.title)}
@@ -338,9 +338,9 @@ export function LoginPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="login-form" onSubmit={handleEmailAuth} className="space-y-4">
+          <form id="login-form" onSubmit={handleEmailAuth} className="enact-auth-form">
             {mode === "register" && (
-              <div className="space-y-2">
+              <div className="enact-auth-field">
                 <Label htmlFor="register-name">{t(($) => $.common.name)}</Label>
                 <Input
                   id="register-name"
@@ -355,7 +355,7 @@ export function LoginPage({
                 />
               </div>
             )}
-            <div className="space-y-2">
+            <div className="enact-auth-field">
               <Label htmlFor="login-email">{t(($) => $.common.email)}</Label>
               <Input
                 id="login-email"
@@ -372,7 +372,7 @@ export function LoginPage({
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="enact-auth-field">
               <Label htmlFor="login-password">
                 {t(($) => $.common.password)}
               </Label>
@@ -393,16 +393,14 @@ export function LoginPage({
                 </p>
               )}
             </div>
-            {error && (
-              <p className="text-body text-destructive">{error}</p>
-            )}
+            {error && <p className="enact-auth-error">{error}</p>}
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col gap-3">
+        <CardFooter className="enact-auth-actions">
           <Button
             type="submit"
             form="login-form"
-            className="w-full"
+            className="enact-auth-action"
             size="lg"
             disabled={
               !email ||
@@ -423,12 +421,12 @@ export function LoginPage({
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              className="enact-auth-action"
               size="lg"
               onClick={handleGoogleLogin}
               disabled={loading}
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg className="enact-auth-google-icon" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                   fill="#4285F4"
@@ -453,7 +451,7 @@ export function LoginPage({
             <Button
               type="button"
               variant="ghost"
-              className="w-full"
+              className="enact-auth-action"
               onClick={() => {
                 setMode((current) =>
                   current === "login" ? "register" : "login",

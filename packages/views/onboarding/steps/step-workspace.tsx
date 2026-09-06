@@ -12,7 +12,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@enact/ui/components/ui/field";
-import { cn } from "@enact/ui/lib/utils";
 import { useCreateWorkspace } from "@enact/core/workspace/mutations";
 import type { Workspace } from "@enact/core/types";
 import { isImeComposing } from "@enact/core/utils";
@@ -293,12 +292,12 @@ export function StepWorkspace({
   // version had already drifted — the labels were caption-sized and muted
   // while every other form in the product labels at body weight.
   const createFields = (
-    <FieldGroup>
+    <FieldGroup className="enact-onboarding-workspace-fields">
       <Field>
         <FieldLabel htmlFor="ws-name">
           {t(($) => $.step_workspace.name_label)}
         </FieldLabel>
-        <div className="flex items-center gap-2">
+        <div className="enact-onboarding-workspace-name-row">
           <Input
             id="ws-name"
             autoFocus
@@ -306,7 +305,7 @@ export function StepWorkspace({
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder={t(($) => $.step_workspace.name_placeholder)}
-            className="min-w-0"
+            className="enact-onboarding-workspace-name-input"
             onKeyDown={(e) => {
               if (isImeComposing(e)) return;
               if (e.key === "Enter") handleCreate();
@@ -317,9 +316,9 @@ export function StepWorkspace({
             variant="outline"
             onClick={handleRandomName}
             disabled={isCreating}
-            className="shrink-0"
+            className="enact-onboarding-workspace-random-action"
           >
-            <Dices className="h-4 w-4" />
+            <Dices className="enact-onboarding-workspace-field-icon" />
             {t(($) => $.step_workspace.random_name)}
           </Button>
         </div>
@@ -328,8 +327,8 @@ export function StepWorkspace({
         <FieldLabel htmlFor="ws-slug">
           {t(($) => $.step_workspace.url_label)}
         </FieldLabel>
-        <div className="flex items-center rounded-md border bg-muted transition-colors focus-within:border-foreground aria-invalid:border-destructive">
-          <span className="select-none pl-3 font-mono text-body text-muted-foreground">
+        <div className="enact-onboarding-workspace-url-control">
+          <span className="enact-onboarding-workspace-url-prefix">
             {`${urlHost}/`}
           </span>
           <Input
@@ -338,7 +337,7 @@ export function StepWorkspace({
             value={slug}
             onChange={(e) => handleSlugChange(e.target.value)}
             placeholder={t(($) => $.step_workspace.slug_placeholder)}
-            className="border-0 bg-transparent font-mono shadow-none focus-visible:ring-0"
+            className="enact-onboarding-workspace-url-input"
             onKeyDown={(e) => {
               if (isImeComposing(e)) return;
               if (e.key === "Enter") handleCreate();
@@ -371,7 +370,7 @@ export function StepWorkspace({
           autoCapitalize="characters"
           spellCheck={false}
           maxLength={10}
-          className="w-32 font-mono uppercase"
+          className="enact-onboarding-workspace-prefix-input"
           onKeyDown={(e) => {
             if (isImeComposing(e)) return;
             if (e.key === "Enter") handleCreate();
@@ -381,7 +380,7 @@ export function StepWorkspace({
           {effectivePrefix ? (
             <>
               {t(($) => $.step_workspace.issue_prefix_prefix)}
-              <span className="font-mono text-foreground">
+              <span className="enact-onboarding-workspace-prefix-preview">
                 {effectivePrefix}-123
               </span>
               {t(($) => $.step_workspace.issue_prefix_suffix)}
@@ -396,7 +395,7 @@ export function StepWorkspace({
 
   return (
     <>
-      <div className="flex flex-col gap-8 pt-2 sm:pt-6">
+      <div className="enact-onboarding-step-stack">
         {/* The eyebrow is gone with the rest of them, but its disabled-state
             wording is not: "Workspace creation is disabled" was the only
             thing on this screen that said so before the notice below, so
@@ -424,7 +423,7 @@ export function StepWorkspace({
 
         <div>
           {reusing ? (
-            <div className="flex flex-col gap-3">
+            <div className="enact-onboarding-workspace-choices">
               <ExistingWorkspaceCard
                 workspace={reusing}
                 selected={mode === "existing"}
@@ -455,7 +454,7 @@ export function StepWorkspace({
       {!(workspaceCreationDisabled && !reusing) && (
         <StepFooter hint={hint}>
           <Button
-            className="w-full"
+            className="enact-onboarding-action"
             disabled={continueDisabled}
             onClick={onContinue}
           >
@@ -477,7 +476,7 @@ export function StepWorkspace({
 function CreationDisabledNotice({ onLogout }: { onLogout: () => void }) {
   const { t } = useT("onboarding");
   return (
-    <div className="flex flex-col gap-3">
+    <div className="enact-onboarding-disabled-actions">
       <Button variant="outline" size="lg" onClick={onLogout}>
         {t(($) => $.step_workspace.creation_disabled_logout)}
       </Button>
@@ -501,19 +500,17 @@ function ExistingWorkspaceCard({
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={cn(
-        "flex w-full items-center gap-4 rounded-lg border bg-card px-5 py-4 text-left transition-all",
-        selected
-          ? "border-foreground shadow-[inset_0_0_0_1px_var(--color-foreground)]"
-          : "hover:border-foreground/20 hover:bg-accent/30",
-      )}
+      className="enact-onboarding-workspace-card"
     >
       <WorkspaceAvatar name={workspace.name} avatarUrl={workspace.avatar_url} size="lg" />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="truncate text-body font-medium text-foreground">
+      <div className="enact-onboarding-workspace-card-copy">
+        <div className="enact-onboarding-workspace-card-title">
           {workspace.name}
         </div>
-        <div className="truncate font-mono text-caption text-muted-foreground">
+        <div
+          className="enact-onboarding-workspace-card-meta"
+          data-mono="true"
+        >
           {`${urlHost}/${workspace.slug}`}
         </div>
       </div>
@@ -540,39 +537,36 @@ function CreateNewWorkspaceCard({
 }) {
   const { t } = useT("onboarding");
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-lg border bg-card transition-all",
-        selected
-          ? "border-foreground shadow-[inset_0_0_0_1px_var(--color-foreground)]"
-          : "hover:border-foreground/20",
-      )}
-    >
+    <div className="enact-onboarding-workspace-create-card">
       <button
         type="button"
         role="radio"
         aria-checked={selected}
         aria-expanded={selected}
         onClick={onSelect}
-        className="flex w-full items-center gap-4 px-5 py-4 text-left"
+        className="enact-onboarding-workspace-create-trigger"
       >
         <div
           aria-hidden
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+          className="enact-onboarding-workspace-create-icon-frame"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="enact-onboarding-workspace-create-icon" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="truncate text-body font-medium text-foreground">
+        <div className="enact-onboarding-workspace-card-copy">
+          <div className="enact-onboarding-workspace-card-title">
             {t(($) => $.step_workspace.create_new_title)}
           </div>
-          <div className="truncate text-caption text-muted-foreground">
+          <div className="enact-onboarding-workspace-card-meta">
             {t(($) => $.step_workspace.create_new_subtitle)}
           </div>
         </div>
         <RadioMark selected={selected} />
       </button>
-      {selected && <div className="border-t px-5 py-5">{children}</div>}
+      {selected && (
+        <div className="enact-onboarding-workspace-create-fields">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

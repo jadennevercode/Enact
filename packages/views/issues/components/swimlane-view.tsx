@@ -46,7 +46,7 @@ import {
   DropdownMenuItem,
 } from "@enact/ui/components/ui/dropdown-menu";
 import { sortIssues } from "../utils/sort";
-import { ALL_STATUSES, STATUS_CONFIG } from "@enact/core/issues/config";
+import { ALL_STATUSES } from "@enact/core/issues/config";
 import { DraggableBoardCard, BoardCardContent } from "./board-card";
 import { StatusIcon } from "./status-icon";
 import { Button } from "@enact/ui/components/ui/button";
@@ -1280,7 +1280,7 @@ function SwimLaneViewImpl({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div ref={attachScroller} data-tab-scroll-root="swimlane" className="flex flex-1 min-h-0 gap-4 overflow-auto p-4">
+      <div ref={attachScroller} data-tab-scroll-root="swimlane" className="enact-issue-swimlane-view flex flex-1 min-h-0 gap-4 overflow-auto p-4">
         <div className="flex shrink-0 flex-col" style={{ width: `${trackWidth}px` }}>
         {groupBranches?.isError && laneGroups.length === 0 && (
           <button
@@ -1295,12 +1295,12 @@ function SwimLaneViewImpl({
         <div className="sticky top-0 z-10 mb-2 bg-background/95 pb-2 backdrop-blur supports-[backdrop-filter]:bg-background/75">
           <div style={gridStyle}>
             {sortedStatuses.map((status) => {
-              const cfg = STATUS_CONFIG[statusCategoryOfKey(status)];
               const total = statusTotals.get(status) ?? 0;
               return (
                 <div
                   key={status}
-                  className={`flex items-center justify-between rounded-xl ${cfg?.columnBg ?? "bg-muted/40"} px-3 py-2`}
+                  data-status={statusCategoryOfKey(status)}
+                  className="enact-issue-swimlane-status flex items-center justify-between px-3 py-2"
                 >
                   <StatusHeading status={status} count={total} />
                   {/* Lazy-mounted like the board's column menu — see
@@ -1402,7 +1402,7 @@ function SwimLaneViewImpl({
 
       <DragOverlay dropAnimation={null}>
         {activeIssue ? (
-          <div className="w-[280px] rotate-2 scale-105 cursor-grabbing opacity-90 shadow-lg shadow-black/10">
+          <div className="enact-issue-drag-overlay w-[280px] rotate-2 scale-105 cursor-grabbing opacity-90">
             <BoardCardContent
               issue={activeIssue}
               childProgress={childProgressMap.get(activeIssue.id)}
@@ -1608,7 +1608,6 @@ function SwimLaneCell({
   // reject the drop, so visual confirmation would be misleading.
   const isOver = readOnly ? false : droppableIsOver;
   const { t } = useT("issues");
-  const cfg = STATUS_CONFIG[statusCategoryOfKey(status)];
 
   const resolvedIssues = useMemo(
     () =>
@@ -1624,7 +1623,10 @@ function SwimLaneCell({
   }, [status, lane, onCreateIssue]);
 
   return (
-    <div className={`flex min-h-[120px] flex-col rounded-xl ${cfg?.columnBg ?? "bg-muted/40"} p-2`}>
+    <div
+      data-status={statusCategoryOfKey(status)}
+      className="enact-issue-swimlane-cell flex min-h-[120px] flex-col p-2"
+    >
       <div
         ref={setNodeRef}
         className={`flex-1 space-y-2 rounded-lg p-1 transition-colors ${

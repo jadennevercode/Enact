@@ -47,7 +47,6 @@ import { useDownloadAttachment } from "./use-download-attachment";
 import { AttachmentCard } from "./attachment-card";
 import { HtmlAttachmentPreview } from "./html-attachment-preview";
 import { getPreviewKind, type PreviewKind } from "./utils/preview";
-import "./styles/attachment.css";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -445,11 +444,9 @@ export function Attachment({
 // ImageAttachmentView — inline image with hover toolbar
 // ---------------------------------------------------------------------------
 //
-// DOM and styling are intentionally a direct port of the original
-// extensions/image-view.tsx <figure> structure. Shared visual styles live in
-// styles/attachment.css under `.image-figure / .image-content / .image-toolbar`
-// so standalone surfaces (chat messages, AttachmentList) get identical visuals
-// without depending on the editor stylesheet being imported elsewhere.
+// Shared semantic attachment classes keep standalone surfaces (chat messages,
+// AttachmentList) visually aligned with editor NodeViews through the common
+// application theme entry.
 
 interface ImageAttachmentViewProps {
   src: string;
@@ -498,8 +495,7 @@ function ImageAttachmentView({
   // Click on figure opens the preview only in non-editor / non-uploading
   // surfaces — inside the editor we let ProseMirror own the click for
   // selection / cursor placement and route preview through the explicit
-  // Maximize button. The CSS rule `.image-figure[data-clickable="true"] {
-  // cursor: zoom-in }` keys off this same flag for the cursor affordance.
+  // Maximize button. The semantic cursor rule keys off this same flag.
   const clickable = !editable && !uploading;
 
   // DOM mirrors the original ReadonlyImage (span-only chain so it stays
@@ -507,14 +503,11 @@ function ImageAttachmentView({
   // the NodeViewWrapper still emits its own outer .image-node div around
   // this — the duplicate `image-node` class is harmless.
   return (
-    <span className="image-node">
+    <span className="image-node enact-attachment-image-node">
       <span
-        className={cn(
-          "image-figure",
-          selected && editable && "image-selected",
-          className,
-        )}
+        className={cn("enact-attachment-image", className)}
         data-clickable={clickable || undefined}
+        data-selected={(selected && editable) || undefined}
         contentEditable={false}
         onClick={clickable ? onView : undefined}
       >
@@ -523,12 +516,13 @@ function ImageAttachmentView({
           alt={alt}
           width={width}
           height={height}
-          className={cn("image-content", uploading && "image-uploading")}
+          className="enact-attachment-image-content"
+          data-uploading={uploading || undefined}
           draggable={false}
         />
         {!uploading && src && (
           <span
-            className="image-toolbar"
+            className="enact-attachment-image-toolbar"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >

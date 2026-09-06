@@ -125,7 +125,7 @@ export function ChatSessionHeader({
   const doUnarchive = () => setArchived.mutate({ sessionId: session.id, archived: false });
 
   return (
-    <div className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
+    <div className="enact-chat-session-header flex h-12 shrink-0 items-center gap-3 px-4">
       {agent ? (
         <ActorAvatar actorType="agent" actorId={agent.id} size="lg" enableHoverCard showStatusDot />
       ) : (
