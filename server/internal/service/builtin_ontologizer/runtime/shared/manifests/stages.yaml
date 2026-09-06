@@ -1,0 +1,309 @@
+# The process itself, in machine-readable form. Skills read this; they do not
+# memorise it. `read_scope` is what a stage is allowed to look at — a stage that
+# reaches outside it is producing something the human did not see the basis for.
+#
+# Source: 流程 §5–§12 (stage cards), §13 (key artifacts).
+
+version: 1
+
+pipeline: [initiate, evidence, interview, generate, review, revise, evaluate, submit, package]
+
+gates:
+  candidate_ready:
+    scope: revision
+    title: Mandatory gate（Cypher 生成之前）
+    closes_when: >-
+      候选设计通过全部结构、身份、引用与追溯检查，可以进入 Cypher 生成。
+    requires_checks:
+      [schema_valid, layer_separation, ids_stable_unique, refs_resolve, trace_complete,
+       definition_present, relationship_declared]
+    decided_by: validators
+    note: >-
+      流程 §5.2 的管线是 Candidate → mandatory gate → Cypher generation →
+      managed graph import/conformance。这道门在 Cypher 之前，所以它不查 Cypher；
+      查 Cypher 的是 ready_for_review。
+    source: "流程 §5.2 生成管线与强制门"
+
+  ready_for_review:
+    scope: revision
+    title: Ready for review
+    closes_when: >-
+      candidate 与 Cypher 生成完成，所有 blocking validators 通过，
+      图导入与 conformance 检查成功。
+    requires_checks:
+      [schema_valid, layer_separation, ids_stable_unique, refs_resolve, trace_complete,
+       definition_present, relationship_declared, cypher_generated_and_parses, reproducible]
+    decided_by: validators
+    note: >-
+      Agent completion 不是成功。这道门由规则判定，不由 agent 自称完成，
+      也不需要逐阶段人工批准。
+    source: "流程 §3 Deterministic success、§8.1、AC-G02、AC-G03"
+
+  package_ready:
+    scope: workspace
+    title: Package ready
+    closes_when: >-
+      本体包来自选定的候选发布，与那一版逐字一致，声明了自己的未决项，且不带原文。
+    requires_checks:
+      [package_from_candidate, skill_package_current, skill_package_bounded,
+       skill_package_no_snippets]
+    decided_by: validators
+    note: >-
+      这道门管的是发出去的东西。上游的门管模型对不对，这一道管别人拿到的
+      是不是同一个模型、以及它有没有如实说自己不知道什么。
+    source: "白皮书 §8.2、§8.5；流程 §12.4"
+
+  submission_ready:
+    scope: release
+    title: Submission ready
+    closes_when: >-
+      候选发布已选定且通过 ready_for_review；warnings 与 assumptions 已确认；
+      Patch/Version 已选择；scope 引用与策略检查通过；checkout 干净；预览与 PR 一致。
+    requires_checks:
+      [scopes_cover_or_unscoped, scopes_no_principals, scope_refs_resolve,
+       patch_version_human, package_excludes_raw, pr_matches_preview, checkout_clean]
+    requires_decisions: [candidate_selection, access_scope_review, patch_or_version]
+    decided_by: validators_then_human
+    source: "流程 §12.1 质量门"
+
+stages:
+  - id: initiate
+    stage_number: 0
+    title: 项目初始化与范围框定
+    skill: initiate
+    goal: 建立可重现的工作区，明确业务目标、范围、关键参与者和初始成功标准。
+    inputs: [inputs/charter/**, 用户口述]
+    outputs:
+      [define/project-charter.yaml]
+    note: >-
+      ontologizer.yaml 由 orchestrator 的 init 写，不是这个阶段的产出——
+      目录建好不等于范围框好，把它算作本阶段的成果会让一个还没写章程的项目
+      看起来已经做过这一步。
+    read_scope: [inputs/charter/**, ontologizer.yaml, define/project-charter.yaml]
+    checks: [charter_complete]
+    decision_points: [scope_and_boundary]
+    machine_gate: null
+    entry: 用户有材料或有一个想建模的领域。
+    exit: 章程可复现，pins 固定，可以进入 Define。
+    on_failure: 缺什么补什么；规模超限给三选一，不硬拦。
+    source: "流程 §6"
+
+  - id: evidence
+    stage_number: 1
+    title: Define · 证据
+    skill: evidence
+    goal: >-
+      把原始材料转化为可纠正的结构化输入，同时保持 evidence、assumption、
+      guidance/constraint 和 target design 分离。
+    inputs: [inputs/evidence/**, define/project-charter.yaml]
+    outputs:
+      [define/evidence-snapshots/es-NNNN/manifest.yaml,
+       define/evidence-snapshots/es-NNNN/extractions/**,
+       define/fagc-register.yaml]
+    read_scope:
+      [inputs/evidence/**, define/project-charter.yaml, define/evidence-snapshots/**,
+       define/fagc-register.yaml]
+    checks:
+      [evidence_manifest_complete, no_inference_as_fact, conflicts_not_merged, evidence_confirmed]
+    decision_points: [evidence_sufficiency]
+    machine_gate: null
+    entry: 章程已确认。
+    exit: >-
+      证据快照版本化、锚点齐、冲突未合并、抽取经人确认，
+      且人已就"证据是否足够"作出决定。
+    on_failure: 回到 register/extract 补；薄弱证据产生 warning，不阻断。
+    source: "流程 §7"
+
+  - id: interview
+    stage_number: 1
+    title: Define · 访谈
+    skill: interview
+    goal: 把隐性领域知识变成可纠正的结构化输入，并暴露缺口。
+    inputs: [define/fagc-register.yaml, define/project-charter.yaml, 领域专家]
+    outputs:
+      [define/interview-state.yaml, define/model-cards.yaml, define/readiness.yaml]
+    read_scope:
+      [define/**, inputs/evidence/**]
+    checks: [readiness_resolved, model_cards_sourced]
+    decision_points: []
+    machine_gate: null
+    entry: 证据登记已有内容（可以与 evidence 交替进行）。
+    exit: 八项 readiness 已二值化，模型卡有出处。
+    on_failure: readiness 缺口产生 warning，不阻断生成；是否继续由人决定。
+    source: "流程 §7.1、§7.3"
+
+  - id: generate
+    stage_number: 2
+    title: Generate
+    skill: generate
+    goal: 从已版本化的输入生成结构化中间产物、候选本体、Cypher 与可检查的图。
+    inputs:
+      [define/evidence-snapshots/es-NNNN/**, define/fagc-register.yaml,
+       define/interview-state.yaml, define/model-cards.yaml, define/project-charter.yaml]
+    outputs:
+      [revisions/rNNNN/process_ir.yaml, revisions/rNNNN/evidential_ir.yaml,
+       revisions/rNNNN/alignment.yaml, revisions/rNNNN/candidate.yaml,
+       revisions/rNNNN/candidate.cypher, revisions/rNNNN/generation-report.md,
+       revisions/rNNNN/validation/**, revisions/rNNNN/trace-index.yaml,
+       revisions/rNNNN/revision.yaml]
+    read_scope: [define/**, revisions/**, ontologizer.yaml]
+    pipeline_stages:
+      [intake, process_ir, evidential_ir, alignment, candidate, gate, cypher, conformance, trace, seal]
+    checks:
+      [schema_valid, layer_separation, ids_stable_unique, refs_resolve, trace_complete,
+       definition_present, relationship_declared, behaviour_present, inheritance_is_a,
+       cypher_generated_and_parses, reproducible]
+    decision_points: []
+    machine_gate: ready_for_review
+    intermediate_gate: candidate_ready
+    entry: 证据充分性已决定（sufficient 或 proceed_with_warnings）。
+    exit: ready_for_review 关闭。
+    on_failure: >-
+      blocking failure 提供 diagnose 与 retry；取消时询问保留还是丢弃已完成阶段；
+      失败与取消的 run 都留在 revisions/runs/ 下可诊断、可恢复、可导出。
+    source: "流程 §8"
+
+  - id: review
+    stage_number: 3
+    title: Review
+    skill: review
+    goal: 从四层验证候选设计"是什么、为何存在、来自哪里、是否有效"。
+    inputs: [revisions/rNNNN/**]
+    outputs: [reviews/review-rNNNN.yaml, history/comments.yaml]
+    read_scope: [revisions/**, reviews/**, history/comments.yaml, define/**]
+    passes: [evidence, process, mapping, ontology]
+    checks: [review_binary, defer_has_owner, reject_has_reason]
+    decision_points: [semantic_review]
+    machine_gate: null
+    entry: 某个 revision 已 ready_for_review。
+    exit: 每个被审对象有结论；requested changes 已汇总。
+    on_failure: 未二值化的对象列出来逐条过。
+    source: "流程 §9"
+
+  - id: revise
+    stage_number: 4
+    title: Revise
+    skill: revise
+    goal: 把审阅结果转化为新的、可验证的不可变 revision，只重跑受影响阶段。
+    inputs: [reviews/review-rNNNN.yaml, history/comments.yaml, revisions/rNNNN/**]
+    outputs:
+      [revisions/rMMMM/**, revisions/rMMMM/semantic-diff.yaml]
+    read_scope: [revisions/**, reviews/**, history/**, define/**]
+    checks:
+      [parent_unchanged, diff_removals_explained, unaffected_unchanged, changes_closed,
+       locators_resolve_or_orphaned, schema_valid, layer_separation, ids_stable_unique,
+       refs_resolve, trace_complete, cypher_generated_and_parses]
+    decision_points: [candidate_selection]
+    machine_gate: ready_for_review
+    entry: 有已闭环的审阅结果或新证据。
+    exit: >-
+      blocking failure 全部解决；关键 requested change 已关闭或有 owner 与延后理由；
+      semantic diff 已审阅；已明确选定一个 candidate release。
+    on_failure: 影响分析报出的受影响阶段重跑；旧 revision 不动。
+    source: "流程 §10"
+
+  - id: evaluate
+    stage_number: 5
+    title: Evaluate
+    skill: evaluate
+    optional: true
+    goal: 判断某个 revision 是否支持用户定义的业务问题，并识别跨 revision 的能力回归。
+    inputs: [inputs/competency-questions/**, revisions/rNNNN/**]
+    outputs: [evaluation/cq-register.yaml, evaluation/runs/ev-NNNN.yaml]
+    read_scope: [inputs/competency-questions/**, evaluation/**, revisions/**]
+    checks: [cq_human_owned, cq_result_bound]
+    decision_points: [competency_questions]
+    machine_gate: null
+    entry: 有一个 revision 和一组人给的问题。
+    exit: 逐题有状态与证据；跨 revision 可比较。
+    on_failure: 评估永不阻断提交。失败是接受、修订还是延后，由人决定。
+    source: "流程 §11"
+
+  - id: submit
+    stage_number: 6
+    title: Submit
+    skill: submit
+    goal: 把选定 revision 打包为 Patch 或 Version，通过唯一强制人工批准进入平台治理。
+    inputs: [revisions/<candidate>/**, evaluation/runs/**, releases/relNNNN/**]
+    outputs:
+      [releases/rel-NNNN/selection.yaml, releases/rel-NNNN/access-scopes.yaml,
+       releases/rel-NNNN/patch-or-version.yaml, releases/rel-NNNN/readiness-checklist.md,
+       releases/rel-NNNN/submission-manifest.yaml, releases/rel-NNNN/package/**,
+       releases/rel-NNNN/pr.yaml, exports/handoff-*.zip]
+    read_scope: [revisions/**, releases/**, evaluation/**, history/**]
+    checks:
+      [scopes_cover_or_unscoped, scopes_no_principals, scope_refs_resolve,
+       patch_version_human, package_excludes_raw, pr_matches_preview, checkout_clean,
+       handoff_redacted]
+    decision_points: [access_scope_review, patch_or_version, create_pull_request]
+    machine_gate: submission_ready
+    entry: 已选定 candidate release。
+    exit: PR 已创建，或已转 expert handoff。
+    on_failure: >-
+      dirty/diverged/conflicted checkout、认证失败、schema 不兼容或 validator 反复失败时，
+      停止并转 expert handoff；不强制重置用户的工作。
+    source: "流程 §12"
+
+  - id: package
+    stage_number: 7
+    title: Package · 打成可注册的本体包
+    skill: package
+    goal: >-
+      把选定的候选发布渲染成一个可以注册使用的 Skill 包：模型本身、术语对照、
+      能回答什么、不知道什么、每条结论从哪来。
+    inputs:
+      [revisions/<candidate>/**, evaluation/runs/**, releases/rel-NNNN/**, define/project-charter.yaml]
+    outputs:
+      [exports/skill-package/<slug>/SKILL.md, exports/skill-package/<slug>/package.yaml,
+       exports/skill-package/<slug>/ontology/**, exports/skill-package/<slug>/references/**]
+    read_scope: [revisions/**, releases/**, evaluation/**, define/**, ontologizer.yaml]
+    checks:
+      [package_from_candidate, skill_package_current, skill_package_bounded,
+       skill_package_no_snippets]
+    decision_points: []
+    machine_gate: package_ready
+    entry: 已选定 candidate release（提交与否不影响打包）。
+    exit: 包渲染完成并通过 package_ready，可以安装或分发。
+    on_failure: >-
+      渲染是确定性的：同一版进去，同样的字节出来。对不上就重新渲染，不要手改包。
+    source: "白皮书 §8.2 Ontology 是上下文生成器；§8.5 最小充分上下文"
+
+# 横切能力，不占阶段位置
+cross_cutting:
+  - id: trace
+    skill: trace
+    title: 追溯与检查
+    read_scope: [revisions/**, define/**, reviews/**, evaluation/**, releases/**, history/**]
+    writes: [revisions/rNNNN/trace-index.yaml]
+    checks: [trace_complete, locators_resolve_or_orphaned, trace_index_current]
+    source: "流程 §14"
+  - id: orchestrator
+    skill: orchestrator
+    title: 状态、历史与审计
+    read_scope: ["**"]
+    writes: [history/decisions.log, history/runs.jsonl, revisions/HEAD, ontologizer.yaml]
+    checks: [decision_logged, revision_sealed_immutable, trace_index_current]
+    source: "流程 §15"
+
+# 项目阶段由磁盘推导，不落盘。条件按顺序求值，第一个成立的即为当前阶段。
+derived_phases:
+  - id: uninitialised
+    when: 没有 ontologizer.yaml
+  - id: initiated
+    when: 有 ontologizer.yaml 与 pins，但没有 evidence snapshot
+  - id: defining
+    when: 有 evidence snapshot，但 evidence_sufficiency 未决或 readiness 有未二值化项
+  - id: generating
+    when: 有 revision 处于 running
+  - id: ready_for_review
+    when: HEAD revision 已 ready_for_review 且没有对应的审阅记录
+  - id: in_review
+    when: HEAD revision 有审阅记录但存在未二值化处置
+  - id: revision_pending
+    when: 审阅已二值化且存在未落地的 requested change
+  - id: candidate_selected
+    when: 有 revision 被选为 candidate release
+  - id: packaged
+    when: 存在 exports/skill-package/<slug>/SKILL.md 且通过 package_ready
+  - id: submitted
+    when: 存在 releases/rel-NNNN/pr.yaml

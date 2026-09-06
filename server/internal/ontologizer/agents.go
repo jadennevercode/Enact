@@ -66,8 +66,12 @@ const sharedRules = `
 1. **工作区定位**：本体工作区是 issue 所属项目挂载目录下那个含 ` + "`ontologizer.yaml`" + ` 的目录。
    找不到就停下来问，绝不自己建——只有 Ontology Orchestrator 能新建项目，
    一个自己造目录的 agent 已经把审计线索弄丢了。
-2. **插件目录只读**：` + "`$ONTOLOGIZER_HOME`" + ` 是 Ontologizer 检出目录，只用来调脚本，不写入。
-   命令一律写全路径，例如 ` + "`python3 $ONTOLOGIZER_HOME/scripts/state.py status <工作区>`" + `。
+2. **包目录只读**：Skill 自带全部脚本，不需要另外安装任何东西。开工前先定位包目录，
+   ` + "`export PKG=<包目录>`" + `：环境里有 ` + "`ONTOLOGIZER_HOME`" + ` 就用它，
+   没有就用当前 Skill 自己的目录——Skill 正文开头的 ` + "`<pkg>`" + ` 定位规则写清了两种布局各怎么找。
+   定位不到就停下来报告，不要手写路径，也不要试图去安装什么。
+   ` + "`$PKG`" + ` 只用来调脚本，不写入；命令一律写全路径，
+   例如 ` + "`python3 $PKG/scripts/state.py status <工作区>`" + `。
 3. **数字有出处**：交付物和评论里的任何计数、覆盖率、摘要都来自一次真实的脚本运行。
    说不出出处的数字就不说。
 4. **八个决策点不代拍**：目标与边界、证据是否足够、语义是否正确、胜任问题、
@@ -124,7 +128,7 @@ func DefaultAgentManifest() AgentManifest {
 
 ## 工作规则
 1. 动手前先用 ` + "`state.py status`" + ` 确认该交付物可开工；不可开工就说明缺什么，把 issue 退回 Orchestrator。
-2. **事实必须有锚点。** 用 ` + "`python3 $ONTOLOGIZER_HOME/tools/extract/run.py <文件>`" + ` 从原文抽机械锚点，
+2. **事实必须有锚点。** 用 ` + "`python3 $PKG/tools/extract/run.py <文件>`" + ` 从原文抽机械锚点，
    用 ` + "`--verify <位置> <原文片段>`" + ` 反查某段引文是否真的在文件里。
    查不到就不要登记成 fact——要么改成原文的说法，要么记成 assumption 并写明理由。
    **推断静默升格为事实，是这套流程最想防住的一件事。**
@@ -154,11 +158,11 @@ func DefaultAgentManifest() AgentManifest {
 机器门 → Cypher → 一致性检查 → 追溯索引 → 封存。
 
 ` + "```bash" + `
-python3 $ONTOLOGIZER_HOME/scripts/revision.py new <工作区> --reason "首次生成"
+python3 $PKG/scripts/revision.py new <工作区> --reason "首次生成"
 # 写四层文件到 revisions/rNNNN/
-python3 $ONTOLOGIZER_HOME/scripts/validate.py <工作区> --gate candidate_ready --revision rNNNN
-python3 $ONTOLOGIZER_HOME/tools/cypher/run.py <工作区> rNNNN
-python3 $ONTOLOGIZER_HOME/scripts/revision.py seal <工作区> rNNNN
+python3 $PKG/scripts/validate.py <工作区> --gate candidate_ready --revision rNNNN
+python3 $PKG/tools/cypher/run.py <工作区> rNNNN
+python3 $PKG/scripts/revision.py seal <工作区> rNNNN
 ` + "```" + `
 
 ## 不可退让的四条
@@ -244,7 +248,7 @@ migration 材料。系统不自动判断 semantic impact，也不自动选——
   **绝不 force reset 用户的工作**。
 
 ## 打包
-` + "`python3 $ONTOLOGIZER_HOME/scripts/package.py <工作区> --plugin`" + `
+` + "`python3 $PKG/scripts/package.py <工作区> --plugin`" + `
 - 包来自被选定的候选发布，渲染是确定性的：同一版进去，同样的字节出来。
 - **包不能手改**——手改一处它就再也说不清自己对应哪一版，而那正是它存在的理由。
   描述不好就改渲染器，不改产物。

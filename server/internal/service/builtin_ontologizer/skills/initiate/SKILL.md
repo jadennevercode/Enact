@@ -9,7 +9,9 @@ description: 初始化一个 Ontology 项目并把范围框起来，产出「项
 写完它，`charter_complete` 这项检查要能过；过不了就是没写完，不是"差不多了"。
 
 开工前读 `shared/conventions.md` 与 `shared/decision-points.md`。
-`<pkg>` 是本插件根目录，`<ws>` 是工作区目录。
+`<ws>` 是工作区目录。
+
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
 
 ## 四步
 

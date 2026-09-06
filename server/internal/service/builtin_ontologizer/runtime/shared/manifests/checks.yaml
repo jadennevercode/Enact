@@ -1,0 +1,497 @@
+# Deterministic checks. This file is the contract; tools/validators is the
+# implementation; neither invents a check the other does not know about
+# (scripts/check_suite.py asserts the two agree).
+#
+# level: blocking = the gate it belongs to cannot close.
+#        warning  = reported, acknowledged by a human, never silently dropped.
+# scope: what the check reads. `revision` checks take a revision id.
+#
+# 流程 §16.1 三层质量模型: everything here is L1 deterministic conformance.
+# L2 is human semantic review (review/revise dispositions); L3 is competency
+# evaluation, which never blocks.
+
+version: 1
+
+checks:
+  # ---- define stage -----------------------------------------------------
+  - id: charter_complete
+    level: blocking
+    scope: workspace
+    stage: initiate
+    title: 项目章程字段齐全
+    asserts: >-
+      三位负责人非空；in-scope 与 out-of-scope 各至少一条且覆盖时间、组织、数据粒度三维；
+      V1 规模检查六项有值；pins 齐；初始 CQ 草稿 3–10 条且每条有 persona 与 decision。
+    on_failure: 补齐缺的字段。规模超限不是失败，是一个需要人选择应对方式的结果。
+    source: "流程 §6 质量门、§2.2、METH §7.4"
+
+  - id: evidence_manifest_complete
+    level: blocking
+    scope: workspace
+    stage: evidence
+    title: Evidence manifest 字段齐全
+    asserts: >-
+      每条 evidence 记录 origin、source_version、source_digest、classification、语言、格式、
+      extraction_path、model/schema version、anchors、uncertainty、known_limitations、
+      human_confirmation_status、reuse_valid_for_current_source。
+    on_failure: 缺字段的条目列出来，回到 register/extract 步骤补。
+    source: "流程 AC-T01"
+
+  - id: no_inference_as_fact
+    level: blocking
+    scope: workspace
+    stage: evidence
+    title: 事实必须有锚点
+    asserts: >-
+      fagc-register 中 classification 为 fact 的每条都有至少一个 anchor 且有 exact_snippet；
+      assumption 每条有 rationale；guidance/constraint 每条有 authority_or_owner。
+    on_failure: >-
+      把没有锚点的 fact 降级为 assumption 并写明理由，或者补上它在证据中的确切出处。
+      推断静默升格为事实，是这套流程最想防住的一件事。
+    source: "流程 §7.1 系统职责、§5.2 三分离"
+
+  - id: conflicts_not_merged
+    level: blocking
+    scope: workspace
+    stage: evidence
+    title: 冲突陈述不得合并
+    asserts: >-
+      互相冲突的陈述各自保留一条记录，状态为 disputed，并各自带来源、适用范围、
+      有效时间与 authority；每组冲突有一条 unresolved decision。
+    on_failure: 不要挑一个留下。两条都留，标 disputed，把裁决留给人。
+    source: "流程 §7.2-6 METH"
+
+  - id: evidence_confirmed
+    level: blocking
+    scope: workspace
+    stage: evidence
+    title: 抽取已经过人工确认
+    asserts: 每条 evidence 的 human_confirmation_status 不是 unreviewed。
+    on_failure: 逐条过一遍抽取结果，确认或纠正。
+    source: "流程 §7.1 人的职责、§7.4"
+
+  - id: readiness_resolved
+    level: blocking
+    scope: workspace
+    stage: interview
+    title: Readiness 项已二值化
+    asserts: >-
+      八项 readiness 每项状态属于 answered/corrected/skipped；
+      任何 inferred 项在确认之后都不允许留下。
+    on_failure: >-
+      inferred 是系统的猜测。要么让人确认成 answered/corrected，要么明确 skipped——
+      留着它等于把猜测当输入。
+    source: "流程 §7.1 系统职责、§7.4"
+
+  - id: model_cards_sourced
+    level: blocking
+    scope: workspace
+    stage: interview
+    title: 模型卡有出处
+    asserts: 每张模型卡有 source phrase（引自证据或访谈原话）或指向一条 assumption。
+    on_failure: 补出处，或者把它记成 assumption。
+    source: "流程 §5.2、§7.3"
+
+  # ---- generate / revise ------------------------------------------------
+  - id: schema_valid
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 四层产物结构合法
+    asserts: >-
+      evidential_ir、process_ir、alignment、candidate 四份文件存在、可解析，
+      且必填键齐全（见 tools/validators/schema.py 的字段表）。
+    on_failure: 按报出的字段路径补。结构不合法时后面的检查不再运行，避免连锁误报。
+    source: "流程 §8.1 质量门"
+
+  - id: layer_separation
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 四层之间不得隐性混入
+    asserts: >-
+      process_ir 与 evidential_ir 不含 candidate 专属键（entities/relationships/attributes/
+      constraints/policies/capabilities/bindings/metrics/bundle/declarations/domain）；
+      events 与 lifecycles 不在其列——流程 §5.3 把事件与生命周期算作 Process 层自己的内容；
+      alignment 每条有 source、target 与 confidence，不存在无端点的"自动对齐"。
+    on_failure: >-
+      把设计决定移回 candidate，把来源事实移回 evidential_ir。
+      三分离不是文件洁癖：证据、解释和目标设计混在一处，追溯链就断了。
+    source: "流程 §8.2 禁止的隐性混入、§3 Separate evidence, interpretation, and target design"
+
+  - id: ids_stable_unique
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 标识唯一且稳定
+    asserts: >-
+      所有 declaration id 在 bundle 内唯一；与 parent revision 相比，canonical_name 未变的
+      对象 id 也未变（改名不产生新对象）。
+    on_failure: 改回原 id。id 是身份，view_label 才是展示。
+    source: "流程 §8.3-1、§3 Stable identity, mutable presentation"
+
+  - id: refs_resolve
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 引用全部可解析
+    asserts: >-
+      关系端点、属性 owner、事件参与者、生命周期实体与转换触发事件、约束作用域、
+      alignment 的 source/target、support 指向的 alignment/assumption、cq_links —— 全部指向存在的对象。
+    on_failure: 补上被指向的对象，或者删掉悬空引用。
+    source: "流程 §8.1、AC-T03"
+
+  - id: trace_complete
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 每个对象都能解析到证据或假设
+    asserts: >-
+      candidate 中每个 declaration 至少有一条 support；type 为 evidence 的 support
+      能经 alignment 解析到 evidential_ir 中一条带 anchor 的记录。
+    on_failure: >-
+      没有依据的对象，要么找出它的依据，要么挂一条显式 assumption，要么删掉。
+      "看起来应该有" 不是依据。
+    source: "流程 AC-T02、§14.1 追溯链"
+
+  - id: definition_present
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 定义存在且不循环
+    asserts: >-
+      每个实体、关系、事件有非空 definition；definition 不以对象自身名称开头，
+      也不只是名称的同义复述。
+    on_failure: 用别的词把它说清楚。"Journal Entry 是一条日记账分录" 没有告诉任何人任何事。
+    source: "流程 §8.3-2、白皮书 §4.2"
+
+  - id: relationship_declared
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 关系语义声明完整
+    asserts: 每条关系有 direction、cardinality、source_role、target_role、semantics。
+    on_failure: >-
+      补齐。没有方向和基数的关系，在 Agent 眼里和一条外键没有区别，
+      而大量业务含义正好存在于对象之间。
+    source: "流程 §8.3-4、白皮书 §4.5"
+
+  - id: behaviour_present
+    level: warning
+    scope: revision
+    stage: [generate, revise]
+    title: 不要只建名词
+    asserts: candidate 至少含一个 event 与一个 lifecycle。
+    on_failure: >-
+      只有实体和关系的本体能支持问答，不能告诉 Agent 在什么条件下可以做什么。
+      如果这个领域确实没有状态变化，在 generation report 里说明理由。
+    source: "白皮书 §11.2、§4.6、§4.7"
+
+  - id: inheritance_is_a
+    level: warning
+    scope: revision
+    stage: [generate, revise]
+    title: 继承只用于 is-a
+    asserts: 声明为 subclass_of 的关系，其定义包含 is-a 判据，而不是组成、拥有或参与。
+    on_failure: 组成用 composition，拥有用 ownership，参与用事件。误用继承会让推理得出错误结论。
+    source: "流程 §8.3-6"
+
+  - id: cypher_generated_and_parses
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: Cypher 已生成且静态检查通过
+    asserts: >-
+      candidate.cypher 存在；语句块平衡、标签与属性名合法、
+      每条语句引用的标签都在 candidate 中声明过。
+    on_failure: 重新生成。静态检查不通过的 Cypher 不会在任何图库里跑通。
+    source: "流程 §5.2 生成管线、§8.1"
+
+  - id: reproducible
+    level: blocking
+    scope: revision
+    stage: [generate, revise]
+    title: 产物可由 revision 重现
+    asserts: >-
+      revision.yaml 记录的输入 digest（evidence snapshot、interview state）与磁盘一致；
+      artifact digests 与磁盘一致。
+    on_failure: 输入变了就开新 revision，不要就地改旧的。
+    source: "流程 AC-G04、§15.1"
+
+  - id: revision_sealed_immutable
+    level: blocking
+    scope: revision
+    stage: audit
+    title: 封存的 revision 未被改动
+    asserts: sealed 为 true 的 revision，其目录内容 digest 与 revision.yaml 记录一致。
+    on_failure: >-
+      有人改了历史。把改动挪进新 revision，并说明发生了什么——
+      历史被覆盖之后，任何追溯都不再可信。
+    source: "流程 §15.1、§3 Linear history over hidden mutation"
+
+  - id: locators_resolve_or_orphaned
+    level: blocking
+    scope: revision
+    stage: [revise, audit]
+    title: 定位符解析或明确 orphaned
+    asserts: >-
+      history/comments.yaml 中每条变更请求指向的对象，在本 revision 中要么存在，
+      要么该条自己带 orphaned: true。它是一个标记而不是状态——
+      目标消失了的变更请求仍然要有自己的 status（resolved 或 deferred）。
+    on_failure: >-
+      静默断链比 orphaned 更糟。标出来——标在变更记录里，因为那是人会读的地方；
+      标在派生索引里没有意义，重建一次就把它抹平了。
+    source: "流程 AC-T03、§14.3"
+
+  # ---- review -----------------------------------------------------------
+  - id: review_binary
+    level: blocking
+    scope: revision
+    stage: review
+    title: 审阅结论已二值化
+    asserts: >-
+      审阅记录中每个被审对象的处置属于 accept/comment/direct_edit/defer/reject，
+      没有 pending、unsure 或空值。
+    on_failure: >-
+      留在中间状态的对象等于没审。逐条给结论——comment 也是结论。
+    source: "流程 §9.3"
+
+  - id: defer_has_owner
+    level: blocking
+    scope: revision
+    stage: review
+    title: Defer 必须有主
+    asserts: 每条 defer 有 owner、rationale 和 target_revision。
+    on_failure: 没有 owner 的延后会漂移成事实。给它一个人和一个版本。
+    source: "流程 §9.3"
+
+  - id: reject_has_reason
+    level: blocking
+    scope: revision
+    stage: review
+    title: Reject 有理由类别
+    asserts: 每条 reject 的理由类别属于 unsupported/duplicate/out_of_scope/semantically_wrong。
+    on_failure: 补类别。它决定下一轮修订是删除、合并还是重写。
+    source: "流程 §9.3"
+
+  # ---- revise -----------------------------------------------------------
+  - id: parent_unchanged
+    level: blocking
+    scope: revision
+    stage: revise
+    title: 父 revision 未被改动
+    asserts: 新 revision 的 parent 存在、已封存，且其 digest 与本 revision 记录的一致。
+    on_failure: 修订不改历史。旧 revision 永远不动。
+    source: "流程 §10.1 质量门、§15.1"
+
+  - id: diff_removals_explained
+    level: blocking
+    scope: revision
+    stage: revise
+    title: 删除必须有交代
+    asserts: semantic-diff 中每个 removed 对象带 replaced_by 或 removal_rationale。
+    on_failure: 说明它被什么替代，或者为什么不再需要。删除不删历史。
+    source: "流程 §14.3 METH"
+
+  - id: unaffected_unchanged
+    level: blocking
+    scope: revision
+    stage: revise
+    title: 只重跑受影响的部分
+    asserts: >-
+      影响分析判定为未受影响的对象，其 id、定义、关系声明与属性在新旧 revision 中逐字相同。
+    on_failure: >-
+      顺手改了不该改的地方，semantic diff 就淹没在噪声里，人也就不再逐条看它了。
+    source: "流程 AC-U06、§10.1 系统职责"
+
+  - id: changes_closed
+    level: blocking
+    scope: revision
+    stage: revise
+    title: 变更请求已闭环
+    asserts: 每条 requested change 状态属于 resolved 或 deferred（且 deferred 有 owner）。
+    on_failure: 逐条给结论。
+    source: "流程 §10.3"
+
+  # ---- evaluate ---------------------------------------------------------
+  - id: cq_human_owned
+    level: blocking
+    scope: workspace
+    stage: evaluate
+    title: 胜任问题由人定义或批准
+    asserts: >-
+      每条 CQ 的 owner 非空，origin 属于 human 或 ai_proposed_human_approved；
+      origin 为 ai_proposed 而未被批准的不得进入评估运行。
+    on_failure: >-
+      系统不自行发明问题。可以提候选，但候选要经人批准才算数。
+    source: "流程 AC-E01、§11.1"
+
+  - id: cq_result_bound
+    level: blocking
+    scope: workspace
+    stage: evaluate
+    title: 评估结果绑定 revision
+    asserts: >-
+      每条结果状态属于 passed/failed/unsupported，绑定一个存在的 revision id，
+      failed 与 unsupported 各有 rationale，passed 有 execution_evidence。
+    on_failure: 补 rationale 与证据。"查询返回了数据" 不等于语义正确。
+    source: "流程 AC-E02、§11.1 系统职责、§11.3"
+
+  # ---- submit -----------------------------------------------------------
+  - id: scopes_cover_or_unscoped
+    level: blocking
+    scope: release
+    stage: submit
+    title: Scope 覆盖完整
+    asserts: >-
+      至少两个 bundle-local scope；每个 access-relevant declaration 属于至少一个 scope
+      或显式列入 intentionally_unscoped。
+    on_failure: 补 scope 成员，或者显式声明它不受 scope 约束并写明理由。
+    source: "流程 §12.3-3、AC-S01、AC-S02"
+
+  - id: scopes_no_principals
+    level: blocking
+    scope: release
+    stage: submit
+    title: Scope 不含主体
+    asserts: >-
+      access-scopes 文件中不出现 users、groups、roles、entitlements、assignments、
+      grants、principals 等键或等价字段。
+    on_failure: >-
+      删掉。Access scopes define governed resource boundaries.
+      They do not grant access to users or groups.
+    source: "流程 §12.3-7、AC-S04"
+
+  - id: scope_refs_resolve
+    level: blocking
+    scope: release
+    stage: submit
+    title: Scope 成员引用可解析
+    asserts: >-
+      每个成员引用是 candidate 中存在的 stable declaration id，
+      不是 label、不是画布位置；membership digest 与「scope_key + 成员」的
+      规范列表一致（每行 `scope_key<TAB>declaration_id`，排序后取摘要）。
+    on_failure: 无效或悬空的引用阻断提交。
+    source: "流程 §12.3-2、§12.3-6"
+
+  - id: patch_version_human
+    level: blocking
+    scope: release
+    stage: submit
+    title: Patch/Version 由人选择
+    asserts: patch-or-version 记录 decided_by 为 human，有 rationale 与 target_version。
+    on_failure: >-
+      系统不自动判断 semantic impact，也不自动选。把 diff 和 migration 证据摆出来让人选。
+    source: "流程 §12.2、§19.2、AC-S05"
+
+  - id: package_excludes_raw
+    level: blocking
+    scope: release
+    stage: submit
+    title: 提交包不含原始证据
+    asserts: >-
+      package 内容与排除清单（raw evidence、samples、transcripts、detailed logs、
+      local history、principals、role/entitlement assignments、runtime grants）交集为空。
+    on_failure: 移出这些文件再打包。
+    source: "流程 §12.4、AC-S06"
+
+  - id: pr_matches_preview
+    level: blocking
+    scope: release
+    stage: submit
+    title: PR 与预览一致
+    asserts: PR 的 changed files 与 title/body digest 等于批准时预览的 digest。
+    on_failure: 重新预览、重新批准。人批的必须就是发出去的。
+    source: "流程 §12.1 质量门、AC-S06"
+
+  - id: checkout_clean
+    level: blocking
+    scope: release
+    stage: submit
+    title: 目标 checkout 干净
+    asserts: 目标仓库不是 dirty、diverged 或 conflicted，也没有意料之外的本地提交。
+    on_failure: >-
+      停止提交，转 expert handoff。系统不会强制重置用户的工作。
+    source: "流程 §12.5、AC-S07"
+
+  - id: handoff_redacted
+    level: blocking
+    scope: workspace
+    stage: submit
+    title: Handoff 已脱敏
+    asserts: 导出包与日志通过 secret redaction 扫描（密钥、令牌、口令、连接串模式）。
+    on_failure: 先脱敏再导出。
+    source: "流程 AC-H02"
+
+  # ---- package ----------------------------------------------------------
+  - id: package_from_candidate
+    level: blocking
+    scope: workspace
+    stage: package
+    title: 包来自选定的候选发布
+    asserts: >-
+      每个已渲染的本体包，其 package.yaml 记录的 source_revision 存在、已封存、
+      被标记为 candidate_release，且内容摘要与那一版一致。
+    on_failure: >-
+      先走 candidate_selection 选定一版再打包。装它的人拿到的不该是一个没人选过的模型。
+    source: "流程 §10.3、§15.1；本包设计"
+
+  - id: skill_package_current
+    level: blocking
+    scope: workspace
+    stage: package
+    title: 包与它声称的版本一致
+    asserts: >-
+      从 source_revision 重新渲染，结果与磁盘上的包逐字一致；
+      包里没有渲染不出来的文件。
+    on_failure: >-
+      重新渲染覆盖它。包是渲染出来的，手改一处就再也说不清它对应哪一版。
+    source: "流程 §3 Deterministic success；本包设计"
+
+  - id: skill_package_bounded
+    level: blocking
+    scope: workspace
+    stage: package
+    title: 包声明了自己不知道什么
+    asserts: >-
+      references/boundaries.md 存在，且逐条列出未决假设、未裁决的冲突、
+      以及评估中 failed/unsupported 的胜任问题；SKILL.md 指向它。
+    on_failure: >-
+      补上。一个不声明自己边界的模型，会让人把它的沉默当成否定。
+    source: "白皮书 §8.5 Bounded、§10.5"
+
+  - id: skill_package_no_snippets
+    level: blocking
+    scope: workspace
+    stage: package
+    title: 包不带原文
+    asserts: >-
+      包里不出现工作区证据登记中的 exact_snippet 原文；
+      出处只给来源编号与定位。
+    on_failure: 把原文换成来源编号加定位。要看原句的人回工作区查。
+    source: "流程 §12.4 Submission package 边界"
+
+  # ---- cross-cutting ----------------------------------------------------
+  - id: decision_logged
+    level: blocking
+    scope: workspace
+    stage: audit
+    title: 每个决策都有日志
+    asserts: >-
+      每个已生效的决策点在 history/decisions.log 中有对应行，格式合法，
+      且时间戳不早于它所依据的证据。
+    on_failure: 决策先写日志再改状态。日志是审计线索，状态只是它的索引。
+    source: "流程 §15.3、§14.3"
+
+  - id: trace_index_current
+    level: blocking
+    scope: revision
+    stage: audit
+    title: 追溯索引与产物一致
+    asserts: >-
+      trace-index.yaml 重建后与磁盘上的一致：对象集合，以及每个对象的 support 类型、
+      alignment、来源与种类。只比对由这个 revision 自身决定的字段——
+      scope 成员身份属于后来的 release，orphaned 属于工作区的变更记录，
+      封存的 revision 无法在它们变化时被改写。
+    on_failure: 重建索引。索引与产物分叉时，索引说的话不作数。
+    source: "流程 §14.2、§14.3"

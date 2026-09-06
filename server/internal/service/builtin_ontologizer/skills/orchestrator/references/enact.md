@@ -17,7 +17,7 @@ python3 $ONTOLOGIZER_HOME/scripts/state.py list --scan <项目挂载目录>
 只有你能新建项目，但那要有人明确要求——一个自己造出来的项目目录，
 没有人确认过它的目标和边界，后面每一步都建在没人认过的东西上。
 
-`$ONTOLOGIZER_HOME` 是本插件的检出目录，由 `enact ontologizer agent bootstrap` 注入。
+下文的 `$ONTOLOGIZER_HOME` 就是 SKILL.md 里的 `<pkg>`：按 `orchestrator/SKILL.md` 的定位规则找到包目录后，`export ONTOLOGIZER_HOME=<那个目录>` 再往下走。环境里已经有这个变量就直接用。
 它只读：所有脚本从那里调，所有产物写进工作区。
 
 ## 一个交付物一个 issue

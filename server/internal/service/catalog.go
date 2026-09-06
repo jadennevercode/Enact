@@ -27,9 +27,10 @@ import (
 // no supported way to put them there from an install. `enact mmm setup` remains
 // its way in.
 //
-// Ontologizer clears that bar because its own way in is a documented one-line
-// command: its listings declare `enact ontologizer setup` as a prerequisite,
-// which is the case marketplaceManifest.Prerequisites exists for.
+// Ontologizer clears that bar because it is standard-library Python: the whole
+// package travels as skill files (LoadOntologizerDefaultSkills), and the
+// runtime host needs nothing but an interpreter, which is what its listings
+// declare as a prerequisite.
 //
 // Nobody is a member of it. Workspace access is membership-gated throughout, so
 // having no members is what keeps it out of every person's workspace list and
@@ -49,7 +50,7 @@ const (
 // version is never overwritten, so bumping this is how a changed bundle reaches
 // workspaces: it adds a version to each listing, and anyone who installed the
 // old one is offered the update.
-const CatalogVersion = "1.1.0"
+const CatalogVersion = "1.2.0"
 
 // CatalogWorkspace is what the seeder found or created.
 type CatalogWorkspace struct {

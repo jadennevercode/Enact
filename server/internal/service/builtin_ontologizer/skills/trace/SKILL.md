@@ -9,7 +9,9 @@ description: 回答关于本体对象的追溯问题：这个实体、关系、�
 它的全部答案来自每一版里的追溯索引 `trace-index.yaml`——那份索引由脚本从交付物推导，
 不由人手写。它和交付物说的不一致时，**是索引错了**，重建即可。
 
-开工前读 `shared/traceability.md`。`<pkg>` 是本插件根目录，`<ws>` 是工作区目录。
+开工前读 `shared/traceability.md`。`<ws>` 是工作区目录。
+
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
 
 ## 七个模式
 

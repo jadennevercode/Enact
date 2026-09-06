@@ -1,12 +1,25 @@
 #!/usr/bin/env bash
-# Refresh the vendored Ontologizer skill bundle from an Ontologizer checkout.
+# Refresh the vendored Ontologizer bundle from an Ontologizer checkout.
 #
-# The skills are authored in the Ontologizer repository, which owns them along
+# The skills are authored in the Ontologizer repository
+# (https://github.com/jadennevercode/Ontologizer-Skill), which owns them along
 # with the validators and the knowledge base. The server carries a copy because
 # the Marketplace catalog publishes them: a listing has to ship the bytes it
 # installs, and the catalog workspace is provisioned from the server binary on
-# every boot. Nothing else reads this copy — a runtime still loads the skills
-# from its own checkout through the Claude Code plugin.
+# every boot.
+#
+# Two trees are synced:
+#
+#   skills/   SKILL.md plus references/ and templates/, one directory per skill
+#   runtime/  scripts/, shared/, tools/ and knowledge/ — the package the skills
+#             shell out to. It is stored once here; the catalog attaches it to
+#             every skill listing at publish time so an installed skill's
+#             directory is a complete package on the runtime host, with no
+#             host-level setup. Ontologizer is standard-library Python, which is
+#             what makes shipping it as skill files possible.
+#
+# A runtime that installed Ontologizer as a Claude Code plugin still loads the
+# skills from its own checkout; the SKILL.md locator rule covers both layouts.
 #
 # Usage:
 #   scripts/sync-ontologizer-skills.sh [ONTOLOGIZER_CHECKOUT]
@@ -14,12 +27,14 @@
 # With no argument the checkout recorded in ~/.enact/ontologizer.yaml is used,
 # which is what `enact ontologizer setup` wrote.
 #
-# Run this whenever the upstream skills change, then commit the diff and bump
+# Run this whenever the upstream changes, then commit the diff and bump
 # service.CatalogVersion so the new bytes reach workspaces as an offered update.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-dest="$repo_root/server/internal/service/builtin_ontologizer/skills"
+dest_root="$repo_root/server/internal/service/builtin_ontologizer"
+dest_skills="$dest_root/skills"
+dest_runtime="$dest_root/runtime"
 
 src="${1:-}"
 if [ -z "$src" ]; then
@@ -32,25 +47,49 @@ if [ -z "$src" ]; then
   src="$(sed -n 's/^runtime_dir:[[:space:]]*//p' "$config" | head -1)"
 fi
 
-if [ -z "$src" ] || [ ! -d "$src/skills" ]; then
-  echo "Not an Ontologizer checkout: ${src:-<empty>} (expected a skills/ directory)" >&2
+if [ -z "$src" ] || [ ! -d "$src/skills" ] || [ ! -f "$src/scripts/state.py" ]; then
+  echo "Not an Ontologizer checkout: ${src:-<empty>} (expected skills/ and scripts/state.py)" >&2
   exit 1
 fi
 
-echo "==> Syncing from $src/skills"
-rm -rf "$dest"
-mkdir -p "$dest"
+# Neither tree ships caches, editor droppings or the upstream test suite.
+is_noise() {
+  case "$1" in
+    *__pycache__*|*.pyc|*.DS_Store|*/evals/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
-# SKILL.md plus references/ and templates/. evals/ is the upstream test suite
-# and .DS_Store is noise; neither belongs in a published listing.
+echo "==> Syncing skills from $src/skills"
+rm -rf "$dest_skills"
+mkdir -p "$dest_skills"
 (cd "$src/skills" && find . -type f \( -name 'SKILL.md' -o -path './*/references/*' -o -path './*/templates/*' \) -print0) |
   while IFS= read -r -d '' rel; do
     rel="${rel#./}"
-    mkdir -p "$dest/$(dirname "$rel")"
-    cp "$src/skills/$rel" "$dest/$rel"
+    is_noise "$rel" && continue
+    mkdir -p "$dest_skills/$(dirname "$rel")"
+    cp "$src/skills/$rel" "$dest_skills/$rel"
   done
 
-count=$(find "$dest" -type f | wc -l | tr -d ' ')
-skills=$(find "$dest" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-echo "==> $skills skills, $count files under server/internal/service/builtin_ontologizer/skills"
+echo "==> Syncing runtime from $src/{scripts,shared,tools,knowledge}"
+rm -rf "$dest_runtime"
+mkdir -p "$dest_runtime"
+for tree in scripts shared tools knowledge; do
+  if [ ! -d "$src/$tree" ]; then
+    echo "Checkout has no $tree/ directory; the skills reference it." >&2
+    exit 1
+  fi
+  (cd "$src" && find "$tree" -type f -print0) |
+    while IFS= read -r -d '' rel; do
+      is_noise "$rel" && continue
+      mkdir -p "$dest_runtime/$(dirname "$rel")"
+      cp "$src/$rel" "$dest_runtime/$rel"
+    done
+done
+
+skills=$(find "$dest_skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+skill_files=$(find "$dest_skills" -type f | wc -l | tr -d ' ')
+runtime_files=$(find "$dest_runtime" -type f | wc -l | tr -d ' ')
+runtime_bytes=$(find "$dest_runtime" -type f -print0 | xargs -0 wc -c | tail -1 | awk '{print $1}')
+echo "==> $skills skills, $skill_files skill files; runtime $runtime_files files, $runtime_bytes bytes"
 echo "    Bump service.CatalogVersion if the content changed."

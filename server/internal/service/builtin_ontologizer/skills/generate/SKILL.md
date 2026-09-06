@@ -10,6 +10,8 @@ description: 从已确认的证据快照、事实/假设/指引/约束登记、�
 
 开工前读 `shared/conventions.md`、`shared/four-layers.md`、`shared/revision-model.md`。
 
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
+
 ## 十个阶段
 
 顺序照 `shared/manifests/stages.yaml` 的 `pipeline_stages`，不能换。
@@ -80,7 +82,7 @@ definition 与 support，并用 `process_ref` 指回流程那一条。见 `refer
 ## 命令
 
 ```bash
-PKG=<插件目录>; WS=<工作区>
+PKG=<pkg>; WS=<ws>
 python3 $PKG/scripts/revision.py new $WS --reason "首次生成" --by <你>
 # → 写四层文件到 revisions/rNNNN/
 

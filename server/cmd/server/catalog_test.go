@@ -155,7 +155,7 @@ func TestCatalogPublishesOntologizerWithItsPrerequisites(t *testing.T) {
 		t.Fatalf("count ontology listings without prerequisites: %v", err)
 	}
 	if withoutPrerequisites != 0 {
-		t.Errorf("%d Ontologizer listings ship no prerequisites; every one of them needs the checkout", withoutPrerequisites)
+		t.Errorf("%d Ontologizer listings ship no prerequisites; every one of them needs python3 on the runtime host", withoutPrerequisites)
 	}
 
 	var tagged int

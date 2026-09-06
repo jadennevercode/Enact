@@ -11,6 +11,8 @@ description: 带领域专家和本体工程师按 Evidence → Process → Mappi
 先确认对象：没有点名就审 HEAD，且它的状态必须是 `ready_for_review`。
 状态是 `gate_failed` 的 revision 不审——机器门没过的东西拿给人看，是在浪费领域专家最贵的那点注意力。
 
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
+
 ## 步骤
 
 | # | 步骤 | 谁 | 做什么 |

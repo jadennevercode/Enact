@@ -8,6 +8,8 @@ description: 把审阅产生的 comment、direct_edit、已解决的 assumption 
 交付物是两样：一个**新的** `revisions/r<MMMM>/`，和它里面的 `semantic-diff.yaml`。
 父 revision 不动——不是"尽量不动"，是一个字节都不动（`parent_unchanged`）。
 
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
+
 ## 步骤
 
 | # | 步骤 | 谁 | 做什么 |

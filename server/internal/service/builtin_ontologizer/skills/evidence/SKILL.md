@@ -9,6 +9,8 @@ description: 把领域材料（CSV/TSV/Excel/ZIP、Markdown/TXT/PDF/DOCX/PPTX、
 
 开工前读 `shared/conventions.md`。
 
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
+
 ## 步骤
 
 | # | 步骤 | 谁 | 做什么 |

@@ -13,6 +13,16 @@ package service
 // names carry the plugin's "ontologizer:" invocation-key namespace — the copy
 // and the plugin's own import are the same skill, not two.
 //
+// The skills are prose that shells out to the package's scripts, so a listing
+// that shipped only the prose would install instructions naming commands the
+// runtime host does not have. The package (scripts/, shared/, tools/,
+// knowledge/) is vendored once under runtime/ and attached to every skill at
+// load time: the daemon writes a skill's files into the skill's own directory
+// on the runtime host, so each installed skill directory is a complete package
+// and the SKILL.md locator rule finds it there. That is possible because
+// Ontologizer is standard-library Python with no install step; a package with
+// compiled dependencies could not travel this way.
+//
 // The agent prompts come from internal/ontologizer, the same portfolio
 // `enact ontologizer agent bootstrap` applies, so a workspace that installs the
 // family from the Marketplace and a workspace that ran the CLI end up with the
@@ -27,6 +37,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/enact-ai/enact/server/internal/ontologizer"
@@ -37,13 +48,14 @@ import (
 )
 
 const (
-	ontologizerSkillsRoot = "builtin_ontologizer/skills"
+	ontologizerSkillsRoot  = "builtin_ontologizer/skills"
+	ontologizerRuntimeRoot = "builtin_ontologizer/runtime"
 	// OntologizerSquadSystemKey identifies the Agent Family across renames.
 	OntologizerSquadSystemKey = "ontology:construction"
 )
 
-//go:embed all:builtin_ontologizer/skills
-var ontologizerSkillsFS embed.FS
+//go:embed all:builtin_ontologizer/skills all:builtin_ontologizer/runtime
+var ontologizerBundleFS embed.FS
 
 // ontologizerAgentIdentity is the stable server-side identity for one portfolio
 // role: the key that survives a display-name change, and the role label the
@@ -68,8 +80,49 @@ var ontologizerAgentIdentities = map[string]ontologizerAgentIdentity{
 
 // LoadOntologizerDefaultSkills reads the vendored bundle. Names carry the
 // plugin's invocation-key namespace so they match ontologizer.RuntimeSkillNames.
+// Every skill carries the whole runtime package as supporting files; see the
+// package comment for why.
 func LoadOntologizerDefaultSkills() ([]AgentSkillData, error) {
-	return loadBundledSkills(ontologizerSkillsFS, ontologizerSkillsRoot, ontologizer.SkillPrefix)
+	skills, err := loadBundledSkills(ontologizerBundleFS, ontologizerSkillsRoot, ontologizer.SkillPrefix)
+	if err != nil {
+		return nil, err
+	}
+	runtime, err := loadOntologizerRuntimeFiles()
+	if err != nil {
+		return nil, err
+	}
+	for i := range skills {
+		skills[i].Files = append(skills[i].Files, runtime...)
+	}
+	return skills, nil
+}
+
+// loadOntologizerRuntimeFiles reads runtime/ as skill files whose paths are
+// relative to the package root, so `scripts/state.py` in the checkout lands at
+// `scripts/state.py` under the installed skill directory.
+func loadOntologizerRuntimeFiles() ([]AgentSkillFileData, error) {
+	var files []AgentSkillFileData
+	err := fs.WalkDir(ontologizerBundleFS, ontologizerRuntimeRoot, func(filePath string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() {
+			return walkErr
+		}
+		data, err := fs.ReadFile(ontologizerBundleFS, filePath)
+		if err != nil {
+			return err
+		}
+		files = append(files, AgentSkillFileData{
+			Path:    strings.TrimPrefix(filePath, ontologizerRuntimeRoot+"/"),
+			Content: string(data),
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("load ontologizer runtime: %w", err)
+	}
+	if len(files) == 0 {
+		return nil, errors.New("load ontologizer runtime: no files under " + ontologizerRuntimeRoot)
+	}
+	return files, nil
 }
 
 func ontologizerSkillConfig(name string) []byte {

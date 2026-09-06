@@ -12,6 +12,8 @@ description: 用**人定义的** Competency Question 检验某一版本体到底
 它的价值不在于放行或拦截，而在于告诉人"这版模型离能用还差什么"，
 以及"上一版能答的这版还能不能答"。
 
+`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
+
 ## 步骤
 
 | # | 步骤 | 谁 | 做什么 |

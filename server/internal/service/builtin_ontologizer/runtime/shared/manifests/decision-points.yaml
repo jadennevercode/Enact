@@ -1,0 +1,130 @@
+# The decisions a human owns.
+#
+# Source: 流程 §15.2 人机决策权 (RFC), plus §6 (goal/boundary/owner) and §10.3
+# (candidate selection). Nothing else in this package asks a human to approve
+# anything — 流程 §3 "Automate until a real governance boundary" means generation
+# and revision run unattended and success is decided by validators.
+#
+# `recorded: false` entries exist so that `state.py decide` can refuse them with
+# an explanation instead of a shrug. They are real decisions; they are just not
+# this package's to record.
+
+version: 1
+
+points:
+  - id: scope_and_boundary
+    title: 目标、边界与负责人
+    question: 这个本体要回答什么、覆盖到哪里、谁负责？
+    roles: [DE, OO]
+    accountable: OO
+    stage: initiate
+    verdicts: [approve, rework]
+    closing: [approve]
+    requires_checks: [charter_complete]
+    freezes: [define/project-charter.yaml]
+    source: "流程 §6 人的职责"
+
+  - id: evidence_sufficiency
+    title: 证据是否足够
+    question: 现有证据足以开始生成候选本体吗？薄弱和冲突之处你接受吗？
+    roles: [DE]
+    accountable: OO
+    stage: evidence
+    verdicts: [sufficient, proceed_with_warnings, insufficient]
+    closing: [sufficient, proceed_with_warnings]
+    freezes: [define/evidence-snapshots]
+    note: >-
+      系统提示薄弱、冲突、缺口和 uncertainty，但不得自行判定足够。
+      proceed_with_warnings 是合法选择，它把未解决项留给 assumption 与 defer backlog。
+    source: "流程 §7.1、§15.2、§19.2 '不自动判断 evidence sufficiency'"
+
+  - id: semantic_review
+    title: 语义是否正确
+    question: 这版候选本体的业务含义、边界、命名和关系设计对吗？
+    roles: [DE, OE, PO]
+    accountable: OO
+    stage: review
+    verdicts: [accept_revision, request_changes]
+    closing: [accept_revision]
+    requires_checks: [review_binary, defer_has_owner, reject_has_reason]
+    source: "流程 §9.3、§15.2、§16.1 L2"
+
+  - id: competency_questions
+    title: 胜任问题是否成立
+    question: 这组 Competency Question 是你要问的问题吗？
+    roles: [DE, PO]
+    accountable: OO
+    stage: evaluate
+    verdicts: [approve, rework]
+    closing: [approve]
+    note: >-
+      系统可以提候选问题，但候选在被人批准之前不进入正式评估。
+      Ontologizer 不自行发明问题。
+    source: "流程 §11.1、§15.2、AC-E01"
+
+  - id: candidate_selection
+    title: 选定候选发布
+    question: 哪个 revision 作为 candidate release？
+    roles: [OE, OO]
+    accountable: OO
+    stage: revise
+    verdicts: [select, defer]
+    closing: [select]
+    requires_gates: [ready_for_review]
+    requires_checks: [parent_unchanged, changes_closed, diff_removals_explained]
+    source: "流程 §10.3、§15.1"
+
+  - id: access_scope_review
+    title: Access Scope 覆盖
+    question: scope 的成员、覆盖、重叠、跨 scope 引用和分类字段暴露你都看过了吗？
+    roles: [OE, OO, GA]
+    accountable: OO
+    stage: submit
+    verdicts: [approve, rework]
+    closing: [approve]
+    requires_checks: [scopes_cover_or_unscoped, scopes_no_principals, scope_refs_resolve]
+    warning: >-
+      Access scopes define governed resource boundaries.
+      They do not grant access to users or groups.
+    source: "流程 §12.3、AC-S01–S04"
+
+  - id: patch_or_version
+    title: Patch 还是 Version
+    question: 这次发布是 Patch（minor，append-only migration）还是 Version（major，full bundle）？
+    roles: [OE, OO]
+    accountable: OO
+    stage: submit
+    verdicts: [patch, version]
+    closing: [patch, version]
+    note: >-
+      系统展示 semantic diff 和 migration 证据，但不推荐、不自动判断 semantic impact。
+      选择属于用户的治理责任。
+    source: "流程 §12.2、§19.2、AC-S05"
+
+  - id: create_pull_request
+    title: 创建 Pull Request
+    question: 预览与 package 内容确认无误，批准提交进入平台治理？
+    roles: [GA, OO]
+    accountable: GA
+    mandatory: true
+    stage: submit
+    verdicts: [approve, reject]
+    closing: [approve]
+    requires_checks:
+      [package_excludes_raw, pr_matches_preview, checkout_clean, patch_version_human]
+    note: 这是整条流程唯一的强制人工批准点。
+    source: "流程 §3、§12.1、§15.2"
+
+not_recorded_here:
+  - id: stage_success
+    why: >-
+      阶段是否成功由 deterministic validators 判定，不由人逐阶段批准，
+      也不由 agent 自称完成。见 checks.yaml 与 tools/validators。
+    source: "流程 §3 Deterministic success、AC-G02"
+  - id: access_assignment
+    why: >-
+      principal assignment 与 runtime allow/deny 属于外部 Platform/IAM。
+      本包只声明受治理资源边界，不创建 ACL、role、entitlement 或 grant。
+    source: "流程 §12.3-7、§19.2、AC-S04"
+
+log_format: "ISO8601|point_id|role|verdict|object|rationale"

@@ -45,15 +45,15 @@ type catalogBundle struct {
 var (
 	sdlcBundle = catalogBundle{Tags: []string{"sdlc", "delivery"}}
 
-	// The Ontologizer skills are prose that drives the scripts in the
-	// Ontologizer checkout. Installing one without that checkout gives a reader
-	// instructions naming commands their machine does not have, so every
-	// listing says so before the install rather than after it.
+	// The Ontologizer skills ship the package they shell out to as their own
+	// files (see service.LoadOntologizerDefaultSkills), so nothing has to be
+	// provisioned on the runtime host beyond a Python interpreter. What is left
+	// is what no install can do: put an interpreter on the machine, and put the
+	// people who own the decision points in the family.
 	ontologizerBundle = catalogBundle{
 		Tags: []string{"ontology", "knowledge"},
 		Prerequisites: []string{
-			"在 runtime 主机上执行 `enact ontologizer setup`：这些 Skill 调用的是 Ontologizer 检出里的脚本，没有检出就只剩说明文字。",
-			"把安装后的 Agent 绑到一台已连接的 runtime，并确认它的环境里有 ONTOLOGIZER_HOME 指向那个检出。",
+			"运行这些 Agent 的 runtime 主机上要有 python3（3.11 或更新）。Skill 自带全部脚本，不依赖第三方包，也不需要额外安装步骤。",
 			"本体构建的八个决策点由人裁决。安装后把承担这些角色的同事加进 Agent Family，家族里默认只有五个 Agent。",
 		},
 	}
