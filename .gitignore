@@ -78,3 +78,9 @@ data/
 # Python (agent tooling)
 __pycache__/
 *.pyc
+
+# separate projects and scratch that happen to live under this checkout
+/ProjectIntelligenceSpace /
+/intelligence-space-proposals/
+/.codex/
+/_shot.cjs
