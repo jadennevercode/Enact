@@ -91,6 +91,20 @@ func init() {
 
 	marketplaceRecommendCmd.Flags().Int("limit", 0, "How many to return (server default 6, maximum 50)")
 
+	// `--output` is registered per command in this CLI; nothing puts it on the
+	// root. Every command in this file already READ it and none declared it, so
+	// `enact marketplace list --output json` — which the docs and the built-in
+	// skills both instruct an agent to run — failed with "unknown flag" and the
+	// agent had no way to tell that from the server refusing it.
+	for _, cmd := range []*cobra.Command{
+		marketplaceListCmd,
+		marketplaceGetCmd,
+		marketplaceInstallCmd,
+		marketplaceRecommendCmd,
+	} {
+		cmd.Flags().String("output", "table", "Output format: table or json")
+	}
+
 	marketplaceCmd.AddCommand(marketplaceListCmd)
 	marketplaceCmd.AddCommand(marketplaceGetCmd)
 	marketplaceCmd.AddCommand(marketplaceInstallCmd)

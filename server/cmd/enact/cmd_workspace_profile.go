@@ -92,6 +92,12 @@ Example:
 }
 
 func init() {
+	// `--output` is registered per command in this CLI rather than on the root,
+	// so both of these need their own. The default is `table` because a person
+	// reading their profile wants to read it; an agent asks for json.
+	workspaceProfileGetCmd.Flags().String("output", "table", "Output format: table or json")
+	workspaceProfileSetCmd.Flags().String("output", "table", "Output format: table or json")
+
 	workspaceProfileSetCmd.Flags().Bool("json-stdin", false,
 		"Read the profile document from stdin (required; the flag is explicit so a bare `set` cannot silently clear the profile)")
 

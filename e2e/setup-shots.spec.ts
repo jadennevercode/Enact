@@ -43,9 +43,16 @@ test.describe("Setup screenshots", () => {
 
     // The profile form. `?tab=workspace` because a bare /settings opens the
     // account's own Profile tab, which is a different thing entirely.
+    //
+    // Scrolled into view rather than captured with `fullPage`: settings scrolls
+    // inside its own pane, so a full-page shot is just the viewport again.
     await page.goto(`/${slug}/settings?tab=workspace`);
     await page.waitForLoadState("networkidle");
-    await page.screenshot({ path: "shots-setup/03-profile-form.png", fullPage: true });
+    // Scrolled to the SAVE button rather than to the heading: the heading is
+    // already on screen, so scrollIntoViewIfNeeded on it does nothing and the
+    // half of the form worth looking at stays below the fold.
+    await page.getByRole("button", { name: /save profile/i }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "shots-setup/03-profile-form.png" });
 
     // The rail with a project to rank against.
     const skill = await api.createSkill(
