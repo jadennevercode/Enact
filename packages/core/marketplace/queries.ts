@@ -26,6 +26,8 @@ export const marketplaceKeys = {
   file: (wsId: string, listingId: string, path: string, versionId?: string) =>
     ["workspaces", wsId, "marketplace", "listing", listingId, "file", versionId ?? "latest", path] as const,
   installs: (wsId: string) => ["workspaces", wsId, "marketplace", "installs"] as const,
+  recommendations: (wsId: string, limit?: number) =>
+    ["workspaces", wsId, "marketplace", "recommendations", limit ?? "default"] as const,
 };
 
 export interface MarketplaceCatalogFilters {
@@ -109,6 +111,23 @@ export function marketplaceInstallsOptions(wsId: string) {
   return queryOptions({
     queryKey: marketplaceKeys.installs(wsId),
     queryFn: () => api.listMarketplaceInstalls(),
+    enabled: wsId !== "",
+  });
+}
+
+/**
+ * The directory ranked against this workspace's project profile.
+ *
+ * Not cached beyond a normal staleness window, and deliberately not
+ * `staleTime: Infinity` like the immutable version reads above it: the server
+ * recomputes this against the listings as they are at request time, so a
+ * listing published while the page is open should reach a refetch. The ranking
+ * is not immutable the way a published version is.
+ */
+export function marketplaceRecommendationsOptions(wsId: string, limit?: number) {
+  return queryOptions({
+    queryKey: marketplaceKeys.recommendations(wsId, limit),
+    queryFn: () => api.listMarketplaceRecommendations(limit),
     enabled: wsId !== "",
   });
 }

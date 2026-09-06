@@ -192,6 +192,25 @@ func writeWorkspaceContext(b *strings.Builder, ctx TaskContextForEnv) {
 	b.WriteString("\n\n")
 }
 
+// writeWorkspaceProfile emits the workspace's account of its own project.
+//
+// It follows Workspace Context because the two are read in that order: the
+// context is what this workspace requires of every run, and the profile is
+// what the project is. A run that has both should apply the requirement and
+// consult the description, which is the order they appear in.
+//
+// The server ships the whole section pre-rendered, so there is no heading to
+// write here and nothing to decide: an empty value means the workspace has no
+// profile, and the brief simply does not carry the section.
+func writeWorkspaceProfile(b *strings.Builder, ctx TaskContextForEnv) {
+	profile := strings.TrimRight(ctx.WorkspaceProfile, " \t\r\n")
+	if profile == "" {
+		return
+	}
+	b.WriteString(profile)
+	b.WriteString("\n\n")
+}
+
 // BuildConnectedAppsBlock renders the Connected Apps block for the per-turn
 // user message. The app set is per-run state (runtime MCP overlays are
 // resolved at enqueue time), so it cannot live in the runtime brief without
@@ -982,6 +1001,7 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 	writeAgentIdentity(&b, ctx)
 	writeRequestingUser(&b, ctx)
 	writeWorkspaceContext(&b, ctx)
+	writeWorkspaceProfile(&b, ctx)
 
 	switch kind {
 	case kindQuickCreate:

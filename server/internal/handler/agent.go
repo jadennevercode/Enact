@@ -373,6 +373,13 @@ type AgentTaskResponse struct {
 	// regardless of issue / chat / autopilot / quick-create — sees the same
 	// shared context. Empty when the workspace owner hasn't set it.
 	WorkspaceContext string `json:"workspace_context,omitempty"`
+	// WorkspaceProfile is the workspace's project profile, already rendered as
+	// the markdown section the brief carries (workspaceprofile.Brief). The
+	// server renders it rather than shipping the fields because the section's
+	// wording — including the line saying it is context and not an instruction
+	// — is a product decision, and an installed daemon must not be able to
+	// drift from it by being older than the copy.
+	WorkspaceProfile string `json:"workspace_profile,omitempty"`
 	// IssueStatuses is the workspace's ACTIVE CUSTOM status catalog (ENA-6460),
 	// injected into the agent brief so agents can see and use statuses beyond
 	// the seven built-ins. Built-ins are omitted: their keys, names, and

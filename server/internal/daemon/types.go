@@ -126,6 +126,11 @@ type Task struct {
 	// regardless of task kind so the daemon can inject `## Workspace Context`
 	// into the brief. Empty when the owner hasn't set one.
 	WorkspaceContext string `json:"workspace_context,omitempty"`
+	// WorkspaceProfile mirrors the server's rendering of the workspace's
+	// project profile — the whole `## Project profile` section, not its
+	// fields. Empty when the workspace has not filled one in, and on servers
+	// too old to send it, in which case the brief is byte-identical to before.
+	WorkspaceProfile string `json:"workspace_profile,omitempty"`
 	// IssueStatuses mirrors the claim payload's active CUSTOM status catalog
 	// (ENA-6460): key/name/category/description per status, already in catalog
 	// order. Rendered into the brief's status-command line; empty (including on

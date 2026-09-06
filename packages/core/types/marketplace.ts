@@ -96,6 +96,55 @@ export interface MarketplaceFacets {
   installed: Record<string, number>;
 }
 
+/**
+ * Why a listing was recommended.
+ *
+ * `kind` is one of "stack" | "work" | "domain" | "official" | "featured" |
+ * "popular", but it is typed as a bare string: a newer server may send a kind
+ * this client has no copy for, and a reason it cannot label is better rendered
+ * as its raw term than dropped.
+ *
+ * `term` and `field` are present only for the three reasons that come from the
+ * workspace's own profile — they name the value that matched and where it was
+ * found, which is what makes a recommendation something a member can disagree
+ * with.
+ */
+export interface MarketplaceRecommendationReason {
+  kind: string;
+  term: string;
+  field: string;
+  score: number;
+}
+
+export interface MarketplaceRecommendation {
+  listing: MarketplaceListing;
+  score: number;
+  reasons: MarketplaceRecommendationReason[];
+  /**
+   * Whether any reason came from this workspace's profile. False means the
+   * result is not about this workspace at all — it is what the deployment
+   * ships, surfaced because nothing better matched — and the UI must say so
+   * rather than presenting it as a fit.
+   */
+  matched: boolean;
+}
+
+export interface MarketplaceRecommendations {
+  recommendations: MarketplaceRecommendation[];
+  /**
+   * The ranking had nothing to go on. The rail turns this into "tell us about
+   * your project" rather than into an empty list, which would read as "there is
+   * nothing here for you".
+   */
+  profile_empty: boolean;
+  /**
+   * How many listings were eligible before scoring. It is what makes an empty
+   * rail explicable: nothing matched out of forty is a different message from
+   * nothing matched out of zero.
+   */
+  considered: number;
+}
+
 export interface MarketplaceCatalog {
   count: number;
   total: number;

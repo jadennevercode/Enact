@@ -105,6 +105,13 @@ already repeats, and cannot be judged by a member who has not yet watched a
 single issue finish — the digest card is the exception because the member
 picked that exact outcome themselves.
 
+That rule is about **inventing** structure, not about installing it. If the
+member asks what to add to this workspace, or works the setup checklist's
+capability step, an Agent Family from the Marketplace is a reasonable answer:
+someone already built and published it, and its manifest says exactly what
+installing it creates. Follow `enact-marketplace-recommending` there, and still
+preview and confirm before installing anything.
+
 ## Preview and confirm
 
 Show a compact preview — the intended outcome, the issue title and its key

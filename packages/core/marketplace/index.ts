@@ -5,6 +5,7 @@ export {
   marketplaceVersionsOptions,
   marketplaceFileOptions,
   marketplaceInstallsOptions,
+  marketplaceRecommendationsOptions,
   selectInstallsByEntity,
   hasMarketplaceUpdate,
 } from "./queries";
@@ -14,4 +15,6 @@ export {
   useUpdateMarketplaceListing,
   useDeleteMarketplaceListing,
   useInstallMarketplaceListing,
+  useDismissMarketplaceRecommendation,
+  useRestoreMarketplaceRecommendation,
 } from "./mutations";

@@ -15,6 +15,9 @@ import type {
   MarketplaceCatalog,
   MarketplaceInstallResult,
   MarketplaceFile,
+  MarketplaceRecommendations,
+  WorkspaceProfile,
+  WorkspaceSetup,
   ChatMessage,
   ChatDraftRestoresResponse,
   ChatPendingTask,
@@ -3402,3 +3405,109 @@ export const PublishMarketplaceListingResponseSchema = z.object({
   listing: MarketplaceListingSchema,
   version: MarketplaceVersionSchema,
 }).loose();
+
+// --- Recommendations -------------------------------------------------------
+
+/**
+ * One piece of evidence for a recommendation. `kind` is a closed set on the
+ * server, but it is parsed as a bare string here on purpose: a deployment
+ * running a newer server may send a kind this client has no copy for, and a
+ * reason it cannot label is still better rendered as its raw term than dropped.
+ */
+export const MarketplaceRecommendationReasonSchema = z.object({
+  kind: z.string().optional().default(""),
+  term: z.string().optional().default(""),
+  field: z.string().optional().default(""),
+  score: z.number().optional().default(0),
+}).loose();
+
+export const MarketplaceRecommendationSchema = z.object({
+  listing: MarketplaceListingSchema,
+  score: z.number().optional().default(0),
+  reasons: z.array(MarketplaceRecommendationReasonSchema).optional().default([]),
+  /**
+   * Defaults to false, which is the safe direction: an unreadable field must
+   * never let the UI claim a listing matches this workspace's profile.
+   */
+  matched: z.boolean().optional().default(false),
+}).loose();
+
+export const MarketplaceRecommendationsSchema = z.object({
+  recommendations: z.array(MarketplaceRecommendationSchema).optional().default([]),
+  profile_empty: z.boolean().optional().default(false),
+  considered: z.number().optional().default(0),
+}).loose();
+
+export const EMPTY_MARKETPLACE_RECOMMENDATIONS: MarketplaceRecommendations = {
+  recommendations: [],
+  profile_empty: false,
+  considered: 0,
+};
+
+// --- Workspace setup and profile -------------------------------------------
+
+export const WorkspaceProfileSchema = z.object({
+  summary: z.string().optional().default(""),
+  domain: z.string().optional().default(""),
+  stack: z.array(z.string()).optional().default([]),
+  languages: z.array(z.string()).optional().default([]),
+  team_size: z.string().optional().default(""),
+  typical_work: z.array(z.string()).optional().default([]),
+  constraints: z.string().optional().default(""),
+  repo_brief: z.string().optional().default(""),
+  repo_brief_sources: z.array(z.string()).optional().default([]),
+  updated_at: z.string().optional().default(""),
+  updated_by: z.string().optional().default(""),
+  /**
+   * Defaults to true: a profile this client could not read is one it must not
+   * present as answered, because the surfaces that consult it — the checklist,
+   * the recommendation rail — all treat "answered" as permission to move on.
+   */
+  empty: z.boolean().optional().default(true),
+}).loose();
+
+export const EMPTY_WORKSPACE_PROFILE: WorkspaceProfile = {
+  summary: "",
+  domain: "",
+  stack: [],
+  languages: [],
+  team_size: "",
+  typical_work: [],
+  constraints: "",
+  repo_brief: "",
+  repo_brief_sources: [],
+  updated_at: "",
+  updated_by: "",
+  empty: true,
+};
+
+export const WorkspaceSetupStepSchema = z.object({
+  key: z.string().optional().default(""),
+  done: z.boolean().optional().default(false),
+  issue_id: z.string().optional().default(""),
+  issue_identifier: z.string().optional().default(""),
+}).loose();
+
+export const WorkspaceSetupSchema = z.object({
+  steps: z.array(WorkspaceSetupStepSchema).optional().default([]),
+  complete: z.boolean().optional().default(false),
+  parent_issue_id: z.string().optional().default(""),
+  parent_issue_identifier: z.string().optional().default(""),
+  // Spread into a fresh literal rather than referencing the constant: a loose
+  // schema's inferred default carries an index signature the exported type
+  // does not, and sharing the object would also hand every caller the same
+  // mutable arrays.
+  profile: WorkspaceProfileSchema.optional().default({ ...EMPTY_WORKSPACE_PROFILE }),
+  repo_analysis_issue_id: z.string().optional().default(""),
+}).loose();
+
+/**
+ * The fallback is an EMPTY step list rather than four not-done steps. A
+ * checklist this client could not read must render as nothing to show, not as
+ * four things the member has supposedly failed to do.
+ */
+export const EMPTY_WORKSPACE_SETUP: WorkspaceSetup = {
+  steps: [],
+  complete: false,
+  profile: EMPTY_WORKSPACE_PROFILE,
+};

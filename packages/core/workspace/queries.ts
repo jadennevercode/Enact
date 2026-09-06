@@ -22,6 +22,8 @@ export const workspaceKeys = {
   ontologies: (wsId: string) => ["workspaces", wsId, "ontologies"] as const,
   assigneeFrequency: (wsId: string) => ["workspaces", wsId, "assignee-frequency"] as const,
   mcpServers: (wsId: string) => ["workspaces", wsId, "mcp-servers"] as const,
+  setup: (wsId: string) => ["workspaces", wsId, "setup"] as const,
+  profile: (wsId: string) => ["workspaces", wsId, "profile"] as const,
 };
 
 export function workspaceListOptions() {

@@ -139,6 +139,47 @@ is curated.
 
 Neither touches a workspace that already installed it. Their copy is theirs.
 
+## Recommended for this project
+
+Above the directory, the Marketplace ranks what you could install against what
+your workspace says its project is — its stack, its domain, and the kinds of
+work it brings here. Fill that in under **Settings → Workspace**, or ask Mika in
+chat and she will ask a few questions and write it for you.
+
+Every recommendation states why it is there: the value from your profile that
+matched, and where it matched. A tag the publisher chose counts for more than a
+mention in a paragraph, and popularity is capped so a listing everyone has
+installed cannot dominate a ranking that is supposed to be about your project.
+
+Some results say **not about this project**. Those are what the deployment
+ships, shown because nothing better matched. They are labelled rather than
+hidden, so an empty rail never means "there is nothing for you".
+
+The ranking is computed fresh every time you open the page, against the
+directory as it is at that moment — so something published this afternoon
+reaches a workspace that was set up this morning.
+
+**Not this one** turns a recommendation down for the version you were shown.
+Publishing a new version of that listing puts it back in front of you, because
+a new version is a different proposition.
+
+<Callout>
+Nothing about this ranking involves a model. It is a scoring pass over listing
+metadata, which is why it is fast, free, and why every result can tell you what
+it matched on. Ask Mika when you want judgement on top of it — which of these
+to install, and what to change afterwards.
+</Callout>
+
+## Prerequisites
+
+A listing can declare what must be true on your side before the copy works:
+host tooling, a plugin, a directory layout. Nothing checks them — the condition
+is on your machine, not the server's — so they are shown before you install and
+nothing more.
+
+Read them. An Agent Family whose skills shell out to an engine installed on the
+publisher's host will arrive describing commands your machine does not have.
+
 ## Ontologies
 
 The Marketplace's last tab lists ontologies. These are not listings: they are
@@ -154,6 +195,7 @@ anything else, and the installed filter applies to this tab too.
 ```bash
 enact marketplace list --kind skill --output json
 enact marketplace list --not-installed --output json
+enact marketplace recommend --output json
 enact marketplace get <listing-id> --output json
 enact marketplace install <listing-id> --output json
 

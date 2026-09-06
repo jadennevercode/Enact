@@ -25,6 +25,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/middleware"
 	"github.com/enact-ai/enact/server/internal/runtimeapps"
 	"github.com/enact-ai/enact/server/internal/service"
+	"github.com/enact-ai/enact/server/internal/workspaceprofile"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
@@ -2952,6 +2953,10 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		if ws.Context.Valid {
 			resp.WorkspaceContext = ws.Context.String
 		}
+		// The project profile rides the same read. Rendered here rather than
+		// on the daemon so the section's wording stays a server decision; an
+		// empty profile renders "" and the daemon skips the heading.
+		resp.WorkspaceProfile = workspaceprofile.Brief(workspaceprofile.Parse(ws.Profile))
 	} else {
 		slog.Warn("task claim: failed to load workspace for context injection",
 			"task_id", uuidToString(task.ID),

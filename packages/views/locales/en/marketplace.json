@@ -134,5 +134,21 @@
     "delete": "Delete draft",
     "new_version": "Publish a new version"
   },
-  "not_installed": "Not installed"
+  "not_installed": "Not installed",
+  "recommendations": {
+    "title": "Recommended for this project",
+    "no_profile": "Nothing here is ranked for you yet. Tell Enact what this project is and the directory gets sorted against it.",
+    "describe_project": "Describe this project",
+    "none_matched": "Nothing in the directory matched this project. {{count}} listings were considered.",
+    "not_specific": "Not about this project — published by the deployment",
+    "dismiss": "Not this one",
+    "reason": {
+      "stack": "stack",
+      "work": "work",
+      "domain": "domain",
+      "official": "official",
+      "featured": "featured",
+      "popular": "popular"
+    }
+  }
 }

@@ -284,8 +284,11 @@ var concurrentIndexCleanups = map[string]string{
 	// an interrupted build would not merely slow a query down — the insert
 	// relies on this index to reject a second retrospect on the same issue, so
 	// a broken one would let duplicates through.
-	"443_issue_origin_retrospect_index": "idx_issue_origin_retrospect",
-	"445_agent_resource_resource_index": "idx_agent_resource_resource",
+	"443_issue_origin_retrospect_index":             "idx_issue_origin_retrospect",
+	"445_agent_resource_resource_index":             "idx_agent_resource_resource",
+	"449_issue_origin_workspace_setup_index":        "idx_issue_origin_workspace_setup",
+	"450_issue_origin_repo_analysis_index":          "idx_issue_origin_repo_analysis",
+	"452_marketplace_recommendation_decision_index": "idx_marketplace_recommendation_decision_unique",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

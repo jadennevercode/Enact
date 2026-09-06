@@ -228,6 +228,34 @@ INSERT INTO issue (
     sqlc.narg('origin_type'), sqlc.narg('origin_id'), sqlc.narg('stage'), now(), COALESCE(sqlc.narg('id')::uuid, gen_random_uuid())
 ) RETURNING *;
 
+-- name: ListWorkspaceSetupIssues :many
+-- The setup checklist a workspace opened with: the parent and its steps, found
+-- by origin_type rather than by title. Titles are localized and owner-editable,
+-- so nothing server-side may key off them.
+SELECT * FROM issue
+WHERE workspace_id = $1 AND origin_type = 'workspace_setup'
+ORDER BY number ASC;
+
+-- name: ListActiveIssuesByOriginType :many
+-- The product-filed issues of one kind that have not finished yet. The setup
+-- checklist reads it to distinguish "the repository has not been read" from
+-- "a run is reading it right now", which are the same `done: false` to a
+-- member and very different things to say.
+SELECT * FROM issue
+WHERE workspace_id = $1
+  AND origin_type = $2
+  AND status NOT IN ('done', 'cancelled')
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: CountIssuesByOrigin :one
+-- Whether the product has already filed an issue of this kind against this
+-- origin. Reads the same partial unique indexes the inserts conflict on
+-- (migrations 447 and 448), so a caller can skip the write it knows will be
+-- refused without treating a conflict as a failure.
+SELECT count(*) FROM issue
+WHERE workspace_id = $1 AND origin_type = $2 AND origin_id = $3;
+
 -- name: LockIssueDuplicateKey :exec
 SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0));
 

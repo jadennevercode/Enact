@@ -133,5 +133,21 @@
     "delete": "ドラフトを削除",
     "new_version": "新しいバージョンを公開"
   },
-  "not_installed": "未インストール"
+  "not_installed": "未インストール",
+  "recommendations": {
+    "title": "このプロジェクトへの推奨",
+    "no_profile": "まだあなた向けに並べ替えられていません。このプロジェクトが何かを Enact に伝えると、それを基準にディレクトリが並びます。",
+    "describe_project": "このプロジェクトを説明する",
+    "none_matched": "ディレクトリにこのプロジェクトに合うものはありませんでした。{{count}} 件を検討しました。",
+    "not_specific": "このプロジェクトについてではなく、このデプロイが提供しているものです",
+    "dismiss": "これは不要",
+    "reason": {
+      "stack": "技術スタック",
+      "work": "仕事の種類",
+      "domain": "ドメイン",
+      "official": "公式",
+      "featured": "注目",
+      "popular": "よく使われている"
+    }
+  }
 }

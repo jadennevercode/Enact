@@ -82,6 +82,26 @@ enact workspace member invite teammate@example.com
 enact workspace member invite admin@example.com --role admin
 ```
 
+Read and write the [project profile](/workspace-setup) — what this workspace
+says its project is. Every agent run starts with it, and the Marketplace ranks
+listings against it:
+
+```bash
+enact workspace profile get --output json
+
+enact workspace profile set --json-stdin <<'JSON'
+{
+  "summary": "A logistics control tower for mid-size carriers.",
+  "stack": ["go", "typescript", "postgres"],
+  "typical_work": ["ship_code", "review_code"]
+}
+JSON
+```
+
+`profile set` replaces the whole document, so read the current one first and
+send it back with your changes. `--json-stdin` is required: a bare `set` must
+not be able to clear a profile.
+
 ## Common issue operations
 
 ```bash

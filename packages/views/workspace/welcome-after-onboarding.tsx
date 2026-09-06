@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@enact/core/api";
 import { useAuthStore } from "@enact/core/auth";
-import { issueKeys } from "@enact/core/issues/queries";
 import { useWelcomeStore } from "@enact/core/onboarding";
 import { paths, useCurrentWorkspace } from "@enact/core/paths";
-import type { CreateIssueRequest, Issue } from "@enact/core/types";
+import { findSetupStep, workspaceSetupOptions } from "@enact/core/workspace";
 import { workspaceKeys } from "@enact/core/workspace/queries";
 import { Button } from "@enact/ui/components/ui/button";
 import {
@@ -19,11 +16,6 @@ import {
 } from "@enact/ui/components/ui/dialog";
 import { useT } from "../i18n";
 import { useNavigation } from "../navigation";
-import {
-  INSTALL_RUNTIME_ISSUE_BODY,
-  INSTALL_RUNTIME_ISSUE_TITLE,
-  pickContentLang,
-} from "../onboarding/templates";
 
 /**
  * One-shot welcome experience for users who explicitly skipped runtime
@@ -59,137 +51,48 @@ export function WelcomeAfterOnboarding() {
   );
 }
 
-/**
- * Module-level dedupe keeps React StrictMode double-mounts from racing
- * identical issue or comment creation requests.
- */
-const pendingIssueSeed = new Map<string, Promise<Issue>>();
-
-function seedIssueDeduped(
-  cacheKey: string,
-  body: CreateIssueRequest,
-): Promise<Issue> {
-  const existing = pendingIssueSeed.get(cacheKey);
-  if (existing) return existing;
-
-  const promise = api.createIssue(body);
-  pendingIssueSeed.set(cacheKey, promise);
-  promise
-    .finally(() => {
-      if (pendingIssueSeed.get(cacheKey) === promise) {
-        pendingIssueSeed.delete(cacheKey);
-      }
-    })
-    .catch(() => {});
-  return promise;
-}
-
-interface SkipBundle {
-  installIssueId: string;
-}
-
 interface SkipWelcomeProps {
   workspaceId: string;
   onDismiss: () => void;
 }
 
 /**
- * Provision one focused runtime guide before showing the completion modal.
- * Once a runtime appears, the Runtimes page offers "Start with Mika" and
- * runs the same real bootstrap used by connected onboarding.
+ * The completion modal for a member who skipped runtime setup.
+ *
+ * This used to create the "install a runtime" guide issue itself, from the
+ * browser, and needed a loading state and a retry dialog because that create
+ * could fail — leaving a member with onboarding marked complete, no guide, and
+ * no way back. The server now files that issue as the first step of the setup
+ * checklist, inside the transaction that creates the workspace, so it cannot
+ * be missing. All that is left here is pointing at it.
+ *
+ * Reading the checklist is also what backfills it, so this call is what gives
+ * a workspace created by an older client its issues.
  */
 function SkipWelcome({ workspaceId, onDismiss }: SkipWelcomeProps) {
   const { t, i18n } = useT("onboarding");
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const me = useAuthStore((state) => state.user);
-
-  const [bundle, setBundle] = useState<SkipBundle | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (!me || bundle || failed) return;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const lang = pickContentLang(i18n.language);
-        const installRuntime = await seedIssueDeduped(
-          `${workspaceId}:install-runtime`,
-          {
-            title: INSTALL_RUNTIME_ISSUE_TITLE[lang],
-            description: INSTALL_RUNTIME_ISSUE_BODY[lang],
-            status: "in_progress",
-            priority: "high",
-            assignee_type: "member",
-            assignee_id: me.id,
-          },
-        );
-        void queryClient.invalidateQueries({
-          queryKey: issueKeys.all(workspaceId),
-        });
-        if (!cancelled) {
-          setBundle({ installIssueId: installRuntime.id });
-        }
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bundle, failed, i18n.language, me, queryClient, workspaceId]);
+  const setup = useQuery(workspaceSetupOptions(workspaceId, i18n.resolvedLanguage ?? i18n.language));
 
   if (!me) return null;
 
-  // A failure used to dismiss the surface silently. Nothing recovered it: the
-  // welcome signal is deliberately not persisted, onboarding is already marked
-  // complete, and seedIssueDeduped's cache is one in-flight promise — so a
-  // blip left the member with no guide issue, no message, and no way back.
-  // Retry re-runs the effect (the `failed` guard is what gates it), and
-  // dismissing is now a choice rather than the default.
-  if (failed) {
-    return (
-      <Dialog
-        open={true}
-        modal={true}
-        onOpenChange={(open) => {
-          if (!open) onDismiss();
-        }}
-      >
-        <DialogContent className="max-w-md sm:max-w-md">
-          <DialogTitle className="text-title font-semibold">
-            {t(($) => $.welcome_after_onboarding.skip.error_title)}
-          </DialogTitle>
-          <DialogDescription className="text-body text-muted-foreground">
-            {t(($) => $.welcome_after_onboarding.skip.error_body)}
-          </DialogDescription>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="ghost" onClick={onDismiss}>
-              {t(($) => $.welcome_after_onboarding.skip.dismiss)}
-            </Button>
-            <Button onClick={() => setFailed(false)}>
-              {t(($) => $.welcome_after_onboarding.skip.retry)}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (!bundle) {
-    return (
-      <FullScreenLoading
-        label={t(($) => $.welcome_after_onboarding.skip.loading)}
-      />
-    );
-  }
+  // The modal is worth showing before the checklist read settles: its content
+  // does not depend on it, and only the destination of one button does.
+  const runtimeStep = findSetupStep(setup.data, "runtime");
 
   const handleGotIt = async () => {
     onDismiss();
     const slug = await resolveWorkspaceSlug(queryClient, workspaceId);
-    navigation.push(paths.workspace(slug).issueDetail(bundle.installIssueId));
+    // Falling back to the issue list rather than blocking: the checklist is
+    // there either way, and a member who lands on the list finds it at the
+    // top. Refusing to navigate because one read was slow would be worse.
+    navigation.push(
+      runtimeStep?.issue_id
+        ? paths.workspace(slug).issueDetail(runtimeStep.issue_id)
+        : paths.workspace(slug).issues(),
+    );
   };
 
   return (
@@ -263,17 +166,6 @@ function SkipPreviewCard({
         <p className="mt-1 text-caption text-muted-foreground leading-snug">
           {t(($) => $.welcome_after_onboarding.skip.cards[cardKey].subtitle)}
         </p>
-      </div>
-    </div>
-  );
-}
-
-function FullScreenLoading({ label }: { label: string }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <p className="text-body text-muted-foreground">{label}</p>
       </div>
     </div>
   );

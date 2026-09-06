@@ -88,6 +88,15 @@ export { RUNTIME_PROFILE_PROTOCOL_FAMILIES } from "./agent";
 export type { OntologyCatalogItem, OntologySummary, OntologyDetail } from "./ontology";
 export type { Workspace, WorkspaceMcpServer, Member, MemberRole, User, MemberWithUser, Invitation, ShareLink, ShareLinkInfo } from "./workspace";
 export type {
+  WorkspaceSetup,
+  WorkspaceSetupStep,
+  WorkspaceSetupStepKey,
+  WorkspaceProfile,
+  WorkspaceTypicalWork,
+  UpdateWorkspaceProfileRequest,
+} from "./workspace-setup";
+export { WORKSPACE_TYPICAL_WORK } from "./workspace-setup";
+export type {
   PluginInstallation,
   PluginConfigField,
   PluginConfigFieldType,
@@ -347,6 +356,9 @@ export type {
   MarketplaceFacets,
   MarketplaceCatalog,
   MarketplaceInstall,
+  MarketplaceRecommendation,
+  MarketplaceRecommendationReason,
+  MarketplaceRecommendations,
   MarketplaceSkillManifest,
   MarketplaceMcpManifest,
   MarketplaceAgentSkillRef,
