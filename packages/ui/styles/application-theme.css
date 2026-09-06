@@ -9,7 +9,6 @@
 @import "./primitives.css";
 @import "./features/shell.css";
 @import "./features/issues.css";
-@import "./features/projects.css";
 @import "./features/chat-inbox.css";
 @import "./features/agents-runtimes.css";
 @import "./features/settings.css";

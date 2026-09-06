@@ -117,10 +117,6 @@ const governedComponentPaths = [
   "packages/views/issues/components/comment-input.tsx",
   "packages/views/issues/components/thread-minimap.tsx",
   "apps/desktop/src/renderer/src/components/issue-window.tsx",
-  "packages/views/projects/components/projects-page.tsx",
-  "packages/views/projects/components/project-detail.tsx",
-  "packages/views/projects/components/project-artifacts-page.tsx",
-  "packages/views/projects/components/project-badge.tsx",
   "packages/views/chat/chat-page.tsx",
   "packages/views/chat/floating-chat.tsx",
   "packages/views/chat/components/chat-window.tsx",
@@ -669,27 +665,6 @@ const dynamicStyleAllowlist: Partial<
       description: "runtime horizontal tab scroll mask",
       expectedMatches: 1,
       pattern: /style=\{tabFadeStyle\}/g,
-    },
-  ],
-  "packages/views/projects/components/projects-page.tsx": [
-    {
-      description: "project table column tracks and launcher clearance",
-      expectedMatches: 1,
-      pattern:
-        /style=\{\{\s*\.\.\.columnTrackVars\(isColVisible\),\s*paddingBottom:\s*LIST_GRID_BOTTOM_CLEARANCE,\s*\}\}/g,
-    },
-    {
-      description: "project card grid launcher clearance",
-      expectedMatches: 1,
-      pattern:
-        /style=\{\{\s*paddingBottom:\s*LIST_GRID_BOTTOM_CLEARANCE\s*\}\}/g,
-    },
-  ],
-  "packages/views/projects/components/project-detail.tsx": [
-    {
-      description: "computed project progress width",
-      expectedMatches: 1,
-      pattern: /style=\{\{\s*width:\s*`\$\{pct\}%`\s*\}\}/g,
     },
   ],
   "packages/views/chat/components/chat-message-list.tsx": [
@@ -1280,19 +1255,6 @@ const requiredIssueClasses = [
   ".enact-issue-window",
 ] as const;
 
-const requiredProjectClasses = [
-  ".enact-project-page",
-  ".enact-project-detail",
-  ".enact-project-row",
-  ".enact-project-card",
-  ".enact-project-progress-fill",
-  ".enact-project-batch-toolbar",
-  ".enact-project-status-badge",
-  ".enact-project-artifacts-page",
-  ".enact-project-artifacts-tree",
-  ".enact-project-artifact-entry",
-] as const;
-
 const requiredChatInboxClasses = [
   ".enact-chat-page",
   ".enact-chat-window",
@@ -1578,16 +1540,6 @@ const requiredComponentClasses: Partial<
   "packages/views/issues/components/comment-input.tsx": ["enact-issue-composer"],
   "packages/views/issues/components/thread-minimap.tsx": ["enact-issue-thread-minimap"],
   "apps/desktop/src/renderer/src/components/issue-window.tsx": ["enact-issue-window"],
-  "packages/views/projects/components/projects-page.tsx": ["enact-project-page"],
-  "packages/views/projects/components/project-detail.tsx": ["enact-project-detail"],
-  "packages/views/projects/components/project-artifacts-page.tsx": [
-    "enact-project-artifacts-page",
-    "enact-project-artifacts-tree",
-  ],
-  "packages/views/projects/components/project-badge.tsx": [
-    "enact-project-status-badge",
-    "enact-project-priority-badge",
-  ],
   "packages/views/chat/chat-page.tsx": ["enact-chat-page"],
   "packages/views/chat/components/chat-window.tsx": [
     "enact-chat-window",
@@ -1987,9 +1939,6 @@ describe("visual architecture", () => {
   const issues = stripComments(
     readRepoFile("packages/ui/styles/features/issues.css"),
   );
-  const projects = stripComments(
-    readRepoFile("packages/ui/styles/features/projects.css"),
-  );
   const chatInbox = stripComments(
     readRepoFile("packages/ui/styles/features/chat-inbox.css"),
   );
@@ -2079,18 +2028,12 @@ describe("visual architecture", () => {
     );
   });
 
-  it("defines Task 6 project, chat, and inbox classes and cascade order", () => {
+  it("defines Task 6 chat and inbox classes and cascade order", () => {
     const entry = readRepoFile("packages/ui/styles/application-theme.css");
     expect(entry).toMatch(
-      /@import "\.\/features\/issues\.css";\s*@import "\.\/features\/projects\.css";\s*@import "\.\/features\/chat-inbox\.css";/,
+      /@import "\.\/features\/issues\.css";\s*@import "\.\/features\/chat-inbox\.css";/,
     );
 
-    for (const className of requiredProjectClasses) {
-      const selector = className.replace(".", "\\.");
-      expect(projects, `${className} is missing`).toMatch(
-        new RegExp(`${selector}(?=[\\s,:{\\[])`),
-      );
-    }
     for (const className of requiredChatInboxClasses) {
       const selector = className.replace(".", "\\.");
       expect(chatInbox, `${className} is missing`).toMatch(
@@ -2098,32 +2041,17 @@ describe("visual architecture", () => {
       );
     }
 
-    expect(projects).toMatch(
-      /\.enact-project-row\[data-selected="true"\],[\s\S]*?\.enact-project-row\[data-selected="true"\]:hover[\s\S]*?background-color:\s*var\(--surface-selected\);/,
-    );
     expect(chatInbox).toMatch(
       /\.enact-inbox-row\[data-selected="true"\],[\s\S]*?\.enact-inbox-row\[data-selected="true"\]:hover[\s\S]*?background-color:\s*var\(--surface-selected\);/,
     );
-    expect(projects).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.enact-project-row[\s\S]*?transition:\s*none;/,
-    );
     expect(chatInbox).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.enact-chat-launcher[\s\S]*?transition:\s*none;/,
-    );
-    expect(projects).toMatch(
-      /@media \(forced-colors: active\)[\s\S]*?\.enact-project-row\[data-selected="true"\][\s\S]*?outline:\s*var\(--border-width\) solid Highlight;/,
     );
     expect(chatInbox).toMatch(
       /@media \(forced-colors: active\)[\s\S]*?\.enact-inbox-row\[data-selected="true"\][\s\S]*?outline:\s*var\(--border-width\) solid Highlight;/,
     );
     expect(chatInbox).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.enact-chat-launcher,\s*\.enact-chat-quick-actions,\s*\.enact-chat-queue,[\s\S]*?animation:\s*none;/,
-    );
-    expect(projects).toMatch(
-      /\.enact-project-status-badge\s*\{[^}]*color:\s*var\(--foreground\);/,
-    );
-    expect(projects).toMatch(
-      /\.enact-project-status-dot\[data-status="paused"\]\s*\{[^}]*background-color:\s*var\(--foreground\);/,
     );
     expect(chatInbox).toMatch(
       /\.enact-chat-composer-context-warning\s*\{[^}]*color:\s*var\(--foreground\);/,
@@ -2783,16 +2711,7 @@ describe("visual architecture", () => {
     expect(issueWindow.match(/window\.desktopAPI\.closeWindow\(\)/g)).toHaveLength(3);
   });
 
-  it("preserves Task 6 project, chat, and inbox behavior boundaries", () => {
-    const projectPage = readRepoFile(
-      "packages/views/projects/components/projects-page.tsx",
-    );
-    const projectDetail = readRepoFile(
-      "packages/views/projects/components/project-detail.tsx",
-    );
-    const artifacts = readRepoFile(
-      "packages/views/projects/components/project-artifacts-page.tsx",
-    );
+  it("preserves Task 6 chat and inbox behavior boundaries", () => {
     const chatPage = readRepoFile("packages/views/chat/chat-page.tsx");
     const chatWindow = readRepoFile(
       "packages/views/chat/components/chat-window.tsx",
@@ -2813,22 +2732,6 @@ describe("visual architecture", () => {
       "packages/views/inbox/components/inbox-list-item.tsx",
     );
 
-    expect(projects).toMatch(
-      /\.enact-project-filter-clear\s*\{[^}]*border-radius:\s*var\(--radius-sm\);/,
-    );
-    for (const [priority, token] of [
-      ["urgent", "destructive"],
-      ["high", "warning"],
-      ["medium", "warning"],
-      ["low", "info"],
-      ["none", "muted-foreground"],
-    ] as const) {
-      expect(projects).toMatch(
-        new RegExp(
-          `\\.enact-project-priority-badge\\[data-priority="${priority}"\\][\\s\\S]*?color:\\s*var\\(--${token}\\);`,
-        ),
-      );
-    }
     expect(chatInbox).not.toContain("touch-action");
     for (const [edge, cursor] of [
       ["left", "col-resize"],
@@ -2841,25 +2744,6 @@ describe("visual architecture", () => {
         ),
       );
     }
-
-    expect(projectPage).toMatch(
-      /<ListGridRow[\s\S]*?data-selected=\{selected \? "true" : undefined\}[\s\S]*?\{\.\.\.rowLink\(rowHref, project\.title\)\}[\s\S]*?<CheckboxCell checked=\{selected\} onToggle=\{onToggleSelect\}[\s\S]*?<ListGridCell onClick=\{stopRowNavigation\} onAuxClick=\{stopRowNavigation\}>[\s\S]*?<ProjectStatusBadge[\s\S]*?<ProjectPriorityBadge[\s\S]*?<ProjectLeadPicker[\s\S]*?<span onClick=\{stopRowNavigation\} onAuxClick=\{stopRowNavigation\}[\s\S]*?<ProjectRowActions/,
-    );
-    expect(projectPage).toMatch(
-      /function ProjectBatchToolbar[\s\S]*?if \(rows\.length === 0\) return null;[\s\S]*?createPin\.mutate\(\{ item_type: "project", item_id: p\.id \}\);[\s\S]*?onClear\(\);[\s\S]*?for \(const p of rows\) deleteProject\.mutate\(p\.id\);[\s\S]*?onClear\(\);/,
-    );
-    expect(projectPage).toMatch(
-      /<ProjectTableRow[\s\S]*?selected=\{selectedIds\.has\(project\.id\)\}[\s\S]*?onToggleSelect=\{\(\) => toggleSelected\(project\.id\)\}[\s\S]*?rowHref=\{wsPaths\.projectDetail\(project\.id\)\}[\s\S]*?rowLink=\{rowLink\}[\s\S]*?<ProjectBatchToolbar[\s\S]*?rows=\{selectedProjects\}[\s\S]*?pinnedIds=\{pinnedProjectIds\}[\s\S]*?canDelete=\{isWorkspaceAdmin\}[\s\S]*?onClear=\{\(\) => setSelectedIds\(new Set\(\)\)\}/,
-    );
-    expect(projectPage).toContain("...columnTrackVars(isColVisible)");
-    expect(projectPage.match(/paddingBottom: LIST_GRID_BOTTOM_CLEARANCE/g)).toHaveLength(2);
-    expect(projectDetail).toContain('style={{ width: `${pct}%` }}');
-    expect(artifacts).toMatch(
-      /const \[selectedKey, setSelectedKey\] = useState<string \| null>\(null\);[\s\S]*?const visibleFolders = useMemo\([\s\S]*?filterArtifactFolders\(folders, search\)[\s\S]*?const selected = useMemo\(\(\) => \{[\s\S]*?for \(const folder of folders\)[\s\S]*?\}, \[folders, selectedKey\]\);/,
-    );
-    expect(artifacts).toMatch(
-      /<nav[\s\S]*?enact-project-artifacts-tree[^"]*overflow-y-auto[\s\S]*?<section className="min-w-0 flex-1 overflow-y-auto">/,
-    );
 
     expect(transcript).toMatch(
       /const renderItems: ChatRenderItem\[\] = useMemo\([\s\S]*?items\.push\(\{ key: `task:\$\{pendingTaskId\}`, kind: "live", taskId: pendingTaskId \}\);[\s\S]*?computeItemKey=\{\(_, item\) => item\.key\}/,
@@ -2966,7 +2850,7 @@ describe("visual architecture", () => {
     );
 
     expect(dashboard).toMatch(
-      /dashboardUsageDailyOptions\(wsId, chartFetchDays, projectId, viewTZ\)[\s\S]*?dashboardFailuresByAgentOptions\(wsId, days, projectId, viewTZ\)/,
+      /dashboardUsageDailyOptions\(wsId, chartFetchDays, viewTZ\)[\s\S]*?dashboardFailuresByAgentOptions\(wsId, days, viewTZ\)/,
     );
     expect(leaderboard).toMatch(
       /const metric = SORT_METRIC\[sortBy\];[\s\S]*?metric\(b\) - metric\(a\)/,
@@ -3227,7 +3111,7 @@ describe("visual architecture", () => {
     );
 
     expect(login).toMatch(
-      /const handleEmailLogin = useCallback\([\s\S]*?qc\.setQueryData\(workspaceKeys\.list\(\), wsList\);[\s\S]*?onSuccess\(\);[\s\S]*?const handleCliAuthorize = async \(\) => \{[\s\S]*?redirectToCliCallback\(cliCallback\.url, token, cliCallback\.state\);[\s\S]*?const handleGoogleLogin = \(\) => \{[\s\S]*?onGoogleLogin\(\);/,
+      /const handleEmailAuth = useCallback\([\s\S]*?mode === "register"[\s\S]*?registerWithEmail\(email, password, name\.trim\(\)\)[\s\S]*?loginWithEmail\(email, password\)[\s\S]*?qc\.setQueryData\(workspaceKeys\.list\(\), wsList\);[\s\S]*?onSuccess\(\);[\s\S]*?const handleCliAuthorize = async \(\) => \{[\s\S]*?redirectToCliCallback\(cliCallback\.url, token, cliCallback\.state\);[\s\S]*?const handleGoogleLogin = \(\) => \{[\s\S]*?onGoogleLogin\(\);/,
     );
     expect(stepShell).toMatch(
       /<div className="enact-onboarding-shell">\s*<DragStrip \/>[\s\S]*?<main\s+ref=\{mainRef\}\s+style=\{fadeStyle\}\s+className=\{`enact-onboarding-scroller \$\{STEP_GUTTER\}`\}/,

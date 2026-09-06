@@ -40,7 +40,7 @@ export function InstallStateBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-sky-500/40 text-caption font-medium text-sky-600 dark:text-sky-400",
+          "gap-1 border-info/40 text-caption font-medium text-info",
           className,
         )}
       >
@@ -55,7 +55,7 @@ export function InstallStateBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-emerald-500/40 text-caption font-medium text-emerald-600 dark:text-emerald-400",
+          "gap-1 border-success/40 text-caption font-medium text-success",
           className,
         )}
       >
