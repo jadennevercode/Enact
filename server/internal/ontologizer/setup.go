@@ -163,11 +163,6 @@ func (s *Setup) resolveRuntime(ctx context.Context, cfg Config, opts SetupOption
 		if dir != managed {
 			return "", "", fmt.Errorf("%s is not an Ontologizer checkout (missing .claude-plugin/plugin.json)", dir)
 		}
-		if repo == "" {
-			return "", "", fmt.Errorf(
-				"no Ontologizer checkout found at %s and no clone URL configured — "+
-					"point setup at your working copy with --runtime-dir <path>, or pass --repo <url> once a remote exists", dir)
-		}
 		s.stepBanner("Cloning Ontologizer")
 		if err := s.Exec(ctx, "", s.Out, s.ErrOut, "git", "clone", "--branch", ref, repo, dir); err != nil {
 			return "", "", fmt.Errorf("clone %s: %w", repo, err)

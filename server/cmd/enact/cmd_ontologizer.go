@@ -40,8 +40,8 @@ var ontologizerSetupCmd = &cobra.Command{
 	Short: "Provision the Ontologizer checkout on this daemon host in one step",
 	Long: `Provisions everything an agent needs to run ontology construction on this host:
 
-  1. adopts an existing checkout via --runtime-dir, or clones into
-     ~/.enact/ontologizer when a --repo is configured
+  1. adopts an existing checkout via --runtime-dir, or clones the upstream
+     repository into ~/.enact/ontologizer
   2. registers the Claude Code plugin (claude plugin marketplace add +
      claude plugin install ontologizer@ontologizer)
   3. runs the checkout's own three health scripts as the readiness check —
@@ -81,7 +81,7 @@ var ontologizerSkillImportCmd = &cobra.Command{
 func init() {
 	ontologizerSetupCmd.Flags().String("runtime-dir", "", "Adopt an existing Ontologizer checkout instead of cloning into ~/.enact/ontologizer")
 	ontologizerSetupCmd.Flags().String("ref", "", "Git ref to track (default: persisted pin, then main)")
-	ontologizerSetupCmd.Flags().String("repo", "", "Clone URL used when no checkout exists yet")
+	ontologizerSetupCmd.Flags().String("repo", "", "Clone URL used when no checkout exists yet (default: "+ontologizer.DefaultRuntimeGitURL+")")
 	ontologizerSetupCmd.Flags().Bool("skip-checks", false, "Skip doctor.py, check_suite.py and selftest.py")
 	ontologizerSetupCmd.Flags().Bool("import-skills", false, "Also import the ontologizer:* skills into the current workspace for UI visibility (claude runtimes load plugin skills natively without this)")
 	ontologizerSetupCmd.Flags().String("runtime-id", "", "Runtime that exposes the skills when --import-skills is set")

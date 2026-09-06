@@ -18,12 +18,9 @@ import (
 )
 
 const (
-	// DefaultRuntimeGitURL is empty on purpose: Ontologizer has no published
-	// remote yet, and inventing one would turn "you have not told me where the
-	// checkout is" into an opaque git clone failure. Adoption via
-	// --runtime-dir is the supported path until a remote exists; --repo takes
-	// one for the day it does.
-	DefaultRuntimeGitURL = ""
+	// DefaultRuntimeGitURL is the upstream Ontologizer repository, cloned when
+	// setup finds no checkout and no --runtime-dir; --repo overrides it.
+	DefaultRuntimeGitURL = "https://github.com/jadennevercode/Ontologizer-Skill.git"
 	// DefaultRuntimeRef is the ref tracked when none is pinned explicitly.
 	DefaultRuntimeRef = "main"
 

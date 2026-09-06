@@ -154,21 +154,16 @@ func TestSetupAdoptsExistingCheckoutWithoutCloning(t *testing.T) {
 	}
 }
 
-func TestSetupRefusesToCloneWithoutARemote(t *testing.T) {
+func TestSetupClonesTheUpstreamByDefault(t *testing.T) {
 	host := newFakeHost(t)
 
 	s := host.setup()
-	err := s.Run(context.Background(), SetupOptions{})
-	if err == nil {
-		t.Fatal("setup should fail when there is no checkout and no clone URL")
+	if err := s.Run(context.Background(), SetupOptions{}); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
-	// The point of the error is that it names the fix. Ontologizer has no
-	// published remote, so a bare git failure would be a riddle.
-	if !strings.Contains(err.Error(), "--runtime-dir") {
-		t.Errorf("error should point at --runtime-dir, got: %v", err)
-	}
-	if host.hasCommandPrefix("git clone") {
-		t.Error("nothing should have been cloned")
+	want := "git clone --branch " + DefaultRuntimeRef + " " + DefaultRuntimeGitURL
+	if !host.hasCommandPrefix(want) {
+		t.Errorf("with no checkout and no --repo, setup should clone the upstream: %v", host.commandStrings())
 	}
 }
 
