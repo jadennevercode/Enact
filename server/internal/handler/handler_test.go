@@ -90,9 +90,23 @@ func TestMain(m *testing.M) {
 	}
 	dbfx = testutil.New(pool, testWorkspaceID, testUserID)
 
+	// The marketplace tables carry no foreign keys, so dropping the fixture
+	// workspace does not take its listings with it: a publish fixture that
+	// fails to remove its own rows leaves them in the developer's database,
+	// public and visible in every workspace's Marketplace. That is how ~200
+	// mp-* listings accumulated before this check existed.
+	before := marketplaceRowCount(ctx, pool)
+
 	code := m.Run()
 	if err := cleanupHandlerTestFixture(context.Background(), pool); err != nil {
 		fmt.Printf("Failed to clean up handler test fixture: %v\n", err)
+		if code == 0 {
+			code = 1
+		}
+	}
+	if after := marketplaceRowCount(context.Background(), pool); after != before {
+		fmt.Printf("marketplace fixtures leaked rows: %d before, %d after\n", before, after)
+		fmt.Printf("a cleanup registered with t.Cleanup must use context.Background(); t.Context() is cancelled before cleanups run\n")
 		if code == 0 {
 			code = 1
 		}
@@ -165,6 +179,36 @@ func setupHandlerTestFixture(ctx context.Context, pool *pgxpool.Pool) (string, s
 	}
 
 	return userID, workspaceID, nil
+}
+
+// marketplaceRowCount totals the four marketplace tables, ignoring the catalog
+// workspace. The product's own listings are seeded and re-seeded by tests in
+// cmd/server, which `go test ./...` runs in parallel with this package — their
+// rows appearing or vanishing mid-run says nothing about whether a fixture here
+// cleaned up after itself.
+//
+// It reports -1 rather than failing the suite when the query errors: a database
+// that cannot answer it has already broken every test that matters.
+func marketplaceRowCount(ctx context.Context, pool *pgxpool.Pool) int64 {
+	var total int64
+	if err := pool.QueryRow(ctx, `
+		WITH catalog AS (SELECT id FROM workspace WHERE slug = 'enact'),
+		     listings AS (
+		         SELECT id FROM marketplace_listing
+		         WHERE workspace_id NOT IN (SELECT id FROM catalog)
+		     )
+		SELECT (SELECT count(*) FROM listings)
+		     + (SELECT count(*) FROM marketplace_listing_version
+		        WHERE listing_id IN (SELECT id FROM listings))
+		     + (SELECT count(*) FROM marketplace_listing_file
+		        WHERE version_id IN (SELECT v.id FROM marketplace_listing_version v
+		                             WHERE v.listing_id IN (SELECT id FROM listings)))
+		     + (SELECT count(*) FROM marketplace_install
+		        WHERE listing_id IN (SELECT id FROM listings))
+	`).Scan(&total); err != nil {
+		return -1
+	}
+	return total
 }
 
 func cleanupHandlerTestFixture(ctx context.Context, pool *pgxpool.Pool) error {

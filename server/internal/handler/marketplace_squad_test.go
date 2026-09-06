@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -38,11 +39,11 @@ func consumerRuntime(t *testing.T, consumer, name string) string {
 func cleanupMarketplaceListing(t *testing.T, listingID string) {
 	t.Helper()
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_file WHERE version_id IN
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_file WHERE version_id IN
 			(SELECT id FROM marketplace_listing_version WHERE listing_id = $1)`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
-		testPool.Exec(t.Context(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing_version WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_install WHERE listing_id = $1`, listingID)
+		testPool.Exec(context.Background(), `DELETE FROM marketplace_listing WHERE id = $1`, listingID)
 	})
 }
 
@@ -51,14 +52,14 @@ func cleanupMarketplaceListing(t *testing.T, listingID string) {
 func cleanupConsumerEntities(t *testing.T, consumer string) {
 	t.Helper()
 	t.Cleanup(func() {
-		testPool.Exec(t.Context(), `DELETE FROM squad_member WHERE squad_id IN (SELECT id FROM squad WHERE workspace_id = $1)`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM squad WHERE workspace_id = $1`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM agent_skill WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM agent_mcp_server WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM workspace_mcp_server WHERE workspace_id = $1`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM skill_file WHERE skill_id IN (SELECT id FROM skill WHERE workspace_id = $1)`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM skill WHERE workspace_id = $1`, consumer)
-		testPool.Exec(t.Context(), `DELETE FROM agent WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM squad_member WHERE squad_id IN (SELECT id FROM squad WHERE workspace_id = $1)`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM squad WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM agent_skill WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM agent_mcp_server WHERE agent_id IN (SELECT id FROM agent WHERE workspace_id = $1)`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM workspace_mcp_server WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM skill_file WHERE skill_id IN (SELECT id FROM skill WHERE workspace_id = $1)`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM skill WHERE workspace_id = $1`, consumer)
+		testPool.Exec(context.Background(), `DELETE FROM agent WHERE workspace_id = $1`, consumer)
 	})
 }
 
