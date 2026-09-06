@@ -170,7 +170,7 @@ func (h *Handler) StartMikaOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to start Mika onboarding: "+err.Error())
+		writeError(w, http.StatusInternalServerError, "failed to start Enact onboarding: "+err.Error())
 		return
 	}
 

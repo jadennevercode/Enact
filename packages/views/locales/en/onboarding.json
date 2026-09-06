@@ -11,7 +11,7 @@
       "description": "Name it and pick its URL."
     },
     "runtime": {
-      "label": "Meet Mika",
+      "label": "Meet Enact",
       "description": "Your first agent teammate, and where it runs."
     }
   },
@@ -142,7 +142,7 @@
     "skip": {
       "loading": "Setting up your workspace…",
       "title": "Welcome to Enact!",
-      "subtitle": "We've added one issue to help you connect a runtime. When it's ready, start with Mika from Runtimes.",
+      "subtitle": "We've added one issue to help you connect a runtime. When it's ready, start with Enact from Runtimes.",
       "got_it": "Got it",
       "status_in_progress": "In progress",
       "error_title": "We couldn't set that up",
@@ -152,7 +152,7 @@
       "cards": {
         "install_runtime": {
           "title": "Connect a runtime",
-          "subtitle": "Install Codex or Kimi, then start the guided Mika chat from Runtimes."
+          "subtitle": "Install Codex or Kimi, then start the guided Enact chat from Runtimes."
         }
       }
     }
@@ -202,7 +202,7 @@
     "scanning_headline": "Connecting this computer…",
     "scanning_lede_prefix": "Your agent works through an AI coding tool you already have — like ",
     "scanning_lede_suffix": ", and others. We're checking this computer for ones you've installed.",
-    "found_headline": "Where should Mika run?",
+    "found_headline": "Where should Enact run?",
     "found_lede": "These are the agent runtimes we found on this computer. You can switch it or add more later.",
     "runtime_count_one": "{{count}} agent runtime",
     "runtime_count_other": "{{count}} agent runtimes",
@@ -224,15 +224,15 @@
     "refresh": "Refresh",
     "refreshing": "Refreshing…",
     "hint_selected": "Selected: {{name}}",
-    "hint_pick": "Pick an agent runtime above to start with Mika.",
+    "hint_pick": "Pick an agent runtime above to start with Enact.",
     "hint_waiting": "Waiting for the first result…",
     "hint_skip_or_refresh": "Refresh after installing one, or skip to enter your workspace.",
-    "continue": "Start with Mika"
+    "continue": "Start with Enact"
   },
   "step_platform": {
     "eyebrow": "Connect a computer",
     "headline": "Connect a computer to run your agent.",
-    "lede": "Mika, your workspace's Chief of Staff, runs on a real computer that you connect to Enact. Pick how you want to connect one.",
+    "lede": "Enact, your workspace's Chief of Staff, runs on a real computer that you connect to Enact. Pick how you want to connect one.",
     "hint_default": "Pick a way to connect — or skip and connect a computer later.",
     "download_title": "Use this computer",
     "download_subtitle": "Install our desktop app to connect this computer. Opens in a new tab — pick your platform there.",
@@ -262,12 +262,12 @@
   },
   "errors": {
     "skip_failed": "Failed to finish onboarding",
-    "mika_setup_failed": "Couldn't start your Mika workspace"
+    "mika_setup_failed": "Couldn't start your Enact workspace"
   },
   "mika_intro": {
-    "headline": "Meet Mika, your first agent teammate.",
-    "name": "Mika",
+    "headline": "Meet Enact, your first agent teammate.",
+    "name": "Enact",
     "role": "Chief of Staff",
-    "blurb": "Tell Mika what you want done. It becomes an issue, with the right agent on it."
+    "blurb": "Tell Enact what you want done. It becomes an issue, with the right agent on it."
   }
 }

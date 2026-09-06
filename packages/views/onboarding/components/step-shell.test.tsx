@@ -145,7 +145,7 @@ describe("onboarding step shell", () => {
     expect(ONBOARDING_CSS).toMatch(
       /@media \(min-width: 768px\)[\s\S]*?\.enact-onboarding-compact-progress\s*\{[^}]*display:\s*none;[\s\S]*?\.enact-onboarding-sidebar\s*\{[^}]*display:\s*block;/,
     );
-    expect(compact.textContent).toContain("Meet Mika");
+    expect(compact.textContent).toContain("Meet Enact");
     expect(compact.querySelector("button")).not.toBeNull();
   });
 
@@ -183,7 +183,7 @@ describe("onboarding progress rail", () => {
     const rail = within(container.querySelector("aside")!);
     expect(rail.getByText("About you")).toBeInTheDocument();
     expect(rail.getByText("Workspace")).toBeInTheDocument();
-    expect(rail.getByText("Meet Mika")).toBeInTheDocument();
+    expect(rail.getByText("Meet Enact")).toBeInTheDocument();
   });
 
   it("marks the current step for assistive tech", () => {

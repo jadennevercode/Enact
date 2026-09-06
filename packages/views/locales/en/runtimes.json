@@ -28,12 +28,12 @@
     }
   },
   "mika_setup": {
-    "title": "Your runtime is ready. Start with Mika.",
-    "description": "Mika turns your goal into an issue, coordinates the right agent, and helps you add reusable specialists when your workflow needs them.",
-    "action": "Start with Mika",
-    "failed": "Couldn't start Mika",
-    "dialog_title": "Where should Mika run?",
-    "dialog_description": "Pick the runtime Mika will use. You can change it later in settings.",
+    "title": "Your runtime is ready. Start with Enact.",
+    "description": "Enact turns your goal into an issue, coordinates the right agent, and helps you add reusable specialists when your workflow needs them.",
+    "action": "Start with Enact",
+    "failed": "Couldn't start Enact",
+    "dialog_title": "Where should Enact run?",
+    "dialog_description": "Pick the runtime Enact will use. You can change it later in settings.",
     "cancel": "Cancel"
   },
   "machine": {

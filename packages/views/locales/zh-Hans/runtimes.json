@@ -28,12 +28,12 @@
     }
   },
   "mika_setup": {
-    "title": "运行时已准备好，和 Mika 开始。",
-    "description": "Mika 会把你的目标转化为任务、协调合适的智能体，并在工作流需要时帮你添加可复用的 specialist。",
-    "action": "和 Mika 开始",
-    "failed": "无法启动 Mika",
-    "dialog_title": "让 Mika 在哪台电脑上运行？",
-    "dialog_description": "选择 Mika 使用的运行时。之后可以在设置里更改。",
+    "title": "运行时已准备好，和 Enact 开始。",
+    "description": "Enact 会把你的目标转化为任务、协调合适的智能体，并在工作流需要时帮你添加可复用的 specialist。",
+    "action": "和 Enact 开始",
+    "failed": "无法启动 Enact",
+    "dialog_title": "让 Enact 在哪台电脑上运行？",
+    "dialog_description": "选择 Enact 使用的运行时。之后可以在设置里更改。",
     "cancel": "取消"
   },
   "machine": {

@@ -25,10 +25,10 @@ export interface MikaOnboardingDefinition {
  * in the language they are currently using.
  */
 const MIKA_CHAT_TITLE: LocalizedText = {
-  en: "Getting started with Mika",
-  zh: "和 Mika 开始",
-  ko: "Mika와 시작하기",
-  ja: "Mika と始める",
+  en: "Getting started with Enact",
+  zh: "和 Enact 开始",
+  ko: "Enact와 시작하기",
+  ja: "Enact と始める",
 };
 
 export function getMikaOnboarding(

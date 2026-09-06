@@ -112,7 +112,7 @@ enact agent copy <source-agent-id> --runtime-id <target> --model <model>  # cros
 ## System agents are not created through this path
 
 Two agents in a workspace carry a `system_key` and a product-owned instruction
-layer: **Mika** (`mika`) and the **Retrospect Agent** (`retrospect`). Neither can
+layer: **Enact** (`mika`) and the **Retrospect Agent** (`retrospect`). Neither can
 be produced by `agent create` — `CreateAgentRequest` accepts neither `kind` nor
 `system_key`, deliberately, so a client cannot mint an agent that claims the
 system instruction layer. Each has its own endpoint: `POST /api/agents/mika` and
@@ -391,7 +391,7 @@ State-changing (require an explicit instruction — do not run speculatively):
   unknown provider-level literal is — model-specific gaps fail at run time.
 - "`set` and `add` are interchangeable for skills." `set` replaces all
   bindings; using it when you meant `add` silently removes capabilities.
-- "`agent create` can produce Mika or the Retrospect Agent." It cannot —
+- "`agent create` can produce Enact or the Retrospect Agent." It cannot —
   `system_key` is not an accepted field. Use the dedicated endpoint; it is
   idempotent per workspace and returns the existing agent, archived or not.
 

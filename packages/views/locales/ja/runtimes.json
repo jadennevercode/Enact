@@ -28,12 +28,12 @@
     }
   },
   "mika_setup": {
-    "title": "ランタイムの準備ができました。Mika と始めましょう。",
-    "description": "Mika は目標をタスクに落とし込み、適切なエージェントを調整し、ワークフローに必要な再利用可能な specialist の追加を支援します。",
-    "action": "Mika と始める",
-    "failed": "Mika を開始できませんでした",
-    "dialog_title": "Mika をどこで実行しますか？",
-    "dialog_description": "Mika が使うランタイムを選んでください。後から設定で変更できます。",
+    "title": "ランタイムの準備ができました。Enact と始めましょう。",
+    "description": "Enact は目標をタスクに落とし込み、適切なエージェントを調整し、ワークフローに必要な再利用可能な specialist の追加を支援します。",
+    "action": "Enact と始める",
+    "failed": "Enact を開始できませんでした",
+    "dialog_title": "Enact をどこで実行しますか？",
+    "dialog_description": "Enact が使うランタイムを選んでください。後から設定で変更できます。",
     "cancel": "キャンセル"
   },
   "machine": {
