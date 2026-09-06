@@ -70,6 +70,16 @@ test.describe("Marketplace", () => {
       await page.goto(`/${slug}/marketplace`);
       await waitForPageText(page, LISTING_NAME);
 
+      // The directory is a place to install from, not to publish to: this
+      // workspace owns the listing it is looking at and is still offered
+      // nothing that would publish another.
+      await expect(
+        page.getByRole("button", { name: "Publish", exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Published by us" }),
+      ).toHaveCount(0);
+
       // The card carries the publisher and version, which is what a reader
       // decides on before opening anything.
       await expect(page.getByText("1.0.0", { exact: false }).first()).toBeVisible();
@@ -202,7 +212,11 @@ test.describe("Marketplace", () => {
     }
   });
 
-  test("a listing's own workspace can take it down", async ({ page }) => {
+  // Taking a listing down is a server action with no button behind it while
+  // Marketplace publishing is hidden, so the take-down happens over the API and
+  // what is driven through the UI is the part still on screen: what a removed
+  // listing looks like to the workspace that published it.
+  test("a taken-down listing stops offering the install", async ({ page }) => {
     const { api, slug } = await loginToWorkspace(page);
 
     try {
@@ -219,11 +233,12 @@ test.describe("Marketplace", () => {
         version: "1.0.0",
       });
 
+      await api.updateMarketplaceListing(published.listing.id, {
+        status: "removed",
+      });
+
       await page.goto(`/${slug}/marketplace/${published.listing.id}`);
       await waitForPageText(page, `${LISTING_NAME} Takedown`);
-
-      await page.getByRole("button", { name: "Manage listing" }).click();
-      await page.getByRole("menuitem", { name: "Take down" }).click();
 
       // A taken-down listing keeps its page for the publisher — the row
       // survives so install records still name something — but stops offering

@@ -52,7 +52,10 @@ import { ActorAvatar as ActorAvatarBase } from "@enact/ui/components/common/acto
 import { ActorAvatar } from "../../common/actor-avatar";
 import { AvatarUploadControl } from "../../common/avatar-upload-control";
 import { ContentEditor } from "../../editor/content-editor";
-import { PublishDialog } from "../../marketplace";
+import {
+  MARKETPLACE_PUBLISHING_ENABLED,
+  PublishDialog,
+} from "../../marketplace";
 import {
   PickerItem,
   PickerSection,
@@ -215,10 +218,12 @@ export function SquadDetailPage() {
         actions={
           canManage ? (
             <>
-              <Button size="sm" variant="ghost" onClick={() => setPublishOpen(true)}>
-                <Upload className="size-3.5 mr-1" />
-                {tMarketplace(($) => $.publish.action)}
-              </Button>
+              {MARKETPLACE_PUBLISHING_ENABLED ? (
+                <Button size="sm" variant="ghost" onClick={() => setPublishOpen(true)}>
+                  <Upload className="size-3.5 mr-1" />
+                  {tMarketplace(($) => $.publish.action)}
+                </Button>
+              ) : null}
               <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirmArchive(true)}>
                 <Trash2 className="size-3.5 mr-1" />
                 {t(($) => $.inspector.archive_button)}
@@ -261,16 +266,18 @@ export function SquadDetailPage() {
         />
       </div>
 
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        defaultKind="squad"
-        defaultSourceId={squadId}
-        onPublished={(listingId) => {
-          setPublishOpen(false);
-          push(p.marketplaceListing(listingId));
-        }}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind="squad"
+          defaultSourceId={squadId}
+          onPublished={(listingId) => {
+            setPublishOpen(false);
+            push(p.marketplaceListing(listingId));
+          }}
+        />
+      ) : null}
 
       {showAddMember && (
         <AddMemberDialog

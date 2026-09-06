@@ -29,6 +29,9 @@ const TEST_RESOURCES = { en: { common: enCommon, agents: enAgents } };
 // tests from having to stand up the three list queries the form loads.
 vi.mock("../../marketplace", () => ({
   PublishDialog: () => null,
+  // Matches the shipped value: publishing is hidden, so these suites assert the
+  // page as a user sees it today.
+  MARKETPLACE_PUBLISHING_ENABLED: false,
 }));
 
 vi.mock("./agent-overview-pane", () => ({

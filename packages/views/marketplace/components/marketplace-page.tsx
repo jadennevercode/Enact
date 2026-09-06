@@ -29,6 +29,7 @@ import {
   tabAsKind,
   type MarketplaceTab,
 } from "../lib/kind";
+import { MARKETPLACE_PUBLISHING_ENABLED } from "../lib/publishing";
 import { InstalledFilterChips } from "./installed-filter-chips";
 import { MarketplaceCard } from "./marketplace-card";
 import { OntologyTab } from "./ontology-tab";
@@ -117,11 +118,13 @@ export function MarketplacePage() {
         title={t(($) => $.title)}
         description={t(($) => $.description)}
         actions={
-          <CollectionPageHeaderAction
-            icon={Upload}
-            label={t(($) => $.publish.action)}
-            onClick={() => setPublishOpen(true)}
-          />
+          MARKETPLACE_PUBLISHING_ENABLED ? (
+            <CollectionPageHeaderAction
+              icon={Upload}
+              label={t(($) => $.publish.action)}
+              onClick={() => setPublishOpen(true)}
+            />
+          ) : null
         }
       />
 
@@ -186,7 +189,7 @@ export function MarketplacePage() {
               counts={installedCounts}
               onChange={setInstalledFilter}
             />
-            {kind !== null ? (
+            {MARKETPLACE_PUBLISHING_ENABLED && kind !== null ? (
               <Button
                 type="button"
                 size="sm"
@@ -286,15 +289,17 @@ export function MarketplacePage() {
         </div>
       </div>
 
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        defaultKind={kind ?? "skill"}
-        onPublished={(listingId) => {
-          setPublishOpen(false);
-          push(paths.marketplaceListing(listingId));
-        }}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind={kind ?? "skill"}
+          onPublished={(listingId) => {
+            setPublishOpen(false);
+            push(paths.marketplaceListing(listingId));
+          }}
+        />
+      ) : null}
 
       {catalogQuery.isFetching && !catalogQuery.isPending ? (
         <span className="pointer-events-none fixed bottom-4 right-4 flex items-center gap-1.5 rounded-md bg-surface-raised px-2 py-1 text-caption text-muted-foreground shadow-sm">

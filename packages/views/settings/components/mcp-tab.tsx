@@ -28,7 +28,10 @@ import type { WorkspaceMcpServer } from "@enact/core/types";
 import { McpServerDialog } from "../../agents/components/tabs/mcp-server-dialog";
 import type { ManagedMcpServer } from "../../agents/components/tabs/mcp-config-model";
 import { useT } from "../../i18n";
-import { PublishDialog } from "../../marketplace";
+import {
+  MARKETPLACE_PUBLISHING_ENABLED,
+  PublishDialog,
+} from "../../marketplace";
 import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
 
 /**
@@ -235,15 +238,17 @@ export function McpTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <PublishDialog
-        open={publishServerId !== null}
-        onOpenChange={(open) => {
-          if (!open) setPublishServerId(null);
-        }}
-        defaultKind="mcp"
-        defaultSourceId={publishServerId ?? undefined}
-        onPublished={() => setPublishServerId(null)}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishServerId !== null}
+          onOpenChange={(open) => {
+            if (!open) setPublishServerId(null);
+          }}
+          defaultKind="mcp"
+          defaultSourceId={publishServerId ?? undefined}
+          onPublished={() => setPublishServerId(null)}
+        />
+      ) : null}
     </SettingsTab>
   );
 }
@@ -278,14 +283,16 @@ function McpServerRow({
       </div>
       {canManage ? (
         <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onPublish}
-            aria-label={tMarketplace(($) => $.publish.action)}
-          >
-            <Upload className="h-4 w-4" />
-          </Button>
+          {MARKETPLACE_PUBLISHING_ENABLED ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onPublish}
+              aria-label={tMarketplace(($) => $.publish.action)}
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="icon"

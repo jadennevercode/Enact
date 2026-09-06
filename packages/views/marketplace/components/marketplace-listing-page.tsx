@@ -50,6 +50,7 @@ import { RichContent } from "../../rich-content";
 import { CollectionPageState } from "../../layout/collection-page";
 import { useT, useTimeAgo } from "../../i18n";
 import { marketplaceKindIcon, marketplaceKindTone } from "../lib/kind";
+import { MARKETPLACE_PUBLISHING_ENABLED } from "../lib/publishing";
 import { InstallDialog } from "./install-dialog";
 import { InstallStateBadge } from "./install-state-badge";
 import { ListingFiles } from "./listing-files";
@@ -216,7 +217,7 @@ export function MarketplaceListingPage({ listingId }: MarketplaceListingPageProp
                 </Button>
               ) : null}
 
-              {listing.can_manage ? (
+              {MARKETPLACE_PUBLISHING_ENABLED && listing.can_manage ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
@@ -366,15 +367,17 @@ export function MarketplaceListingPage({ listingId }: MarketplaceListingPageProp
         />
       ) : null}
 
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        defaultKind={kind}
-        onPublished={() => {
-          setPublishOpen(false);
-          setVersionId(undefined);
-        }}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind={kind}
+          onPublished={() => {
+            setPublishOpen(false);
+            setVersionId(undefined);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

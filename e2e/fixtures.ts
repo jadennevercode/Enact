@@ -472,6 +472,17 @@ export class TestApiClient {
     };
   }
 
+  async updateMarketplaceListing(listingId: string, body: Record<string, unknown>) {
+    const res = await this.authedFetch(`/api/marketplace/listings/${listingId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`update listing failed: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
+  }
+
   /**
    * Seeds a runtime row directly.
    *

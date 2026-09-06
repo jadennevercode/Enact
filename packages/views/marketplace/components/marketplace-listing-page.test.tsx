@@ -65,6 +65,17 @@ vi.mock("./install-dialog", () => ({ InstallDialog: () => null }));
 vi.mock("./publish-dialog", () => ({ PublishDialog: () => null }));
 vi.mock("./listing-files", () => ({ ListingFiles: () => null }));
 
+// Publishing is hidden in the shipped build. The manage-menu tests below cover
+// a named regression in how those items dispatch, which outlives the current
+// visibility decision — so they set the switch themselves rather than being
+// deleted along with the button.
+const publishingRef = vi.hoisted(() => ({ enabled: false }));
+vi.mock("../lib/publishing", () => ({
+  get MARKETPLACE_PUBLISHING_ENABLED() {
+    return publishingRef.enabled;
+  },
+}));
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MarketplaceListingPage } from "./marketplace-listing-page";
 
@@ -130,6 +141,7 @@ describe("MarketplaceListingPage", () => {
     vi.clearAllMocks();
     listingRef.current = makeListing();
     fileRef.current = { content: "" };
+    publishingRef.enabled = false;
   });
 
   // Base UI menus render into a portal on document.body; leftovers would
@@ -139,11 +151,24 @@ describe("MarketplaceListingPage", () => {
     document.body.innerHTML = "";
   });
 
+  it("offers no way to manage a listing you published", async () => {
+    render(<MarketplaceListingPage listingId="listing-1" />, { wrapper: Wrapper });
+
+    await screen.findByRole("heading", { name: "Review Checklist" });
+
+    // can_manage is true on the fixture: the menu is absent because publishing
+    // is switched off, not because this workspace lacks the right.
+    expect(
+      screen.queryByRole("button", { name: "Manage listing" }),
+    ).not.toBeInTheDocument();
+  });
+
   // Regression: these items were written with Radix's `onSelect`, which Base UI
   // does not implement. React forwarded it to the DOM, where onSelect only
   // fires on text selection — so every Manage-listing action was inert and the
   // publisher's click did nothing at all.
   it("takes a listing down when the menu item is clicked", async () => {
+    publishingRef.enabled = true;
     render(<MarketplaceListingPage listingId="listing-1" />, { wrapper: Wrapper });
 
     await screen.findByRole("heading", { name: "Review Checklist" });
@@ -160,6 +185,7 @@ describe("MarketplaceListingPage", () => {
   });
 
   it("deprecates a listing when the menu item is clicked", async () => {
+    publishingRef.enabled = true;
     render(<MarketplaceListingPage listingId="listing-1" />, { wrapper: Wrapper });
 
     await screen.findByRole("heading", { name: "Review Checklist" });

@@ -65,7 +65,10 @@ import { VisibilityBadge } from "./visibility-badge";
 import { AgentOverviewPane, type DetailTab } from "./agent-overview-pane";
 import { ExpandableDescription } from "../../common/expandable-description";
 import { useT, useTimeAgo } from "../../i18n";
-import { PublishDialog } from "../../marketplace";
+import {
+  MARKETPLACE_PUBLISHING_ENABLED,
+  PublishDialog,
+} from "../../marketplace";
 
 interface AgentDetailPageProps {
   agentId: string;
@@ -358,7 +361,9 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
           agent.system_key ? undefined : () => setConfirmArchive(true)
         }
         onPublish={
-          agent.system_key || !canEdit.allowed
+          !MARKETPLACE_PUBLISHING_ENABLED ||
+          agent.system_key ||
+          !canEdit.allowed
             ? undefined
             : () => setPublishOpen(true)
         }
@@ -427,16 +432,18 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
         />
       </div>
 
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        defaultKind="agent"
-        defaultSourceId={agentId}
-        onPublished={(listingId) => {
-          setPublishOpen(false);
-          navigation.push(paths.marketplaceListing(listingId));
-        }}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind="agent"
+          defaultSourceId={agentId}
+          onPublished={(listingId) => {
+            setPublishOpen(false);
+            navigation.push(paths.marketplaceListing(listingId));
+          }}
+        />
+      ) : null}
 
       {confirmArchive && (
         <Dialog

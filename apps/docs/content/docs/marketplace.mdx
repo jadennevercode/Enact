@@ -5,10 +5,27 @@ description: Publish a skill, agent template, Agent Family, or MCP server so oth
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-The Marketplace is a directory of capability that workspaces in your deployment
-have published: [skills](/skills), agent templates, Agent Families, and MCP
-server entries. Installing one puts a **copy** in your own workspace, which you
-then edit like anything you wrote yourself.
+The Marketplace is a directory of capability you can install: [skills](/skills),
+agent templates, Agent Families, and MCP server entries. Installing one puts a
+**copy** in your own workspace, which you then edit like anything you wrote
+yourself.
+
+<Callout>
+Publishing is currently curated. The directory is filled by your deployment —
+the AI-SDLC delivery system ships in it — and
+the publish and manage actions are not shown in the app. The API still accepts a
+publish from a workspace owner or admin, which is how the deployment's own
+listings get there.
+</Callout>
+
+## What ships in it
+
+| Listing | What it is |
+|---|---|
+| **AI-SDLC Delivery** | An Agent Family of nine roles — intake, explore, contract, build, QA, release, operate, learn, and the orchestrator that judges across records — with the ten `sdlc-*` skills they run on |
+
+Each member agent and each skill is also listed on its own, for a team that
+wants one piece rather than the whole family.
 
 Every item in the directory is labelled **Installed** or **Not installed** for
 your workspace, and you can filter by either. An Agent Family that you already
@@ -35,11 +52,12 @@ stores the result. That is what makes the redaction trustworthy.
 
 ## Publishing
 
-Open the Marketplace from the sidebar and choose **Publish**, or use the publish
-action on a skill's page, an agent's menu, an Agent Family's page, or a row in
-**Settings → MCP**.
+The publish and manage actions are not shown in the app while the directory is
+curated. What follows describes the publish the API still performs — it is what
+the deployment's own catalog goes through, and what returns to the UI when
+publishing opens up.
 
-You choose two things beyond the metadata:
+A publish chooses two things beyond the metadata:
 
 - **Who can see it.** `This workspace only` is an internal team library. `Public`
   reaches every workspace in the deployment. Start internal and make it public
@@ -116,7 +134,8 @@ version you chose. Use the listing.
 
 A publishing workspace can **deprecate** a listing, which hides it from browsing
 while leaving it installable for anyone who already depends on it, or **take it
-down**, which stops new installs entirely.
+down**, which stops new installs entirely. Both are API actions while publishing
+is curated.
 
 Neither touches a workspace that already installed it. Their copy is theirs.
 
@@ -157,7 +176,9 @@ enact marketplace install <listing-id> \
 `no` — and `--installed` / `--not-installed` narrow the listing to one side.
 
 There is no publish command. Publishing is an administrator's decision about what
-leaves the workspace, and the API refuses it for agent callers.
+leaves the workspace, and the API refuses it for agent callers. The deployment's
+own listings are published by the server at startup, from the workspace that
+holds them.
 
 ## Permissions
 
@@ -166,6 +187,6 @@ leaves the workspace, and the API refuses it for agent callers.
 | Browse and open listings | Any workspace member |
 | Install a skill, agent template or Agent Family | Any workspace member |
 | Install an MCP server | Workspace owner or admin |
-| Publish, edit, deprecate or take down a listing | Owner or admin of the publishing workspace |
+| Publish, edit, deprecate or take down a listing | Owner or admin of the publishing workspace, over the API — no UI while publishing is curated |
 
 Agents can browse and install. They cannot publish.

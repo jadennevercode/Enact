@@ -86,7 +86,10 @@ import {
   type SkillActionsContext,
 } from "./skill-list-actions";
 import { RefreshSkillDialog } from "./refresh-skill-dialog";
-import { PublishDialog } from "../../marketplace";
+import {
+  MARKETPLACE_PUBLISHING_ENABLED,
+  PublishDialog,
+} from "../../marketplace";
 import { useT } from "../../i18n";
 import { ResourceLabelPicker } from "../../labels/resource-label-picker";
 
@@ -1217,8 +1220,9 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
             </Button>
             {/* Publishing is admin-gated on the server. The button is shown to
                 anyone who may edit the skill: hiding it from a member who then
-                cannot find why would be worse than a clear refusal. */}
-            {canEdit && (
+                cannot find why would be worse than a clear refusal. It is out
+                of sight entirely while the Marketplace is a curated catalog. */}
+            {MARKETPLACE_PUBLISHING_ENABLED && canEdit && (
               <Button
                 variant="outline"
                 size="xs"
@@ -1482,16 +1486,18 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
         // draft must be replaced instead of tripping the conflict banner.
         onRefreshed={(updated) => adoptServerVersion(updated)}
       />
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        defaultKind="skill"
-        defaultSourceId={skillId}
-        onPublished={(listingId) => {
-          setPublishOpen(false);
-          navigation.push(paths.marketplaceListing(listingId));
-        }}
-      />
+      {MARKETPLACE_PUBLISHING_ENABLED ? (
+        <PublishDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          defaultKind="skill"
+          defaultSourceId={skillId}
+          onPublished={(listingId) => {
+            setPublishOpen(false);
+            navigation.push(paths.marketplaceListing(listingId));
+          }}
+        />
+      ) : null}
     </div>
   );
 }
