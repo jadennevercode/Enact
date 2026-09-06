@@ -35,6 +35,7 @@ describe("paths.workspace() shape", () => {
         "squads",
         "settings",
         "settingsResources",
+        "settingsWorkspace",
       ]),
     );
   });
@@ -62,6 +63,9 @@ describe("paths.workspace() shape", () => {
       ["squads", "squads"],
       ["settings", "settings"],
       ["settingsResources", "settings/resources"],
+      // A tab of the settings page rather than a page of its own, so its
+      // "segment" carries the query that selects the tab.
+      ["settingsWorkspace", "settings?tab=workspace"],
     ];
     const wsAsAny = ws as unknown as Record<string, () => string>;
     for (const [method, segment] of expectedSegments) {
