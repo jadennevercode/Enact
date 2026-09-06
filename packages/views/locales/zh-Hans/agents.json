@@ -266,7 +266,8 @@
     "discard_dialog_title": "放弃未保存的修改？",
     "discard_dialog_description": "当前 tab 有未保存的修改，离开会丢弃这些修改。",
     "discard_keep": "继续编辑",
-    "discard_confirm": "放弃修改"
+    "discard_confirm": "放弃修改",
+    "knowledge": "知识库"
   },
   "creation_studio": {
     "title": "创建智能体",
@@ -749,6 +750,23 @@
       "started_prefix": "{{when}}启动",
       "dispatched_prefix": "{{when}}派发",
       "queued_prefix": "{{when}}排队"
+    },
+    "knowledge": {
+      "title": "知识库",
+      "description": "装文档的仓库，这个智能体作为上下文来读。它的 brief 里会有一份全部文档的索引，需要哪篇就打开哪篇。先在设置 → 资源里添加仓库。",
+      "add_button": "挂载",
+      "add_title": "挂载知识库",
+      "add_description": "这个工作区里，该智能体还没读的知识库。",
+      "attach_button": "挂载",
+      "empty": "这个智能体没有挂载任何知识库。",
+      "none_available": "没有可挂载的知识库。先去设置 → 资源里添加。",
+      "loading": "正在加载知识库……",
+      "remove_tooltip": "不再让这个智能体读它",
+      "delivery_commit": "直接提交",
+      "delivery_pull_request": "Pull request",
+      "toast_attached": "已挂载知识库",
+      "toast_removed": "已取消挂载",
+      "toast_failed": "知识库更新失败"
     }
   },
   "char_counter": {

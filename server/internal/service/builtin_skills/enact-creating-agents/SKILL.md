@@ -339,9 +339,30 @@ at compile time and loaded from `SKILL.md` + sibling files. Both reach the
 provider as skill content — which is why capability belongs in a bound skill,
 not pasted into `instructions`.
 
+## Knowledge bases
+
+Skills tell an agent HOW to do something and are loaded into every run that
+uses them. A knowledge base tells it what the team KNOWS, and is loaded
+progressively: the brief carries an index of titles and descriptions, and the
+agent opens individual documents from disk when they are relevant. Put a
+recurring rule in a skill; put domain background, product decisions and
+accumulated context in a knowledge base.
+
+A knowledge base is a workspace resource (`--type knowledge_repo`) bound per
+agent. The resource alone does nothing — an unbound base is invisible to every
+agent, which is what keeps a domain handbook out of the brief of an agent that
+triages inbox mail.
+
+```bash
+enact agent knowledge add <agent-id> --resource-id <resource-id> --output json
+enact agent knowledge list <agent-id> --output json
+```
+
+See the `enact-resources` skill for creating the resource itself.
+
 ## Side effects needing approval
 
-Read-only (safe): `agent get`, `agent skills list`, `agent env get`.
+Read-only (safe): `agent get`, `agent skills list`, `agent knowledge list`, `agent env get`.
 
 State-changing (require an explicit instruction — do not run speculatively):
 

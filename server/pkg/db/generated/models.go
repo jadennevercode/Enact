@@ -78,6 +78,14 @@ type AgentMcpServer struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+// Workspace resources an individual agent has opted into. Today only knowledge_repo resources; code resources stay workspace-wide.
+type AgentResource struct {
+	AgentID    pgtype.UUID        `json:"agent_id"`
+	ResourceID pgtype.UUID        `json:"resource_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	CreatedBy  pgtype.UUID        `json:"created_by"`
+}
+
 type AgentRuntime struct {
 	ID             pgtype.UUID        `json:"id"`
 	WorkspaceID    pgtype.UUID        `json:"workspace_id"`

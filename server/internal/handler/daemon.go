@@ -2994,6 +2994,14 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 		}
 	}
 
+	// Knowledge bases the claiming agent selected. Applied once here rather
+	// than beside each applyWorkspaceResourcesToClaim call: knowledge is keyed
+	// on the agent, not on which of issue / chat / autopilot / quick-create
+	// produced the task, so the four paths above would each have made the same
+	// call with the same argument and a fifth path would have been born
+	// missing it.
+	h.applyAgentKnowledgeToClaim(r.Context(), &resp, task.AgentID)
+
 	// Last gate before dispatch: refuse to hand a worktree-mode local_directory
 	// task to a daemon that cannot implement the mode.
 	//

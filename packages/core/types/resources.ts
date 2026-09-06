@@ -7,7 +7,12 @@
 //   - github_repo: cloud-side git checkout, ref = { url, ref?, default_branch_hint? }
 //   - local_directory: agent execution on a specific daemon,
 //     ref = { local_path, daemon_id, label?, execution_mode? }
-export type WorkspaceResourceType = "github_repo" | "local_directory";
+//   - knowledge_repo: documents agents READ as context,
+//     ref = { url, ref?, path?, delivery? }
+export type WorkspaceResourceType =
+  | "github_repo"
+  | "local_directory"
+  | "knowledge_repo";
 
 export interface GithubRepoResourceRef {
   url: string;
@@ -37,9 +42,37 @@ export interface LocalDirectoryResourceRef {
   execution_mode?: LocalDirectoryExecutionMode;
 }
 
+/**
+ * How an agent's writes to a knowledge base reach its default branch.
+ *
+ * - `pull_request`: open a PR and leave merging to a person. The default,
+ *   because a knowledge base is read by every future run of every attached
+ *   agent — an unreviewed document is a bad document quoted back for months.
+ * - `commit`: push straight to the ref.
+ *
+ * Absent means `pull_request`: the default is applied on read rather than
+ * written to the row, so it can change without a data migration.
+ */
+export type KnowledgeRepoDelivery = "pull_request" | "commit";
+
+/**
+ * A git repository of documents agents read as context.
+ *
+ * `path` narrows the repository to the subdirectory holding the documents, so
+ * a knowledge base can share a repo with other content without the runtime
+ * checking out and indexing all of it. Relative, no `..`; empty means the root.
+ */
+export interface KnowledgeRepoResourceRef {
+  url: string;
+  ref?: string;
+  path?: string;
+  delivery?: KnowledgeRepoDelivery;
+}
+
 export type WorkspaceResourceRef =
   | GithubRepoResourceRef
   | LocalDirectoryResourceRef
+  | KnowledgeRepoResourceRef
   | Record<string, unknown>;
 
 export interface WorkspaceResource {
@@ -72,4 +105,29 @@ export interface UpdateWorkspaceResourceRequest {
 export interface ListWorkspaceResourcesResponse {
   resources: WorkspaceResource[];
   total: number;
+}
+
+/**
+ * One knowledge base an agent has opted into.
+ *
+ * Knowledge is the one resource kind that is not workspace-wide: a
+ * `knowledge_repo` resource does nothing until it is bound to an agent, which
+ * is what puts its document index in that agent's brief.
+ */
+export interface AgentKnowledgeSource {
+  resource_id: string;
+  url: string;
+  ref?: string;
+  path?: string;
+  delivery: KnowledgeRepoDelivery;
+  label: string | null;
+}
+
+export interface ListAgentKnowledgeResponse {
+  knowledge_sources: AgentKnowledgeSource[];
+  total: number;
+}
+
+export interface AttachAgentKnowledgeRequest {
+  resource_id: string;
 }

@@ -258,7 +258,8 @@
     "discard_dialog_title": "保存していない変更を破棄しますか？",
     "discard_dialog_description": "このタブに保存していない変更があります。今移動すると変更は破棄されます。",
     "discard_keep": "編集を続ける",
-    "discard_confirm": "変更を破棄"
+    "discard_confirm": "変更を破棄",
+    "knowledge": "ナレッジ"
   },
   "create_dialog": {
     "title_create": "エージェントを作成",
@@ -631,6 +632,23 @@
       "started_prefix": "{{when}} に開始",
       "dispatched_prefix": "{{when}} にディスパッチ",
       "queued_prefix": "{{when}} に待機開始"
+    },
+    "knowledge": {
+      "title": "ナレッジベース",
+      "description": "このエージェントがコンテキストとして読む文書のリポジトリ。ブリーフには全文書の索引が載り、作業に必要なものだけを開きます。先に設定 → リソースでリポジトリを追加してください。",
+      "add_button": "紐付ける",
+      "add_title": "ナレッジベースを紐付ける",
+      "add_description": "このワークスペースにあり、まだこのエージェントが読んでいないナレッジベース。",
+      "attach_button": "紐付ける",
+      "empty": "このエージェントはナレッジベースを読んでいません。",
+      "none_available": "紐付けられるナレッジベースがありません。設定 → リソースで追加してください。",
+      "loading": "ナレッジベースを読み込んでいます…",
+      "remove_tooltip": "このエージェントから外す",
+      "delivery_commit": "直接コミット",
+      "delivery_pull_request": "プルリクエスト",
+      "toast_attached": "ナレッジベースを紐付けました",
+      "toast_removed": "紐付けを解除しました",
+      "toast_failed": "ナレッジベースを更新できませんでした"
     }
   },
   "char_counter": {

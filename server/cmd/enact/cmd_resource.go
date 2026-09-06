@@ -17,6 +17,18 @@ import (
 // X-Workspace-ID header the API client already sends is now the whole address,
 // so every command here takes the resource id alone.
 
+// knowledgeRepoType is the resource type for a knowledge base: a git
+// repository of documents an agent reads as context, as opposed to code it
+// works on. Mirrors handler.knowledgeRepoResourceType.
+const knowledgeRepoType = "knowledge_repo"
+
+// refFlagIsCheckoutRef reports whether a non-JSON --ref means "check out this
+// branch/tag/SHA" for this resource type. Both repository types take a
+// checkout ref; every other type reads --ref as a raw JSON payload.
+func refFlagIsCheckoutRef(resourceType string) bool {
+	return resourceType == "github_repo" || resourceType == knowledgeRepoType
+}
+
 var resourceCmd = &cobra.Command{
 	Use:   "resource",
 	Short: "Manage resources attached to the workspace",
@@ -69,7 +81,9 @@ func init() {
 	resourceAddCmd.Flags().String("daemon-id", "", "Shortcut: id of the daemon that owns the local path (only used when --type local_directory)")
 	resourceAddCmd.Flags().String("ref-label", "", "Shortcut: optional label embedded in resource_ref (only used when --type local_directory)")
 	resourceAddCmd.Flags().String("execution-mode", "", "Shortcut: how tasks share the directory — in_place (default, one task at a time) or worktree (each task gets its own git worktree; requires a git repo) (only used when --type local_directory)")
-	resourceAddCmd.Flags().String("ref", "", "Generic JSON resource_ref payload, or a github_repo checkout ref when used with --url")
+	resourceAddCmd.Flags().String("path", "", "Shortcut: subdirectory inside the repository holding the documents (only used when --type knowledge_repo)")
+	resourceAddCmd.Flags().String("delivery", "", "Shortcut: how an agent's writes reach the repository — pull_request (default) or commit (only used when --type knowledge_repo)")
+	resourceAddCmd.Flags().String("ref", "", "Generic JSON resource_ref payload, or a github_repo/knowledge_repo checkout ref when used with --url")
 	resourceAddCmd.Flags().String("label", "", "Optional human-readable label")
 	resourceAddCmd.Flags().String("output", "json", "Output format: table or json")
 
@@ -81,7 +95,9 @@ func init() {
 	resourceUpdateCmd.Flags().String("daemon-id", "", "Shortcut: new daemon id (local_directory)")
 	resourceUpdateCmd.Flags().String("ref-label", "", "Shortcut: new label embedded in resource_ref (local_directory)")
 	resourceUpdateCmd.Flags().String("execution-mode", "", "Shortcut: new execution mode — in_place or worktree (local_directory)")
-	resourceUpdateCmd.Flags().String("ref", "", "Generic JSON resource_ref payload, or a github_repo checkout ref")
+	resourceUpdateCmd.Flags().String("path", "", "Shortcut: new documents subdirectory (knowledge_repo)")
+	resourceUpdateCmd.Flags().String("delivery", "", "Shortcut: new delivery mode — pull_request or commit (knowledge_repo)")
+	resourceUpdateCmd.Flags().String("ref", "", "Generic JSON resource_ref payload, or a github_repo/knowledge_repo checkout ref")
 	resourceUpdateCmd.Flags().String("label", "", "New human-readable label; pass an empty string to clear")
 	resourceUpdateCmd.Flags().Bool("clear-label", false, "Clear the human-readable label")
 	resourceUpdateCmd.Flags().Int32("position", 0, "New display position")
@@ -158,6 +174,15 @@ func runResourceAdd(cmd *cobra.Command, _ []string) error {
 			}
 			if !has {
 				return fmt.Errorf("github_repo requires --url (or pass a JSON payload via --ref)")
+			}
+			body["resource_ref"] = ref
+		case knowledgeRepoType:
+			ref, has, err := buildResourceRefFromFlags(cmd, resourceType, nil)
+			if err != nil {
+				return err
+			}
+			if !has {
+				return fmt.Errorf("knowledge_repo requires --url (or pass a JSON payload via --ref)")
 			}
 			body["resource_ref"] = ref
 		case "local_directory":
@@ -351,14 +376,14 @@ func buildResourceRefFromRefFlag(cmd *cobra.Command, resourceType string, existi
 	// shortcut that merges with --url. Only parse JSON when the value is
 	// actually meant as JSON; otherwise json.Unmarshal would accept "2024" as a
 	// number and silently swallow a legitimate checkout ref.
-	if rawRef != "" && (resourceType != "github_repo" || looksLikeJSONPayload(rawRef)) {
+	if rawRef != "" && (!refFlagIsCheckoutRef(resourceType) || looksLikeJSONPayload(rawRef)) {
 		var ref any
 		if err := json.Unmarshal([]byte(rawRef), &ref); err != nil {
 			return nil, false, fmt.Errorf("--ref is not valid JSON: %w", err)
 		}
 		return ref, true, nil
 	}
-	if resourceType != "github_repo" {
+	if !refFlagIsCheckoutRef(resourceType) {
 		return nil, false, fmt.Errorf("--ref must be a JSON resource_ref payload for resource type %q", resourceType)
 	}
 	ref, has, err := buildResourceRefFromFlags(cmd, resourceType, existingRef)
@@ -383,6 +408,46 @@ func looksLikeJSONPayload(raw string) bool {
 // required fields are still rejected.
 func buildResourceRefFromFlags(cmd *cobra.Command, resourceType string, existingRef map[string]any) (map[string]any, bool, error) {
 	switch resourceType {
+	case knowledgeRepoType:
+		urlSet := cmd.Flags().Changed("url")
+		pathSet := cmd.Flags().Changed("path")
+		deliverySet := cmd.Flags().Changed("delivery")
+		refSet := cmd.Flags().Changed("ref")
+		if !urlSet && !pathSet && !deliverySet && !refSet {
+			return nil, false, nil
+		}
+		// Seed from the existing row: the server replaces resource_ref
+		// wholesale, so editing the path alone must carry the url along.
+		ref := map[string]any{}
+		for _, key := range []string{"url", "ref", "path", "delivery"} {
+			if existingRef == nil {
+				break
+			}
+			if v, ok := existingRef[key].(string); ok && strings.TrimSpace(v) != "" {
+				ref[key] = strings.TrimSpace(v)
+			}
+		}
+		if urlSet {
+			urlVal := strings.TrimSpace(mustString(cmd, "url"))
+			if urlVal == "" {
+				return nil, false, fmt.Errorf("--url cannot be empty")
+			}
+			ref["url"] = urlVal
+		}
+		// An empty value clears the field rather than storing a blank, so
+		// `--path ""` is how a knowledge base moves back to the repo root.
+		for flag, key := range map[string]string{"path": "path", "delivery": "delivery", "ref": "ref"} {
+			if !cmd.Flags().Changed(flag) {
+				continue
+			}
+			val := strings.TrimSpace(mustString(cmd, flag))
+			if val == "" {
+				delete(ref, key)
+			} else {
+				ref[key] = val
+			}
+		}
+		return ref, true, nil
 	case "github_repo":
 		urlSet := cmd.Flags().Changed("url")
 		hintSet := cmd.Flags().Changed("default-branch-hint")

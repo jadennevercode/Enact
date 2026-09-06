@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type {
+  ListAgentKnowledgeResponse,
   CreateWorkspaceResourceRequest,
   ListWorkspaceResourcesResponse,
   UpdateWorkspaceResourceRequest,
@@ -105,6 +106,63 @@ export function useDeleteWorkspaceResource(wsId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: workspaceResourceKeys.list(wsId) });
+    },
+  });
+}
+
+// --- Agent knowledge bindings ----------------------------------------------
+//
+// Keyed by agent rather than by workspace, because that is what the binding
+// is: a workspace can hold a knowledge base no agent reads, and the same base
+// can be read by several agents. The workspace id stays in the key so the
+// cache is still partitioned per workspace, as every workspace-scoped key is.
+
+export const agentKnowledgeKeys = {
+  all: (wsId: string) => ["agent-knowledge", wsId] as const,
+  list: (wsId: string, agentId: string) =>
+    [...agentKnowledgeKeys.all(wsId), agentId] as const,
+};
+
+export function agentKnowledgeOptions(wsId: string, agentId: string) {
+  return queryOptions({
+    queryKey: agentKnowledgeKeys.list(wsId, agentId),
+    queryFn: () => api.listAgentKnowledge(agentId),
+    select: (data: ListAgentKnowledgeResponse) => data.knowledge_sources,
+    enabled: Boolean(agentId),
+  });
+}
+
+/**
+ * Attach and detach both return the agent's full binding list, so the cache is
+ * replaced with the server's answer rather than patched. There is nothing to
+ * be optimistic about here: the user stays on the page, the round trip is one
+ * request, and a binding that silently failed would show an index the agent
+ * does not actually have.
+ */
+export function useAttachAgentKnowledge(wsId: string, agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (resourceId: string) =>
+      api.attachAgentKnowledge(agentId, resourceId),
+    onSuccess: (data) => {
+      qc.setQueryData(agentKnowledgeKeys.list(wsId, agentId), data);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: agentKnowledgeKeys.list(wsId, agentId) });
+    },
+  });
+}
+
+export function useRemoveAgentKnowledge(wsId: string, agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (resourceId: string) =>
+      api.removeAgentKnowledge(agentId, resourceId),
+    onSuccess: (data) => {
+      qc.setQueryData(agentKnowledgeKeys.list(wsId, agentId), data);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: agentKnowledgeKeys.list(wsId, agentId) });
     },
   });
 }

@@ -78,5 +78,12 @@
   "mode_badge_worktree_tooltip": "タスクはそれぞれの git ワークツリーで同時に実行され、ブランチとして成果を返します。作業コピーは変更されません。",
   "toast_local_mode_updated": "実行モードを更新しました",
   "toast_local_mode_update_failed": "実行モードを更新できませんでした",
-  "mode_badge_in_place": "直接"
+  "mode_badge_in_place": "直接",
+  "knowledge_section_title": "ナレッジベース",
+  "knowledge_section_description": "エージェントがコンテキストとして読む文書のリポジトリ。エージェント側の設定で紐付けます。どのエージェントにも紐付いていないナレッジベースは読まれません。",
+  "knowledge_empty": "ナレッジベースはまだありません。",
+  "knowledge_add_button": "ナレッジベースを追加",
+  "knowledge_popover_title": "ナレッジベースを追加",
+  "knowledge_path_placeholder": "文書のサブディレクトリ（任意、例: docs/knowledge）",
+  "knowledge_toast_attached": "ナレッジベースを追加しました"
 }

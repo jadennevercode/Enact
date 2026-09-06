@@ -84,7 +84,10 @@ The workspace repo registry and workspace resources are not the same thing:
 
 - workspace repo metadata can appear in workspace context;
 - `github_repo` workspace resources are durable workspace context and affect future tasks; an optional `resource_ref.ref` pins the default checkout ref for tasks in the workspace;
-- `local_directory` resources point at a path owned by a daemon and carry local-machine assumptions.
+- `local_directory` resources point at a path owned by a daemon and carry local-machine assumptions;
+- `knowledge_repo` resources are documents an agent READS, bound per agent rather than workspace-wide. They never appear under `## Repositories` — they have their own `## Knowledge` section, already checked out and indexed by the daemon before the run.
+
+A knowledge base is checked out twice, for two different purposes, and confusing them is the failure mode. The location in the `## Knowledge` section is shared by every task on the machine and is reset — read it, never write to it. To write a document back, `enact repo checkout <url>` gives the task its own checkout on a branch, which is allowed because the claim puts knowledge bases in the same repo allowlist as code.
 
 See the `enact-resources` skill for the resource CLI. Do not add a resource just because `repo checkout` failed. First determine whether the user asked for durable workspace context or just a task checkout.
 

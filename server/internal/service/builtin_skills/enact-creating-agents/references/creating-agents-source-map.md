@@ -156,3 +156,9 @@ go test ./internal/service -run TestBuiltinSkillsConformToTemplate
 | `CreateAgentParams` | generated from `queries/agent.sql` | typed params include nullable `Model`, `ThinkingLevel`, and `ServiceTier` |
 | `UpdateAgent` SET | generated from `queries/agent.sql` | COALESCE updates include model/thinking/service tier; dedicated clear queries restore each nullable override |
 | `UpdateAgentCustomEnv` (called by the `UpdateAgentEnv` handler) | 2652 | `SET custom_env = $2` — the only write path for env values |
+
+## Knowledge bases
+
+- `enact agent knowledge list/add/remove` live in `server/cmd/enact/cmd_agent_knowledge.go` and call `GET/POST /api/agents/{id}/knowledge` and `DELETE /api/agents/{id}/knowledge/{resourceId}`, served by `server/internal/handler/agent_knowledge.go` and registered in `server/cmd/server/router.go`.
+- Bindings are rows in `agent_resource` (migration `444_agent_resource`). `GET /api/agents/{id}` also returns them as `knowledge_sources` (`agentKnowledgeSummaries`), so the detail view needs no second request; the list endpoint deliberately omits the field rather than pay a per-agent join for something no list view renders.
+- A binding is what puts the brief's `## Knowledge` index in front of the agent; see the `enact-resources` skill's source map for the claim-time routing and the daemon-side checkout and indexing.

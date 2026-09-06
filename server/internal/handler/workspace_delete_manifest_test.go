@@ -29,6 +29,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	// Teardown sweeps only machines left with no projections at all, which is
 	// garbage collection rather than workspace-scoped deletion.
 	"machine":                         workspaceDeleteKeep,
+	"agent_resource":                  workspaceDelete,
 	"agent_skill":                     workspaceDelete,
 	"agent_task_queue":                workspaceDelete,
 	"agent_to_label":                  workspaceDelete,

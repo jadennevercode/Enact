@@ -4,4 +4,8 @@ export {
   useCreateWorkspaceResource,
   useUpdateWorkspaceResource,
   useDeleteWorkspaceResource,
+  agentKnowledgeKeys,
+  agentKnowledgeOptions,
+  useAttachAgentKnowledge,
+  useRemoveAgentKnowledge,
 } from "./queries";

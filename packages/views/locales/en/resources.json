@@ -78,5 +78,12 @@
   "mode_badge_worktree_tooltip": "Tasks run at the same time in their own git worktree and hand back a branch. Your working copy is untouched.",
   "toast_local_mode_updated": "Execution mode updated",
   "toast_local_mode_update_failed": "Could not update the execution mode",
-  "mode_badge_in_place": "Direct"
+  "mode_badge_in_place": "Direct",
+  "knowledge_section_title": "Knowledge bases",
+  "knowledge_section_description": "Repos of documents agents read as context. Attach one to an agent in its own settings — a knowledge base bound to nobody is never read.",
+  "knowledge_empty": "No knowledge bases attached.",
+  "knowledge_add_button": "Add knowledge base",
+  "knowledge_popover_title": "Add a knowledge base",
+  "knowledge_path_placeholder": "Documents subdirectory (optional, e.g. docs/knowledge)",
+  "knowledge_toast_attached": "Knowledge base attached"
 }

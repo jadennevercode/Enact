@@ -62,6 +62,7 @@ import type {
   IssueTableRowsResponse,
   ListIssuesResponse,
   ListArtifactsResponse,
+  ListAgentKnowledgeResponse,
   ListWorkspaceResourcesResponse,
   OntologyDetail,
   OntologySummary,
@@ -3233,6 +3234,31 @@ export const EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE: ListWorkspaceResourcesResp
  *  a row the client cannot fully parse is still usable, because every field
  *  the UI reads has a default. */
 export const WorkspaceResourceResponseSchema = WorkspaceResourceSchema;
+
+// Agent knowledge bindings. Lenient for the same reason as the resource list:
+// a desktop build older than a server that adds a field must still render the
+// bindings it does understand.
+const AgentKnowledgeSourceSchema = z.object({
+  resource_id: z.string().default(""),
+  url: z.string().default(""),
+  ref: z.string().optional(),
+  path: z.string().optional(),
+  // The server always sends a delivery mode (it applies the default on read),
+  // but an older one would not — and pull_request is the safe assumption,
+  // since it is the mode that asks a person before anything is published.
+  delivery: z.enum(["pull_request", "commit"]).catch("pull_request").default("pull_request"),
+  label: z.string().nullable().default(null),
+}).loose();
+
+export const ListAgentKnowledgeResponseSchema = z.object({
+  knowledge_sources: z.array(AgentKnowledgeSourceSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE: ListAgentKnowledgeResponse = {
+  knowledge_sources: [],
+  total: 0,
+};
 
 export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
   id: "",

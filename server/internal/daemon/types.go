@@ -40,6 +40,32 @@ type RepoData struct {
 	URL         string `json:"url"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
+	// Kind mirrors handler.RepoData.Kind. Empty means code, which is what
+	// every repo was before knowledge bases existed and what every older
+	// server still sends. The daemon uses it to keep knowledge bases inside
+	// the checkout allowlist without listing them as task repos.
+	Kind string `json:"kind,omitempty"`
+}
+
+// Repo kinds, mirroring handler.RepoKind*.
+const (
+	RepoKindCode      = "code"
+	RepoKindKnowledge = "knowledge"
+)
+
+// KnowledgeSourceData mirrors handler.KnowledgeSourceData — one knowledge base
+// the claiming agent has bound. Unlike WorkspaceResourceData these are not
+// workspace-wide, and the daemon does real work for them before the run: it
+// checks each one out and indexes its documents into the brief, so the agent
+// reads a table of contents rather than a URL it may or may not decide to
+// fetch.
+type KnowledgeSourceData struct {
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	Ref      string `json:"ref,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Delivery string `json:"delivery,omitempty"`
+	Label    string `json:"label,omitempty"`
 }
 
 // WorkspaceResourceData mirrors handler.WorkspaceResourceData — a single
@@ -116,6 +142,7 @@ type Task struct {
 	// both still speak it, and renaming the wire field would silently strip
 	// resources from every run until both sides were upgraded together.
 	WorkspaceResources            []WorkspaceResourceData `json:"project_resources,omitempty"`                // workspace resources to expose to the agent
+	KnowledgeSources              []KnowledgeSourceData   `json:"knowledge_sources,omitempty"`                // knowledge bases bound to the claiming agent
 	IsLeaderTask                  bool                    `json:"is_leader_task,omitempty"`                   // true when executing in the squad-leader coordinator role
 	LeaderRoleResolved            bool                    `json:"leader_role_resolved,omitempty"`             // server capability: IsLeaderTask/SquadID authoritatively answer "is this a leader run". Absent on servers predating it — those before #4951 never sent is_leader_task at all, later ones send it without this guarantee — so taskIsSquadLeader falls back to the briefing marker for both (ENA-5811)
 	PriorSessionID                string                  `json:"prior_session_id,omitempty"`                 // Claude session ID from a previous task on this issue

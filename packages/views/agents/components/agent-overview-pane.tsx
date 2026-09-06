@@ -31,6 +31,7 @@ import { ActivityTab } from "./tabs/activity-tab";
 import { InstructionsTab } from "./tabs/instructions-tab";
 import { SkillsTab } from "./tabs/skills-tab";
 import { OntologiesTab } from "./tabs/ontologies-tab";
+import { KnowledgeTab } from "./tabs/knowledge-tab";
 import { EnvTab } from "./tabs/env-tab";
 import { CustomArgsTab } from "./tabs/custom-args-tab";
 import { McpConfigTab } from "./tabs/mcp-config-tab";
@@ -52,6 +53,7 @@ export type DetailTab =
   | "instructions"
   | "skills"
   | "ontologies"
+  | "knowledge"
   | "mcp_config"
   | "composio_mcp"
   | "integrations"
@@ -67,6 +69,7 @@ type SecondaryTab = {
     | "instructions"
     | "skills"
     | "ontologies"
+    | "knowledge"
     | "mcp_config"
     | "composio_mcp"
     | "integrations"
@@ -81,6 +84,7 @@ const CAPABILITY_TABS: SecondaryTab[] = [
   { id: "instructions", labelKey: "instructions" },
   { id: "skills", labelKey: "skills" },
   { id: "ontologies", labelKey: "ontologies" },
+  { id: "knowledge", labelKey: "knowledge" },
   { id: "mcp_config", labelKey: "mcp_config" },
   { id: "composio_mcp", labelKey: "composio_mcp" },
   { id: "integrations", labelKey: "integrations" },
@@ -445,6 +449,9 @@ export function AgentOverviewPane({
                   )}
                   {effectiveView === "ontologies" && (
                     <OntologiesTab agent={agent} canEdit={canEdit} />
+                  )}
+                  {effectiveView === "knowledge" && (
+                    <KnowledgeTab agent={agent} canEdit={canEdit} />
                   )}
                   {effectiveView === "mcp_config" && (
                     <McpConfigTab

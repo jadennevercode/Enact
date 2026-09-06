@@ -1,0 +1,97 @@
+---
+title: Knowledge bases
+description: Give agents a git repository of documents they read as context, and let the Retrospect Agent write back to it.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A knowledge base is a git repository of documents your agents read: domain background, product decisions, the things a new teammate would need explained. It sits alongside the [repositories](/resources) your team works on, and unlike them it is attached to individual agents rather than to the whole workspace.
+
+## Knowledge base or skill?
+
+Both put words in front of an agent, and the difference is when they are loaded.
+
+| | Skill | Knowledge base |
+|---|---|---|
+| Answers | How to do something | What the team knows |
+| Loaded | Into every run that uses it | Index every run, documents on demand |
+| Edited by | Whoever maintains the skill | Anyone with the repository, plus the Retrospect Agent |
+| Lives in | Enact, versioned per skill | Your git repository |
+
+A rule that applies every time belongs in a [skill](/skills), because a skill is loaded in full and a rule nobody reads changes nothing. Background that matters occasionally belongs in a knowledge base, because loading all of it every time would spend the context budget of runs that never needed it.
+
+## How an agent reads one
+
+Before a run starts, the runtime checks the repository out on the machine and reads the front-matter of every document in it. The agent's brief then carries an index, one line per document:
+
+```text
+## Knowledge
+
+### Domain handbook
+
+- Location: `/…/.knowledge/…/docs`
+- Source: https://github.com/acme/handbook.git (`main`)
+- Documents: 12
+
+- **Deploy window** — When releases may ship. (`deploy-window.md`)
+- **Pricing model** — How the tiers are priced. (`pricing.md`)
+```
+
+The agent reads that index in every run and opens the one or two documents that matter, with the same file tools it uses for code. Document bodies are never pasted into the brief.
+
+This is why front-matter is not optional. `title` and `description` are the entire basis on which a future run decides whether to open a document, so a description that does not say what is inside means the document will not be found.
+
+```markdown
+---
+title: Deploy window
+description: When releases may ship, and who approves an exception.
+updated: 2026-09-05
+source: ENA-1234
+---
+```
+
+<Callout type="info">
+Past 60 documents the index switches to listing directories and their counts, so the section stops growing with the knowledge base. The agent lists a directory and reads what it needs.
+</Callout>
+
+## Add a knowledge base
+
+Add the repository under **Settings → Resources**, then attach it to the agents that should read it. A knowledge base attached to no agent is invisible: that is what keeps a domain handbook out of the brief of an agent that only triages the inbox.
+
+```bash
+# Create the resource on the workspace
+enact resource add --type knowledge_repo --url https://github.com/acme/handbook.git \
+  --path docs/knowledge --label "Domain handbook" --output json
+
+# Let one agent read it
+enact agent knowledge add <agent-id> --resource-id <resource-id> --output json
+enact agent knowledge list <agent-id> --output json
+```
+
+| Field | Meaning |
+|---|---|
+| `url` | Any git URL the runtime can reach |
+| `ref` | Branch, tag, or commit to read (default: the repository's default branch) |
+| `path` | Subdirectory holding the documents, so a knowledge base can share a repository with other content |
+| `delivery` | `pull_request` (default) or `commit` — see below |
+
+Detaching leaves the resource on the workspace for other agents. Deleting the resource removes every agent's attachment to it.
+
+## Writing back
+
+Agents write documents the way they write code. The indexed location in the brief is shared by every task on that machine and is reset between runs, so an agent never edits it. It runs `enact repo checkout <url>` to get a checkout of its own, writes there, and delivers:
+
+- **`pull_request`** (default) opens a pull request and leaves merging to a person. A knowledge base is read by every future run of every attached agent, so an unreviewed document is not one bad file — it is a bad file quoted back for months.
+- **`commit`** pushes straight to the ref, for teams who would rather not review every note.
+
+## The Retrospect Agent
+
+This is what makes a knowledge base accumulate rather than rot. The [Retrospect Agent](/retrospect) reviews finished work and writes down what it learned; attach a knowledge base to it and its documents land there instead of an attachment nobody reopens.
+
+It reads the index before writing, so it edits the document that already covers a subject rather than filing a second one beside it.
+
+## Next steps
+
+- [Resources](/resources) — the repositories and directories agents work in
+- [Skills](/skills) — instructions loaded into every run
+- [Retrospect](/retrospect) — learning from finished work

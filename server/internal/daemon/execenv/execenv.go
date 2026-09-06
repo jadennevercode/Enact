@@ -156,6 +156,11 @@ type TaskContextForEnv struct {
 	DisabledRuntimeSkills         []RuntimeSkillRefForEnv
 	Repos                         []RepoContextForEnv       // workspace repos available for checkout
 	WorkspaceResources            []WorkspaceResourceForEnv // resources attached to the workspace
+	// KnowledgeSources are the knowledge bases the agent bound, already
+	// checked out and indexed by the daemon. Unlike Repos these are not a list
+	// of things the agent may fetch: the files are on disk before the run
+	// starts and the brief carries their index.
+	KnowledgeSources []KnowledgeContextForEnv
 	ChatSessionID                 string                    // non-empty for chat tasks
 	// ChatChannelType is the IM platform behind a chat session ("slack",
 	// "feishu", "wecom"); empty for a web/mobile chat. It names the surface in

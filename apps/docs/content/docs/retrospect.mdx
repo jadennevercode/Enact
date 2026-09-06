@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 The **Retrospect Agent** reads work that is already finished and decides what, if anything, should change because of it. It produces two kinds of output, and only these two:
 
 - **Configuration changes** — a proposed edit to a [skill](/skills), to an [agent](/agents)'s instructions, or to a [squad](/squads) leader's instructions, so that a mistake made once is not available to be made again.
-- **Knowledge documents** — markdown about the product and the domain, written into the workspace's repository under `docs/knowledge/` and delivered the way that workspace delivers code.
+- **Knowledge documents** — markdown about the product and the domain, written into a [knowledge base](/knowledge-bases) attached to the agent, or into the workspace repository's `docs/knowledge/` when there is none, and delivered the way that workspace delivers code.
 
 The point is the loop: a workspace that only ever writes skills by hand gets better at the rate someone remembers to go back and edit them. A workspace that retrospects gets better at the rate it finishes work.
 

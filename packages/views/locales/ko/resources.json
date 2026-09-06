@@ -78,5 +78,12 @@
   "mode_badge_worktree_tooltip": "작업이 각자의 git 워크트리에서 동시에 실행되고 브랜치로 결과를 돌려줍니다. 작업 사본은 변경되지 않습니다.",
   "toast_local_mode_updated": "실행 모드를 업데이트했습니다",
   "toast_local_mode_update_failed": "실행 모드를 업데이트하지 못했습니다",
-  "mode_badge_in_place": "직접"
+  "mode_badge_in_place": "직접",
+  "knowledge_section_title": "지식 베이스",
+  "knowledge_section_description": "에이전트가 컨텍스트로 읽는 문서 저장소입니다. 에이전트 설정에서 연결하세요. 아무 에이전트에도 연결되지 않은 지식 베이스는 읽히지 않습니다.",
+  "knowledge_empty": "지식 베이스가 없습니다.",
+  "knowledge_add_button": "지식 베이스 추가",
+  "knowledge_popover_title": "지식 베이스 추가",
+  "knowledge_path_placeholder": "문서 하위 디렉터리 (선택, 예: docs/knowledge)",
+  "knowledge_toast_attached": "지식 베이스를 추가했습니다"
 }
