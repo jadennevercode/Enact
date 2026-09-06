@@ -1,0 +1,162 @@
+# revisions/rNNNN/process_ir.yaml —— Process 层：业务怎么发生？
+#
+# 步骤、参与者、输入输出、决定、衔接、异常，以及稳定 locator。
+#
+# ⚠ 顶层与条目内都不许出现这些目标设计字段（layer_separation 逐个键核）：
+#   entities relationships attributes constraints policies capabilities
+#   bindings metrics bundle declarations domain
+#   `events` 与 `lifecycles` 不在禁列里 —— 流程 §5.3 把事件和生命周期算作
+#   Process 层自己的内容。两层的事件靠形状区分：流程事件说谁在哪一步做了什么，
+#   本体事件带 definition 与 support。candidate 的 `events[].process_ref` 指这里。
+#
+# 每条 step 必填：id、name、actors（schema_valid 核这三项）。
+# id 是跨 revision 的稳定 locator，改名不换 id。
+# 见 references/process-ir.md。例子取自 evals/fixtures/journal-reversal/。
+
+process:
+  id: proc.journal_reversal
+  name: 日记账冲销
+  scope_note: 只覆盖已过账分录；草稿分录直接修改，不走本流程（ev.001 §6.1）
+
+roles:
+  - { id: proc.role.preparer,   name: 制单人,    note: 发起冲销申请，不得同时审批 }
+  - { id: proc.role.supervisor, name: 总账主管,  note: 金额低于阈值时的审批人 }
+  - { id: proc.role.controller, name: 财务控制,  note: 金额达到阈值时的审批人；工厂称财务经理，权限是否等同见 asm.002 }
+  - { id: proc.role.system,     name: ERP 系统 }
+
+steps:
+  - id: proc.step.request
+    name: 发起冲销申请
+    kind: activity                      # activity | event | decision
+    actors: [proc.role.preparer]
+    inputs: [原分录, 冲销原因代码]
+    outputs: [冲销申请单]
+    locator: "ev.001 §6.2/1"
+    note: 原因代码取值 RC01 录入错误 / RC02 科目错误 / RC03 金额错误 / RC04 期间错误
+
+  - id: proc.step.validate
+    name: 系统校验
+    kind: activity
+    actors: [proc.role.system]
+    inputs: [冲销申请单]
+    outputs: [校验结果]
+    locator: "ev.001 §6.2/2"
+    rules_applied: [原分录状态必须为 posted, 尚未被冲销过]
+
+  - id: proc.step.approve
+    name: 审批
+    kind: activity
+    actors: [proc.role.supervisor, proc.role.controller]
+    inputs: [冲销申请单, 校验结果]
+    outputs: [审批记录]
+    locator: "ev.001 §6.2/3"
+
+  - id: proc.step.create_reversal
+    name: 生成冲销分录
+    kind: activity
+    actors: [proc.role.system]
+    inputs: [审批记录]
+    outputs: [冲销分录]
+    locator: "ev.001 §6.2/4"
+
+  - id: proc.step.post
+    name: 过账
+    kind: activity
+    actors: [proc.role.system]
+    inputs: [冲销分录]
+    outputs: [已过账冲销分录, 原分录状态变更]
+    locator: "ev.001 §6.2/5"
+
+# 流程事件：在某时发生、有参与者、改变状态。这里说的是「谁在哪一步做了什么」；
+# 本体层的事件（带 definition 与 support）在 candidate.yaml 里，靠 process_ref 指回来。
+events:
+  - id: proc.evt.approved
+    name: 审批通过
+    at_step: proc.step.approve
+    actors: [proc.role.supervisor, proc.role.controller]
+    outputs: [审批通过记录]
+    locator: "ev.001 §6.2/3"
+  - id: proc.evt.reversal_posted
+    name: 冲销分录过账成功
+    at_step: proc.step.post
+    actors: [proc.role.system]
+    outputs: [原分录状态变更为 reversed]
+    locator: "ev.001 §6.2/5"
+
+decisions:
+  - id: proc.dec.threshold
+    name: 金额是否达到 50,000
+    at_step: proc.step.approve
+    branches:
+      - { when: "amount >= 50000", to: proc.role.controller }
+      - { when: "amount < 50000",  to: proc.role.supervisor }
+    locator: "ev.001 §6.2/3"
+    open_question: 阈值口径含税与币种未定，见 asm.001 / ud.002
+
+  - id: proc.dec.approval_outcome
+    name: 审批是否通过
+    at_step: proc.step.approve
+    branches:
+      - { when: "通过", to: proc.step.create_reversal }
+      - { when: "否决", to: proc.exc.rejected }
+    locator: "ev.003 图/判断节点「审批通过?」"
+    note: >-
+      否分支在流程图上连线断开（ev.gap.001）。此处的去向来自访谈 q.202，
+      不是材料原文——alignment 里对应的映射 confidence 记为 medium。
+
+handoffs:
+  - id: proc.handoff.preparer_to_approver
+    from_role: proc.role.preparer
+    to_role: proc.role.supervisor
+    carries: 冲销申请单
+    constraint: 审批人不得是该分录的制单人
+    locator: "ev.001 §6.2/3、ev.002 §3.4"
+
+exceptions:
+  - id: proc.exc.already_reversed
+    name: 原分录已被冲销
+    actors: [proc.role.system]
+    handling: 拒绝，提示已有冲销分录编号
+    locator: "ev.001 §6.4"
+  - id: proc.exc.hard_closed
+    name: 原分录属于已硬关账期间
+    actors: [proc.role.system]
+    handling: 拒绝，引导走调整分录流程
+    locator: "ev.001 §6.4"
+  - id: proc.exc.same_person
+    name: 审批人与制单人相同
+    actors: [proc.role.system]
+    handling: 拒绝，提示职责分离要求
+    locator: "ev.001 §6.4、ev.002 §3.4"
+  - id: proc.exc.post_failed
+    name: 冲销分录过账失败
+    actors: [proc.role.system]
+    handling: 整笔事务回滚，原分录状态不变，产生失败工单
+    locator: "ev.001 §6.4"
+  - id: proc.exc.rejected
+    name: 审批被否决
+    actors: [proc.role.preparer]
+    handling: 退回制单人，可改申请再提交或撤销
+    locator: "访谈 q.202"
+    evidence_gap: ev.gap.001
+
+records:
+  - id: proc.rec.request
+    name: 冲销申请单
+    locator: "ev.001 §6.5"
+  - id: proc.rec.approval
+    name: 审批记录
+    locator: "ev.001 §6.5"
+  - id: proc.rec.reversal_entry
+    name: 冲销分录
+    locator: "ev.001 §6.5"
+    note: 三者通过冲销申请单号关联
+
+# 材料没画完的地方，在这里说出来，不要顺手补一条自己想的连线。
+open_paths:
+  - id: proc.open.rollback_target
+    description: 回滚之后流程指向哪里，流程图未画，访谈也未覆盖
+    locator: "ev.003 图/回滚节点"
+  - id: proc.open.review_box
+    description: 图右下角孤立的「复核」方框没有任何连线进出，与 ev.002 §3.4 的三职分离要求关系不明
+    locator: "ev.003 图/右下角孤立方框"

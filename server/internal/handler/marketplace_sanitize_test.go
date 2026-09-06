@@ -272,6 +272,10 @@ func TestMarketplaceSlugify(t *testing.T) {
 		"":                 "",
 		"---":              "",
 		"path/like/name":   "path-like-name",
+		// A plugin-contributed skill carries its invocation-key namespace in
+		// its name; the colon separates two words rather than joining them.
+		"ontologizer:evaluate": "ontologizer-evaluate",
+		"a::b":                 "a-b",
 	}
 	for input, want := range tests {
 		if got := marketplaceSlugify(input); got != want {

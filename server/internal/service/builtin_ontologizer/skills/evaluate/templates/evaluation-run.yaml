@@ -1,0 +1,77 @@
+# 一次评估运行 · evaluation/runs/ev-<NNNN>.yaml
+#
+# 一次运行绑定一个 revision。写完就不改——要重跑就跑一次新的 ev-NNNN，
+# 和 revision 一样是只追加的历史。
+#
+# 检查它的是 cq_result_bound：revision 必须指向一个真实存在的 revision；
+# 每条结果的 status 属于 passed/failed/unsupported；passed 必须有
+# execution_evidence，failed 与 unsupported 必须有 rationale；
+# cq_id 必须在 cq-register.yaml 里。
+
+run_id: ev-0002
+revision: r0003                      # 绑定的 revision，必须真实存在
+run_at: 2026-09-03T16:40:00+08:00
+run_by: FDE1
+test_environment: rule_check only（本机未配置图适配器）
+compared_with: ev-0001               # 上一次运行，供跨 revision 比较；第一次留空
+
+results:
+  # --- passed：必须有执行证据。"查询返回了数据"不等于语义正确 ---
+  - cq_id: cq.003
+    status: passed
+    execution_evidence: >-
+      在 r0003 上：ent.reversal_entry --rel.reverses(source_to_target,
+      cardinality source=1 / target=1)--> ent.journal_entry，路径长度 1；
+      目标端基数为 1，与 expected_answer_shape "一条分录编号" 相符。
+      查自 revisions/r0003/candidate.yaml 与 trace-index.yaml。
+    test_type_executed: rule_check
+
+  # --- failed：所需的都在，但检验没过。这是模型的问题，开变更请求 ---
+  - cq_id: cq.002
+    status: failed
+    rationale: >-
+      差在哪：evt.reversal_approved 的 participants 只有 ent.journal_entry，
+      没有审批人这个参与者，从分录出发走不到"谁审批"。
+      应该怎样：process_ir 补上审批岗位，evt 的 participants 加上对应实体。
+    test_type_executed: rule_check
+    raised_change_id: chg.002          # 与 history/comments.yaml 对上
+
+  # --- unsupported（范围/契约缺口）：不是缺陷，需要一次范围决定 ---
+  - cq_id: cq.001
+    status: unsupported
+    rationale: >-
+      契约缺口：软关账期间能否冲销，手册 §6.3 与政策 v4 §3.2 说法相反且尚未正式裁决。
+      lc.journal_entry 的 posted → reversed 转换 guard 只写了 period.status != hard_close，
+      没有承诺 soft_close 这一档的行为。模型不承诺一个还没被裁决的规则——
+      这需要的是政策裁决，不是一张缺陷单。
+    test_type_executed: rule_check
+
+  # --- unsupported（环境缺口）：和上面那条区分开，下一步完全不同 ---
+  - cq_id: cq.004
+    status: unsupported
+    rationale: >-
+      环境缺口：本机未配置图适配器，test_type 为 graph_answer_test 的题目未执行。
+      rule check 部分已过（ent.journal_entry、attr.journal_entry.status 均存在，
+      聚合维可用），但按原因代码分组的结果形状需要在真实数据上验证，本次未验证。
+      没跑过的题不记 passed。
+    test_type_executed: none
+
+# compare 步骤的产出。退步排第一——它是唯一需要立刻决定的一类。
+comparison:
+  regressed: []                       # passed → failed / unsupported
+  improved: [cq.003]                  # failed / unsupported → passed
+  added: []
+  disappeared: []                     # 这次没跑的题要解释为什么，不能默默不提
+  unchanged: [cq.001, cq.004]
+
+# interpret 步骤：每条 failed / unsupported 由人决定接受、修订还是延后。
+# 评估永不阻断提交——全挂了也能提交，只是 rationale 要附进就绪检查表。
+interpretation:
+  - cq_id: cq.002
+    verdict: revise                   # accept | revise | defer
+    by: DE1
+    note: 进 r0004，随 chg.002 一起改
+  - cq_id: cq.001
+    verdict: defer
+    by: OO1
+    note: 等政策部裁决；客户接受带这条未决项发布

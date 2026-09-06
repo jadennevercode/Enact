@@ -1,0 +1,85 @@
+# 胜任问题登记 · evaluation/cq-register.yaml
+#
+# 字段对齐流程附录 E。这份登记跨 revision 长期存在：题目不绑版本，
+# 运行结果才绑版本（见 templates/evaluation-run.yaml）。
+#
+# 检查它的是 cq_human_owned：每条要有 owner，origin 必须是 human 或
+# ai_proposed_human_approved，且 question / business_persona /
+# decision_supported / expected_answer_shape 四项非空。
+#
+# cq_id 一旦用了就不要改——跨 revision 比较靠它对齐，改了历史就断。
+
+questions:
+  # --- 人写的题 ---
+  - cq_id: cq.001
+    question: 某条已过账的分录现在能不能冲销
+    origin: human                      # human | ai_proposed_human_approved | ai_proposed（未批准，进不了运行）
+    owner: DE1                         # 非空。谁对这道题的业务含义负责
+    business_persona: 总账会计
+    decision_supported: 是否发起冲销申请
+    scope_and_time_window: 集团本部与华东两家工厂，2025 财年至今
+    required_filters: 分录状态为 posted；所属期间未硬关账
+    expected_granularity: 单条分录（journal line 不展开）
+    expected_answer_shape: 布尔 + 依据的规则条款      # passed 要拿结果形状和这一条对
+    capability: filter                 # retrieve | relate | filter | aggregate | trace | lifecycle
+    required_entities: [ent.journal_entry, ent.close_period]
+    required_relationships: [rel.belongs_to_period]
+    required_attributes: [attr.journal_entry.status]
+    test_type: rule_check              # rule_check | graph_answer_test | both
+
+  - cq_id: cq.003
+    question: 某条冲销分录对应的原始分录是哪一条
+    origin: human
+    owner: DE1
+    business_persona: 财务复核
+    decision_supported: 核对冲销是否成对
+    scope_and_time_window: 同上
+    required_filters: 冲销分录已过账
+    expected_granularity: 单条分录
+    expected_answer_shape: 一条分录编号     # 注意：目标端基数必须是 1，否则答案是一组不是一条
+    capability: relate
+    required_entities: [ent.reversal_entry, ent.journal_entry]
+    required_relationships: [rel.reverses]
+    required_attributes: []
+    test_type: rule_check
+
+  - cq_id: cq.004
+    question: 2026 年 1 月有哪些分录被冲销过，以及原因分布
+    origin: human
+    owner: PO1
+    business_persona: 财务运营总监
+    decision_supported: 判断错误集中在哪类科目
+    scope_and_time_window: 2026-01，集团本部与华东两家工厂
+    required_filters: 分录状态为 reversed
+    expected_granularity: 按原因代码聚合
+    expected_answer_shape: 一张按原因代码分组的计数表
+    capability: aggregate
+    required_entities: [ent.journal_entry]
+    required_relationships: [rel.reverses]
+    required_attributes: [attr.journal_entry.status]
+    test_type: graph_answer_test        # 没有图适配器时记 unsupported，不记 passed
+
+# --- 系统提的候选：不进 questions ---
+# cq_human_owned 会扫 questions 里的每一条，origin 为 ai_proposed 的直接不通过——
+# 所以候选题不能先放进 questions 再等人批，它要放在下面这个单独的键里。
+# 检查只读 questions，这里的内容不影响它，但人能看见。
+#
+# 人认可之后，把它整条挪进 questions，origin 改成 ai_proposed_human_approved，
+# 填上 owner。挪之前它一行都不算数。
+#
+# 为什么要这么绕：一组由系统自己出的题，检验的是系统自己的假设——它一定会通过，
+# 而通过的那一刻就失去了唯一能发现"我们建错了"的机会。
+
+proposed_candidates:
+  - cq_id: cq.101
+    question: 一条冲销分录本身还能不能再被冲销
+    origin: ai_proposed
+    proposed_at: 2026-09-03T16:10:00+08:00
+    proposed_because: 手册 §6.2 写了"冲销分录本身不可再被冲销"，但登记里没有对应的题
+    business_persona: 总账会计
+    decision_supported: 判断二次冲销请求是否合法
+    expected_answer_shape: 布尔 + 依据的规则条款
+    capability: lifecycle
+    required_entities: [ent.reversal_entry]
+    test_type: rule_check
+    # 人批准时要填的：owner，以及把 origin 改成 ai_proposed_human_approved

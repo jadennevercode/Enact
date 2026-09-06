@@ -1,0 +1,49 @@
+# 提交清单 · releases/rel-<NNNN>/submission-manifest.yaml
+#
+# 它是"人批准的那一份"的权威记录。pr_matches_preview 拿它和 pr.yaml 对：
+#   pr.preview_digest == manifest.preview_digest
+#   sorted(pr.changed_files) == sorted(manifest.package_files)
+# 对不上就是预览之后又改过——重新预览、重新批准，不要改这个文件让它对上。
+#
+# checkout_clean 从这里读 target_repository。
+
+release: rel-0001
+candidate_revision: r0003
+selection: patch                    # 与 patch-or-version.yaml 一致
+target_version: 1.1.0
+generated_at: 2026-09-03T17:20:00+08:00
+
+target_repository: ~/repos/ontology-bundles
+target_base: main
+target_commit: 4f2a9c1
+
+# package/ 下每个文件的相对路径。package_excludes_raw 会遍历实际目录，
+# 命中排除子串就阻断：raw evidence、inputs/evidence、evidence-snapshots、
+# extractions、transcripts、interview-state、samples、history/runs.jsonl、
+# revisions/runs、decisions.log、principals、entitlement。
+package_files:
+  - access-scopes.yaml
+  - candidate.cypher
+  - candidate.yaml
+  - generation-report.md
+  - migration.md
+  - submission-manifest.yaml
+
+# 预览摘要的摘要。preview 步骤把 changed files、PR title/body 原文、
+# 两个 digest 完整摆给人看之后，把那一份的 digest 记在这里。
+preview_digest: sha256:<预览内容的摘要>
+
+# 与 access-scopes.yaml 里的那个必须相同。scope_refs_resolve 会重算成员列表来验。
+membership_digest: sha256:<与 access-scopes.yaml 一致>
+
+# 评估不阻断提交，但结果要跟着走到 PR 边界，否则治理评审时无从回答"评估过了没有"。
+evaluation_run: evaluation/runs/ev-0002.yaml     # 没跑就写 none，不要留空
+evaluation_summary:
+  passed: 1
+  failed: 1
+  unsupported: 2
+  rationale_attached: true
+
+unresolved:                          # generation-report 里还没关的项，原样带出来
+  - cq.001 unsupported：软关账裁决未定
+  - chg.002 延后给 PO1，目标版本 next

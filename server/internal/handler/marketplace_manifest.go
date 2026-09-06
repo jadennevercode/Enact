@@ -282,7 +282,10 @@ func marketplaceSlugify(name string) string {
 		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
 			b.WriteRune(r)
 			lastDash = false
-		case r == '-' || r == '_' || r == ' ' || r == '.' || r == '/':
+		// ':' is a word boundary like the rest: a skill contributed by a plugin
+		// is named "<plugin>:<skill>", and dropping the colon outright would
+		// slug it as "ontologizerevaluate".
+		case r == '-' || r == '_' || r == ' ' || r == '.' || r == '/' || r == ':':
 			if !lastDash && b.Len() > 0 {
 				b.WriteRune('-')
 				lastDash = true

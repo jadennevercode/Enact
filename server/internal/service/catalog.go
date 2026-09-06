@@ -20,10 +20,16 @@ import (
 // own bundles as ordinary skills, agents and families, published as public
 // listings that every other workspace can install.
 //
-// Only the SDLC bundle lives here. MMM was considered and left out: its skills
-// are prose that shells out to a Python engine installed on the runtime host,
-// so a copied listing would arrive describing commands the installing machine
-// does not have. `enact mmm setup` remains its way in.
+// Two bundles live here: SDLC and Ontologizer. MMM was considered and left out:
+// its skills are prose that shells out to a Python analysis engine and a Node
+// report generator installed on the runtime host, so a copied listing would
+// arrive describing commands the installing machine does not have, and there is
+// no supported way to put them there from an install. `enact mmm setup` remains
+// its way in.
+//
+// Ontologizer clears that bar because its own way in is a documented one-line
+// command: its listings declare `enact ontologizer setup` as a prerequisite,
+// which is the case marketplaceManifest.Prerequisites exists for.
 //
 // Nobody is a member of it. Workspace access is membership-gated throughout, so
 // having no members is what keeps it out of every person's workspace list and
@@ -43,7 +49,7 @@ const (
 // version is never overwritten, so bumping this is how a changed bundle reaches
 // workspaces: it adds a version to each listing, and anyone who installed the
 // old one is offered the update.
-const CatalogVersion = "1.0.0"
+const CatalogVersion = "1.1.0"
 
 // CatalogWorkspace is what the seeder found or created.
 type CatalogWorkspace struct {
@@ -91,11 +97,14 @@ func EnsureCatalogWorkspaceInTx(ctx context.Context, q *db.Queries) (CatalogWork
 
 	catalog = CatalogWorkspace{WorkspaceID: workspace.ID, OwnerID: owner.ID}
 
-	// The SDLC bundle is already expressed as a provisioner; the catalog is now
-	// the one workspace it runs against. No runtime is bound: an agent template
+	// Both bundles are already expressed as provisioners; the catalog is now the
+	// one workspace they run against. No runtime is bound: an agent template
 	// names no machine, and publishing strips the binding anyway.
 	if err := EnsureSDLCDefaultsInTx(ctx, q, catalog.WorkspaceID, catalog.OwnerID, pgtype.UUID{}); err != nil {
 		return catalog, fmt.Errorf("provision SDLC bundle: %w", err)
+	}
+	if err := EnsureOntologizerDefaultsInTx(ctx, q, catalog.WorkspaceID, catalog.OwnerID, pgtype.UUID{}); err != nil {
+		return catalog, fmt.Errorf("provision Ontologizer bundle: %w", err)
 	}
 	return catalog, nil
 }

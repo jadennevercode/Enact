@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/enact-ai/enact/server/internal/logger"
+	"github.com/enact-ai/enact/server/internal/service"
 	skillpkg "github.com/enact-ai/enact/server/internal/skill"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
@@ -530,6 +531,24 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, q *db.Queries, wo
 	}, nil
 }
 
+// publishedAgentInstructions is the prompt a copy of this agent must carry.
+//
+// For an ordinary agent that is simply agent.instructions. For a system agent it
+// is not: its prompt ships with the server binary and is layered on by system
+// key at claim time, so the row holds only the workspace's own notes — often
+// nothing at all. The manifest deliberately drops system_key, because an
+// installed copy is an ordinary agent, and an ordinary agent with an empty
+// prompt is an agent that does nothing. Composing here is what makes the copy
+// behave like the original instead of like an empty shell.
+func publishedAgentInstructions(agent db.Agent) string {
+	if composed, ok := service.ComposeSystemAgentInstructions(
+		agent.SystemKey.String, agent.Name, agent.Instructions,
+	); ok {
+		return composed
+	}
+	return agent.Instructions
+}
+
 // agentManifestFor turns one agent into its portable template and the files
 // its skills ship, with every skill rooted under skillDirPrefix. An agent
 // listing roots them at "skills/"; a squad member roots them under its own
@@ -546,7 +565,7 @@ func (h *Handler) agentManifestFor(ctx context.Context, q *db.Queries, workspace
 	manifest := marketplaceAgentManifest{
 		Name:               agent.Name,
 		Description:        agent.Description,
-		Instructions:       agent.Instructions,
+		Instructions:       publishedAgentInstructions(agent),
 		MaxConcurrentTasks: agent.MaxConcurrentTasks,
 		CustomArgs:         customArgs,
 	}

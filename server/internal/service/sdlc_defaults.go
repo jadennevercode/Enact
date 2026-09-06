@@ -6,15 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
-	"path"
 	"strings"
 
 	"github.com/enact-ai/enact/server/internal/skillversion"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"gopkg.in/yaml.v3"
 )
 
 // SDLCDefaultsVersion stamps the provenance of a provisioned skill so a later
@@ -170,73 +167,7 @@ func SDLCDefaultAgentSystemInstructions(systemKey string) (string, bool) {
 }
 
 func LoadSDLCDefaultSkills() ([]AgentSkillData, error) {
-	entries, err := fs.ReadDir(sdlcSkillsFS, sdlcSkillsRoot)
-	if err != nil {
-		return nil, err
-	}
-	skills := make([]AgentSkillData, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		dir := path.Join(sdlcSkillsRoot, entry.Name())
-		content, err := fs.ReadFile(sdlcSkillsFS, path.Join(dir, "SKILL.md"))
-		if err != nil {
-			return nil, fmt.Errorf("load %s/SKILL.md: %w", entry.Name(), err)
-		}
-		description, err := skillFrontmatterDescription(content)
-		if err != nil {
-			return nil, fmt.Errorf("load %s frontmatter: %w", entry.Name(), err)
-		}
-		skill := AgentSkillData{
-			Name:        entry.Name(),
-			Description: description,
-			Content:     string(content),
-		}
-		err = fs.WalkDir(sdlcSkillsFS, dir, func(filePath string, d fs.DirEntry, walkErr error) error {
-			if walkErr != nil || d.IsDir() {
-				return walkErr
-			}
-			rel := strings.TrimPrefix(filePath, dir+"/")
-			if rel == "SKILL.md" {
-				return nil
-			}
-			data, err := fs.ReadFile(sdlcSkillsFS, filePath)
-			if err != nil {
-				return err
-			}
-			skill.Files = append(skill.Files, AgentSkillFileData{Path: rel, Content: string(data)})
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("load %s files: %w", entry.Name(), err)
-		}
-		skills = append(skills, skill)
-	}
-	return skills, nil
-}
-
-func skillFrontmatterDescription(content []byte) (string, error) {
-	text := string(content)
-	if !strings.HasPrefix(text, "---\n") {
-		return "", errors.New("missing YAML frontmatter")
-	}
-	rest := text[len("---\n"):]
-	end := strings.Index(rest, "\n---")
-	if end < 0 {
-		return "", errors.New("unterminated YAML frontmatter")
-	}
-	var frontmatter struct {
-		Name        string `yaml:"name"`
-		Description string `yaml:"description"`
-	}
-	if err := yaml.Unmarshal([]byte(rest[:end]), &frontmatter); err != nil {
-		return "", err
-	}
-	if strings.TrimSpace(frontmatter.Name) == "" || strings.TrimSpace(frontmatter.Description) == "" {
-		return "", errors.New("name and description are required")
-	}
-	return strings.TrimSpace(frontmatter.Description), nil
+	return loadBundledSkills(sdlcSkillsFS, sdlcSkillsRoot, "")
 }
 
 func sdlcSkillConfig(name string) []byte {

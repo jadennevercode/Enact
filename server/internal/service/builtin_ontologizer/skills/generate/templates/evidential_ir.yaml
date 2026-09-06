@@ -1,0 +1,100 @@
+# revisions/rNNNN/evidential_ir.yaml —— Evidence 层：我们从哪里知道？
+#
+# 里面只有来源事实、术语、锚点、置信度、限制。不许出现 entities、relationships、
+# attributes、events、lifecycles、constraints、policies、capabilities、bindings、
+# metrics、bundle、declarations、domain —— 顶层不行，facts 条目里也不行。
+# 检查项 layer_separation 逐个键核这件事。
+#
+# 每条 fact 必填：id、statement、source_id、anchor（anchor 内必填 location 与 exact_snippet）。
+# 检查项 schema_valid 核字段，trace_complete 顺着 alignment 回来核 anchor 是否可用。
+# 见 references/evidential-ir.md。例子取自 evals/fixtures/journal-reversal/。
+
+facts:
+  - id: ev.fact.001
+    statement: 冲销分录的借贷方向与原分录相反，金额相同。
+    source_id: ev.001                  # manifest 里的 evidence_id
+    source_digest: "sha256:0f3c…"      # 冻结的原件哈希，源变了这条就要重判
+    fagc_ref: fact.001                 # 对应 FAGC 登记里的哪张卡
+    anchor:                            # 单条用映射，多条用列表；两种写法都核 location + exact_snippet
+      location: "§6.2/4"
+      exact_snippet: "借贷方向与原分录相反，金额相同"
+    confidence: high
+    limitations: 只覆盖手册第 6 章
+
+  - id: ev.fact.002
+    statement: 金额大于等于 50,000 元的冲销由财务控制（Controller）审批，低于则由总账主管审批。
+    source_id: ev.001
+    source_digest: "sha256:0f3c…"
+    fagc_ref: fact.003
+    anchor:
+      - location: "§6.2/3"
+        exact_snippet: "金额大于等于 50,000 元：由财务控制（Controller）审批。"
+      - location: "§3.3"
+        exact_snippet: "超过 50,000 元的账务变更需财务控制审批。"
+    confidence: high
+    limitations: 阈值口径（含税/币种）两份材料都没说，见 asm.001
+
+  - id: ev.fact.003
+    statement: 一条分录只能被冲销一次，冲销分录本身不可再被冲销。
+    source_id: ev.001
+    source_digest: "sha256:0f3c…"
+    fagc_ref: con.001
+    anchor:
+      location: "§6.2/2"
+      exact_snippet: "一条分录只能被冲销一次"
+    confidence: high
+
+  - id: ev.fact.004
+    statement: 冲销分录过账后，原分录状态变为 reversed，冲销分录状态为 posted。
+    source_id: ev.001
+    source_digest: "sha256:0f3c…"
+    fagc_ref: fact.004
+    anchor:
+      location: "§6.2/5"
+      exact_snippet: "原分录状态变为 reversed，冲销分录状态为 posted"
+    confidence: high
+
+  # 冲突的两条各占一条 fact，都带 disputed 与同一个 conflict_group。
+  # 这里不做裁决，也不合并——裁决是人的事，见 define/fagc-register.yaml 的 ud.001。
+  - id: ev.fact.010
+    statement: 软关账期间经财务控制批准后仍可冲销。
+    source_id: ev.001
+    source_digest: "sha256:0f3c…"
+    fagc_ref: fact.010
+    anchor:
+      location: "§6.3"
+      exact_snippet: "在软关账（soft close）期间，经财务控制批准后仍可冲销"
+    confidence: high
+    status: disputed
+    conflict_group: cg.softclose
+
+  - id: ev.fact.011
+    statement: 软关账期间任何已过账分录不得冲销。
+    source_id: ev.002
+    source_digest: "sha256:a91b…"
+    fagc_ref: fact.011
+    anchor:
+      location: "§3.2"
+      exact_snippet: "进入软关账后，任何已过账分录不得冲销。"
+    confidence: high
+    status: disputed
+    conflict_group: cg.softclose
+
+# 术语放这里，不放 candidate。candidate 里的 aliases 是设计决定，这里是来源记录。
+terms:
+  - term: 冲销
+    aliases: [红冲, 反过账]
+    source_id: ev.005
+    anchor:
+      location: "术语表/冲销行"
+      exact_snippet: "「红冲」是习惯说法，系统里没有这个动作"
+
+# 材料自己承认的空白。写下来，因为"没有说"和"说了没读到"是两回事。
+gaps:
+  - id: ev.gap.001
+    statement: 审批被否决之后流程走向何处，流程图上连线断开，材料未说明。
+    source_id: ev.003
+    anchor:
+      location: "图/判断节点「审批通过?」否分支"
+      exact_snippet: "否 →（图上此处连线断开，没有指向任何节点）"
+    resolved_by: interview q.202

@@ -1,0 +1,33 @@
+# 准备一次裁决用的草稿。它不落盘——填好之后逐字变成 state.py decide 的参数。
+# 存在的理由是：四段呈现里的东西必须在按下回车之前就写清楚，而不是事后补理由。
+
+point: evidence_sufficiency      # 决策点 id，必须是 shared/manifests/decision-points.yaml 里有的
+title: 证据是否足够               # 该决策点的中文标题，念给人听时用这个
+question: 现有证据足以开始生成候选本体吗？薄弱和冲突之处你接受吗？   # 问题原文
+
+accountable: OO                  # 按 RACI 谁最终负责（manifest 的 accountable 字段）
+role: DE                         # 这次实际以什么身份拍板，写进日志的就是它
+object: '-'                      # 这次裁决针对的对象；整体性的裁决写 -
+
+evidence:                        # 第 2 段：依据。每个数字都要能说出是哪次检查算的
+  - path: define/evidence-snapshots/es-0001/manifest.yaml
+    summary: 5 个来源，4 个 confirmed、1 个 corrected（evidence_confirmed 检查，2026-09-03）
+  - path: define/fagc-register.yaml
+    summary: 事实 22 条、假设 6 条、指引 3 条、约束 4 条；其中 2 条 disputed
+
+open_items:                      # 第 3 段：还没定的。每条单列。有内容时不要推荐 approve
+  - 软关账期间能否冲销：手册第 6 章与关账政策第 3 节说法冲突，未裁决
+  - 分录金额的敏感级别没有人确认
+
+options:                         # 第 4 段：每个合法裁决词及其后果
+  - verdict: sufficient
+    consequence: 证据快照冻结，进入生成；未决项将作为假设进入候选本体
+  - verdict: proceed_with_warnings
+    consequence: 同上，但未决项留在 warning 与 defer backlog 里，审阅时必须逐条过
+  - verdict: insufficient
+    consequence: 回到证据登记补材料，不生成
+
+verdict: proceed_with_warnings   # 人选的那个
+rationale: 软关账冲突未裁决，接受带 warning 继续   # 半年后唯一能解释这个决定的东西
+freezes:                         # 裁决之后不该再改的交付物（manifest 的 freezes 字段）
+  - define/evidence-snapshots

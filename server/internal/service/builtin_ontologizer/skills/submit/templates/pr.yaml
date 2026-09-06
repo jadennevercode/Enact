@@ -1,0 +1,37 @@
+# Pull Request 记录 · releases/rel-<NNNN>/pr.yaml
+#
+# 在人做完 create_pull_request 这个裁决之后写。它是整条流程唯一的强制人工批准，
+# 记不下这条裁决就说明 package_excludes_raw / pr_matches_preview / checkout_clean /
+# patch_version_human 四项里有没过的。
+#
+# 检查它的是 pr_matches_preview 和 checkout_clean。
+
+repository: ~/repos/ontology-bundles
+base: main
+head: ontology/gl-reversal-1.1.0
+commit: 4f2a9c1
+title: "Patch 1.1.0 · 总账冲销语义"
+
+# 与 submission-manifest.yaml 的 preview_digest 必须相同。
+# 人批的必须就是发出去的——预览之后改了一个字，就重新预览、重新批准。
+preview_digest: sha256:<与 manifest 一致>
+body_digest: sha256:<PR 正文的摘要>
+
+# 与 manifest 的 package_files 逐项相同（排序后比）。
+changed_files:
+  - access-scopes.yaml
+  - candidate.cypher
+  - candidate.yaml
+  - generation-report.md
+  - migration.md
+  - submission-manifest.yaml
+
+# clean | dirty | diverged | conflicted。
+# 本地能查到 .git 时 checkout_clean 自己跑 git 去验；查不到时才认这个字段。
+# 不是 clean 就停止提交，转 expert handoff——不重置、不 stash、不 --force。
+checkout_status: clean
+
+url: null                           # gh pr create 之后回填
+created_at: null
+approved_by: GA1                    # 谁做的那个强制批准
+approved_at: 2026-09-03T17:40:00+08:00

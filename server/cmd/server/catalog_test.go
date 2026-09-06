@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/enact-ai/enact/server/internal/analytics"
@@ -90,11 +91,12 @@ func TestCatalogPublishesEveryBundledSkillAgentAndFamily(t *testing.T) {
 		t.Fatalf("seed catalog: %v", err)
 	}
 
-	// The SDLC bundle's own numbers: ten sdlc-* skills, nine roles, one family.
-	// A skill added to the bundle without a listing shows up here as a mismatch
-	// rather than as a quiet omission.
+	// Both bundles' own numbers: ten sdlc-* skills with nine roles, eleven
+	// ontologizer:* skills with five, and one family each. A skill added to a
+	// bundle without a listing shows up here as a mismatch rather than as a
+	// quiet omission.
 	counts := catalogListingCounts(t)
-	for kind, want := range map[string]int{"skill": 10, "agent": 9, "squad": 1} {
+	for kind, want := range map[string]int{"skill": 21, "agent": 14, "squad": 2} {
 		if counts[kind] != want {
 			t.Errorf("catalog published %d %s listings, want %d", counts[kind], kind, want)
 		}
@@ -113,8 +115,169 @@ func TestCatalogPublishesEveryBundledSkillAgentAndFamily(t *testing.T) {
 	`, service.CatalogWorkspaceSlug).Scan(&reachable); err != nil {
 		t.Fatalf("count reachable listings: %v", err)
 	}
-	if reachable != 20 {
-		t.Errorf("%d catalog listings are public, published and versioned; want 20", reachable)
+	if reachable != 37 {
+		t.Errorf("%d catalog listings are public, published and versioned; want 37", reachable)
+	}
+}
+
+// The Ontologizer bundle reaches a workspace only as a Marketplace install, so
+// the properties that make that install usable are asserted here rather than
+// left to the provisioner: it is published by the catalog (which is what earns
+// the official badge), and it says what the installing host needs before the
+// copy will run.
+func TestCatalogPublishesOntologizerWithItsPrerequisites(t *testing.T) {
+	if testPool == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	queries := db.New(testPool)
+
+	hub := realtime.NewHub()
+	go hub.Run()
+	_, h := NewRouterWithOptions(testPool, hub, events.New(), analytics.NoopClient{}, nil, RouterOptions{})
+
+	dropCatalog(t)
+	t.Cleanup(func() { dropCatalog(t) })
+
+	if err := ensureMarketplaceCatalog(ctx, testPool, h, queries); err != nil {
+		t.Fatalf("seed catalog: %v", err)
+	}
+
+	var withoutPrerequisites int
+	if err := testPool.QueryRow(ctx, `
+		SELECT count(*) FROM marketplace_listing l
+		JOIN marketplace_listing_version v ON v.id = l.latest_version_id
+		JOIN workspace w ON w.id = l.workspace_id
+		WHERE w.slug = $1
+		  AND 'ontology' = ANY(l.tags)
+		  AND jsonb_array_length(COALESCE(v.manifest->'prerequisites', '[]'::jsonb)) = 0
+	`, service.CatalogWorkspaceSlug).Scan(&withoutPrerequisites); err != nil {
+		t.Fatalf("count ontology listings without prerequisites: %v", err)
+	}
+	if withoutPrerequisites != 0 {
+		t.Errorf("%d Ontologizer listings ship no prerequisites; every one of them needs the checkout", withoutPrerequisites)
+	}
+
+	var tagged int
+	if err := testPool.QueryRow(ctx, `
+		SELECT count(*) FROM marketplace_listing l
+		JOIN workspace w ON w.id = l.workspace_id
+		WHERE w.slug = $1 AND 'ontology' = ANY(l.tags)
+	`, service.CatalogWorkspaceSlug).Scan(&tagged); err != nil {
+		t.Fatalf("count ontology listings: %v", err)
+	}
+	if tagged != 17 {
+		t.Errorf("%d listings carry the ontology tag, want 17 (11 skills, 5 agents, 1 family)", tagged)
+	}
+}
+
+// Recommendation weights featured above official, and a family is a bundle's
+// entry point. Without this the first thing a new workspace is offered is six
+// arbitrary components of something it has not been shown yet.
+func TestCatalogFeaturesOnlyTheAgentFamilies(t *testing.T) {
+	if testPool == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	queries := db.New(testPool)
+
+	hub := realtime.NewHub()
+	go hub.Run()
+	_, h := NewRouterWithOptions(testPool, hub, events.New(), analytics.NoopClient{}, nil, RouterOptions{})
+
+	dropCatalog(t)
+	t.Cleanup(func() { dropCatalog(t) })
+
+	if err := ensureMarketplaceCatalog(ctx, testPool, h, queries); err != nil {
+		t.Fatalf("seed catalog: %v", err)
+	}
+
+	rows, err := testPool.Query(ctx, `
+		SELECT l.kind, l.slug FROM marketplace_listing l
+		JOIN workspace w ON w.id = l.workspace_id
+		WHERE w.slug = $1 AND l.featured
+		ORDER BY l.slug
+	`, service.CatalogWorkspaceSlug)
+	if err != nil {
+		t.Fatalf("list featured listings: %v", err)
+	}
+	defer rows.Close()
+	featured := 0
+	for rows.Next() {
+		var kind, slug string
+		if err := rows.Scan(&kind, &slug); err != nil {
+			t.Fatalf("scan featured listing: %v", err)
+		}
+		if kind != "squad" {
+			t.Errorf("listing %s (%s) is featured; only Agent Families should be", slug, kind)
+		}
+		featured++
+	}
+	if featured != 2 {
+		t.Errorf("%d catalog listings are featured, want the 2 Agent Families", featured)
+	}
+}
+
+// Every published agent has to carry a prompt. A system agent keeps its prompt
+// in the server binary and its row holds only workspace notes, so a manifest
+// that copied the row verbatim would install nine agents that do nothing —
+// which is what the SDLC family did before publishedAgentInstructions.
+func TestCatalogAgentListingsCarryTheirInstructions(t *testing.T) {
+	if testPool == nil {
+		t.Skip("database not available")
+	}
+	ctx := context.Background()
+	queries := db.New(testPool)
+
+	hub := realtime.NewHub()
+	go hub.Run()
+	_, h := NewRouterWithOptions(testPool, hub, events.New(), analytics.NoopClient{}, nil, RouterOptions{})
+
+	dropCatalog(t)
+	t.Cleanup(func() { dropCatalog(t) })
+
+	if err := ensureMarketplaceCatalog(ctx, testPool, h, queries); err != nil {
+		t.Fatalf("seed catalog: %v", err)
+	}
+
+	rows, err := testPool.Query(ctx, `
+		SELECT l.slug, COALESCE(v.manifest->'agent'->>'instructions', '')
+		FROM marketplace_listing l
+		JOIN marketplace_listing_version v ON v.id = l.latest_version_id
+		JOIN workspace w ON w.id = l.workspace_id
+		WHERE w.slug = $1 AND l.kind = 'agent'
+		ORDER BY l.slug
+	`, service.CatalogWorkspaceSlug)
+	if err != nil {
+		t.Fatalf("read agent manifests: %v", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var slug, instructions string
+		if err := rows.Scan(&slug, &instructions); err != nil {
+			t.Fatalf("scan agent manifest: %v", err)
+		}
+		if strings.TrimSpace(instructions) == "" {
+			t.Errorf("agent listing %s publishes an empty prompt; installing it would create an agent that does nothing", slug)
+		}
+	}
+
+	// The family members carry their own templates, and they are the copy an
+	// installer of the family actually gets.
+	var emptyMembers int
+	if err := testPool.QueryRow(ctx, `
+		SELECT count(*) FROM marketplace_listing l
+		JOIN marketplace_listing_version v ON v.id = l.latest_version_id
+		JOIN workspace w ON w.id = l.workspace_id,
+		     jsonb_array_elements(v.manifest->'squad'->'agents') member
+		WHERE w.slug = $1
+		  AND l.kind = 'squad'
+		  AND COALESCE(btrim(member->'agent'->>'instructions'), '') = ''
+	`, service.CatalogWorkspaceSlug).Scan(&emptyMembers); err != nil {
+		t.Fatalf("count family members without instructions: %v", err)
+	}
+	if emptyMembers != 0 {
+		t.Errorf("%d published family members have an empty prompt", emptyMembers)
 	}
 }
 

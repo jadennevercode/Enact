@@ -1,0 +1,51 @@
+# 语义差异 · revisions/r<MMMM>/semantic-diff.yaml
+#
+# 骨架由 `revision.py diff <ws> <parent> <new>` 生成。生成之后**必须由人补两处**：
+# removed 的 replaced_by 或 removal_rationale。脚本故意把它们留成 null——
+# 只有人知道这个对象是被替代了还是不再需要，而这两件事对下游的后果完全不同。
+#
+# 检查它的是 diff_removals_explained 和 unaffected_unchanged。
+
+from_revision: r0002
+to_revision: r0003
+generated_at: 2026-09-03T15:02:11+08:00
+
+summary:
+  added: 1
+  removed: 1
+  changed: 1
+  unaffected: 7
+
+added:
+  - object_id: pol.single_reversal
+    kind: policy
+    view_label: 一条分录只冲销一次
+
+removed:
+  - object_id: con.single_reversal
+    kind: constraint
+    view_label: null
+    # 二选一，不能都空（diff_removals_explained）。
+    # replaced_by 指向新对象 → 下游可以改指；
+    # removal_rationale 说明不再需要 → 下游引用它的东西全断了。
+    replaced_by: pol.single_reversal
+    removal_rationale: null
+
+changed:
+  - object_id: rel.reverses
+    kind: relationship
+    fields: [definition]
+    # 脚本盯 classification / owner / source / target / cardinality / datatype 六个字段，
+    # 任一变化就标 true。标了不等于真的动了授权边界，它只是告诉 submit：这条别跳过。
+    authorization_impacting: false
+
+# 逐字相同的对象。unaffected_unchanged 会拿新旧两版逐条比对；
+# 声明在这里却改过内容，就是把 diff 淹没在噪声里。
+unaffected:
+  - ent.journal_entry
+  - ent.reversal_entry
+  - ent.close_period
+  - rel.belongs_to_period
+  - attr.journal_entry.amount
+  - attr.journal_entry.status
+  - evt.reversal_approved

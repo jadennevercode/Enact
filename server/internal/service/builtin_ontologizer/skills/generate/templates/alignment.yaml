@@ -1,0 +1,91 @@
+# revisions/rNNNN/alignment.yaml —— Mapping 层：证据和流程怎么支撑设计？
+#
+# 一条 mapping = 一次"这个来源支撑那个设计对象"的显式断言。
+# 必填 id、source、target、confidence —— 四项缺一，检查项 layer_separation 就判它
+# 是"无端点的自动对齐"，等于没有依据的断言。
+#
+#   source  必须是 evidential_ir.facts[].id 或 process_ir 里 steps/decisions/
+#           handoffs/exceptions/records/roles 的 id
+#   target  必须是 candidate 里存在的 declaration id
+#   检查项 refs_resolve 两端都核。
+#
+# candidate 里 `support: [{type: evidence, alignment_id: aln.NNN}]` 指的就是这里的 id，
+# trace_complete 顺着 alignment_id → source → fact.anchor 走一遍，锚点不可用就判失败。
+# 见 references/alignment.md。例子取自 evals/fixtures/journal-reversal/。
+
+mappings:
+  - id: aln.001
+    source: ev.fact.001                 # 证据事实
+    target: rel.reverses                # candidate 对象
+    confidence: high                    # high | medium | low
+    rationale: 手册明确写了冲销分录与原分录的对应关系与方向
+    mapping_kind: evidence_to_relationship
+
+  - id: aln.002
+    source: ev.fact.004
+    target: ent.journal_entry
+    confidence: high
+    rationale: 状态取值 posted / reversed 直接来自 §6.2/5
+    mapping_kind: evidence_to_entity
+
+  - id: aln.003
+    source: proc.step.approve           # 流程步骤也可以作为 source
+    target: evt.reversal_approved
+    confidence: high
+    rationale: 审批步骤在设计里提升为一个有时刻、有参与者的事件
+    mapping_kind: process_to_event
+
+  - id: aln.004
+    source: ev.fact.002
+    target: attr.journal_entry.amount
+    confidence: medium
+    rationale: 金额是审批路由的判据；但阈值口径未定
+    ambiguity: 含税/不含税、原币/本位币两份材料都未说明
+    assumption_ref: asm.001             # 有歧义就指向一条显式假设，不要自己定一个口径
+    mapping_kind: evidence_to_attribute
+
+  - id: aln.005
+    source: ev.fact.003
+    target: con.single_reversal
+    confidence: high
+    rationale: 手册原话「一条分录只能被冲销一次」直接成为一条约束
+    mapping_kind: evidence_to_constraint
+
+  - id: aln.006
+    source: proc.step.post
+    target: lc.journal_entry
+    confidence: high
+    rationale: 过账步骤触发原分录状态从 posted 变为 reversed，构成生命周期转换
+    mapping_kind: process_to_lifecycle
+
+  - id: aln.007
+    source: ev.fact.004
+    target: attr.journal_entry.status
+    confidence: high
+    rationale: 状态枚举来自同一条事实
+    mapping_kind: evidence_to_attribute
+
+  - id: aln.008
+    source: proc.exc.same_person
+    target: con.segregation_of_duties
+    confidence: high
+    rationale: 异常处理「审批人与制单人相同则拒绝」是职责分离约束的执行面
+    mapping_kind: process_to_constraint
+
+# 有来源但没有落到任何设计对象的，写在这里。空列表也要写出来——
+# "没有未映射项"是结论，不是省略。
+unmapped_sources:
+  - source: ev.fact.010
+    reason: 软关账冲突未裁决（ud.001）。两条冲突事实都不单独支撑对象，
+            生命周期转换的 guard 暂挂 asm.001。
+  - source: ev.fact.011
+    reason: 同上，另一半冲突。
+  - source: proc.open.review_box
+    reason: 「复核」方框未接入流程，无法判断它是角色、步骤还是遗留图元。
+
+# 反过来：设计里有但证据支撑不足的对象，在这里显式承认，
+# 并在 candidate 里挂 assumption 型 support，而不是伪造一条 evidence 型。
+weakly_supported_targets:
+  - target: ent.close_period
+    reason: 期间对象由政策 §3.1 的三种状态推出，但材料未把"会计期间"当作可引用对象描述
+    support_used: { type: assumption, id: asm.001 }

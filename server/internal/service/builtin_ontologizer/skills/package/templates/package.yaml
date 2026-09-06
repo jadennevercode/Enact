@@ -1,0 +1,21 @@
+# exports/skill-package/<slug>/package.yaml
+# 这份文件由 scripts/package.py 渲染，不要手写。放在这里是为了让你知道它长什么样，
+# 以及消费方能从它读到什么。
+
+name: journal-reversal            # 包名，同时是 SKILL.md 的 name 与目录名
+kind: ontology-skill-package      # 固定值，消费方据此判断这是个本体包
+
+source_revision: r0003            # 来自哪一版；必须已封存且被选为 candidate release
+source_release: rel-0001          # 对应哪次发布；没走 submit 时为 null
+source_content_digest: sha256:…   # 那一版的内容摘要，消费方用它判断手上这份是不是最新
+domain: dom.journal_reversal      # 本体的领域 id
+
+counts:                           # 各类构件数量，由渲染器数出来，不手写
+  attribute: 6
+  entity: 4
+  event: 2
+  lifecycle: 1
+  relationship: 5
+
+open_questions: 4                 # boundaries.md 里逐条列出来的未决数
+competency_questions: 6           # 验过的问题数；0 表示这份包没跑过评估
