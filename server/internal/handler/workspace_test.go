@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/enact-ai/enact/server/internal/service"
 	"github.com/enact-ai/enact/server/internal/testutil"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
@@ -78,26 +77,25 @@ func TestCreateWorkspace_DoesNotMarkOnboarded(t *testing.T) {
 		t.Fatalf("CreateWorkspace marked user as onboarded; expected NULL, got %q. The workspace layout hard gate relies on this staying NULL until Step 3 CompleteOnboarding fires.", *onboardedAt)
 	}
 
-	var version int32
-	var skillCount, skillFileCount, agentCount, bindingCount, squadCount, squadMemberCount int
+	// A new workspace starts empty of product content. The SDLC delivery system
+	// is published to the Marketplace by the catalog workspace and installed by
+	// a team that wants it; seeding nine agents and ten skills into every
+	// workspace was the behaviour this replaced.
+	var skillCount, agentCount, squadCount int
 	err := testPool.QueryRow(ctx, `
 		SELECT
-			w.sdlc_defaults_version,
 			(SELECT count(*) FROM skill s WHERE s.workspace_id = w.id AND s.name LIKE 'sdlc-%'),
-			(SELECT count(*) FROM skill_file sf JOIN skill s ON s.id = sf.skill_id WHERE s.workspace_id = w.id AND s.name LIKE 'sdlc-%'),
 			(SELECT count(*) FROM agent a WHERE a.workspace_id = w.id AND a.system_key LIKE 'sdlc:%'),
-			(SELECT count(*) FROM agent_skill aks JOIN agent a ON a.id = aks.agent_id WHERE a.workspace_id = w.id AND a.system_key LIKE 'sdlc:%'),
-			(SELECT count(*) FROM squad sq WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery'),
-			(SELECT count(*) FROM squad_member sm JOIN squad sq ON sq.id = sm.squad_id WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery')
+			(SELECT count(*) FROM squad sq WHERE sq.workspace_id = w.id AND sq.system_key = 'sdlc:delivery')
 		FROM workspace w
 		WHERE w.slug = $1
-	`, slug).Scan(&version, &skillCount, &skillFileCount, &agentCount, &bindingCount, &squadCount, &squadMemberCount)
+	`, slug).Scan(&skillCount, &agentCount, &squadCount)
 	if err != nil {
-		t.Fatalf("query seeded SDLC defaults: %v", err)
+		t.Fatalf("query new workspace contents: %v", err)
 	}
-	if version != service.SDLCDefaultsVersion || skillCount != 10 || skillFileCount != 52 || agentCount != 9 || bindingCount != 18 || squadCount != 1 || squadMemberCount != 9 {
-		t.Fatalf("SDLC defaults = version:%d skills:%d files:%d agents:%d bindings:%d squads:%d members:%d; want version:%d skills:10 files:52 agents:9 bindings:18 squads:1 members:9",
-			version, skillCount, skillFileCount, agentCount, bindingCount, squadCount, squadMemberCount, service.SDLCDefaultsVersion)
+	if skillCount != 0 || agentCount != 0 || squadCount != 0 {
+		t.Fatalf("new workspace carries SDLC content = skills:%d agents:%d families:%d; want all 0 — creating a workspace must not provision the bundle",
+			skillCount, agentCount, squadCount)
 	}
 }
 

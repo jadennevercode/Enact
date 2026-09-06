@@ -2474,16 +2474,6 @@ SET system_key = @system_key,
 WHERE id = @id
 RETURNING *;
 
--- name: BindUnboundSDLCDefaultAgents :execrows
-UPDATE agent
-SET runtime_id = @runtime_id,
-    runtime_mode = 'local',
-    updated_at = now()
-WHERE workspace_id = @workspace_id
-  AND system_key = ANY(@system_keys::text[])
-  AND runtime_id IS NULL
-  AND archived_at IS NULL;
-
 -- name: CreateSystemUserAgent :one
 -- Creates a product-defined agent that members can still see, chat with, and
 -- assign issues to. Deliberately kind='user': kind='system' hides the row from

@@ -795,13 +795,6 @@ func (h *Handler) DaemonRegister(w http.ResponseWriter, r *http.Request) {
 		}, prow.Inserted)
 	}
 
-	if err := service.BindUnboundSDLCDefaultAgents(r.Context(), h.TxStarter, h.Queries, wsUUID, sdlcRuntime); err != nil {
-		// Registration itself remains usable; the next registration or server
-		// startup will retry the idempotent binding.
-		slog.Warn("failed to bind SDLC default agents to runtime",
-			"workspace_id", req.WorkspaceID, "runtime_id", uuidToString(sdlcRuntime), "error", err)
-	}
-
 	slog.Info("daemon registered", "workspace_id", req.WorkspaceID, "daemon_id", req.DaemonID, "runtimes_count", len(resp))
 
 	h.publish(protocol.EventDaemonRegister, req.WorkspaceID, "system", "", map[string]any{

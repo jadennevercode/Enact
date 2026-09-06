@@ -464,11 +464,6 @@ func main() {
 	defer analyticsClient.Close()
 
 	queries := db.New(pool)
-	if err := service.EnsureSDLCDefaultsForAllWorkspaces(ctx, pool, queries); err != nil {
-		// A conflicting user-owned skill in one workspace must not prevent the
-		// server from starting or other workspaces from being upgraded.
-		slog.Warn("SDLC defaults reconciliation completed with errors", "error", err)
-	}
 	hub.SetAuthorizer(newScopeAuthorizer(queries))
 	// Order matters: subscriber listeners must register BEFORE notification listeners.
 	// The notification listener queries the subscriber table to determine recipients,
@@ -559,6 +554,15 @@ func main() {
 		HeartbeatScheduler:  heartbeatScheduler,
 		LLMMaxRetries:       llmMaxRetries,
 	})
+
+	// The Marketplace catalog: the deployment's own workspace, holding the SDLC
+	// and MMM bundles and publishing them as public listings every workspace can
+	// install. Idempotent, so this is a no-op on every boot after the bundles
+	// last moved. A failure here leaves the catalog stale rather than stopping
+	// the server — no running workspace depends on it.
+	if err := ensureMarketplaceCatalog(ctx, pool, h, queries); err != nil {
+		slog.Warn("marketplace catalog seeding failed", "error", err)
+	}
 
 	srv := &http.Server{
 		Addr:    ":" + port,

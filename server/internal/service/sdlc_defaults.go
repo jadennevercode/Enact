@@ -17,10 +17,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// SDLCDefaultsVersion is persisted per workspace after the product-owned
-// bundle has been provisioned. Bump it whenever an existing deployment must
-// re-apply changed skill files or portfolio metadata.
-const SDLCDefaultsVersion int32 = 2
+// SDLCDefaultsVersion stamps the provenance of a provisioned skill so a later
+// bundle can tell its own writes from a workspace's edits. It no longer drives
+// reconciliation: the bundle is provisioned once, into the catalog workspace,
+// and reaches a team as a Marketplace install.
 
 const (
 	sdlcSkillsRoot       = "builtin_sdlc/skills"
@@ -244,7 +244,7 @@ func sdlcSkillConfig(name string) []byte {
 		"origin": map[string]any{
 			"type":    "enact_builtin_sdlc",
 			"key":     name,
-			"version": SDLCDefaultsVersion,
+			"version": CatalogVersion,
 		},
 	})
 	return config
@@ -270,10 +270,6 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 	if !workspaceID.Valid || !ownerID.Valid {
 		return errors.New("workspace and owner are required")
 	}
-	if err := q.AcquireSDLCDefaultsLock(ctx, workspaceID); err != nil {
-		return fmt.Errorf("lock workspace defaults: %w", err)
-	}
-
 	skills, err := LoadSDLCDefaultSkills()
 	if err != nil {
 		return err
@@ -331,7 +327,7 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 			Files:   versionFiles,
 			Source:  skillversion.SourceSeed,
 			ActorID: ownerID,
-			Summary: fmt.Sprintf("Provisioned by Enact (bundle v%d)", SDLCDefaultsVersion),
+			Summary: "Provisioned by Enact (catalog " + CatalogVersion + ")",
 		}); err != nil {
 			return fmt.Errorf("record version for %s: %w", skill.Name, err)
 		}
@@ -397,7 +393,7 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 	}
 
 	leaderID := agentIDs[sdlcDefaultSquad.LeaderKey]
-	squad, err := q.FindSDLCDefaultSquadForUpdate(ctx, db.FindSDLCDefaultSquadForUpdateParams{
+	squad, err := q.FindProductSquadForUpdate(ctx, db.FindProductSquadForUpdateParams{
 		WorkspaceID: workspaceID,
 		SystemKey:   pgtype.Text{String: sdlcDefaultSquad.SystemKey, Valid: true},
 		DefaultName: sdlcDefaultSquad.Name,
@@ -462,75 +458,5 @@ func EnsureSDLCDefaultsInTx(ctx context.Context, q *db.Queries, workspaceID, own
 		}
 	}
 
-	if err := q.SetWorkspaceSDLCDefaultsVersion(ctx, db.SetWorkspaceSDLCDefaultsVersionParams{
-		ID:                  workspaceID,
-		SdlcDefaultsVersion: SDLCDefaultsVersion,
-	}); err != nil {
-		return fmt.Errorf("mark SDLC defaults version: %w", err)
-	}
 	return nil
-}
-
-type SDLCTxStarter interface {
-	Begin(context.Context) (pgx.Tx, error)
-}
-
-// EnsureSDLCDefaultsForAllWorkspaces upgrades every workspace that is behind
-// the embedded bundle. One conflicting workspace does not prevent the server
-// from repairing the rest; callers receive an errors.Join summary to log.
-func EnsureSDLCDefaultsForAllWorkspaces(ctx context.Context, txStarter SDLCTxStarter, q *db.Queries) error {
-	targets, err := q.ListWorkspacesNeedingSDLCDefaults(ctx, SDLCDefaultsVersion)
-	if err != nil {
-		return fmt.Errorf("list workspaces needing SDLC defaults: %w", err)
-	}
-	var failures []error
-	for _, target := range targets {
-		tx, err := txStarter.Begin(ctx)
-		if err != nil {
-			failures = append(failures, fmt.Errorf("workspace %v: begin: %w", target.WorkspaceID.Bytes, err))
-			continue
-		}
-		qtx := q.WithTx(tx)
-		err = EnsureSDLCDefaultsInTx(ctx, qtx, target.WorkspaceID, target.OwnerID, target.RuntimeID)
-		if err == nil {
-			err = tx.Commit(ctx)
-		}
-		if err != nil {
-			_ = tx.Rollback(ctx)
-			failures = append(failures, fmt.Errorf("workspace %v: %w", target.WorkspaceID.Bytes, err))
-		}
-	}
-	return errors.Join(failures...)
-}
-
-// BindUnboundSDLCDefaultAgents attaches newly provisioned portable roles to a
-// real runtime once a daemon has registered one for the workspace.
-//
-// A workspace created before any daemon registered gets its SDLC agents with
-// no runtime, and one that stays unbound is an agent that can be assigned work
-// nothing will ever claim.
-//
-// Only the seeded roles need this. The Retrospect Agent is created by a person
-// who picks its runtime in the same request, so it is never unbound.
-func BindUnboundSDLCDefaultAgents(ctx context.Context, txStarter SDLCTxStarter, q *db.Queries, workspaceID, runtimeID pgtype.UUID) error {
-	if !workspaceID.Valid || !runtimeID.Valid {
-		return nil
-	}
-	tx, err := txStarter.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	qtx := q.WithTx(tx)
-	if err := qtx.AcquireSDLCDefaultsLock(ctx, workspaceID); err != nil {
-		return err
-	}
-	if _, err := qtx.BindUnboundSDLCDefaultAgents(ctx, db.BindUnboundSDLCDefaultAgentsParams{
-		WorkspaceID: workspaceID,
-		RuntimeID:   runtimeID,
-		SystemKeys:  SDLCDefaultSystemKeys(),
-	}); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }

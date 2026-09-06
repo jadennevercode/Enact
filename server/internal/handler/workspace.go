@@ -15,7 +15,6 @@ import (
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/logger"
 	obsmetrics "github.com/enact-ai/enact/server/internal/metrics"
-	"github.com/enact-ai/enact/server/internal/service"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
 	"github.com/go-chi/chi/v5"
@@ -284,14 +283,12 @@ func (h *Handler) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Product-owned SDLC skills, roles, and squad are part of the workspace
-	// invariant. Keep provisioning in this transaction so a newly visible
-	// workspace is never missing part of the portable delivery system.
-	if err := service.EnsureSDLCDefaultsInTx(r.Context(), qtx, ws.ID, parseUUID(userID), pgtype.UUID{}); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to seed SDLC defaults: "+err.Error())
-		return
-	}
-	// The Retrospect Agent is deliberately NOT seeded here. It is opt-in: a
+	// The SDLC delivery system is deliberately NOT seeded here. It is published
+	// to the Marketplace by the deployment's own catalog workspace, and a team
+	// that wants it installs the Agent Family on purpose. Nine agents and ten
+	// skills nobody asked for are a worse first workspace than an empty one.
+	//
+	// The Retrospect Agent is deliberately NOT seeded here either. It is opt-in: a
 	// workspace gets one when someone configures it (POST /api/agents/retrospect),
 	// and having one is what turns the retrospect loop on. Seeding it would
 	// bind a runtime nobody chose and start filing sub-issues under work in

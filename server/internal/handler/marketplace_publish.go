@@ -13,6 +13,7 @@ import (
 
 	"github.com/enact-ai/enact/server/internal/logger"
 	skillpkg "github.com/enact-ai/enact/server/internal/skill"
+	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 )
 
@@ -122,80 +123,6 @@ func (h *Handler) PublishMarketplaceListing(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if !validMarketplaceKind(req.Kind) {
-		writeError(w, http.StatusBadRequest, "kind must be one of skill, agent, mcp, squad")
-		return
-	}
-	sourceUUID, ok := parseUUIDOrBadRequest(w, strings.TrimSpace(req.SourceID), "source_id")
-	if !ok {
-		return
-	}
-	visibility := strings.TrimSpace(req.Visibility)
-	if visibility == "" {
-		visibility = marketplaceVisibilityWorkspace
-	}
-	if !validMarketplaceVisibility(visibility) {
-		writeError(w, http.StatusBadRequest, "visibility must be one of public, workspace")
-		return
-	}
-	version := strings.TrimSpace(req.Version)
-	if version == "" {
-		writeError(w, http.StatusBadRequest, "version is required")
-		return
-	}
-
-	publicFields := map[string]bool{}
-	for _, field := range req.PublicFields {
-		publicFields[strings.TrimSpace(field)] = true
-	}
-
-	snapshot, err := h.buildMarketplaceSnapshot(r.Context(), req.Kind, wsUUID, sourceUUID, publicFields)
-	if err != nil {
-		writeError(w, marketplacePublishStatus(err), err.Error())
-		return
-	}
-
-	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		name = snapshot.DefaultName
-	}
-	if name == "" {
-		writeError(w, http.StatusBadRequest, "name is required")
-		return
-	}
-	description := strings.TrimSpace(req.Description)
-	if description == "" {
-		description = snapshot.DefaultDesc
-	}
-	slug := marketplaceSlugify(req.Slug)
-	if slug == "" {
-		slug = snapshot.DefaultSlug
-	}
-	if slug == "" {
-		slug = marketplaceSlugify(name)
-	}
-	if slug == "" {
-		writeError(w, http.StatusBadRequest, "slug is required and could not be derived from the name")
-		return
-	}
-
-	manifestJSON, err := json.Marshal(snapshot.Manifest)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to encode the manifest")
-		return
-	}
-	digest, size, err := marketplaceVersionDigest(manifestJSON, snapshot.Files)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to hash the version")
-		return
-	}
-	if size > maxMarketplaceBundleBytes {
-		writeError(w, http.StatusRequestEntityTooLarge,
-			fmt.Sprintf("this version is larger than the %d byte publish limit", maxMarketplaceBundleBytes))
-		return
-	}
-
-	tags := normalizeMarketplaceTags(req.Tags)
 
 	tx, err := h.TxStarter.Begin(r.Context())
 	if err != nil {
@@ -205,111 +132,13 @@ func (h *Handler) PublishMarketplaceListing(w http.ResponseWriter, r *http.Reque
 	defer tx.Rollback(r.Context())
 	qtx := h.Queries.WithTx(tx)
 
-	// Join the workspace teardown fence: these tables carry no foreign key, so
-	// without the shared lock a publish committing after DeleteWorkspace swept
-	// would leave a listing pointing at a workspace that no longer exists.
-	if _, err := qtx.LockWorkspaceForChatSessionCreate(r.Context(), wsUUID); err != nil {
-		writeError(w, http.StatusNotFound, "workspace not found")
-		return
-	}
-
-	listing, err := qtx.GetMarketplaceListingBySlug(r.Context(), db.GetMarketplaceListingBySlugParams{
-		WorkspaceID: wsUUID,
-		Kind:        req.Kind,
-		Slug:        slug,
-	})
-	switch {
-	case err == nil:
-		// Republishing under an existing handle. Take the row exclusively so
-		// two concurrent publishes serialize and the second sees the first's
-		// version when it checks for a duplicate version string.
-		if _, lockErr := qtx.LockMarketplaceListingForUpdate(r.Context(), listing.ID); lockErr != nil {
-			writeError(w, http.StatusNotFound, "listing not found")
-			return
-		}
-		updated, updateErr := qtx.UpdateMarketplaceListing(r.Context(), db.UpdateMarketplaceListingParams{
-			ID:          listing.ID,
-			Name:        pgtype.Text{String: name, Valid: true},
-			Description: pgtype.Text{String: description, Valid: true},
-			Category:    pgtype.Text{String: strings.TrimSpace(req.Category), Valid: true},
-			Tags:        tags,
-			Visibility:  pgtype.Text{String: visibility, Valid: true},
-			// A republish of a taken-down listing does not un-remove it: a
-			// takedown is an administrative decision, not a stale field.
-			Status: pgtype.Text{String: marketplaceStatusPublished, Valid: listing.Status != marketplaceStatusRemoved},
-		})
-		if updateErr != nil {
-			writeError(w, http.StatusInternalServerError, "failed to update the listing")
-			return
-		}
-		listing = updated
-	case marketplaceRowMissing(err):
-		listing, err = qtx.CreateMarketplaceListing(r.Context(), db.CreateMarketplaceListingParams{
-			Kind:        req.Kind,
-			Slug:        slug,
-			Name:        name,
-			Description: description,
-			Category:    strings.TrimSpace(req.Category),
-			Tags:        tags,
-			WorkspaceID: wsUUID,
-			PublishedBy: parseUUID(userID),
-			Visibility:  visibility,
-			Status:      marketplaceStatusPublished,
-		})
-		if err != nil {
-			if isUniqueViolation(err) {
-				writeError(w, http.StatusConflict, "a listing with this slug already exists in this workspace")
-				return
-			}
-			slog.Warn("create marketplace listing failed", append(logger.RequestAttrs(r), "error", err)...)
-			writeError(w, http.StatusInternalServerError, "failed to publish")
-			return
-		}
-	default:
-		writeError(w, http.StatusInternalServerError, "failed to publish")
-		return
-	}
-
-	created, err := qtx.CreateMarketplaceListingVersion(r.Context(), db.CreateMarketplaceListingVersionParams{
-		ListingID:   listing.ID,
-		Version:     version,
-		Manifest:    manifestJSON,
-		Changelog:   strings.TrimSpace(req.Changelog),
-		Digest:      digest,
-		SizeBytes:   size,
-		PublishedBy: parseUUID(userID),
-	})
+	listing, created, err := h.PublishMarketplaceListingTx(r.Context(), qtx, wsUUID, parseUUID(userID), req)
 	if err != nil {
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict,
-				"version "+version+" has already been published; a published version is never overwritten")
-			return
+		status := MarketplacePublishStatus(err)
+		if status >= http.StatusInternalServerError {
+			slog.Warn("marketplace publish failed", append(logger.RequestAttrs(r), "error", err)...)
 		}
-		slog.Warn("create marketplace version failed", append(logger.RequestAttrs(r), "error", err)...)
-		writeError(w, http.StatusInternalServerError, "failed to publish")
-		return
-	}
-
-	for _, file := range snapshot.Files {
-		if _, err := qtx.CreateMarketplaceListingFile(r.Context(), db.CreateMarketplaceListingFileParams{
-			VersionID: created.ID,
-			Path:      file.Path,
-			Content:   file.Content,
-			SizeBytes: int64(len(file.Content)),
-			Sha256:    fileSHA256(file.Content),
-		}); err != nil {
-			slog.Warn("write marketplace file failed", append(logger.RequestAttrs(r), "error", err, "path", file.Path)...)
-			writeError(w, http.StatusInternalServerError, "failed to publish")
-			return
-		}
-	}
-
-	listing, err = qtx.SetMarketplaceListingLatestVersion(r.Context(), db.SetMarketplaceListingLatestVersionParams{
-		ID:              listing.ID,
-		LatestVersionID: created.ID,
-	})
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to publish")
+		writeError(w, status, err.Error())
 		return
 	}
 	if err := tx.Commit(r.Context()); err != nil {
@@ -329,6 +158,196 @@ func (h *Handler) PublishMarketplaceListing(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// PublishMarketplaceListingTx is the publish itself, with the HTTP layer taken
+// off: it validates the request, snapshots the named entity and writes the
+// listing, its version and its files through q.
+//
+// The caller owns the transaction. That is what lets the product's own catalog
+// be seeded — provisioning the entities and publishing them are one atomic act
+// there, and the snapshot has to be able to read rows the same transaction just
+// wrote. It also keeps the manifest shape, the digest and the per-file hashes
+// in one implementation: a seeder that assembled that JSON by hand would drift
+// from what installs expect, and the CHECK constraints would only catch some of
+// it.
+//
+// Authorization is NOT part of this. The handler decides who may publish out of
+// a workspace; a seeder publishing the deployment's own catalog answers to
+// nobody's membership.
+func (h *Handler) PublishMarketplaceListingTx(
+	ctx context.Context,
+	q *db.Queries,
+	wsUUID, actorUUID pgtype.UUID,
+	req PublishMarketplaceListingRequest,
+) (db.MarketplaceListing, db.MarketplaceListingVersion, error) {
+	var noListing db.MarketplaceListing
+	var noVersion db.MarketplaceListingVersion
+
+	if !validMarketplaceKind(req.Kind) {
+		return noListing, noVersion, publishFault(http.StatusBadRequest, "kind must be one of skill, agent, mcp, squad")
+	}
+	sourceUUID, err := util.ParseUUID(strings.TrimSpace(req.SourceID))
+	if err != nil {
+		return noListing, noVersion, publishFault(http.StatusBadRequest, "source_id must be a valid UUID")
+	}
+	visibility := strings.TrimSpace(req.Visibility)
+	if visibility == "" {
+		visibility = marketplaceVisibilityWorkspace
+	}
+	if !validMarketplaceVisibility(visibility) {
+		return noListing, noVersion, publishFault(http.StatusBadRequest, "visibility must be one of public, workspace")
+	}
+	version := strings.TrimSpace(req.Version)
+	if version == "" {
+		return noListing, noVersion, publishFault(http.StatusBadRequest, "version is required")
+	}
+
+	publicFields := map[string]bool{}
+	for _, field := range req.PublicFields {
+		publicFields[strings.TrimSpace(field)] = true
+	}
+
+	// Join the workspace teardown fence: these tables carry no foreign key, so
+	// without the shared lock a publish committing after DeleteWorkspace swept
+	// would leave a listing pointing at a workspace that no longer exists.
+	if _, err := q.LockWorkspaceForChatSessionCreate(ctx, wsUUID); err != nil {
+		return noListing, noVersion, publishFault(http.StatusNotFound, "workspace not found")
+	}
+
+	snapshot, err := h.buildMarketplaceSnapshot(ctx, q, req.Kind, wsUUID, sourceUUID, publicFields)
+	if err != nil {
+		return noListing, noVersion, err
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		name = snapshot.DefaultName
+	}
+	if name == "" {
+		return noListing, noVersion, publishFault(http.StatusBadRequest, "name is required")
+	}
+	description := strings.TrimSpace(req.Description)
+	if description == "" {
+		description = snapshot.DefaultDesc
+	}
+	slug := marketplaceSlugify(req.Slug)
+	if slug == "" {
+		slug = snapshot.DefaultSlug
+	}
+	if slug == "" {
+		slug = marketplaceSlugify(name)
+	}
+	if slug == "" {
+		return noListing, noVersion, publishFault(http.StatusBadRequest,
+			"slug is required and could not be derived from the name")
+	}
+
+	manifestJSON, err := json.Marshal(snapshot.Manifest)
+	if err != nil {
+		return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to encode the manifest")
+	}
+	digest, size, err := marketplaceVersionDigest(manifestJSON, snapshot.Files)
+	if err != nil {
+		return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to hash the version")
+	}
+	if size > maxMarketplaceBundleBytes {
+		return noListing, noVersion, publishFault(http.StatusRequestEntityTooLarge,
+			fmt.Sprintf("this version is larger than the %d byte publish limit", maxMarketplaceBundleBytes))
+	}
+
+	tags := normalizeMarketplaceTags(req.Tags)
+
+	listing, err := q.GetMarketplaceListingBySlug(ctx, db.GetMarketplaceListingBySlugParams{
+		WorkspaceID: wsUUID,
+		Kind:        req.Kind,
+		Slug:        slug,
+	})
+	switch {
+	case err == nil:
+		// Republishing under an existing handle. Take the row exclusively so
+		// two concurrent publishes serialize and the second sees the first's
+		// version when it checks for a duplicate version string.
+		if _, lockErr := q.LockMarketplaceListingForUpdate(ctx, listing.ID); lockErr != nil {
+			return noListing, noVersion, publishFault(http.StatusNotFound, "listing not found")
+		}
+		updated, updateErr := q.UpdateMarketplaceListing(ctx, db.UpdateMarketplaceListingParams{
+			ID:          listing.ID,
+			Name:        pgtype.Text{String: name, Valid: true},
+			Description: pgtype.Text{String: description, Valid: true},
+			Category:    pgtype.Text{String: strings.TrimSpace(req.Category), Valid: true},
+			Tags:        tags,
+			Visibility:  pgtype.Text{String: visibility, Valid: true},
+			// A republish of a taken-down listing does not un-remove it: a
+			// takedown is an administrative decision, not a stale field.
+			Status: pgtype.Text{String: marketplaceStatusPublished, Valid: listing.Status != marketplaceStatusRemoved},
+		})
+		if updateErr != nil {
+			return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to update the listing")
+		}
+		listing = updated
+	case marketplaceRowMissing(err):
+		listing, err = q.CreateMarketplaceListing(ctx, db.CreateMarketplaceListingParams{
+			Kind:        req.Kind,
+			Slug:        slug,
+			Name:        name,
+			Description: description,
+			Category:    strings.TrimSpace(req.Category),
+			Tags:        tags,
+			WorkspaceID: wsUUID,
+			PublishedBy: actorUUID,
+			Visibility:  visibility,
+			Status:      marketplaceStatusPublished,
+		})
+		if err != nil {
+			if isUniqueViolation(err) {
+				return noListing, noVersion, publishFault(http.StatusConflict,
+					"a listing with this slug already exists in this workspace")
+			}
+			return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to publish")
+		}
+	default:
+		return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to publish")
+	}
+
+	created, err := q.CreateMarketplaceListingVersion(ctx, db.CreateMarketplaceListingVersionParams{
+		ListingID:   listing.ID,
+		Version:     version,
+		Manifest:    manifestJSON,
+		Changelog:   strings.TrimSpace(req.Changelog),
+		Digest:      digest,
+		SizeBytes:   size,
+		PublishedBy: actorUUID,
+	})
+	if err != nil {
+		if isUniqueViolation(err) {
+			return noListing, noVersion, publishFault(http.StatusConflict,
+				"version "+version+" has already been published; a published version is never overwritten")
+		}
+		return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to publish")
+	}
+
+	for _, file := range snapshot.Files {
+		if _, err := q.CreateMarketplaceListingFile(ctx, db.CreateMarketplaceListingFileParams{
+			VersionID: created.ID,
+			Path:      file.Path,
+			Content:   file.Content,
+			SizeBytes: int64(len(file.Content)),
+			Sha256:    fileSHA256(file.Content),
+		}); err != nil {
+			return noListing, noVersion, publishFault(http.StatusInternalServerError,
+				"failed to write "+file.Path)
+		}
+	}
+
+	listing, err = q.SetMarketplaceListingLatestVersion(ctx, db.SetMarketplaceListingLatestVersionParams{
+		ID:              listing.ID,
+		LatestVersionID: created.ID,
+	})
+	if err != nil {
+		return noListing, noVersion, publishFault(http.StatusInternalServerError, "failed to publish")
+	}
+	return listing, created, nil
+}
+
 // errMarketplaceSourceNotFound / errMarketplaceUnpublishable separate the two
 // ways a snapshot can fail: the entity is not there, or it is there and must
 // not be published as it stands.
@@ -336,7 +355,29 @@ var (
 	errMarketplaceSourceNotFound = errors.New("the entity to publish was not found in this workspace")
 )
 
-func marketplacePublishStatus(err error) int {
+// marketplacePublishFault carries the status a publish failure should surface.
+// The snapshot errors predate it and stay plain; everything the extracted
+// publish rejects says its own status, because the caller may not be an HTTP
+// handler and "bad request" is not a useful default for a seeder.
+type marketplacePublishFault struct {
+	status  int
+	message string
+}
+
+func (e marketplacePublishFault) Error() string { return e.message }
+
+func publishFault(status int, message string) error {
+	return marketplacePublishFault{status: status, message: message}
+}
+
+// MarketplacePublishStatus maps a publish failure to the status it should
+// surface. Exported because the catalog seeder is not an HTTP handler and still
+// has to tell "this version is already published" apart from a real failure.
+func MarketplacePublishStatus(err error) int {
+	var fault marketplacePublishFault
+	if errors.As(err, &fault) {
+		return fault.status
+	}
 	if errors.Is(err, errMarketplaceSourceNotFound) {
 		return http.StatusNotFound
 	}
@@ -345,16 +386,16 @@ func marketplacePublishStatus(err error) int {
 
 // buildMarketplaceSnapshot reads the workspace entity and produces the manifest
 // and files a version ships.
-func (h *Handler) buildMarketplaceSnapshot(ctx context.Context, kind string, workspaceID, sourceID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
+func (h *Handler) buildMarketplaceSnapshot(ctx context.Context, q *db.Queries, kind string, workspaceID, sourceID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
 	switch kind {
 	case marketplaceKindSkill:
-		return h.snapshotSkillForPublish(ctx, workspaceID, sourceID)
+		return h.snapshotSkillForPublish(ctx, q, workspaceID, sourceID)
 	case marketplaceKindAgent:
-		return h.snapshotAgentForPublish(ctx, workspaceID, sourceID, publicFields)
+		return h.snapshotAgentForPublish(ctx, q, workspaceID, sourceID, publicFields)
 	case marketplaceKindMcp:
-		return h.snapshotMcpForPublish(ctx, workspaceID, sourceID, publicFields)
+		return h.snapshotMcpForPublish(ctx, q, workspaceID, sourceID, publicFields)
 	case marketplaceKindSquad:
-		return h.snapshotSquadForPublish(ctx, workspaceID, sourceID, publicFields)
+		return h.snapshotSquadForPublish(ctx, q, workspaceID, sourceID, publicFields)
 	}
 	return marketplaceSnapshot{}, errors.New("unsupported kind")
 }
@@ -365,15 +406,15 @@ func (h *Handler) buildMarketplaceSnapshot(ctx context.Context, kind string, wor
 // dropped is the config blob: it holds the import provenance of the publishing
 // workspace, which says nothing useful to a reader and would make a re-publish
 // look like an import from somewhere it never came from.
-func (h *Handler) snapshotSkillForPublish(ctx context.Context, workspaceID, skillID pgtype.UUID) (marketplaceSnapshot, error) {
-	skill, err := h.Queries.GetSkillInWorkspace(ctx, db.GetSkillInWorkspaceParams{
+func (h *Handler) snapshotSkillForPublish(ctx context.Context, q *db.Queries, workspaceID, skillID pgtype.UUID) (marketplaceSnapshot, error) {
+	skill, err := q.GetSkillInWorkspace(ctx, db.GetSkillInWorkspaceParams{
 		ID:          skillID,
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		return marketplaceSnapshot{}, errMarketplaceSourceNotFound
 	}
-	files, manifest, err := h.skillPublishFiles(ctx, skill, "")
+	files, manifest, err := h.skillPublishFiles(ctx, q, skill, "")
 	if err != nil {
 		return marketplaceSnapshot{}, err
 	}
@@ -388,8 +429,8 @@ func (h *Handler) snapshotSkillForPublish(ctx context.Context, workspaceID, skil
 
 // skillPublishFiles turns one skill into a file set rooted at prefix ("" for a
 // skill listing, "skills/<slug>/" for one embedded in an agent template).
-func (h *Handler) skillPublishFiles(ctx context.Context, skill db.Skill, prefix string) ([]marketplaceFile, marketplaceSkillManifest, error) {
-	rows, err := h.Queries.ListSkillFiles(ctx, skill.ID)
+func (h *Handler) skillPublishFiles(ctx context.Context, q *db.Queries, skill db.Skill, prefix string) ([]marketplaceFile, marketplaceSkillManifest, error) {
+	rows, err := q.ListSkillFiles(ctx, skill.ID)
 	if err != nil {
 		return nil, marketplaceSkillManifest{}, errors.New("failed to read the skill's files")
 	}
@@ -414,8 +455,8 @@ func (h *Handler) skillPublishFiles(ctx context.Context, skill db.Skill, prefix 
 }
 
 // snapshotMcpForPublish reads one workspace MCP server and redacts it.
-func (h *Handler) snapshotMcpForPublish(ctx context.Context, workspaceID, serverID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
-	server, err := h.Queries.GetWorkspaceMcpServer(ctx, db.GetWorkspaceMcpServerParams{
+func (h *Handler) snapshotMcpForPublish(ctx context.Context, q *db.Queries, workspaceID, serverID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
+	server, err := q.GetWorkspaceMcpServer(ctx, db.GetWorkspaceMcpServerParams{
 		ID:          serverID,
 		WorkspaceID: workspaceID,
 	})
@@ -455,15 +496,15 @@ func mcpManifestFor(name string, config []byte, publicFields map[string]bool) (m
 //
 // The fields that do not travel are listed on marketplaceAgentManifest, and
 // the reason they cannot leak is that the type has nowhere to put them.
-func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agentID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
-	agent, err := h.Queries.GetAgentInWorkspace(ctx, db.GetAgentInWorkspaceParams{
+func (h *Handler) snapshotAgentForPublish(ctx context.Context, q *db.Queries, workspaceID, agentID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
+	agent, err := q.GetAgentInWorkspace(ctx, db.GetAgentInWorkspaceParams{
 		ID:          agentID,
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		return marketplaceSnapshot{}, errMarketplaceSourceNotFound
 	}
-	manifest, files, err := h.agentManifestFor(ctx, workspaceID, agent, agentSkillDirPrefix, publicFields)
+	manifest, files, err := h.agentManifestFor(ctx, q, workspaceID, agent, agentSkillDirPrefix, publicFields)
 	if err != nil {
 		return marketplaceSnapshot{}, err
 	}
@@ -480,7 +521,7 @@ func (h *Handler) snapshotAgentForPublish(ctx context.Context, workspaceID, agen
 // its skills ship, with every skill rooted under skillDirPrefix. An agent
 // listing roots them at "skills/"; a squad member roots them under its own
 // member directory so two members' skills cannot collide.
-func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID, agent db.Agent, skillDirPrefix string, publicFields map[string]bool) (marketplaceAgentManifest, []marketplaceFile, error) {
+func (h *Handler) agentManifestFor(ctx context.Context, q *db.Queries, workspaceID pgtype.UUID, agent db.Agent, skillDirPrefix string, publicFields map[string]bool) (marketplaceAgentManifest, []marketplaceFile, error) {
 	var customArgs []string
 	if len(agent.CustomArgs) > 0 {
 		_ = json.Unmarshal(agent.CustomArgs, &customArgs)
@@ -511,7 +552,7 @@ func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID,
 	}
 	// The provider is a hint about what the instructions were written for. The
 	// runtime itself is never published: it names a machine in this workspace.
-	if runtime, err := h.Queries.GetAgentRuntimeForWorkspace(ctx, db.GetAgentRuntimeForWorkspaceParams{
+	if runtime, err := q.GetAgentRuntimeForWorkspace(ctx, db.GetAgentRuntimeForWorkspaceParams{
 		ID:          agent.RuntimeID,
 		WorkspaceID: workspaceID,
 	}); err == nil {
@@ -538,7 +579,7 @@ func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID,
 		seen[entry.Name] = true
 	}
 
-	bound, err := h.Queries.ListAgentMcpServers(ctx, agent.ID)
+	bound, err := q.ListAgentMcpServers(ctx, agent.ID)
 	if err != nil {
 		return marketplaceAgentManifest{}, nil, errors.New("failed to read the agent's MCP servers")
 	}
@@ -554,7 +595,7 @@ func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID,
 		seen[server.Name] = true
 	}
 
-	skills, err := h.Queries.ListAgentSkills(ctx, agent.ID)
+	skills, err := q.ListAgentSkills(ctx, agent.ID)
 	if err != nil {
 		return marketplaceAgentManifest{}, nil, errors.New("failed to read the agent's skills")
 	}
@@ -571,7 +612,7 @@ func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID,
 			continue
 		}
 		dir := skillDirPrefix + uniqueMarketplaceDir(marketplaceSlugify(skill.Name), usedDirs)
-		skillFiles, skillManifest, err := h.skillPublishFiles(ctx, skill, dir+"/")
+		skillFiles, skillManifest, err := h.skillPublishFiles(ctx, q, skill, dir+"/")
 		if err != nil {
 			return marketplaceAgentManifest{}, nil, err
 		}
@@ -594,8 +635,8 @@ func (h *Handler) agentManifestFor(ctx context.Context, workspaceID pgtype.UUID,
 // therefore required to be an agent member, which CreateSquad already
 // guarantees, and is named by its member directory so the installer can
 // resolve it to the agent it creates.
-func (h *Handler) snapshotSquadForPublish(ctx context.Context, workspaceID, squadID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
-	squad, err := h.Queries.GetSquadInWorkspace(ctx, db.GetSquadInWorkspaceParams{
+func (h *Handler) snapshotSquadForPublish(ctx context.Context, q *db.Queries, workspaceID, squadID pgtype.UUID, publicFields map[string]bool) (marketplaceSnapshot, error) {
+	squad, err := q.GetSquadInWorkspace(ctx, db.GetSquadInWorkspaceParams{
 		ID:          squadID,
 		WorkspaceID: workspaceID,
 	})
@@ -605,7 +646,7 @@ func (h *Handler) snapshotSquadForPublish(ctx context.Context, workspaceID, squa
 	if squad.ArchivedAt.Valid {
 		return marketplaceSnapshot{}, errors.New("an archived agent family cannot be published")
 	}
-	members, err := h.Queries.ListSquadMembers(ctx, squad.ID)
+	members, err := q.ListSquadMembers(ctx, squad.ID)
 	if err != nil {
 		return marketplaceSnapshot{}, errors.New("failed to read the agent family's members")
 	}
@@ -645,7 +686,7 @@ func (h *Handler) snapshotSquadForPublish(ctx context.Context, workspaceID, squa
 	files := []marketplaceFile{}
 	usedDirs := map[string]bool{}
 	for _, member := range ordered {
-		agent, err := h.Queries.GetAgentInWorkspace(ctx, db.GetAgentInWorkspaceParams{
+		agent, err := q.GetAgentInWorkspace(ctx, db.GetAgentInWorkspaceParams{
 			ID:          member.MemberID,
 			WorkspaceID: workspaceID,
 		})
@@ -653,7 +694,7 @@ func (h *Handler) snapshotSquadForPublish(ctx context.Context, workspaceID, squa
 			return marketplaceSnapshot{}, fmt.Errorf("an agent member of this family no longer exists in this workspace")
 		}
 		dir := squadAgentDirPrefix + uniqueMarketplaceDir(marketplaceSlugify(agent.Name), usedDirs)
-		agentManifest, agentFiles, err := h.agentManifestFor(ctx, workspaceID, agent, dir+"/"+agentSkillDirPrefix, publicFields)
+		agentManifest, agentFiles, err := h.agentManifestFor(ctx, q, workspaceID, agent, dir+"/"+agentSkillDirPrefix, publicFields)
 		if err != nil {
 			return marketplaceSnapshot{}, fmt.Errorf("%s: %w", agent.Name, err)
 		}

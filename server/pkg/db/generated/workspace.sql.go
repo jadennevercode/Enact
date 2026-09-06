@@ -11,14 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const acquireSDLCDefaultsLock = `-- name: AcquireSDLCDefaultsLock :exec
-SELECT pg_advisory_xact_lock(
-    hashtext('enact-sdlc-defaults:' || $1::uuid::text)
-)
+const acquireCatalogLock = `-- name: AcquireCatalogLock :exec
+SELECT pg_advisory_xact_lock(hashtext('enact-catalog'))
 `
 
-func (q *Queries) AcquireSDLCDefaultsLock(ctx context.Context, workspaceID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, acquireSDLCDefaultsLock, workspaceID)
+// One catalog per deployment, so the key is constant rather than per-workspace:
+// the lock has to be held before the catalog workspace is known, since finding
+// or creating it is the part two booting replicas would race on.
+func (q *Queries) AcquireCatalogLock(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, acquireCatalogLock)
 	return err
 }
 
@@ -343,6 +344,11 @@ const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT w.id, w.name, w.slug, w.description, w.settings,
        w.created_at, w.updated_at, w.context,
        w.issue_prefix, w.issue_counter, w.avatar_url, w.attribution_fail_closed,
+       -- Dead: nothing reads sdlc_defaults_version since the bundle stopped
+       -- being force-provisioned. The column and this projection stay until a
+       -- release has shipped that does not select it — dropping a column the
+       -- running binary still reads takes /api/workspaces down until every
+       -- replica has restarted. Drop both in a follow-up.
        w.sdlc_defaults_version
 FROM member m
 JOIN workspace w ON w.id = m.workspace_id
@@ -374,63 +380,6 @@ func (q *Queries) ListWorkspaces(ctx context.Context, userID pgtype.UUID) ([]Wor
 			&i.AttributionFailClosed,
 			&i.SdlcDefaultsVersion,
 		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listWorkspacesNeedingSDLCDefaults = `-- name: ListWorkspacesNeedingSDLCDefaults :many
-SELECT
-    w.id AS workspace_id,
-    owner.user_id AS owner_id,
-    runtime.id AS runtime_id
-FROM workspace w
-JOIN LATERAL (
-    SELECT m.user_id
-    FROM member m
-    WHERE m.workspace_id = w.id
-    ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.id ASC
-    LIMIT 1
-) owner ON TRUE
-LEFT JOIN LATERAL (
-    SELECT ar.id
-    FROM agent_runtime ar
-    WHERE ar.workspace_id = w.id AND ar.status = 'online'
-    ORDER BY (ar.provider = 'codex') DESC,
-             ar.last_seen_at DESC NULLS LAST,
-             ar.created_at ASC,
-             ar.id ASC
-    LIMIT 1
-) runtime ON TRUE
-WHERE w.sdlc_defaults_version < $1
-ORDER BY w.created_at ASC, w.id ASC
-`
-
-type ListWorkspacesNeedingSDLCDefaultsRow struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	OwnerID     pgtype.UUID `json:"owner_id"`
-	RuntimeID   pgtype.UUID `json:"runtime_id"`
-}
-
-// Returns one stable owner and the best currently-online runtime for each
-// workspace that has not received the current product-owned SDLC bundle.
-// Codex is preferred because the shipped portfolio was authored and verified
-// against Codex; another online runtime is still a usable portable fallback.
-func (q *Queries) ListWorkspacesNeedingSDLCDefaults(ctx context.Context, sdlcDefaultsVersion int32) ([]ListWorkspacesNeedingSDLCDefaultsRow, error) {
-	rows, err := q.db.Query(ctx, listWorkspacesNeedingSDLCDefaults, sdlcDefaultsVersion)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListWorkspacesNeedingSDLCDefaultsRow{}
-	for rows.Next() {
-		var i ListWorkspacesNeedingSDLCDefaultsRow
-		if err := rows.Scan(&i.WorkspaceID, &i.OwnerID, &i.RuntimeID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -483,23 +432,6 @@ func (q *Queries) LockWorkspaceForDelete(ctx context.Context, id pgtype.UUID) (p
 	var id_2 pgtype.UUID
 	err := row.Scan(&id_2)
 	return id_2, err
-}
-
-const setWorkspaceSDLCDefaultsVersion = `-- name: SetWorkspaceSDLCDefaultsVersion :exec
-UPDATE workspace
-SET sdlc_defaults_version = $2,
-    updated_at = now()
-WHERE id = $1
-`
-
-type SetWorkspaceSDLCDefaultsVersionParams struct {
-	ID                  pgtype.UUID `json:"id"`
-	SdlcDefaultsVersion int32       `json:"sdlc_defaults_version"`
-}
-
-func (q *Queries) SetWorkspaceSDLCDefaultsVersion(ctx context.Context, arg SetWorkspaceSDLCDefaultsVersionParams) error {
-	_, err := q.db.Exec(ctx, setWorkspaceSDLCDefaultsVersion, arg.ID, arg.SdlcDefaultsVersion)
-	return err
 }
 
 const updateWorkspace = `-- name: UpdateWorkspace :one

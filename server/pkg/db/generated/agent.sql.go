@@ -377,31 +377,6 @@ func (q *Queries) ArchiveAgentsByRuntime(ctx context.Context, arg ArchiveAgentsB
 	return items, nil
 }
 
-const bindUnboundSDLCDefaultAgents = `-- name: BindUnboundSDLCDefaultAgents :execrows
-UPDATE agent
-SET runtime_id = $1,
-    runtime_mode = 'local',
-    updated_at = now()
-WHERE workspace_id = $2
-  AND system_key = ANY($3::text[])
-  AND runtime_id IS NULL
-  AND archived_at IS NULL
-`
-
-type BindUnboundSDLCDefaultAgentsParams struct {
-	RuntimeID   pgtype.UUID `json:"runtime_id"`
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	SystemKeys  []string    `json:"system_keys"`
-}
-
-func (q *Queries) BindUnboundSDLCDefaultAgents(ctx context.Context, arg BindUnboundSDLCDefaultAgentsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, bindUnboundSDLCDefaultAgents, arg.RuntimeID, arg.WorkspaceID, arg.SystemKeys)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const cancelAgentTask = `-- name: CancelAgentTask :one
 UPDATE agent_task_queue
 SET status = 'cancelled', completed_at = now(), prepare_lease_expires_at = NULL
