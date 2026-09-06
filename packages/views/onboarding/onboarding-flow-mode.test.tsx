@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@enact/core/i18n/react";
+import type { Workspace } from "@enact/core/types";
 import enCommon from "../locales/en/common.json";
 import enOnboarding from "../locales/en/onboarding.json";
 import enWorkspace from "../locales/en/workspace.json";
@@ -8,6 +9,8 @@ import enWorkspace from "../locales/en/workspace.json";
 const TEST_RESOURCES = {
   en: { common: enCommon, onboarding: enOnboarding, workspace: enWorkspace },
 };
+
+const createWorkspaceMutate = vi.hoisted(() => vi.fn());
 
 vi.mock("../auth", () => ({ useLogout: () => vi.fn() }));
 
@@ -22,7 +25,7 @@ vi.mock("@enact/core/api", () => ({
 }));
 
 vi.mock("@enact/core/workspace/mutations", () => ({
-  useCreateWorkspace: () => ({ mutate: vi.fn(), isPending: false }),
+  useCreateWorkspace: () => ({ mutate: createWorkspaceMutate, isPending: false }),
 }));
 
 vi.mock("@enact/core/auth", () => ({
@@ -62,6 +65,10 @@ function renderFlow(props: Record<string, unknown>) {
 }
 
 describe("OnboardingFlow — new-workspace mode", () => {
+  beforeEach(() => {
+    createWorkspaceMutate.mockReset();
+  });
+
   it("starts at the workspace step instead of the product intro", () => {
     renderFlow({ mode: "new_workspace", onCancel: vi.fn() });
 
@@ -79,6 +86,34 @@ describe("OnboardingFlow — new-workspace mode", () => {
     // workspace exists. Doing that here would defeat the whole intent.
     expect(screen.queryByText(/Continue with/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Workspace name")).toBeInTheDocument();
+  });
+
+  it("enters the new workspace immediately after creation", () => {
+    const onComplete = vi.fn();
+    renderFlow({ mode: "new_workspace", onCancel: vi.fn(), onComplete });
+
+    fireEvent.change(screen.getByLabelText("Workspace name"), {
+      target: { value: "Direct Workspace" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create Direct Workspace" }),
+    );
+
+    const created = {
+      id: "ws-direct",
+      name: "Direct Workspace",
+      slug: "direct-workspace",
+    } as Workspace;
+    const options = createWorkspaceMutate.mock.calls[0]?.[1] as {
+      onSuccess: (workspace: Workspace) => void;
+    };
+    act(() => options.onSuccess(created));
+
+    expect(onComplete).toHaveBeenCalledOnce();
+    expect(onComplete).toHaveBeenCalledWith(created);
+    expect(
+      screen.queryByRole("heading", { name: /connect a computer/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("still opens on the product intro in first-run mode", () => {

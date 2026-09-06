@@ -236,10 +236,14 @@ function OnboardingStepFlow({
       return;
     }
     onComplete(workspaces[0] ?? undefined);
-  }, [workspaces, onComplete]);
+  }, [workspaces, onComplete, t]);
 
   const handleWorkspaceCreated = useCallback(
     (ws: Workspace) => {
+      if (isNewWorkspace) {
+        onComplete(ws);
+        return;
+      }
       setWorkspace(ws);
       // Deliberately NOT setCurrentWorkspace: that singleton is also written by
       // the desktop tab system, which reclaims it whenever the new workspace
@@ -249,7 +253,7 @@ function OnboardingStepFlow({
       // once, on the navigation in onComplete.
       advanceFrom("workspace");
     },
-    [advanceFrom],
+    [advanceFrom, isNewWorkspace, onComplete],
   );
 
   const handleRuntimeNext = useCallback(
