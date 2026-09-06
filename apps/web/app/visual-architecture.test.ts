@@ -216,7 +216,6 @@ const governedComponentPaths = [
   "packages/views/rich-content/rich-content.tsx",
   "packages/views/modals/create-issue-dialog.tsx",
   "packages/views/modals/create-issue.tsx",
-  "packages/views/modals/create-project.tsx",
   "packages/views/modals/create-squad.tsx",
   "packages/views/modals/delete-issue-confirm.tsx",
   "packages/views/modals/feedback.tsx",
@@ -1384,7 +1383,6 @@ const requiredEditorClasses = [
   ".enact-modal-create-issue",
   ".enact-modal-editor-region",
   ".enact-modal-footer",
-  ".enact-modal-project",
   ".enact-modal-squad",
   ".enact-modal-feedback",
   ".enact-modal-mermaid",
@@ -1813,10 +1811,6 @@ const requiredComponentClasses: Partial<
   "packages/views/modals/create-issue.tsx": [
     "enact-modal-editor-region",
     "enact-modal-toast-status",
-  ],
-  "packages/views/modals/create-project.tsx": [
-    "enact-modal-project",
-    "enact-modal-warning",
   ],
   "packages/views/modals/create-squad.tsx": ["enact-modal-squad"],
   "packages/views/modals/delete-issue-confirm.tsx": [
@@ -3123,7 +3117,7 @@ describe("visual architecture", () => {
       /const \[dismissCount, bumpDismissCount\] =[\s\S]*?window\.setTimeout\(\(\) => \{[\s\S]*?setOpen\(true\);[\s\S]*?<Dialog[\s\S]*?onOpenChange=\{\(next\) => \{[\s\S]*?bumpDismissCount\(\);\s*setOpen\(false\);/,
     );
     expect(workspaceWelcome).toMatch(
-      /const promise = api\.createIssue\(body\);[\s\S]*?if \(failed\) \{[\s\S]*?onClick=\{\(\) => setFailed\(false\)\}[\s\S]*?const handleGotIt = async \(\) => \{\s*onDismiss\(\);[\s\S]*?navigation\.push\(paths\.workspace\(slug\)\.issueDetail\(bundle\.installIssueId\)\);/,
+      /workspaceSetupOptions\(workspaceId, i18n\.resolvedLanguage \?\? i18n\.language\)[\s\S]*?findSetupStep\(setup\.data, "runtime"\)[\s\S]*?const handleGotIt = async \(\) => \{\s*onDismiss\(\);[\s\S]*?resolveWorkspaceSlug\(queryClient, workspaceId\)[\s\S]*?runtimeStep\?\.issue_id[\s\S]*?issueDetail\(runtimeStep\.issue_id\)[\s\S]*?paths\.workspace\(slug\)\.issues\(\)/,
     );
     expect(desktopLogin).toMatch(
       /window\.desktopAPI\.openExternal\([\s\S]*?`\$\{webUrl\}\/login\?platform=desktop`[\s\S]*?data-enact-platform="desktop"[\s\S]*?<DragStrip \/>/,

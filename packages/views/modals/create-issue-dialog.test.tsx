@@ -82,8 +82,5 @@ describe("CreateIssueDialog sizing", () => {
     expect(editorCss).toMatch(
       /\.enact-modal-create-issue\[data-expanded="true"\] \{[\s\S]*?max-width: calc\(var\(--space-unit\) \* 224\)/,
     );
-    expect(editorCss).toMatch(
-      /\.enact-modal-project\[data-expanded="true"\] \{[\s\S]*?max-width: calc\(var\(--space-unit\) \* 224\)/,
-    );
   });
 });

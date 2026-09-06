@@ -1094,29 +1094,6 @@
     padding: calc(var(--space-unit) * 3);
   }
 
-  .enact-modal-project {
-    inset-block-start: 50% !important;
-    inset-inline-start: 50% !important;
-    display: flex;
-    width: 100% !important;
-    max-width: calc(var(--space-unit) * 168) !important;
-    height: calc(var(--space-unit) * 96) !important;
-    flex-direction: column;
-    gap: 0;
-    overflow: hidden;
-    padding: 0;
-    transform: translate(-50%, -50%) !important;
-    transition:
-      width var(--motion-slow) var(--ease-standard),
-      height var(--motion-slow) var(--ease-standard),
-      max-width var(--motion-slow) var(--ease-standard);
-  }
-
-  .enact-modal-project[data-expanded="true"] {
-    max-width: calc(var(--space-unit) * 224) !important;
-    height: 83.333333% !important;
-  }
-
   .enact-modal-squad {
     inset-block-start: 50% !important;
     inset-inline-start: 50% !important;
@@ -1311,19 +1288,6 @@
 
   .enact-modal-confirm-hint {
     display: block;
-  }
-
-  .enact-modal-project-icon {
-    margin-inline-start: calc(var(--space-unit) * -1);
-    border-radius: var(--radius-lg);
-    padding: var(--space-unit);
-    font-size: var(--text-display-sm);
-    line-height: var(--text-display-sm--line-height);
-    transition: background-color var(--motion-fast) var(--ease-standard);
-  }
-
-  .enact-modal-project-icon:hover {
-    background-color: var(--surface-hover);
   }
 
   .enact-modal-picker-input {
