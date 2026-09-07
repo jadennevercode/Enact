@@ -30,5 +30,14 @@
     "description": "런타임을 연결하고 에이전트를 만들면 이 페이지가 채워집니다.",
     "create_agent": "에이전트 만들기",
     "connect_runtime": "런타임 연결"
+  },
+  "tabs": {
+    "overview": "개요",
+    "my_issues": "내 태스크",
+    "inbox": "인박스"
+  },
+  "mine": {
+    "title": "내가 맡은 일",
+    "empty": "할당된 항목이 없습니다."
   }
 }

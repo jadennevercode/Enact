@@ -31,5 +31,14 @@
     "description": "Connect a runtime and create an agent, and this page fills itself in.",
     "create_agent": "Create an agent",
     "connect_runtime": "Connect a runtime"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "my_issues": "My Issues",
+    "inbox": "Inbox"
+  },
+  "mine": {
+    "title": "On your plate",
+    "empty": "Nothing is assigned to you."
   }
 }

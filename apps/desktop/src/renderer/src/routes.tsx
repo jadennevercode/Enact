@@ -21,7 +21,6 @@ import { AttachmentPreviewRoute } from "./pages/attachment-preview-page";
 import { IssuesPage } from "@enact/views/issues/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
-import { MyIssuesPage } from "@enact/views/my-issues";
 import { MarketplacePage } from "@enact/views/marketplace";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
 import {
@@ -31,7 +30,6 @@ import {
 } from "@enact/views/agents";
 import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
 import { HomePage } from "@enact/views/home";
-import { InboxPage } from "@enact/views/inbox";
 import { ChatPage } from "@enact/views/chat";
 import { SettingsPage } from "@enact/views/settings";
 import { useT } from "@enact/views/i18n";
@@ -158,11 +156,6 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Autopilot" },
           },
           {
-            path: "my-issues",
-            element: <MyIssuesPage />,
-            handle: { title: "My Issues" },
-          },
-          {
             path: "runtimes",
             element: <DesktopRuntimesPage />,
             handle: { title: "Runtimes" },
@@ -234,7 +227,6 @@ export const appRoutes: RouteObject[] = [
             element: <SquadDetailPageView />,
             handle: { title: "Agent Family" },
           },
-          { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },
           {
             path: "chat/:sessionId/artifacts",

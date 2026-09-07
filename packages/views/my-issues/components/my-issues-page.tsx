@@ -7,7 +7,6 @@ import {
   myIssuesRelationFromScope,
   myIssuesViewStore,
 } from "@enact/core/issues/stores/my-issues-view-store";
-import { PageHeader } from "../../layout/page-header";
 import { IssueSurface } from "../../issues/surface/issue-surface";
 import { useT } from "../../i18n";
 import { MyIssuesHeader } from "./my-issues-header";
@@ -20,11 +19,6 @@ export function MyIssuesPage() {
 
   return (
     <div className="enact-issue-page flex flex-1 min-h-0 flex-col">
-      <PageHeader>
-        <ListTodo className="h-4 w-4 text-muted-foreground" />
-        <h1 className="text-body font-medium">{t(($) => $.page.breadcrumb)}</h1>
-      </PageHeader>
-
       {user ? (
         <IssueSurface
           scope={{

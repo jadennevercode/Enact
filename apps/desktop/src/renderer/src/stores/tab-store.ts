@@ -356,6 +356,8 @@ const ABSORBED_LIST_ROUTES: Record<string, readonly [string, string] | undefined
   ontologies: ["agents", "ontologies"],
   capabilities: ["agents", "skills"],
   team: ["agents", "families"],
+  inbox: ["home", "inbox"],
+  "my-issues": ["home", "my-issues"],
 };
 
 export function sanitizeTabPath(path: string): string | null {

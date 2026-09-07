@@ -1,7 +1,8 @@
 /* Workspace home: the four blocks that answer what is waiting, stuck, running and broken. */
 
 @layer utilities {
-  .enact-home-page {
+  .enact-home-page,
+  .enact-home-overview {
     min-width: 0;
     min-height: 0;
     background-color: var(--page-canvas);
