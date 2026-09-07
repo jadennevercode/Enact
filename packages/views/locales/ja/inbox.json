@@ -89,5 +89,10 @@
     "archive_completed_failed": "完了した項目をアーカイブできませんでした",
     "unarchive_failed": "アーカイブ解除に失敗しました",
     "archived_load_failed": "アーカイブ済み通知を読み込めませんでした"
+  },
+  "bell": {
+    "label_other": "インボックス、未読 {{count}} 件",
+    "empty": "未読はありません。",
+    "see_all": "インボックスを開く"
   }
 }

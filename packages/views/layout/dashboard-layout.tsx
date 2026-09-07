@@ -8,6 +8,7 @@ import { DashboardGuard } from "./dashboard-guard";
 import { NavigationProgress } from "./navigation-progress";
 import { WorkspacePresencePrefetch } from "./workspace-presence-prefetch";
 import { GlobalShortcuts } from "./global-shortcuts";
+import { TopBar } from "./top-bar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -33,16 +34,22 @@ export function DashboardLayout({
         </div>
       }
     >
-      <SidebarProvider className="enact-dashboard-shell h-svh">
+      {/* The bar spans the window; the sidebar and the canvas share what is
+          left. Nesting it inside SidebarProvider keeps the collapsed-nav
+          trigger it carries wired to the same sidebar it toggles. */}
+      <SidebarProvider className="enact-dashboard-shell h-svh flex-col">
         <GlobalShortcuts />
         <WorkspacePresencePrefetch />
-        <AppSidebar searchSlot={searchSlot} />
-        <SidebarInset className="enact-dashboard-canvas relative overflow-hidden">
-          <NavigationProgress />
-          {children}
-          <ModalRegistry />
-          {extra}
-        </SidebarInset>
+        <TopBar searchSlot={searchSlot} />
+        <div className="flex min-h-0 w-full flex-1">
+          <AppSidebar />
+          <SidebarInset className="enact-dashboard-canvas relative overflow-hidden">
+            <NavigationProgress />
+            {children}
+            <ModalRegistry />
+            {extra}
+          </SidebarInset>
+        </div>
       </SidebarProvider>
     </DashboardGuard>
   );

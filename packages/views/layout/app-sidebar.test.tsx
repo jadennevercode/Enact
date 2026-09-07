@@ -258,73 +258,6 @@ describe("mobile sheet dismissal", () => {
   });
 });
 
-describe("workspace-switcher unread dot", () => {
-  beforeEach(() => {
-    summary.current = [];
-    workspaces.current = [];
-  });
-
-  // The aggregate switcher dot is the only `.ring-sidebar` span in the tree
-  // (DraftDot is null when there's no draft, and there are no invitations).
-  const dot = (container: HTMLElement) => container.querySelector("span.bg-brand.ring-sidebar");
-
-  it("shows a dot when another workspace has unread inbox items", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).not.toBeNull();
-  });
-
-  it("does not show a dot when only the active workspace has unread", () => {
-    // Active workspace is ws-1 (see useCurrentWorkspace mock).
-    summary.current = [{ workspace_id: "ws-1", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).toBeNull();
-  });
-
-  it("does not show a dot when no workspace has unread", () => {
-    summary.current = [];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).toBeNull();
-  });
-});
-
-describe("workspace-switcher dropdown per-workspace dot", () => {
-  beforeEach(() => {
-    summary.current = [];
-    // Active workspace is ws-1 (see useCurrentWorkspace mock); "Other" is ws-2.
-    workspaces.current = [
-      { id: "ws-1", name: "Active WS", slug: "active", avatar_url: null },
-      { id: "ws-2", name: "Other WS", slug: "other", avatar_url: null },
-    ];
-  });
-
-  // Row dots are brand dots WITHOUT the aggregate avatar dot's `ring-sidebar`.
-  const rowDots = (container: HTMLElement) =>
-    container.querySelectorAll("span.bg-brand:not(.ring-sidebar)");
-
-  it("dots the specific other workspace that has unread", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    // Exactly one row dot, sitting right after the "Other WS" name; the active
-    // row shows the check, not a dot.
-    expect(rowDots(container)).toHaveLength(1);
-    expect(screen.getByText("Other WS").nextElementSibling?.className).toContain("bg-brand");
-    expect(screen.getByText("Active WS").nextElementSibling?.className ?? "").not.toContain("bg-brand");
-  });
-
-  it("does not dot a workspace whose unread count is zero", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 0 }];
-    const { container } = render(<AppSidebar />);
-    expect(rowDots(container)).toHaveLength(0);
-  });
-
-  it("never dots the active workspace even when it has unread", () => {
-    summary.current = [{ workspace_id: "ws-1", count: 5 }];
-    const { container } = render(<AppSidebar />);
-    expect(rowDots(container)).toHaveLength(0);
-  });
-});
-
 describe("personal nav — Chat", () => {
   beforeEach(() => {
     chatSessions.current = [];
@@ -478,35 +411,5 @@ describe("nav grouping", () => {
       expect(hrefs).not.toContain(absorbed);
     }
     expect(hrefs).toContain("/acme/agents");
-  });
-});
-
-describe("product identity", () => {
-  beforeEach(() => {
-    workspaces.current = [];
-  });
-
-  it("shows the Enact brand in the sidebar header", () => {
-    render(<AppSidebar />);
-    expect(screen.getByText("Enact")).toBeInTheDocument();
-  });
-
-  // The brand is a label, not a control: the workspace switcher sits directly
-  // beneath it, and a second interactive row in the same corner reads as one
-  // control with a broken hit target.
-  it("does not make the brand interactive", () => {
-    render(<AppSidebar />);
-    const brand = screen.getByText("Enact");
-    expect(brand.closest("a, button")).toBeNull();
-  });
-
-  // The switcher falls back to the product name only when no workspace has
-  // loaded, so an unnamed workspace must not produce two "Enact" rows.
-  it("keeps the brand distinct from the workspace switcher label", () => {
-    workspaces.current = [
-      { id: "ws-1", name: "Acme", slug: "acme", avatar_url: null },
-    ];
-    render(<AppSidebar />);
-    expect(screen.getAllByText("Enact")).toHaveLength(1);
   });
 });

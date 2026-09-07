@@ -47,6 +47,8 @@ export function CollapsedNavTrigger() {
   return <SidebarTrigger className="enact-page-collapsed-trigger xl:hidden" />;
 }
 
+// Kept for the surfaces that still opt in explicitly through `leading`.
+
 interface PageHeaderProps {
   children: React.ReactNode;
   /**
@@ -84,12 +86,15 @@ export function PageHeader({ children, leading, className }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "enact-page-header flex h-12 shrink-0 items-center gap-2",
+        "enact-page-header flex h-10 shrink-0 items-center gap-2",
         className,
         PAGE_GUTTER,
       )}
     >
-      {leading ?? <CollapsedNavTrigger />}
+      {/* The top bar carries the nav trigger for the whole window now; a
+          header only draws a leading affordance when it has one of its own,
+          such as the back arrow a phone drill-in needs. */}
+      {leading}
       {children}
     </header>
   );

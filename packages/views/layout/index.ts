@@ -1,3 +1,6 @@
+export { TopBar, TopBarActions } from "./top-bar";
+export { WorkspaceSwitcher } from "./workspace-switcher";
+export { AccountMenu } from "./account-menu";
 export { AppSidebar } from "./app-sidebar";
 export {
   CollectionPageHeader,

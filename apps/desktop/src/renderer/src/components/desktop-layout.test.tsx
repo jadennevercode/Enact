@@ -63,6 +63,7 @@ vi.mock("@enact/views/platform", () => ({
 
 vi.mock("@enact/views/layout", () => ({
   AppSidebar: () => null,
+  TopBarActions: () => null,
   GlobalShortcuts: () => null,
   NavigationProgress: () => null,
 }));

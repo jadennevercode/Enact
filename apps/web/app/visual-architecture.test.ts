@@ -636,8 +636,11 @@ const dynamicStyleAllowlist: Partial<
   ],
   "apps/desktop/src/renderer/src/components/desktop-layout.tsx": [
     {
+      // Seven since the session controls joined the tab bar: their wrapper
+      // has to opt out of the drag region or the bell and account menu
+      // would move the window instead of opening.
       description: "Electron drag and no-drag regions",
-      expectedMatches: 6,
+      expectedMatches: 7,
       pattern:
         /style=\{\{ WebkitAppRegion: "(?:drag|no-drag)" \} as React\.CSSProperties\}/g,
     },

@@ -66,5 +66,9 @@
       "title": "Discord に参加",
       "dismiss": "閉じる"
     }
+  },
+  "topbar": {
+    "account": "アカウント",
+    "search": "検索"
   }
 }

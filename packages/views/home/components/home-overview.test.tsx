@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "../../test/i18n";
 import { HomeOverview } from "./home-overview";
 

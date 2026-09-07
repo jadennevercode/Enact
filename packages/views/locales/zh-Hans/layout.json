@@ -66,5 +66,9 @@
       "title": "加入 Discord",
       "dismiss": "关闭"
     }
+  },
+  "topbar": {
+    "account": "账号",
+    "search": "搜索"
   }
 }

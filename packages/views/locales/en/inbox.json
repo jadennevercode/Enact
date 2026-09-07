@@ -89,5 +89,11 @@
     "archive_completed_failed": "Failed to archive completed",
     "unarchive_failed": "Failed to unarchive",
     "archived_load_failed": "Failed to load archived notifications"
+  },
+  "bell": {
+    "label_one": "Inbox, {{count}} unread",
+    "label_other": "Inbox, {{count}} unread",
+    "empty": "Nothing unread.",
+    "see_all": "Open inbox"
   }
 }

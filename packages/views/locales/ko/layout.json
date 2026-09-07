@@ -66,5 +66,9 @@
       "title": "Discord 참여하기",
       "dismiss": "닫기"
     }
+  },
+  "topbar": {
+    "account": "계정",
+    "search": "검색"
   }
 }

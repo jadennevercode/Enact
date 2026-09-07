@@ -620,3 +620,56 @@
     }
   }
 }
+
+@layer utilities {
+  /* Top bar: session controls, spanning the window above sidebar and canvas. */
+  .enact-topbar {
+    background-color: var(--sidebar);
+    color: var(--sidebar-foreground);
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .enact-topbar-workspace-name {
+    font-weight: var(--font-weight-medium);
+  }
+
+  .enact-topbar-action,
+  .enact-topbar-avatar {
+    color: var(--muted-foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-topbar-action:hover,
+  .enact-topbar-avatar:hover {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .enact-topbar-action:focus-visible,
+  .enact-topbar-avatar:focus-visible,
+  .enact-topbar-bell-row:focus-visible,
+  .enact-topbar-bell-action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* Unread is a dot, not a number: the count is on the Home tab, and a
+     rolling digit in the corner of every screen reads as an alarm. */
+  .enact-topbar-bell-dot {
+    background-color: var(--brand);
+  }
+
+  .enact-topbar-bell-row:hover,
+  .enact-topbar-bell-action:hover {
+    background-color: var(--surface-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-topbar-action,
+    .enact-topbar-avatar {
+      transition: none;
+    }
+  }
+}

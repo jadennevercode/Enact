@@ -23,13 +23,12 @@ function renderHeader(
   return within(container).getByRole("banner");
 }
 
-// Below `xl` the collapsed-nav trigger renders as a third flex item, so the
-// title stays left only while nothing distributes the free space: the content
-// group grows and the header never uses `justify-between`.
+// The title stays left only while nothing distributes the free space: the
+// content group grows and the header never uses `justify-between`. The nav
+// trigger used to lead every header; the top bar carries it for the whole
+// window now, so the title itself is what sits at the start.
 function expectTitleLeftOfFreeSpace(header: HTMLElement) {
-  const trigger = header.querySelector("[data-slot='sidebar-trigger']");
-  expect(trigger).not.toBeNull();
-  expect(header.firstElementChild).toBe(trigger);
+  expect(header.querySelector("[data-slot='sidebar-trigger']")).toBeNull();
   expect(header).not.toHaveClass("justify-between");
 }
 
@@ -62,22 +61,32 @@ describe("PageHeader title alignment", () => {
     );
 
     expectTitleLeftOfFreeSpace(header);
-    expect(header.children).toHaveLength(3);
+    expect(header.children).toHaveLength(2);
   });
 });
 
 describe("PageHeader base chrome", () => {
-  it("supplies the trigger, gap and gutter without per-page classes", () => {
+  it("supplies the gap and gutter without per-page classes", () => {
     const header = renderHeader(
       <PageHeader>
         <h1>Inbox</h1>
       </PageHeader>,
     );
 
-    const trigger = header.querySelector("[data-slot='sidebar-trigger']")!;
-    expect(trigger).toHaveClass("xl:hidden");
-    expect(trigger.className).not.toMatch(/(^|\s)-?m[rsxe]?-/);
     expect(header).toHaveClass("gap-2", PAGE_GUTTER);
+  });
+
+  // The trigger belongs to the top bar now. A header that draws its own would
+  // put a second identical icon a row below the first.
+  it("draws no nav trigger of its own", () => {
+    const header = renderHeader(
+      <PageHeader>
+        <h1>Inbox</h1>
+      </PageHeader>,
+    );
+
+    expect(header.querySelector("[data-slot='sidebar-trigger']")).toBeNull();
+    expect(within(header).getByRole("heading")).toBe(header.firstElementChild);
   });
 
   it("does not let a call site override the shared gutter", () => {
@@ -89,21 +98,6 @@ describe("PageHeader base chrome", () => {
 
     expect(header).toHaveClass(PAGE_GUTTER);
     expect(header).not.toHaveClass("px-8");
-  });
-
-  // A shell that keeps its own trigger on screen (the desktop window toolbar)
-  // gets no fallback one: the header's copy is the same icon 50px below the
-  // shell's, and a list/detail surface stacked a third alongside it (ENA-6218).
-  it("drops its trigger under a shell that keeps its own on screen", () => {
-    const header = renderHeader(
-      <PageHeader>
-        <h1>Inbox</h1>
-      </PageHeader>,
-      { hasExternalTrigger: true },
-    );
-
-    expect(header.querySelector("[data-slot='sidebar-trigger']")).toBeNull();
-    expect(within(header).getByRole("heading")).toBe(header.firstElementChild);
   });
 
   // The pages that build their own chrome (settings) reach for the trigger

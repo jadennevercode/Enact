@@ -66,5 +66,9 @@
       "title": "Join our Discord",
       "dismiss": "Dismiss"
     }
+  },
+  "topbar": {
+    "account": "Account",
+    "search": "Search"
   }
 }
