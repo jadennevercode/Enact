@@ -204,8 +204,8 @@
         "description": "워크스페이스 홈을 엽니다."
       },
       "goInbox": {
-        "label": "받은 편지함으로 이동",
-        "description": "워크스페이스 받은 편지함을 엽니다."
+        "label": "인박스로 이동",
+        "description": "홈에서 인박스를 엽니다."
       },
       "goChat": {
         "label": "채팅으로 이동",
@@ -213,7 +213,7 @@
       },
       "goMyIssues": {
         "label": "내 태스크로 이동",
-        "description": "나에게 할당된 태스크를 엽니다."
+        "description": "홈에서 내 태스크를 엽니다."
       },
       "goIssues": {
         "label": "태스크로 이동",
@@ -223,10 +223,6 @@
         "label": "자동화로 이동",
         "description": "워크스페이스 자동화를 엽니다."
       },
-      "goTeam": {
-        "label": "팀으로 이동",
-        "description": "멤버와 에이전트 명단을 엽니다."
-      },
       "goUsage": {
         "label": "인사이트로 이동",
         "description": "사용량, 오류, 실행 기록을 엽니다."
@@ -235,13 +231,25 @@
         "label": "런타임으로 이동",
         "description": "런타임 설정을 엽니다."
       },
-      "goCapabilities": {
-        "label": "역량으로 이동",
-        "description": "역량 라이브러리를 엽니다."
-      },
       "goSettings": {
         "label": "설정으로 이동",
         "description": "워크스페이스 설정을 엽니다."
+      },
+      "goAgents": {
+        "label": "에이전트로 이동",
+        "description": "에이전트, Agent Family, Skill, MCP, Ontology를 엽니다."
+      },
+      "goMembers": {
+        "label": "멤버로 이동",
+        "description": "멤버 명단을 엽니다."
+      },
+      "goResources": {
+        "label": "리소스로 이동",
+        "description": "저장소, 디렉터리, 지식 베이스를 엽니다."
+      },
+      "goMarketplace": {
+        "label": "Capability Hub로 이동",
+        "description": "역량 카탈로그를 엽니다."
       }
     },
     "fixed": {

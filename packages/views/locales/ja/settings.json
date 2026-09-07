@@ -204,16 +204,16 @@
         "description": "ワークスペースのホームを開きます。"
       },
       "goInbox": {
-        "label": "受信トレイへ移動",
-        "description": "ワークスペースの受信トレイを開きます。"
+        "label": "インボックスへ移動",
+        "description": "ホームでインボックスを開きます。"
       },
       "goChat": {
         "label": "チャットへ移動",
         "description": "ワークスペースのチャットを開きます。"
       },
       "goMyIssues": {
-        "label": "自分のタスクへ移動",
-        "description": "自分に割り当てられたタスクを開きます。"
+        "label": "マイタスクへ移動",
+        "description": "ホームでマイタスクを開きます。"
       },
       "goIssues": {
         "label": "タスクへ移動",
@@ -223,10 +223,6 @@
         "label": "自動化へ移動",
         "description": "ワークスペースの自動化を開きます。"
       },
-      "goTeam": {
-        "label": "チームへ移動",
-        "description": "メンバーとエージェントの一覧を開きます。"
-      },
       "goUsage": {
         "label": "インサイトへ移動",
         "description": "使用量、エラー、実行履歴を開きます。"
@@ -235,13 +231,25 @@
         "label": "ランタイムへ移動",
         "description": "ランタイム設定を開きます。"
       },
-      "goCapabilities": {
-        "label": "ケイパビリティへ移動",
-        "description": "ケイパビリティライブラリを開きます。"
-      },
       "goSettings": {
         "label": "設定へ移動",
         "description": "ワークスペース設定を開きます。"
+      },
+      "goAgents": {
+        "label": "エージェントへ移動",
+        "description": "エージェント、Agent Family、Skill、MCP、Ontology を開きます。"
+      },
+      "goMembers": {
+        "label": "メンバーへ移動",
+        "description": "メンバー一覧を開きます。"
+      },
+      "goResources": {
+        "label": "リソースへ移動",
+        "description": "リポジトリ、ディレクトリ、ナレッジベースを開きます。"
+      },
+      "goMarketplace": {
+        "label": "Capability Hub へ移動",
+        "description": "ケイパビリティカタログを開きます。"
       }
     },
     "fixed": {

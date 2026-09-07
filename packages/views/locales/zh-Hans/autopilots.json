@@ -414,9 +414,9 @@
     "select_agent": "选择智能体",
     "select_assignee": "选择智能体或小组",
     "agents_group": "智能体",
-    "squads_group": "智能体小组",
+    "squads_group": "Agent Family",
     "agent_runtime_required": "请先为该智能体绑定运行时",
-    "squad_runtime_required": "请先为该智能体小组的负责人绑定运行时"
+    "squad_runtime_required": "请先为该Agent Family的负责人绑定运行时"
   },
   "timezone_picker": {
     "search_placeholder": "搜索时区..."

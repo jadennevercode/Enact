@@ -22,6 +22,10 @@ function workspaceScoped(slug: string) {
     // question anyone arrives with.
     root: () => `${ws}/home`,
     home: () => `${ws}/home`,
+    // Home carries the viewer's own work: the overview, their issues and
+    // their inbox. `?tab=` selects which; the old /inbox and /my-issues
+    // routes redirect here.
+    homeTab: (tab: string) => `${ws}/home?tab=${encode(tab)}`,
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,
@@ -33,6 +37,9 @@ function workspaceScoped(slug: string) {
     autopilots: () => `${ws}/autopilots`,
     autopilotDetail: (id: string) => `${ws}/autopilots/${encode(id)}`,
     agents: () => `${ws}/agents`,
+    // Everything an agent is made of: families, agents, skills, MCP servers
+    // and ontologies. `?tab=` selects which.
+    agentsTab: (tab: string) => `${ws}/agents?tab=${encode(tab)}`,
     newAgent: () => `${ws}/agents/new`,
     // The two creation methods behind the chooser. Each is a real route so a
     // half-filled form survives a refresh and can be linked to directly.
@@ -44,6 +51,7 @@ function workspaceScoped(slug: string) {
     newAgentAiSession: (sessionId: string) =>
       `${ws}/agents/new/ai/${encode(sessionId)}`,
     agentDetail: (id: string) => `${ws}/agents/${encode(id)}`,
+    members: () => `${ws}/members`,
     memberDetail: (id: string) => `${ws}/members/${encode(id)}`,
     squads: () => `${ws}/squads`,
     // People and agents are one roster; `?tab=` selects which side of it.
@@ -63,6 +71,9 @@ function workspaceScoped(slug: string) {
       `${ws}/chat/${encode(sessionId)}/artifacts`,
     myIssues: () => `${ws}/my-issues`,
     runtimes: () => `${ws}/runtimes`,
+    // Repositories, local directories and knowledge bases: what an agent
+    // works ON, next to the machines it runs on.
+    resources: () => `${ws}/resources`,
     runtimeDetail: (id: string) => `${ws}/runtimes/${encode(id)}`,
     runtimeSettings: (machineId: string, runtimeId: string) =>
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,

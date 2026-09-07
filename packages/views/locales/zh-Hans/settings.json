@@ -204,16 +204,16 @@
         "description": "打开工作区首页。"
       },
       "goInbox": {
-        "label": "前往收件箱",
-        "description": "打开工作区收件箱。"
+        "label": "跳转到收件箱",
+        "description": "在工作台打开收件箱。"
       },
       "goChat": {
         "label": "前往聊天",
         "description": "打开工作区聊天。"
       },
       "goMyIssues": {
-        "label": "前往我的任务",
-        "description": "打开分配给你的任务。"
+        "label": "跳转到我的任务",
+        "description": "在工作台打开我的任务。"
       },
       "goIssues": {
         "label": "前往任务",
@@ -223,10 +223,6 @@
         "label": "前往自动化",
         "description": "打开工作区自动化。"
       },
-      "goTeam": {
-        "label": "跳转到团队",
-        "description": "打开成员与智能体名册。"
-      },
       "goUsage": {
         "label": "跳转到观测",
         "description": "打开用量、错误与执行记录。"
@@ -235,13 +231,25 @@
         "label": "前往运行时",
         "description": "打开运行时配置。"
       },
-      "goCapabilities": {
-        "label": "跳转到能力库",
-        "description": "打开能力库。"
-      },
       "goSettings": {
         "label": "前往设置",
         "description": "打开工作区设置。"
+      },
+      "goAgents": {
+        "label": "跳转到Agent Family",
+        "description": "打开智能体、Agent Family、Skill、MCP 与 Ontology。"
+      },
+      "goMembers": {
+        "label": "跳转到成员",
+        "description": "打开成员名册。"
+      },
+      "goResources": {
+        "label": "跳转到资源",
+        "description": "打开代码仓库、本地目录与知识库。"
+      },
+      "goMarketplace": {
+        "label": "跳转到 Capability Hub",
+        "description": "打开能力目录。"
       }
     },
     "fixed": {

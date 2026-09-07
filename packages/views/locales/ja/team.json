@@ -5,13 +5,13 @@
     "learn_more": "詳細",
     "new": "新規作成",
     "new_agent": "新しいエージェント",
-    "new_family": "新しいエージェントファミリー",
+    "new_family": "新しいAgent Family",
     "invite_member": "メンバーを招待"
   },
   "tabs": {
     "people": "メンバー",
     "agents": "エージェント",
-    "families": "エージェントファミリー"
+    "families": "Agent Family"
   },
   "people": {
     "search_placeholder": "メンバーを検索",

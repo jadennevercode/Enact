@@ -205,7 +205,7 @@
       },
       "goInbox": {
         "label": "Go to Inbox",
-        "description": "Open the workspace inbox."
+        "description": "Open the inbox on Home."
       },
       "goChat": {
         "label": "Go to Chat",
@@ -213,7 +213,7 @@
       },
       "goMyIssues": {
         "label": "Go to My Issues",
-        "description": "Open issues assigned to you."
+        "description": "Open your issues on Home."
       },
       "goIssues": {
         "label": "Go to Issues",
@@ -223,10 +223,6 @@
         "label": "Go to Autopilot",
         "description": "Open workspace automations."
       },
-      "goTeam": {
-        "label": "Go to Team",
-        "description": "Open the people and agents roster."
-      },
       "goUsage": {
         "label": "Go to Insights",
         "description": "Open usage, errors and runs."
@@ -235,13 +231,25 @@
         "label": "Go to Runtimes",
         "description": "Open runtime configuration."
       },
-      "goCapabilities": {
-        "label": "Go to Capabilities",
-        "description": "Open the capability library."
-      },
       "goSettings": {
         "label": "Go to Settings",
         "description": "Open workspace settings."
+      },
+      "goAgents": {
+        "label": "Go to Agents",
+        "description": "Open agents, families, skills, MCP and ontologies."
+      },
+      "goMembers": {
+        "label": "Go to Members",
+        "description": "Open the member roster."
+      },
+      "goResources": {
+        "label": "Go to Resources",
+        "description": "Open repositories, directories and knowledge bases."
+      },
+      "goMarketplace": {
+        "label": "Go to Capability Hub",
+        "description": "Open the capability catalogue."
       }
     },
     "fixed": {

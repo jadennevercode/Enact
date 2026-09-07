@@ -5,13 +5,13 @@
     "learn_more": "자세히 보기",
     "new": "새로 만들기",
     "new_agent": "새 에이전트",
-    "new_family": "새 에이전트 패밀리",
+    "new_family": "새 Agent Family",
     "invite_member": "멤버 초대"
   },
   "tabs": {
     "people": "멤버",
     "agents": "에이전트",
-    "families": "에이전트 패밀리"
+    "families": "Agent Family"
   },
   "people": {
     "search_placeholder": "멤버 검색",

@@ -57,6 +57,8 @@ export type NavLabelKey =
   | "agents"
   | "squads"
   | "team"
+  | "members"
+  | "resources"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -76,6 +78,8 @@ export type WorkspacePageKey =
   | "agents"
   | "squads"
   | "team"
+  | "members"
+  | "resources"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -107,6 +111,8 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },
   team: { segment: "team", icon: "Users", navKey: "team" },
+  members: { segment: "members", icon: "CircleUser", navKey: "members" },
+  resources: { segment: "resources", icon: "FolderOpen", navKey: "resources" },
   usage: { segment: "usage", icon: "BarChart3", navKey: "usage" },
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
@@ -119,8 +125,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
 /** i18n key (under `layout.sidebar`) for a nav group's heading. */
 export type NavGroupLabelKey =
   | "work_group"
-  | "team_group"
-  | "capability_group"
+  | "intelligence_group"
   | "execution_group";
 
 export interface WorkspaceNavGroup {
@@ -149,26 +154,24 @@ export interface WorkspaceNavGroup {
  * both consumers resolve the destination as `p[key]()`.
  */
 export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
-  // The order is the work model: what is mine, the work itself, who does it,
-  // what they can do it with, where it runs. Settings closes as its own
-  // unlabelled group because administering the workspace is not part of that
-  // sequence.
-  {
-    id: "personal",
-    labelKey: null,
-    pages: ["home", "inbox", "chat", "myIssues"],
-  },
+  // The order is the work model: what is mine, the work itself, who and what
+  // does it, where it runs. Settings closes as its own unlabelled group
+  // because administering the workspace is not a step in that sequence.
+  //
+  // The inbox and the viewer's own issues are not entries: they are tabs of
+  // Home, which is the one place a person's own work is answered. The inbox
+  // keeps a second, faster way in through the top bar's bell.
+  { id: "personal", labelKey: null, pages: ["home", "chat"] },
   { id: "work", labelKey: "work_group", pages: ["issues", "autopilots"] },
-  { id: "team", labelKey: "team_group", pages: ["team"] },
   {
-    id: "capability",
-    labelKey: "capability_group",
-    pages: ["capabilities", "marketplace"],
+    id: "intelligence",
+    labelKey: "intelligence_group",
+    pages: ["agents", "members", "marketplace"],
   },
   {
     id: "execution",
     labelKey: "execution_group",
-    pages: ["runtimes", "usage"],
+    pages: ["runtimes", "resources", "usage"],
   },
   { id: "administration", labelKey: null, pages: ["settings"] },
 ];
