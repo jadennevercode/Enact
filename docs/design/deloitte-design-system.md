@@ -77,9 +77,11 @@ meaning; colour reinforces it.
 
 ## 3. Decisions worth recording
 
-**Deloitte Green never carries white text.** `#86BC25` against white is 2.27:1.
-The deck's own accessibility chart pairs it with black, and so does the product:
-`--brand-foreground` and `--primary-foreground` are `#000000` in both themes.
+**Deloitte Green carries white text by decision, not by measurement.** `#86BC25`
+against white is 2.27:1 and the deck's own accessibility chart pairs it with
+black, which is what the first commit shipped. The product owner chose white the
+same day; `.enact-brand-fill` compensates with 600 weight and a dark text
+shadow, and the contrast guard for this one pair is deliberately off (§6).
 
 **Deloitte Orange cannot appear on a white surface.** `#ED8B00` is 2.53:1 on
 white — below the 3:1 floor for a meaningful graphic, let alone the 4.5:1 for
