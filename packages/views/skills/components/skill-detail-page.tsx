@@ -1032,7 +1032,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
     setDeleting(true);
     try {
       await api.deleteSkill(skill.id);
-      navigation.replace(paths.skills());
+      navigation.replace(paths.capabilitiesTab("skills"));
       qc.removeQueries({
         queryKey: skillDetailOptions(wsId, skill.id).queryKey,
       });
@@ -1127,7 +1127,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
           <Button
             variant="ghost"
             size="xs"
-            render={<AppLink href={paths.skills()} />}
+            render={<AppLink href={paths.capabilitiesTab("skills")} />}
             nativeButton={false}
           >
             {t(($) => $.detail.all_skills)}
@@ -1140,7 +1140,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
             {error instanceof Error ? error.message : t(($) => $.detail.not_found.fallback)}
           </p>
           <AppLink
-            href={paths.skills()}
+            href={paths.capabilitiesTab("skills")}
             className={`${buttonVariants({ variant: "outline", size: "xs" })} mt-2`}
           >
             {t(($) => $.detail.not_found.back)}
@@ -1175,7 +1175,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
     // same rule as the skills list batch toolbar).
     <div className="relative flex flex-1 min-h-0 flex-col">
       <BreadcrumbHeader
-        segments={[{ href: paths.skills(), label: t(($) => $.page.title) }]}
+        segments={[{ href: paths.capabilitiesTab("skills"), label: t(($) => $.page.title) }]}
         leaf={
           <span className="truncate font-mono text-caption text-foreground">
             {skill.name}

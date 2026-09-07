@@ -144,12 +144,16 @@ vi.mock("@enact/core/modals", () => ({
     getState: () => ({ open: mockModalOpen }),
   }),
 }));
-vi.mock("@enact/core/paths", () => ({
-  useWorkspacePaths: () => ({
-    agents: () => "/acme/agents",
-    chat: () => "/acme/chat",
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  const actualPaths = actual.paths;
+  return {
+    ...actual,
+    // Built from the real path builders: the page resolves several
+    // destinations, and a hand-written subset breaks whenever one moves.
+    useWorkspacePaths: () => actualPaths.workspace("acme"),
+  };
+});
 vi.mock("@enact/core/api", () => {
   class ApiError extends Error {
     status: number;

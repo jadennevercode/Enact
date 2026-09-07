@@ -62,7 +62,10 @@ describe("sidebar nav labels", () => {
         (key): key is NonNullable<typeof key> => key !== null,
       ),
     );
-    const sidebar = RESOURCES.en.layout.sidebar as Record<string, unknown>;
+    const sidebar = (RESOURCES.en.layout?.sidebar ?? {}) as Record<
+      string,
+      unknown
+    >;
     const stale = Object.keys(sidebar).filter(
       (key) => key.endsWith("_group") && !used.has(key as never),
     );

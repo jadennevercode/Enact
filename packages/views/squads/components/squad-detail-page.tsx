@@ -178,7 +178,7 @@ export function SquadDetailPage() {
 
   const deleteMut = useMutation({
     mutationFn: () => api.deleteSquad(squadId),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) }); push(p.squads()); toast.success("Agent Family archived"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: workspaceKeys.squads(wsId) }); push(p.teamTab("families")); toast.success("Agent Family archived"); },
     onError: (err) =>
       toast.error(err instanceof Error && err.message ? err.message : "Failed to archive squad"),
   });
@@ -208,7 +208,7 @@ export function SquadDetailPage() {
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       <BreadcrumbHeader
-        segments={[{ href: p.squads(), label: t(($) => $.page.title) }]}
+        segments={[{ href: p.teamTab("families"), label: t(($) => $.page.title) }]}
         leaf={
           <>
             <SquadHeaderAvatar squad={squad} initials={initials} />

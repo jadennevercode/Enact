@@ -235,7 +235,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
   if (!agent && isForbidden) {
     return (
       <div className="flex flex-1 min-h-0 flex-col">
-        <BackHeader paths={paths.agents()} title={t(($) => $.detail.back_to_agents)} />
+        <BackHeader paths={paths.teamTab("agents")} title={t(($) => $.detail.back_to_agents)} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <Lock className="h-8 w-8 text-muted-foreground" />
           <div>
@@ -246,7 +246,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
           </div>
           <Button
             size="sm"
-            render={<AppLink href={paths.agents()} />}
+            render={<AppLink href={paths.teamTab("agents")} />}
             nativeButton={false}
           >
             {t(($) => $.detail.back_to_agents_full)}
@@ -261,7 +261,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
     const loadError = detailError ?? agentsError;
     return (
       <div className="flex flex-1 min-h-0 flex-col">
-        <BackHeader paths={paths.agents()} title={t(($) => $.detail.back_to_agents)} />
+        <BackHeader paths={paths.teamTab("agents")} title={t(($) => $.detail.back_to_agents)} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <AlertCircle className="h-8 w-8 text-destructive" />
           <div>
@@ -291,7 +291,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
             </Button>
             <Button
               size="sm"
-              render={<AppLink href={paths.agents()} />}
+              render={<AppLink href={paths.teamTab("agents")} />}
               nativeButton={false}
             >
               {t(($) => $.detail.back_to_agents_full)}
@@ -350,7 +350,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
         agent={agent}
         runtime={runtime}
         presence={presence}
-        backHref={paths.agents()}
+        backHref={paths.teamTab("agents")}
         canAssign={canAssign.allowed}
         canArchive={canEdit.allowed}
         dmPending={permissionsLoading}
@@ -478,7 +478,7 @@ export function AgentDetailPage({ agentId }: AgentDetailPageProps) {
                 onClick={() => {
                   setConfirmArchive(false);
                   handleArchive(agent.id);
-                  navigation.push(paths.agents());
+                  navigation.push(paths.teamTab("agents"));
                 }}
               >
                 {t(($) => $.detail.archive_dialog_confirm)}
