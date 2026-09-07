@@ -105,6 +105,53 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
 
+/** i18n key (under `layout.sidebar`) for a nav group's heading. */
+export type NavGroupLabelKey = "workspace_group" | "configure_group";
+
+export interface WorkspaceNavGroup {
+  /** Stable identity for the group — React key, and what tests name. */
+  id: string;
+  /**
+   * `layout.sidebar.<labelKey>`, or null for a group that renders no heading.
+   * The first group is deliberately unlabelled: it is the viewer's own
+   * surfaces, and a heading over them says nothing the icons do not.
+   */
+  labelKey: NavGroupLabelKey | null;
+  pages: readonly WorkspacePageKey[];
+}
+
+/**
+ * Sidebar nav structure, and the palette's "Pages" group with it.
+ *
+ * Separate from {@link WORKSPACE_PAGES} on purpose: that registry answers
+ * "what icon and name does this route segment have", and must keep an entry
+ * for every segment a desktop tab can hold — including surfaces that are
+ * reachable but not top-level destinations. This one answers "what does the
+ * sidebar offer, in what order, under which heading", so a page can leave the
+ * nav without losing its tab icon.
+ *
+ * Every key listed here must be a parameterless `WorkspacePaths` method, since
+ * both consumers resolve the destination as `p[key]()`.
+ */
+export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
+  { id: "personal", labelKey: null, pages: ["inbox", "chat", "myIssues"] },
+  {
+    id: "workspace",
+    labelKey: "workspace_group",
+    pages: ["issues", "autopilots", "agents", "squads", "usage"],
+  },
+  {
+    id: "configure",
+    labelKey: "configure_group",
+    pages: ["runtimes", "ontologies", "skills", "marketplace", "settings"],
+  },
+];
+
+/** Every page the sidebar links to, in sidebar order. */
+export const NAV_PAGE_KEYS: readonly WorkspacePageKey[] = WORKSPACE_NAV.flatMap(
+  (group) => [...group.pages],
+);
+
 /** Reverse lookup: route segment → page key. */
 const PAGE_BY_SEGMENT: Record<string, WorkspacePageKey> = Object.fromEntries(
   (Object.keys(WORKSPACE_PAGES) as WorkspacePageKey[]).map((key) => [

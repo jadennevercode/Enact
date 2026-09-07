@@ -37,7 +37,7 @@ import {
 } from "@enact/core/issues/stores";
 import { issueDetailOptions, issueTimelineOptions } from "@enact/core/issues/queries";
 import { useWorkspaceId } from "@enact/core";
-import { useWorkspacePaths, WORKSPACE_PAGES } from "@enact/core/paths";
+import { useWorkspacePaths, WORKSPACE_PAGES, NAV_PAGE_KEYS } from "@enact/core/paths";
 import type { WorkspacePageKey, WorkspacePaths } from "@enact/core/paths";
 import { createShortcutChord } from "@enact/core/shortcuts";
 import { memberListOptions } from "@enact/core/workspace/queries";
@@ -68,8 +68,8 @@ import { matchesPinyin } from "../editor/extensions/pinyin-match";
 import { HighlightText } from "./highlight-text";
 import { useSearchStore } from "./search-store";
 
-// The palette's Pages group is generated from WORKSPACE_PAGES, the same
-// registry the sidebar nav and the desktop tab bar read. It used to be a
+// The palette's Pages group is generated from WORKSPACE_NAV, the same
+// ordered schema the sidebar renders. It used to be a
 // hand-written list, which silently went stale every time a page was added:
 // Chat, Autopilot, Squads and Analytics shipped in the sidebar but were
 // unreachable from the palette (ENA-6272). Deriving the list means a new
@@ -78,6 +78,10 @@ import { useSearchStore } from "./search-store";
 // Page keys double as WorkspacePaths method names, so `p[key]()` resolves the
 // destination against the current workspace slug at render time. Every
 // WorkspacePageKey must therefore stay a parameterless path builder.
+//
+// The palette lists what the sidebar offers, not every registered segment: a
+// page that leaves the nav keeps its tab icon but stops being a destination
+// the palette can send someone to.
 
 // Extra query aliases per page, on top of the localized label. Declared as a
 // total Record so adding a workspace page is a compile error until its
@@ -97,8 +101,6 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   marketplace: ["marketplace", "store", "catalog", "install", "publish", "市场", "商店", "安装", "发布"],
   settings: ["settings", "config", "preferences", "设置", "配置"],
 };
-
-const NAV_PAGE_KEYS = Object.keys(WORKSPACE_PAGES) as WorkspacePageKey[];
 
 // No `icon` field: like the sidebar nav, a page's icon is derived from its
 // destination path via routeIconForPath, so all navigation surfaces show the

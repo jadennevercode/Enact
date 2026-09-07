@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { paths } from "./paths";
 import {
   WORKSPACE_PAGES,
+  WORKSPACE_NAV,
+  NAV_PAGE_KEYS,
   DEFAULT_ROUTE_ICON_NAME,
   resolveRouteIconName,
   pageForSegment,
@@ -83,5 +85,48 @@ describe("resolveRouteIconName", () => {
     expect(resolveRouteIconName("/acme")).toBe(DEFAULT_ROUTE_ICON_NAME);
     expect(resolveRouteIconName("/")).toBe(DEFAULT_ROUTE_ICON_NAME);
     expect(resolveRouteIconName("")).toBe(DEFAULT_ROUTE_ICON_NAME);
+  });
+});
+
+// WORKSPACE_NAV is what the sidebar renders and what the command palette
+// offers as destinations. Both resolve a page as `p[key]()`, so a key that is
+// not a parameterless path builder is a runtime crash, not a type error —
+// `paths.workspace()` returns a mixed record of builders.
+describe("workspace nav schema", () => {
+  it("lists only pages that exist in the icon registry", () => {
+    for (const key of NAV_PAGE_KEYS) {
+      expect(WORKSPACE_PAGES[key], `nav page ${key} has no registry entry`).toBeDefined();
+    }
+  });
+
+  it("resolves every nav page to a parameterless workspace path", () => {
+    const ws = paths.workspace("acme");
+    for (const key of NAV_PAGE_KEYS) {
+      const build = ws[key as keyof typeof ws];
+      expect(typeof build, `${key} is not a path builder`).toBe("function");
+      expect((build as () => string).length, `${key} takes arguments`).toBe(0);
+      expect((build as () => string)()).toMatch(/^\/acme\//);
+    }
+  });
+
+  it("places each page in exactly one group", () => {
+    expect(new Set(NAV_PAGE_KEYS).size).toBe(NAV_PAGE_KEYS.length);
+  });
+
+  it("keeps group ids unique", () => {
+    const ids = WORKSPACE_NAV.map((group) => group.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("opens with an unlabelled group of the viewer's own surfaces", () => {
+    expect(WORKSPACE_NAV[0]?.labelKey).toBeNull();
+  });
+
+  // A registry entry with no nav group is legal — it keeps a desktop tab's
+  // icon working for a surface the sidebar no longer offers — but the reverse
+  // is not, and is covered by the first case above.
+  it("allows registered pages that are not nav destinations", () => {
+    const registered = Object.keys(WORKSPACE_PAGES) as WorkspacePageKey[];
+    expect(registered.length).toBeGreaterThanOrEqual(NAV_PAGE_KEYS.length);
   });
 });
