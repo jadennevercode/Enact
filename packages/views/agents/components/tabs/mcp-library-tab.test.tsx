@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@enact/core/i18n/react";
-import enCommon from "../../locales/en/common.json";
-import enSettings from "../../locales/en/settings.json";
-import enAgents from "../../locales/en/agents.json";
+import enCommon from "../../../locales/en/common.json";
+import enSettings from "../../../locales/en/settings.json";
+import enAgents from "../../../locales/en/agents.json";
 
 const mockCreate = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
@@ -63,7 +63,7 @@ vi.mock("@enact/core/permissions", () => ({
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { McpTab } from "./mcp-tab";
+import { McpLibraryTab } from "./mcp-library-tab";
 
 const TEST_RESOURCES = {
   en: { common: enCommon, settings: enSettings, agents: enAgents },
@@ -77,7 +77,7 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-describe("McpTab", () => {
+describe("McpLibraryTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     data.role = "owner";
@@ -92,7 +92,7 @@ describe("McpTab", () => {
   });
 
   it("lists the library servers with their transport", () => {
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     expect(screen.getByText("linear")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("McpTab", () => {
 
   it("adds a server to the library", async () => {
     const user = userEvent.setup();
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     await user.click(screen.getByRole("button", { name: /Add server/ }));
     await user.type(screen.getByLabelText("Name"), "github");
@@ -125,7 +125,7 @@ describe("McpTab", () => {
   // the name field stays editable and the update targets the opened entry.
   it("edits a library server by id, so a rename keeps its assignments", async () => {
     const user = userEvent.setup();
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     await user.click(screen.getAllByRole("button", { name: "Edit server" })[0]!);
 
@@ -151,7 +151,7 @@ describe("McpTab", () => {
   // defaulting a stdio server to HTTP.
   it("opens the edit form on the server's own transport", async () => {
     const user = userEvent.setup();
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     // Row 1 is the stdio server.
     await user.click(screen.getAllByRole("button", { name: "Edit server" })[1]!);
@@ -172,7 +172,7 @@ describe("McpTab", () => {
     async (transport) => {
       const user = userEvent.setup();
       data.servers = [server({ name: "streamy", transport })];
-      render(<McpTab />, { wrapper: Wrapper });
+      render(<McpLibraryTab />, { wrapper: Wrapper });
 
       await user.click(screen.getByRole("button", { name: "Edit server" }));
 
@@ -191,7 +191,7 @@ describe("McpTab", () => {
 
   it("removes a server after confirmation", async () => {
     const user = userEvent.setup();
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     await user.click(screen.getAllByRole("button", { name: "Remove server" })[0]!);
     await user.click(screen.getByRole("button", { name: "Remove" }));
@@ -201,7 +201,7 @@ describe("McpTab", () => {
 
   it("hides every write affordance from a plain member", () => {
     data.role = "member";
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     // The inventory itself stays visible — it carries no credential material.
     expect(screen.getByText("linear")).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe("McpTab", () => {
 
   it("renders an empty state when the library is empty", () => {
     data.servers = [];
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     expect(screen.getByText("No shared MCP servers")).toBeInTheDocument();
   });
@@ -223,7 +223,7 @@ describe("McpTab", () => {
   // The document is write-only, so the screen must never imply it is showing
   // a saved configuration: it says an edit replaces the entry.
   it("states that saved configurations are write-only", () => {
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     expect(screen.getByText(/write-only/)).toBeInTheDocument();
   });
@@ -232,7 +232,7 @@ describe("McpTab", () => {
     // Backend drift: the schema defaults the list to [], but the component
     // must not crash if it ever arrives undefined.
     data.servers = undefined as unknown as typeof data.servers;
-    render(<McpTab />, { wrapper: Wrapper });
+    render(<McpLibraryTab />, { wrapper: Wrapper });
 
     expect(screen.getByText("No shared MCP servers")).toBeInTheDocument();
   });

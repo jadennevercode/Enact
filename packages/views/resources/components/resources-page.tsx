@@ -83,8 +83,16 @@ import {
 import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
 import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
-import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
-import { GitHubMark } from "./github-mark";
+// Resources kept its layout when it left Settings: the wrappers are a titled
+// section with cards, not a settings-only device, and restyling four sections
+// was not part of moving them.
+import {
+  SettingsCard,
+  SettingsSection,
+  SettingsTab,
+} from "../../settings/components/settings-layout";
+import { GitHubMark } from "../../settings/components/github-mark";
+import { CollectionPageHeader } from "../../layout/collection-page";
 
 // Workspace Resources settings tab.
 //
@@ -142,7 +150,7 @@ type ModeDialogState = {
   label?: string;
 };
 
-export function ResourcesTab() {
+export function ResourcesPage() {
   const { t } = useT("resources");
   const wsId = useWorkspaceId();
   const navigation = useNavigation();
@@ -627,10 +635,13 @@ export function ResourcesTab() {
   };
 
   return (
-    <SettingsTab
-      title={t(($) => $.tab_title)}
-      description={t(($) => $.tab_description)}
-    >
+    // The page header carries the name; the inner section keeps its own
+    // description, which explains what a resource is rather than repeating
+    // the title.
+    <div className="enact-management-page flex flex-1 min-h-0 flex-col">
+      <CollectionPageHeader icon={FolderOpen} title={t(($) => $.tab_title)} />
+      <div className="flex-1 overflow-y-auto">
+    <SettingsTab title={null} description={t(($) => $.tab_description)}>
       <SettingsSection
         title={t(($) => $.repos_section_title)}
         description={t(($) => $.repos_section_description)}
@@ -1010,6 +1021,8 @@ export function ResourcesTab() {
         />
       )}
     </SettingsTab>
+      </div>
+    </div>
   );
 }
 

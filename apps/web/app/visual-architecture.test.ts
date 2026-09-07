@@ -137,7 +137,7 @@ const governedComponentPaths = [
   "packages/views/inbox/components/inbox-page.tsx",
   "packages/views/inbox/components/inbox-list.tsx",
   "packages/views/inbox/components/inbox-list-item.tsx",
-  "packages/views/agents/components/agents-page.tsx",
+  "packages/views/agents/components/agent-list-page.tsx",
   "packages/views/agents/components/agent-list-toolbar.tsx",
   "packages/views/agents/components/agent-batch-toolbar.tsx",
   "packages/views/agents/components/agent-row-actions.tsx",
@@ -837,7 +837,7 @@ const dynamicStyleAllowlist: Partial<
         /style=\{\{ transform: `translateY\(\$\{preview\.y\}px\) translateY\(-50%\)` \}\}/g,
     },
   ],
-  "packages/views/agents/components/agents-page.tsx": [
+  "packages/views/agents/components/agent-list-page.tsx": [
     {
       description: "agent collection column track variables",
       expectedMatches: 2,
@@ -1567,7 +1567,7 @@ const requiredComponentClasses: Partial<
   ],
   "packages/views/inbox/components/inbox-list.tsx": ["enact-inbox-list"],
   "packages/views/inbox/components/inbox-list-item.tsx": ["enact-inbox-row"],
-  "packages/views/agents/components/agents-page.tsx": [
+  "packages/views/agents/components/agent-list-page.tsx": [
     "enact-management-page",
     "enact-management-row",
     "enact-agent-status",
@@ -2783,7 +2783,7 @@ describe("visual architecture", () => {
 
   it("preserves Task 7 management and usage behavior boundaries", () => {
     const agents = readRepoFile(
-      "packages/views/agents/components/agents-page.tsx",
+      "packages/views/agents/components/agent-list-page.tsx",
     );
     const agentActions = readRepoFile(
       "packages/views/agents/components/agent-row-actions.tsx",

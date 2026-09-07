@@ -106,7 +106,6 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
     "小组",
   ],
   squads: ["squads", "teams", "小队", "团队"],
-  team: ["team", "团队"],
   members: ["members", "people", "roster", "team", "成员", "团队", "人"],
   resources: [
     "resources",
@@ -123,16 +122,6 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   runtimes: ["runtimes", "environments", "machines", "运行时"],
   ontologies: ["ontology", "ontologies", "caphub", "本体", "领域模型"],
   skills: ["skills", "library", "技能"],
-  capabilities: [
-    "capabilities",
-    "skills",
-    "ontology",
-    "mcp",
-    "knowledge",
-    "quick actions",
-    "能力",
-    "能力库",
-  ],
   marketplace: [
     "capability hub",
     "caphub",

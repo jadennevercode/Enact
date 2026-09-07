@@ -38,7 +38,7 @@ export function ChooseCreateMethodPage() {
           : t(($) => $.creation_studio.title)
       }
       step={t(($) => $.creation_studio.step_choose)}
-      onBack={() => backOrReplace(paths.teamTab("agents"))}
+      onBack={() => backOrReplace(paths.agentsTab("agents"))}
     >
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-10">
         <CreateMethodChooser

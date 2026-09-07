@@ -126,7 +126,7 @@ vi.mock("../../navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { ResourcesTab } from "./resources-tab";
+import { ResourcesPage } from "./resources-page";
 
 function githubResource(id: string, url: string) {
   return {
@@ -159,7 +159,7 @@ function knowledgeResource(
   };
 }
 
-describe("ResourcesTab — knowledge bases", () => {
+describe("ResourcesPage — knowledge bases", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resourcesRef.current = [];
@@ -184,7 +184,7 @@ describe("ResourcesTab — knowledge bases", () => {
         },
       }),
     ];
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     expect(await screen.findByText("Knowledge bases")).toBeTruthy();
     expect(screen.getByText("Domain handbook")).toBeTruthy();
@@ -196,7 +196,7 @@ describe("ResourcesTab — knowledge bases", () => {
   });
 
   it("says the section is empty rather than hiding it", async () => {
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
     expect(
       await screen.findByText("No knowledge bases attached."),
     ).toBeTruthy();
@@ -204,7 +204,7 @@ describe("ResourcesTab — knowledge bases", () => {
 
   it("creates a knowledge_repo resource with the path the user typed", async () => {
     const user = userEvent.setup();
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     await user.click(screen.getByRole("button", { name: "Add knowledge base" }));
     await user.type(
@@ -234,7 +234,7 @@ describe("ResourcesTab — knowledge bases", () => {
 
   it("omits path entirely when the user leaves it blank", async () => {
     const user = userEvent.setup();
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     await user.click(screen.getByRole("button", { name: "Add knowledge base" }));
     await user.type(

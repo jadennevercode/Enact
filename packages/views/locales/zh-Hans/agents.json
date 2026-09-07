@@ -945,5 +945,21 @@
   "actions": {
     "selected_other": "已选 {{count}} 项",
     "clear_selection": "清除选择"
+  },
+  "hub": {
+    "title": "智能体小组",
+    "tagline": "Agent Family、智能体，以及构成它们的 Skill、MCP 与 Ontology。",
+    "new": "新建",
+    "new_family": "新建 Agent Family",
+    "new_agent": "新建智能体",
+    "new_skill": "新建 Skill",
+    "import_from_hub": "Capability Hub",
+    "tabs": {
+      "families": "Agent Family",
+      "agents": "Agent",
+      "skills": "Skill",
+      "mcp": "MCP",
+      "ontologies": "Ontology"
+    }
   }
 }

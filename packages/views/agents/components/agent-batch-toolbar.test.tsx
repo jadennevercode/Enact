@@ -33,7 +33,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { AgentBatchToolbar } from "./agent-batch-toolbar";
-import type { AgentListRow } from "./agents-page";
+import type { AgentListRow } from "./agent-list-page";
 
 function makeAgent(
   id: string,

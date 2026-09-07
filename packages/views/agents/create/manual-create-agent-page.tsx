@@ -107,7 +107,7 @@ export function ManualCreateAgentPage() {
       // A duplicate arrives from the agents list, not from the chooser, so it
       // returns to where it came from instead of offering a method to pick.
       onBack={() =>
-        backOrReplace(duplicateId ? paths.teamTab("agents") : paths.newAgent())
+        backOrReplace(duplicateId ? paths.agentsTab("agents") : paths.newAgent())
       }
       chips={
         <>

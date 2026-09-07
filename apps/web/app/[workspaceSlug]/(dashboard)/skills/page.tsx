@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
 import { paths } from "@enact/core/paths";
 
-// The skills list is a tab of Capabilities now. Kept as a redirect rather
-// than deleted because desktop tabs persist their URL, and this path is what
-// existing bookmarks and tab groups hold.
-export default async function SkillsRoute({
+// Skills are a tab of the Agents page now.
+export default async function Route({
   params,
 }: {
   params: Promise<{ workspaceSlug: string }>;
 }) {
   const { workspaceSlug } = await params;
-  redirect(paths.workspace(workspaceSlug).capabilitiesTab("skills"));
+  redirect(paths.workspace(workspaceSlug).agentsTab("skills"));
 }

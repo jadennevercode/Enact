@@ -341,16 +341,14 @@ describe("personal nav — Chat", () => {
   const chatBadge = (container: HTMLElement) =>
     chatNav(container)?.querySelector("number-flow-react") ?? null;
 
-  it("keeps persistent Inbox and Chat counters static", () => {
-    inboxItems.current = [{ id: "inbox-1", read: false }];
+  // The inbox counter left the sidebar with the inbox itself; it is the top
+  // bar's bell now. Chat is the one persistent counter still here, and it
+  // must not animate: a number that rolls on every poll reads as activity.
+  it("keeps the persistent Chat counter static", () => {
     chatSessions.current = [{ id: "chat-1", unread_count: 2 }];
     const { container } = render(<AppSidebar />);
-    const inboxBadge = container
-      .querySelector<HTMLElement>('button[data-href="/acme/inbox"]')
-      ?.querySelector("number-flow-react") as (HTMLElement & { animated?: boolean }) | null;
     const currentChatBadge = chatBadge(container) as (HTMLElement & { animated?: boolean }) | null;
 
-    expect(inboxBadge?.animated).toBe(false);
     expect(currentChatBadge?.animated).toBe(false);
   });
 
@@ -443,20 +441,19 @@ describe("nav grouping", () => {
 
     expect(hrefs).toEqual([
       "/acme/home",
-      "/acme/inbox",
       "/acme/chat",
-      "/acme/my-issues",
       "/acme/issues",
       "/acme/autopilots",
-      "/acme/team",
-      "/acme/capabilities",
+      "/acme/agents",
+      "/acme/members",
       "/acme/marketplace",
       "/acme/runtimes",
+      "/acme/resources",
       "/acme/usage",
       "/acme/settings",
     ]);
     expect(
-      container.querySelector('button[data-href="/acme/capabilities"] svg'),
+      container.querySelector('button[data-href="/acme/agents"] svg'),
     ).not.toBeNull();
   });
 
@@ -471,12 +468,16 @@ describe("nav grouping", () => {
     for (const absorbed of [
       "/acme/skills",
       "/acme/ontologies",
-      "/acme/agents",
       "/acme/squads",
+      "/acme/team",
+      "/acme/capabilities",
+      // The viewer's own surfaces are tabs of Home now, not entries.
+      "/acme/inbox",
+      "/acme/my-issues",
     ]) {
       expect(hrefs).not.toContain(absorbed);
     }
-    expect(hrefs).toContain("/acme/team");
+    expect(hrefs).toContain("/acme/agents");
   });
 });
 

@@ -25,8 +25,6 @@ import enLayout from "./en/layout.json";
 import enUsage from "./en/usage.json";
 import enUi from "./en/ui.json";
 import enSquads from "./en/squads.json";
-import enTeam from "./en/team.json";
-import enCapabilities from "./en/capabilities.json";
 import enHome from "./en/home.json";
 import enBilling from "./en/billing.json";
 import zhHansCommon from "./zh-Hans/common.json";
@@ -55,8 +53,6 @@ import zhHansLayout from "./zh-Hans/layout.json";
 import zhHansUsage from "./zh-Hans/usage.json";
 import zhHansUi from "./zh-Hans/ui.json";
 import zhHansSquads from "./zh-Hans/squads.json";
-import zhHansTeam from "./zh-Hans/team.json";
-import zhHansCapabilities from "./zh-Hans/capabilities.json";
 import zhHansHome from "./zh-Hans/home.json";
 import zhHansBilling from "./zh-Hans/billing.json";
 import koCommon from "./ko/common.json";
@@ -85,8 +81,6 @@ import koLayout from "./ko/layout.json";
 import koUsage from "./ko/usage.json";
 import koUi from "./ko/ui.json";
 import koSquads from "./ko/squads.json";
-import koTeam from "./ko/team.json";
-import koCapabilities from "./ko/capabilities.json";
 import koHome from "./ko/home.json";
 import koBilling from "./ko/billing.json";
 import jaCommon from "./ja/common.json";
@@ -115,8 +109,6 @@ import jaLayout from "./ja/layout.json";
 import jaUsage from "./ja/usage.json";
 import jaUi from "./ja/ui.json";
 import jaSquads from "./ja/squads.json";
-import jaTeam from "./ja/team.json";
-import jaCapabilities from "./ja/capabilities.json";
 import jaHome from "./ja/home.json";
 import jaBilling from "./ja/billing.json";
 
@@ -151,8 +143,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     usage: enUsage,
     ui: enUi,
     squads: enSquads,
-    team: enTeam,
-    capabilities: enCapabilities,
     home: enHome,
     billing: enBilling,
   },
@@ -183,8 +173,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     usage: zhHansUsage,
     ui: zhHansUi,
     squads: zhHansSquads,
-    team: zhHansTeam,
-    capabilities: zhHansCapabilities,
     home: zhHansHome,
     billing: zhHansBilling,
   },
@@ -215,8 +203,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     usage: koUsage,
     ui: koUi,
     squads: koSquads,
-    team: koTeam,
-    capabilities: koCapabilities,
     home: koHome,
     billing: koBilling,
   },
@@ -247,8 +233,6 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     usage: jaUsage,
     ui: jaUi,
     squads: jaSquads,
-    team: jaTeam,
-    capabilities: jaCapabilities,
     home: jaHome,
     billing: jaBilling,
   },

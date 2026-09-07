@@ -945,5 +945,21 @@
   "actions": {
     "selected_other": "{{count}} 件選択中",
     "clear_selection": "選択を解除"
+  },
+  "hub": {
+    "title": "エージェント",
+    "tagline": "Agent Family とエージェント、そしてそれらを構成する Skill、MCP、Ontology。",
+    "new": "新規作成",
+    "new_family": "新規 Agent Family",
+    "new_agent": "新しいエージェント",
+    "new_skill": "新しいスキル",
+    "import_from_hub": "Capability Hub",
+    "tabs": {
+      "families": "Agent Family",
+      "agents": "Agent",
+      "skills": "Skill",
+      "mcp": "MCP",
+      "ontologies": "Ontology"
+    }
   }
 }

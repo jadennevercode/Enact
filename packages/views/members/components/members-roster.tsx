@@ -28,7 +28,7 @@ const EMPTY_MEMBERS: MemberWithUser[] = [];
  * without it the two tabs describe the same workspace and never meet.
  */
 export function MembersRoster() {
-  const { t } = useT("team");
+  const { t } = useT("members");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
   const [search, setSearch] = useState("");
@@ -75,7 +75,7 @@ export function MembersRoster() {
         role="alert"
         tone="destructive"
         icon={AlertCircle}
-        title={t(($) => $.people.load_failed)}
+        title={t(($) => $.roster.load_failed)}
         description={
           membersQuery.error instanceof Error ? membersQuery.error.message : undefined
         }
@@ -91,13 +91,13 @@ export function MembersRoster() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={t(($) => $.people.search_placeholder)}
+            placeholder={t(($) => $.roster.search_placeholder)}
             className="h-8 pl-7"
-            aria-label={t(($) => $.people.search_placeholder)}
+            aria-label={t(($) => $.roster.search_placeholder)}
           />
         </div>
         <span className="text-muted-foreground ml-auto text-caption tabular-nums">
-          {t(($) => $.people.count, { count: rows.length })}
+          {t(($) => $.roster.count, { count: rows.length })}
         </span>
       </div>
 
@@ -109,13 +109,13 @@ export function MembersRoster() {
             icon={Users}
             title={
               search.trim()
-                ? t(($) => $.people.no_matches_title)
-                : t(($) => $.people.empty_title)
+                ? t(($) => $.roster.no_matches_title)
+                : t(($) => $.roster.empty_title)
             }
             description={
               search.trim()
-                ? t(($) => $.people.no_matches_description)
-                : t(($) => $.people.empty_description)
+                ? t(($) => $.roster.no_matches_description)
+                : t(($) => $.roster.empty_description)
             }
           />
         ) : (
@@ -137,11 +137,11 @@ export function MembersRoster() {
                       </p>
                     </div>
                     <span className="text-muted-foreground shrink-0 text-caption">
-                      {t(($) => $.people.role[member.role])}
+                      {t(($) => $.roster.role[member.role])}
                     </span>
                     <span className="text-muted-foreground w-20 shrink-0 text-right text-caption tabular-nums">
                       {ownedAgents > 0
-                        ? t(($) => $.people.agents_owned, { count: ownedAgents })
+                        ? t(($) => $.roster.agents_owned, { count: ownedAgents })
                         : ""}
                     </span>
                   </AppLink>

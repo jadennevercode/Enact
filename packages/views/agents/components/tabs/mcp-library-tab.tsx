@@ -25,14 +25,22 @@ import {
   useUpdateWorkspaceMcpServer,
 } from "@enact/core/workspace/mutations";
 import type { WorkspaceMcpServer } from "@enact/core/types";
-import { McpServerDialog } from "../../agents/components/tabs/mcp-server-dialog";
-import type { ManagedMcpServer } from "../../agents/components/tabs/mcp-config-model";
-import { useT } from "../../i18n";
+import { McpServerDialog } from "./mcp-server-dialog";
+import type { ManagedMcpServer } from "./mcp-config-model";
+import { useT } from "../../../i18n";
 import {
   MARKETPLACE_PUBLISHING_ENABLED,
   PublishDialog,
-} from "../../marketplace";
-import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
+} from "../../../marketplace";
+// The workspace MCP library used to be a settings tab and kept its layout
+// when it moved under Agents: the wrappers are a titled section with cards,
+// not a settings-only device, and re-styling the body was not part of the
+// move.
+import {
+  SettingsCard,
+  SettingsSection,
+  SettingsTab,
+} from "../../../settings/components/settings-layout";
 
 /**
  * The workspace MCP server library (GH #6062).
@@ -49,7 +57,7 @@ import { SettingsCard, SettingsSection, SettingsTab } from "./settings-layout";
  *    configuration again. The UI says so rather than pretending the empty form
  *    is the saved state.
  */
-export function McpTab() {
+export function McpLibraryTab() {
   const { t } = useT("settings");
   const workspace = useCurrentWorkspace();
   const wsId = workspace?.id ?? "";

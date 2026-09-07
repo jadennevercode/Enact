@@ -16,5 +16,25 @@
     "breadcrumb_fallback": "成员",
     "not_found_title": "未找到该成员",
     "not_found_description": "该成员可能已经离开工作区。"
+  },
+  "page": {
+    "title": "成员",
+    "tagline": "这个工作区里有谁，以及他们各自运行着什么。",
+    "invite": "邀请"
+  },
+  "roster": {
+    "search_placeholder": "搜索成员",
+    "count_other": "{{count}} 人",
+    "agents_owned_other": "{{count}} 个智能体",
+    "role": {
+      "owner": "所有者",
+      "admin": "管理员",
+      "member": "成员"
+    },
+    "empty_title": "还没有成员",
+    "empty_description": "在工作区设置里邀请成员。",
+    "no_matches_title": "没有匹配的成员",
+    "no_matches_description": "换个名字或邮箱试试。",
+    "load_failed": "成员列表加载失败"
   }
 }

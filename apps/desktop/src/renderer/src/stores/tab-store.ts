@@ -351,10 +351,11 @@ export function resourceKeyForUrl(url: string): string {
  * them. Each entry is `[shell segment, tab]`.
  */
 const ABSORBED_LIST_ROUTES: Record<string, readonly [string, string] | undefined> = {
-  agents: ["team", "agents"],
-  squads: ["team", "families"],
-  skills: ["capabilities", "skills"],
-  ontologies: ["capabilities", "ontologies"],
+  squads: ["agents", "families"],
+  skills: ["agents", "skills"],
+  ontologies: ["agents", "ontologies"],
+  capabilities: ["agents", "skills"],
+  team: ["agents", "families"],
 };
 
 export function sanitizeTabPath(path: string): string | null {

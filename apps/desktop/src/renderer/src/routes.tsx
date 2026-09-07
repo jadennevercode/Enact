@@ -10,6 +10,9 @@ import { MarketplaceListingPage } from "./pages/marketplace-listing-page";
 import { AgentDetailPage } from "./pages/agent-detail-page";
 import { AiBuilderSessionPage } from "./pages/ai-builder-session-page";
 import { MemberDetailPage } from "./pages/member-detail-page";
+import { MembersPage } from "@enact/views/members";
+import { ResourcesPage } from "@enact/views/resources";
+import { AgentsPage } from "@enact/views/agents";
 import {
   RuntimeDetailPage,
   RuntimeSettingsPage,
@@ -28,8 +31,6 @@ import {
 } from "@enact/views/agents";
 import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
 import { HomePage } from "@enact/views/home";
-import { TeamPage } from "@enact/views/team";
-import { CapabilitiesPage } from "@enact/views/capabilities";
 import { InboxPage } from "@enact/views/inbox";
 import { ChatPage } from "@enact/views/chat";
 import { SettingsPage } from "@enact/views/settings";
@@ -191,11 +192,12 @@ export const appRoutes: RouteObject[] = [
             element: <MarketplaceListingPage />,
             handle: { title: "Marketplace" },
           },
-          { path: "team", element: <TeamPage />, handle: { title: "Team" } },
+          { path: "agents", element: <AgentsPage />, handle: { title: "Agents" } },
+          { path: "members", element: <MembersPage />, handle: { title: "Members" } },
           {
-            path: "capabilities",
-            element: <CapabilitiesPage />,
-            handle: { title: "Capabilities" },
+            path: "resources",
+            element: <ResourcesPage />,
+            handle: { title: "Resources" },
           },
           {
             path: "agents/new",

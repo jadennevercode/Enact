@@ -945,5 +945,21 @@
   "actions": {
     "selected_other": "{{count}}개 선택됨",
     "clear_selection": "선택 해제"
+  },
+  "hub": {
+    "title": "에이전트",
+    "tagline": "Agent Family와 에이전트, 그리고 이들을 구성하는 Skill, MCP, Ontology.",
+    "new": "새로 만들기",
+    "new_family": "새 Agent Family",
+    "new_agent": "새 에이전트",
+    "new_skill": "새 스킬",
+    "import_from_hub": "Capability Hub",
+    "tabs": {
+      "families": "Agent Family",
+      "agents": "Agent",
+      "skills": "Skill",
+      "mcp": "MCP",
+      "ontologies": "Ontology"
+    }
   }
 }

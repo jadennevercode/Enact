@@ -124,7 +124,7 @@ vi.mock("../../navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { ResourcesTab } from "./resources-tab";
+import { ResourcesPage } from "./resources-page";
 
 function githubResource(id: string, url: string) {
   return {
@@ -139,7 +139,7 @@ function githubResource(id: string, url: string) {
   };
 }
 
-describe("ResourcesTab — GitHub repositories", () => {
+describe("ResourcesPage — GitHub repositories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resourcesRef.current = [];
@@ -160,7 +160,7 @@ describe("ResourcesTab — GitHub repositories", () => {
       url: "https://github.com/apps/enact/installations/new",
     });
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     await user.click(screen.getByRole("button", { name: "Connect GitHub" }));
 
@@ -177,7 +177,7 @@ describe("ResourcesTab — GitHub repositories", () => {
 
   it("hides the connect action from members the server would refuse", () => {
     githubRef.current = { ...githubRef.current, can_manage: false };
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     expect(screen.queryByRole("button", { name: "Connect GitHub" })).toBeNull();
     // The section itself, and removal of existing rows, stay available.
@@ -189,7 +189,7 @@ describe("ResourcesTab — GitHub repositories", () => {
       ...githubRef.current,
       repository_browse_configured: false,
     };
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     const button = screen.getByRole("button", { name: "Connect GitHub" });
     expect(
@@ -215,7 +215,7 @@ describe("ResourcesTab — GitHub repositories", () => {
       },
     ];
     const user = userEvent.setup();
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     await user.click(screen.getByRole("button", { name: "Choose from GitHub" }));
     await user.click(screen.getAllByRole("checkbox")[0]!);
@@ -249,7 +249,7 @@ describe("ResourcesTab — GitHub repositories", () => {
       },
     ];
     const user = userEvent.setup();
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     await user.click(screen.getByRole("button", { name: "Choose from GitHub" }));
 
@@ -270,7 +270,7 @@ describe("ResourcesTab — GitHub repositories", () => {
       "tab=repositories&github_connected=1",
     );
 
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     expect(
       await screen.findByRole("heading", { name: "Choose GitHub repositories" }),

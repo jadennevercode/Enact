@@ -7,7 +7,7 @@ import {
   EMPTY_AGENT_FILTERS,
   type AgentListFilters,
 } from "@enact/core/agents/stores";
-import { rowMatchesFilters, type AgentListRow } from "./agents-page";
+import { rowMatchesFilters, type AgentListRow } from "./agent-list-page";
 
 function makeRow(
   overrides: Partial<AgentListRow["agent"]> = {},

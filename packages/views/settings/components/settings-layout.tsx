@@ -17,7 +17,11 @@ export function SettingsTab({
   return (
     <div className="enact-settings-tab">
       <header className="enact-settings-tab-header">
-        <h2 className="enact-settings-tab-title">{title}</h2>
+        {/* Null when a page header already carries the name — Resources
+            renders this body under its own header. */}
+        {title ? (
+          <h2 className="enact-settings-tab-title">{title}</h2>
+        ) : null}
         {description ? (
           <p className="enact-settings-tab-description">{description}</p>
         ) : null}

@@ -5,7 +5,7 @@ import type { Agent } from "@enact/core/types";
 import type { AgentActivity } from "@enact/core/agents";
 import { renderWithI18n } from "../../test/i18n";
 import { NavigationProvider, type NavigationAdapter } from "../../navigation";
-import { AgentsPage } from "./agents-page";
+import { AgentListPage } from "./agent-list-page";
 
 // These tests pin the `listReady` render gate (ENA-4511): the Agents list must
 // not paint real rows until the auxiliary queries the active sort field /
@@ -221,7 +221,7 @@ function makeAdapter(
 function renderPage() {
   renderWithI18n(
     <NavigationProvider value={makeAdapter()}>
-      <AgentsPage />
+      <AgentListPage />
     </NavigationProvider>,
   );
 }
@@ -255,7 +255,7 @@ beforeEach(() => {
   };
 });
 
-describe("AgentsPage listReady gate", () => {
+describe("AgentListPage listReady gate", () => {
   it("shows only a skeleton (no real rows) while lastActive deps are pending", () => {
     // Default lastActive sort depends on activity + run-counts.
     mocks.activity = { byAgent: new Map(), loading: true };

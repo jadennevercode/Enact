@@ -98,9 +98,9 @@ vi.mock("../../platform/use-local-daemon-status", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { ResourcesTab } from "./resources-tab";
+import { ResourcesPage } from "./resources-page";
 
-describe("ResourcesTab — renaming a worktree local directory", () => {
+describe("ResourcesPage — renaming a worktree local directory", () => {
   beforeEach(() => updateMock.mockClear());
 
   // The reported skew, one step further on: backend rolled back below v0.4.25
@@ -109,7 +109,7 @@ describe("ResourcesTab — renaming a worktree local directory", () => {
   // during an unrelated edit drops execution_mode, answers 200, and the next
   // task edits the working copy the resource asked to isolate (#7113).
   it("sends only the label, never a ref the server could strip", async () => {
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     fireEvent.click(screen.getByTitle(/rename/i));
     const input = screen.getByRole("textbox");
@@ -126,7 +126,7 @@ describe("ResourcesTab — renaming a worktree local directory", () => {
   // the top-level label outranks the stale one still sitting inside the ref.
   // Full read-order matrix: ../../common/local-directory/local-directory-label.test.ts.
   it("shows the top-level label over the one left behind in the ref", () => {
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
     expect(screen.getByText("Renamed Client")).toBeInTheDocument();
     expect(screen.queryByText("Game Client")).not.toBeInTheDocument();
   });
@@ -135,7 +135,7 @@ describe("ResourcesTab — renaming a worktree local directory", () => {
   // input must not fall back to resending the ref either, and the server is
   // the one that drops BOTH label copies so the old name cannot resurrect.
   it("sends a label-only clear when the input is emptied", async () => {
-    renderWithI18n(<ResourcesTab />);
+    renderWithI18n(<ResourcesPage />);
 
     fireEvent.click(screen.getByTitle(/rename/i));
     const input = screen.getByRole("textbox");

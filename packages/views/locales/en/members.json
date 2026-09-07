@@ -17,5 +17,27 @@
     "breadcrumb_fallback": "Member",
     "not_found_title": "Member not found",
     "not_found_description": "This member may have left the workspace."
+  },
+  "page": {
+    "title": "Members",
+    "tagline": "Who is in this workspace, and what they run.",
+    "invite": "Invite"
+  },
+  "roster": {
+    "search_placeholder": "Search people",
+    "count_one": "{{count}} person",
+    "count_other": "{{count}} people",
+    "agents_owned_one": "{{count}} agent",
+    "agents_owned_other": "{{count}} agents",
+    "role": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "empty_title": "No members yet",
+    "empty_description": "Invite people from workspace settings.",
+    "no_matches_title": "No matching people",
+    "no_matches_description": "Try a different name or email address.",
+    "load_failed": "Members could not be loaded"
   }
 }

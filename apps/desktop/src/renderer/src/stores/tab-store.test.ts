@@ -56,13 +56,21 @@ describe("sanitizeTabPath", () => {
   // The Team page absorbed both list routes. A persisted or pinned tab still
   // holds the old URL, and the desktop router may not redirect (ENA-4741),
   // so the fold happens here instead.
-  it("folds the list routes a shell page absorbed into their tab", () => {
-    expect(sanitizeTabPath("/acme/agents")).toBe("/acme/team?tab=agents");
-    expect(sanitizeTabPath("/acme/squads")).toBe("/acme/team?tab=families");
-    expect(sanitizeTabPath("/acme/skills")).toBe("/acme/capabilities?tab=skills");
+  it("folds the list routes the Agents page absorbed into their tab", () => {
+    expect(sanitizeTabPath("/acme/squads")).toBe("/acme/agents?tab=families");
+    expect(sanitizeTabPath("/acme/skills")).toBe("/acme/agents?tab=skills");
     expect(sanitizeTabPath("/acme/ontologies")).toBe(
-      "/acme/capabilities?tab=ontologies",
+      "/acme/agents?tab=ontologies",
     );
+    // The two shells that existed only between rounds fold as well.
+    expect(sanitizeTabPath("/acme/team")).toBe("/acme/agents?tab=families");
+    expect(sanitizeTabPath("/acme/capabilities")).toBe(
+      "/acme/agents?tab=skills",
+    );
+  });
+
+  it("leaves the page that absorbed them alone", () => {
+    expect(sanitizeTabPath("/acme/agents")).toBe("/acme/agents");
   });
 
   it("leaves the pages under those segments alone", () => {

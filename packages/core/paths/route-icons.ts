@@ -56,14 +56,12 @@ export type NavLabelKey =
   | "autopilots"
   | "agents"
   | "squads"
-  | "team"
   | "members"
   | "resources"
   | "usage"
   | "runtimes"
   | "ontologies"
   | "skills"
-  | "capabilities"
   | "marketplace"
   | "settings";
 
@@ -77,14 +75,12 @@ export type WorkspacePageKey =
   | "autopilots"
   | "agents"
   | "squads"
-  | "team"
   | "members"
   | "resources"
   | "usage"
   | "runtimes"
   | "ontologies"
   | "skills"
-  | "capabilities"
   | "marketplace"
   | "settings";
 
@@ -110,14 +106,12 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   autopilots: { segment: "autopilots", icon: "Zap", navKey: "autopilots" },
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },
-  team: { segment: "team", icon: "Users", navKey: "team" },
   members: { segment: "members", icon: "CircleUser", navKey: "members" },
   resources: { segment: "resources", icon: "FolderOpen", navKey: "resources" },
   usage: { segment: "usage", icon: "BarChart3", navKey: "usage" },
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
   skills: { segment: "skills", icon: "BookOpenText", navKey: "skills" },
-  capabilities: { segment: "capabilities", icon: "Library", navKey: "capabilities" },
   marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };

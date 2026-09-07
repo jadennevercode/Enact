@@ -16,5 +16,25 @@
     "breadcrumb_fallback": "メンバー",
     "not_found_title": "メンバーが見つかりません",
     "not_found_description": "このメンバーはワークスペースから退出した可能性があります。"
+  },
+  "page": {
+    "title": "メンバー",
+    "tagline": "このワークスペースに誰がいて、何を動かしているか。",
+    "invite": "招待"
+  },
+  "roster": {
+    "search_placeholder": "メンバーを検索",
+    "count_other": "{{count}} 人",
+    "agents_owned_other": "エージェント {{count}} 件",
+    "role": {
+      "owner": "オーナー",
+      "admin": "管理者",
+      "member": "メンバー"
+    },
+    "empty_title": "メンバーがいません",
+    "empty_description": "ワークスペース設定からメンバーを招待してください。",
+    "no_matches_title": "一致するメンバーがいません",
+    "no_matches_description": "別の名前かメールアドレスで検索してください。",
+    "load_failed": "メンバーを読み込めませんでした"
   }
 }

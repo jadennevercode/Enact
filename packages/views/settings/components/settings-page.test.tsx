@@ -32,9 +32,16 @@ vi.mock("./keyboard-shortcuts-tab", stub("KeyboardShortcutsTab"));
 vi.mock("./plugins-tab", stub("PluginsTab"));
 vi.mock("./billing-tab", stub("BillingTab"));
 
-vi.mock("@enact/core/paths", () => ({
-  useCurrentWorkspace: () => ({ name: "Acme" }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    ...actual,
+    useCurrentWorkspace: () => ({ name: "Acme" }),
+    // Real builders: the page resolves the destinations of the tabs that
+    // left Settings, and a stub of one breaks whenever another moves.
+    useWorkspacePaths: () => actual.paths.workspace("acme"),
+  };
+});
 
 const replace = vi.fn();
 const navigationState = { search: "" };

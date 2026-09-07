@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { paths } from "@enact/core/paths";
 
-// The agent-families list is a tab of Team now. See the agents route for
-// why this stays as a redirect.
-export default async function SquadsRoute({
+// Agent families are a tab of the Agents page now.
+export default async function Route({
   params,
 }: {
   params: Promise<{ workspaceSlug: string }>;
 }) {
   const { workspaceSlug } = await params;
-  redirect(paths.workspace(workspaceSlug).teamTab("families"));
+  redirect(paths.workspace(workspaceSlug).agentsTab("families"));
 }
