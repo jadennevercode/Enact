@@ -121,27 +121,20 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("TopBar", () => {
-  it("names the workspace every other control is scoped to", () => {
-    renderBar();
-    expect(screen.getByRole("button", { name: /Acme/ })).toBeInTheDocument();
-  });
-
   it("carries the bell, help and account at the trailing end", () => {
     renderBar();
     expect(screen.getByRole("button", { name: /Inbox/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account" })).toBeInTheDocument();
   });
 
-  // Identity and signing out belong to the account menu, not the switcher:
-  // one dropdown is about which workspace, the other about who.
-  it("keeps signing out out of the workspace switcher", async () => {
-    const user = userEvent.setup();
+  // The switcher heads the sidebar instead — see workspace-switcher.test.tsx.
+  // The desktop shell renders no top bar, so a switcher living here left that
+  // window with no way to change workspace at all.
+  it("leaves naming the workspace to the sidebar", () => {
     renderBar();
-    await user.click(screen.getByRole("button", { name: /Acme/ }));
     expect(
-      screen.queryByRole("menuitem", { name: "Log out" }),
+      screen.queryByRole("button", { name: /Acme/ }),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText("Butter")).toBeInTheDocument();
   });
 
   it("offers the account's own settings and signing out", async () => {
@@ -162,30 +155,5 @@ describe("TopBar", () => {
     await user.click(screen.getByRole("button", { name: "Account" }));
     await user.click(await screen.findByRole("menuitem", { name: "Shortcuts" }));
     expect(push).toHaveBeenCalledWith("/acme/settings?tab=shortcuts");
-  });
-
-  // One dot stands for two facts a person acts on the same way: somewhere
-  // else wants their attention.
-  it("dots the switcher when another workspace has unread", () => {
-    state.summary = [{ workspace_id: "ws-2", count: 3 }];
-    const { container } = renderBar();
-    expect(
-      container.querySelector(".enact-topbar-workspace .enact-sidebar-dot"),
-    ).not.toBeNull();
-  });
-
-  it("dots the switcher for a pending invitation", () => {
-    state.invitations = [{ id: "inv-1", workspace_name: "Cider" }];
-    const { container } = renderBar();
-    expect(
-      container.querySelector(".enact-topbar-workspace .enact-sidebar-dot"),
-    ).not.toBeNull();
-  });
-
-  it("leaves the switcher clean when nothing wants attention", () => {
-    const { container } = renderBar();
-    expect(
-      container.querySelector(".enact-topbar-workspace .enact-sidebar-dot"),
-    ).toBeNull();
   });
 });

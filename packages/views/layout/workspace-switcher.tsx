@@ -40,12 +40,13 @@ const EMPTY_INBOX_SUMMARY: Awaited<
 /**
  * Which workspace you are in, and the way to another one.
  *
- * Lives in the top bar rather than over the nav: it names the thing every
- * other control on screen is scoped to, so it belongs where the page starts
- * rather than at the head of one column of it.
+ * Heads the sidebar, above everything it scopes: every nav entry, pin and
+ * count below resolves inside the workspace this row names. It is the sidebar
+ * rather than the top bar because the desktop shell renders no top bar at all
+ * — moving it up there left that window with no way to switch workspaces.
  *
- * Identity and signing out are NOT here — they are the account menu's, at the
- * other end of the bar. This dropdown is about workspaces.
+ * Identity and signing out are NOT here — they are the account menu's. This
+ * dropdown is about workspaces.
  */
 export function WorkspaceSwitcher() {
   const { t } = useT("layout");
@@ -113,7 +114,7 @@ export function WorkspaceSwitcher() {
           <Button
             variant="ghost"
             size="sm"
-            className="enact-topbar-workspace h-8 gap-2 px-2"
+            className="enact-sidebar-workspace h-8 w-full justify-start gap-2 px-2"
           >
             <span className="relative">
               <WorkspaceAvatar
@@ -128,10 +129,10 @@ export function WorkspaceSwitcher() {
                 <span className="enact-sidebar-dot absolute -top-0.5 -right-0.5 size-2" />
               )}
             </span>
-            <span className="enact-topbar-workspace-name max-w-40 truncate">
+            <span className="enact-sidebar-workspace-name min-w-0 flex-1 truncate text-left">
               {workspace?.name ?? "Enact"}
             </span>
-            <ChevronDown className="size-3 text-muted-foreground" />
+            <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
           </Button>
         }
       />

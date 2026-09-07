@@ -629,10 +629,6 @@
     border-bottom: var(--border-width) solid var(--border);
   }
 
-  .enact-topbar-workspace-name {
-    font-weight: var(--font-weight-medium);
-  }
-
   .enact-topbar-action,
   .enact-topbar-avatar {
     color: var(--muted-foreground);

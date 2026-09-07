@@ -62,6 +62,7 @@ import { useDeletePin, useReorderPins } from "@enact/core/pins/mutations";
 import { issueDetailOptions } from "@enact/core/issues/queries";
 import type { PinnedItem } from "@enact/core/types";
 import { routeIconForPath } from "./route-icon-components";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useT } from "../i18n";
 import {
   useShortcut,
@@ -427,12 +428,13 @@ export function AppSidebar({ topSlot, headerClassName }: AppSidebarProps = {}) {
   return (
       <Sidebar variant="inset">
         {topSlot}
-        {/* Product identity, then Workspace Switcher. On desktop `topSlot` is
-            the traffic-light spacer, so the brand sits below it rather than
-            fighting the macOS drag strip. */}
-        {/* What is left of the header is the one thing that starts work
-            rather than describing the session: the new-issue button. */}
+        {/* Which workspace you are in, then the one control that starts work in
+            it. The switcher heads the column because every entry below is
+            scoped to its answer; the desktop shell has no other bar that could
+            carry it. On desktop `topSlot` is the traffic-light spacer, so this
+            sits below it rather than fighting the macOS drag strip. */}
         <SidebarHeader className={cn("enact-sidebar-header", headerClassName)}>
+          <WorkspaceSwitcher />
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

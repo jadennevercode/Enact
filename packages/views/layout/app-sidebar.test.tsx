@@ -44,6 +44,12 @@ vi.mock("@dnd-kit/sortable", () => ({
   verticalListSortingStrategy: vi.fn(),
 }));
 vi.mock("@dnd-kit/utilities", () => ({ CSS: { Transform: { toString: () => undefined } } }));
+// The switcher heads this column but answers for itself in
+// workspace-switcher.test.tsx. Stubbing it keeps this suite on the nav rows,
+// the pins and the counters, which is what it is about.
+vi.mock("./workspace-switcher", () => ({
+  WorkspaceSwitcher: () => <div data-testid="workspace-switcher" />,
+}));
 vi.mock("@enact/ui/components/ui/sidebar", () => ({
   Sidebar: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SidebarContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -367,7 +373,8 @@ describe("nav grouping", () => {
   }
 
   // The order is the product's work model, not the old owner-based grouping:
-  // what is mine, the work, who does it, what they do it with, where it runs.
+  // what is mine, the work and the people it is shared with, what the
+  // workspace can do, where it runs.
   it("orders the nav by the work model", () => {
     const { container } = render(<AppSidebar />);
     const hrefs = navHrefs(container);
@@ -377,8 +384,8 @@ describe("nav grouping", () => {
       "/acme/chat",
       "/acme/issues",
       "/acme/autopilots",
-      "/acme/agents",
       "/acme/members",
+      "/acme/agents",
       "/acme/marketplace",
       "/acme/runtimes",
       "/acme/resources",
