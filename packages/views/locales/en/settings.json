@@ -224,8 +224,8 @@
         "description": "Open the people and agents roster."
       },
       "goUsage": {
-        "label": "Go to Usage",
-        "description": "Open usage analytics."
+        "label": "Go to Insights",
+        "description": "Open usage, errors and runs."
       },
       "goRuntimes": {
         "label": "Go to Runtimes",

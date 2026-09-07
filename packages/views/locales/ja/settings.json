@@ -224,8 +224,8 @@
         "description": "メンバーとエージェントの一覧を開きます。"
       },
       "goUsage": {
-        "label": "使用量へ移動",
-        "description": "使用量分析を開きます。"
+        "label": "インサイトへ移動",
+        "description": "使用量、エラー、実行履歴を開きます。"
       },
       "goRuntimes": {
         "label": "ランタイムへ移動",

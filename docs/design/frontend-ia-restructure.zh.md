@@ -53,6 +53,8 @@
 | | 观测 | `/{slug}/usage` | 由 Analytics 改名，路由不变，增加执行记录 tab |
 | 设置 | 设置 | `/{slug}/settings` | 19 个标签减到 16 个 |
 
+设置这一组同样不带组标题：管理工作区不是另外五组所描述的那条链路上的一步。
+
 新增三个顶层入口（工作台、团队、能力库），收敛四个（智能体、智能体小组、Skills、Ontology）。
 所有详情路由——`/agents/{id}`、`/squads/{id}`、`/skills/{id}`、`/members/{id}`、
 `/marketplace/{id}`、`/runtimes/{id}`——保持不变。

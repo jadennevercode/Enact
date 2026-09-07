@@ -224,8 +224,8 @@
         "description": "멤버와 에이전트 명단을 엽니다."
       },
       "goUsage": {
-        "label": "사용량으로 이동",
-        "description": "사용량 분석을 엽니다."
+        "label": "인사이트로 이동",
+        "description": "사용량, 오류, 실행 기록을 엽니다."
       },
       "goRuntimes": {
         "label": "런타임으로 이동",

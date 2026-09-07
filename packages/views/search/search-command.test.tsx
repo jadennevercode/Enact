@@ -381,12 +381,13 @@ describe("SearchCommand", () => {
     const user = userEvent.setup();
     renderSearch();
 
-    // Analytics lives at /usage: proof the row resolves its destination from
-    // the page key rather than from the words on screen.
+    // Insights is labelled one thing, routed at /usage, and reached here by
+    // typing its former name: proof the row resolves its destination from the
+    // page key rather than from either the words on screen or the query.
     const input = screen.getByPlaceholderText("Type a command or search...");
     await user.type(input, "analytics");
 
-    await user.click(await screen.findByText("Analytics"));
+    await user.click(await screen.findByText("Insights"));
 
     expect(mockPush).toHaveBeenCalledWith("/ws-test/usage");
     expect(useSearchStore.getState().open).toBe(false);

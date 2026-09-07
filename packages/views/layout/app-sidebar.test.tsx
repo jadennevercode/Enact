@@ -419,26 +419,38 @@ describe("personal nav — Chat", () => {
   });
 });
 
-describe("configure navigation", () => {
-  function navHrefs(container: HTMLElement): (string | undefined)[] {
+describe("nav grouping", () => {
+  // Pins render among the nav rows and are also data-href buttons. Every nav
+  // destination is `/{slug}/{segment}`; a pin always addresses a resource
+  // below one, so segment depth separates them without relying on class
+  // names the primitive stubs in this file do not forward.
+  function navHrefs(container: HTMLElement): string[] {
     return Array.from(
       container.querySelectorAll<HTMLElement>("button[data-href]"),
-    ).map((link) => link.dataset.href);
+    )
+      .map((link) => link.dataset.href ?? "")
+      .filter((href) => href.split("/").filter(Boolean).length === 2);
   }
 
-  it("runs Runtimes, Capabilities, Marketplace, Settings in order", () => {
+  // The order is the product's work model, not the old owner-based grouping:
+  // what is mine, the work, who does it, what they do it with, where it runs.
+  it("orders the nav by the work model", () => {
     const { container } = render(<AppSidebar />);
     const hrefs = navHrefs(container);
 
-    expect(hrefs.indexOf("/acme/capabilities")).toBe(
-      hrefs.indexOf("/acme/runtimes") + 1,
-    );
-    expect(hrefs.indexOf("/acme/marketplace")).toBe(
-      hrefs.indexOf("/acme/capabilities") + 1,
-    );
-    expect(hrefs.indexOf("/acme/settings")).toBe(
-      hrefs.indexOf("/acme/marketplace") + 1,
-    );
+    expect(hrefs).toEqual([
+      "/acme/inbox",
+      "/acme/chat",
+      "/acme/my-issues",
+      "/acme/issues",
+      "/acme/autopilots",
+      "/acme/team",
+      "/acme/capabilities",
+      "/acme/marketplace",
+      "/acme/runtimes",
+      "/acme/usage",
+      "/acme/settings",
+    ]);
     expect(
       container.querySelector('button[data-href="/acme/capabilities"] svg'),
     ).not.toBeNull();

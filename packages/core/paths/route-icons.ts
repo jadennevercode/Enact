@@ -113,7 +113,11 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
 };
 
 /** i18n key (under `layout.sidebar`) for a nav group's heading. */
-export type NavGroupLabelKey = "workspace_group" | "configure_group";
+export type NavGroupLabelKey =
+  | "work_group"
+  | "team_group"
+  | "capability_group"
+  | "execution_group";
 
 export interface WorkspaceNavGroup {
   /** Stable identity for the group — React key, and what tests name. */
@@ -141,17 +145,24 @@ export interface WorkspaceNavGroup {
  * both consumers resolve the destination as `p[key]()`.
  */
 export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
+  // The order is the work model: what is mine, the work itself, who does it,
+  // what they can do it with, where it runs. Settings closes as its own
+  // unlabelled group because administering the workspace is not part of that
+  // sequence.
   { id: "personal", labelKey: null, pages: ["inbox", "chat", "myIssues"] },
+  { id: "work", labelKey: "work_group", pages: ["issues", "autopilots"] },
+  { id: "team", labelKey: "team_group", pages: ["team"] },
   {
-    id: "workspace",
-    labelKey: "workspace_group",
-    pages: ["issues", "autopilots", "team", "usage"],
+    id: "capability",
+    labelKey: "capability_group",
+    pages: ["capabilities", "marketplace"],
   },
   {
-    id: "configure",
-    labelKey: "configure_group",
-    pages: ["runtimes", "capabilities", "marketplace", "settings"],
+    id: "execution",
+    labelKey: "execution_group",
+    pages: ["runtimes", "usage"],
   },
+  { id: "administration", labelKey: null, pages: ["settings"] },
 ];
 
 /** Every page the sidebar links to, in sidebar order. */

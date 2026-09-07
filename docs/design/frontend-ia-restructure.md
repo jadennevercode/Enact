@@ -60,6 +60,9 @@ Twelve entries in six groups. The "Me" group carries no group label.
 | | Insights | `/{slug}/usage` | Relabelled from Analytics. Route unchanged. Gains a runs tab |
 | Settings | Settings | `/{slug}/settings` | 19 tabs → 16 |
 
+The Settings group carries no heading either: administering a workspace is not a
+step in the sequence the other five describe.
+
 Three top-level entries are added (Home, Team, Capability Hub) and four are absorbed
 (Agents, Agent Families, Skills, Ontology). Every detail route — `/agents/{id}`,
 `/squads/{id}`, `/skills/{id}`, `/members/{id}`, `/marketplace/{id}`, `/runtimes/{id}` —

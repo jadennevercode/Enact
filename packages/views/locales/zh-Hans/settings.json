@@ -224,8 +224,8 @@
         "description": "打开成员与智能体名册。"
       },
       "goUsage": {
-        "label": "前往用量",
-        "description": "打开用量分析。"
+        "label": "跳转到观测",
+        "description": "打开用量、错误与执行记录。"
       },
       "goRuntimes": {
         "label": "前往运行时",
