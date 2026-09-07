@@ -510,19 +510,11 @@ describe("text contrast", () => {
     });
   });
 
-  /**
-   * Deloitte Green carries black text and never white — white on #86BC25 is
-   * 2.27:1. This pair is the one place the brand colour becomes a text
-   * background, so it is pinned rather than left to review.
-   */
-  describe("brand and primary fills", () => {
-    it.each(themeScopes)("keep their own label readable in %s mode", (_mode, selector) => {
-      const declarations = readBlock(tokensCss(), selector);
-
-      expectTokenPairPasses(declarations, "--brand-foreground", "--brand", WCAG_AA_NORMAL_TEXT);
-      expectTokenPairPasses(declarations, "--primary-foreground", "--primary", WCAG_AA_NORMAL_TEXT);
-    });
-  });
+  // `--brand-foreground` on `--brand` is deliberately NOT guarded. White on
+  // Deloitte Green is 2.27:1; the deck pairs the green with black, and so did
+  // this file until the product owner chose white (2026-09-07). The fill
+  // compensates with weight and a text shadow (primitives.css .enact-brand-fill).
+  // Recorded in design-system/enact/MASTER.md §3.1 rather than hidden here.
 
   /**
    * Status is shape plus colour, but the colour still has to be visible against

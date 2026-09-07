@@ -107,13 +107,13 @@ stylesheets.
 | Decision | Choice |
 | --- | --- |
 | Default theme | Light; dark is neutral black / `#222222`, not navy |
-| Primary button | Deloitte gradient 1 fill with black text |
+| Primary button | Deloitte Green fill with white text (chosen over the deck's black pairing; 2.27:1) |
 | Base radius | 8px kept |
 | Scope | Workspace, login / onboarding / invite, desktop chrome; landing, docs and mobile excluded |
 | Shell | Follows theme: light `#F7F7F6` with 1px divider, dark `#000000`; a black shell in light mode was rejected |
 | Green light | Kept in both themes; light 22% green + 16% Green 2, dark 45% |
 | Glass | Restrained: top bar, popovers, command palette, quick actions only |
-| 3D | CSS orbs, DotSphere, cube mark; no WebGL |
+| 3D | DotSphere and the cube mark; the avatar orbs were withdrawn |
 | Brand mark | Variant A "three-step green": per-cube gradients 12 / 1 / 6, transparent ground |
 | App icon ground | Light shell colour with the green light, never dark |
 

@@ -163,21 +163,32 @@
     --enact-issue-status: var(--status-cancelled);
   }
 
+  /* Level 2 at rest, a notch higher under the pointer: the same ring, contact
+     shadow and top highlight every panel has, then the ambient shadow grows
+     and the card rises a pixel. Only transform and shadow move. */
   .enact-issue-board-card {
     border: var(--border-width) solid var(--surface-border);
     border-radius: var(--radius-lg);
     background-color: var(--surface);
     color: var(--surface-foreground);
-    box-shadow: var(--surface-shadow);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      var(--shadow-xs);
     transition:
       background-color var(--motion-fast) var(--ease-standard),
-      border-color var(--motion-fast) var(--ease-standard);
+      border-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
+  .enact-issue-board-card:hover,
   .group\/card:hover .enact-issue-board-card,
   .group\/card[data-popup-open] .enact-issue-board-card {
     border-color: color-mix(in oklab, var(--foreground) 15%, transparent);
-    background-color: var(--surface-hover);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      var(--shadow-sm);
+    transform: translateY(calc(var(--border-width) * -1));
   }
 
   .enact-issue-card-title {
@@ -369,6 +380,17 @@
   .enact-issue-window-state-media[data-tone="destructive"] {
     background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
     color: var(--destructive);
+  }
+
+  /* Level 2 for this file's in-flow containers: the ring, contact shadow and
+     top highlight every lifted surface shares. Declared once here, after the
+     rules above, so a container that used to opt out of shadow now lifts. */
+  .enact-issue-composer,
+  .enact-issue-comment-card {
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
   }
 
   @media (prefers-reduced-motion: reduce) {

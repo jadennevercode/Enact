@@ -307,7 +307,7 @@ function BulkImportSummary({ results }: { results: BulkImportResult[] }) {
       </div>
 
       {/* Detailed results list */}
-      <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-2">
+      <div className="enact-surface-panel max-h-64 space-y-1 overflow-y-auto p-2">
         {results.map((r) => (
           <div
             key={r.key}
@@ -400,7 +400,7 @@ function ConflictResolutionPanel({
             ? members.find((m) => m.user_id === creatorId)?.name
             : undefined;
           return (
-            <div key={r.key} className="rounded-lg border bg-card p-3">
+            <div key={r.key} className="enact-surface-panel p-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <div className="min-w-0 flex-1">

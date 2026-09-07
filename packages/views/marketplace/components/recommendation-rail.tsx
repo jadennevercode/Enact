@@ -146,8 +146,8 @@ function RecommendationCard({ recommendation, onOpen, onDismiss }: Recommendatio
   return (
     <div
       className={cn(
-        "group relative flex h-full flex-col gap-2 rounded-lg border border-surface-border",
-        "bg-surface-raised p-4 text-left transition-colors hover:border-foreground/20",
+        "enact-surface-card group relative flex h-full flex-col gap-2",
+        "p-4 text-left transition-colors hover:border-foreground/20",
       )}
     >
       {/* Dismissing is a decision about this workspace's directory, so it sits

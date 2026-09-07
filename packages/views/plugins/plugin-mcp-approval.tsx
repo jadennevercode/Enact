@@ -84,7 +84,7 @@ export function PluginMCPApproval({
   };
 
   return (
-    <div className="space-y-2 rounded-md border border-surface-border px-3 py-3">
+    <div className="enact-surface-panel space-y-2 px-3 py-3">
       <div className="flex items-center gap-2">
         <span className="text-caption font-medium">{hook.name}</span>
         <Badge variant="outline">{t(($) => $.plugins.mcp.badge)}</Badge>

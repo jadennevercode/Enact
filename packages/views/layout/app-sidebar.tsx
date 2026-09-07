@@ -302,9 +302,17 @@ interface AppSidebarProps {
   searchSlot?: React.ReactNode;
   /** Extra className for SidebarHeader */
   headerClassName?: string;
+  /**
+   * How the sidebar sits against the canvas. The web dashboard uses the flush
+   * `sidebar` variant: the canvas meets the nav at a single hairline and the
+   * shell's light runs uninterrupted from the sidebar into the top bar. The
+   * desktop keeps `inset`, where the canvas is a card inside window chrome
+   * that also carries the tab strip.
+   */
+  variant?: "sidebar" | "inset";
 }
 
-export function AppSidebar({ topSlot, headerClassName }: AppSidebarProps = {}) {
+export function AppSidebar({ topSlot, headerClassName, variant = "sidebar" }: AppSidebarProps = {}) {
   const { t } = useT("layout");
   const { pathname } = useNavigation();
   const userId = useAuthStore((s) => s.user?.id);
@@ -426,7 +434,7 @@ export function AppSidebar({ topSlot, headerClassName }: AppSidebarProps = {}) {
   const createIssueShortcut = useShortcut("createIssue");
 
   return (
-      <Sidebar variant="inset">
+      <Sidebar variant={variant}>
         {topSlot}
         {/* Which workspace you are in, then the one control that starts work in
             it. The switcher heads the column because every entry below is

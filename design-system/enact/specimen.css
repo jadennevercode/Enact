@@ -96,7 +96,7 @@ body {
 .sp-btn { font: inherit; font-size: 13px; line-height: 18px; font-weight: 600; height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--foreground); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background-color var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard); }
 .sp-btn:focus-visible { outline: var(--focus-ring-width) solid var(--ring); outline-offset: var(--focus-ring-offset); }
 .sp-btn:active { transform: translateY(1px); }
-.sp-btn-primary { background: var(--brand); background-image: var(--brand-gradient); color: var(--brand-foreground); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.sp-btn-primary { background: var(--brand); background-image: var(--brand-gradient); color: var(--brand-foreground); font-weight: 600; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
 .sp-btn-primary:hover { filter: brightness(1.04); }
 .sp-btn-outline { background: var(--surface); box-shadow: var(--shadow-xs), inset 0 1px 0 var(--surface-highlight); }
 .sp-btn-outline:hover { background: var(--surface-hover); }
@@ -158,9 +158,9 @@ body {
 .sp-who { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .sp-av { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; position: relative; }
 .sp-av[data-kind="human"] { background: var(--identity-human); color: var(--identity-human-foreground); }
-.sp-av[data-kind="agent"] { background: radial-gradient(circle at 32% 28%, var(--identity-agent-highlight) 0%, var(--identity-agent) 45%, color-mix(in oklab, var(--identity-agent) 55%, #000) 100%); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.2); color: #fff; }
+.sp-av[data-kind="agent"] { background: var(--identity-human); color: var(--identity-human-foreground); }
 .sp-av[data-kind="agent"][data-running="true"]::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid transparent; border-top-color: #c4d600; border-right-color: var(--brand); animation: sp-spin 1.4s linear infinite; }
-.sp-av[data-kind="squad"] { width: 32px; background: radial-gradient(circle at 26% 40%, var(--identity-squad-highlight) 0 3px, var(--identity-squad) 8px, transparent 8.5px), radial-gradient(circle at 70% 60%, var(--identity-squad-highlight) 0 3px, color-mix(in oklab, var(--identity-squad) 75%, var(--surface)) 8px, transparent 8.5px); }
+.sp-av[data-kind="squad"] { background: var(--identity-human); color: var(--identity-human-foreground); }
 .sp-av-lg { width: 40px; height: 40px; font-size: 14px; }
 .sp-av-lg[data-kind="squad"] { width: 56px; }
 @keyframes sp-spin { to { transform: rotate(360deg); } }

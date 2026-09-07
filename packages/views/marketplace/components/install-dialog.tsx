@@ -211,7 +211,7 @@ export function InstallDialog({
         ) : (
           <div className="flex flex-col gap-4">
             {prerequisites.length > 0 ? (
-              <div className="flex flex-col gap-1.5 rounded-md border border-surface-border bg-surface-raised/40 px-3 py-2.5">
+              <div className="enact-surface-panel flex flex-col gap-1.5 px-3 py-2.5">
                 <p className="text-caption font-medium">
                   {t(($) => $.install.prerequisites_title)}
                 </p>
@@ -242,7 +242,7 @@ export function InstallDialog({
             </div>
 
             {isSquad ? (
-              <p className="rounded-md border border-surface-border px-3 py-2 text-caption text-muted-foreground">
+              <p className="enact-surface-panel px-3 py-2 text-caption text-muted-foreground">
                 {t(($) => $.install.family_hint, {
                   count: manifest?.squad?.agents?.length ?? 0,
                 })}
@@ -292,7 +292,7 @@ export function InstallDialog({
             ) : null}
 
             {secretFields.length > 0 ? (
-              <div className="flex flex-col gap-2 rounded-md border border-surface-border p-3">
+              <div className="enact-surface-panel flex flex-col gap-2 p-3">
                 <p className="text-caption font-medium">
                   {t(($) => $.install.secrets_title)}
                 </p>

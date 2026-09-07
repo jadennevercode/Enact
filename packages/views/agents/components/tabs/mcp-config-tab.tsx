@@ -236,7 +236,7 @@ export function McpConfigTab({
         </div>
 
         {redacted ? (
-          <div className="flex items-start gap-2 rounded-lg border px-4 py-3">
+          <div className="enact-surface-panel flex items-start gap-2 px-4 py-3">
             <Lock
               className="mt-0.5 h-4 w-4 text-muted-foreground"
               aria-hidden="true"
@@ -283,7 +283,7 @@ export function McpConfigTab({
             text={t(($) => $.tab_body.mcp_config.workspace_loading)}
           />
         ) : assignedServers.length > 0 ? (
-          <ul className="divide-y rounded-lg border bg-surface-raised/40">
+          <ul className="enact-surface-panel divide-y divide-border-soft">
             {assignedServers.map((server) => (
               <McpWorkspaceServerRow
                 key={server.id}
@@ -570,7 +570,7 @@ function McpServerList({
   deleteLabel?: string;
 }) {
   return (
-    <ul className="divide-y rounded-lg border bg-surface-raised/40">
+    <ul className="enact-surface-panel divide-y divide-border-soft">
       {servers.map((server) => (
         <li key={server.name} className="flex items-center gap-3 p-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">

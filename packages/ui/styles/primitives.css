@@ -23,8 +23,16 @@
     color: var(--surface-foreground);
   }
 
+  /* Level 2 for the everyday panel: the same ring, contact shadow and top
+     highlight the card gets, at the smaller radius. This is the class the
+     views reach for, so it is where the elevation scale actually meets the
+     product — a panel that is only a hairline is a panel nobody can see lift. */
   .enact-surface-panel {
     border-radius: var(--radius-lg);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
   }
 
   /* Level 2. A white card on a white canvas cannot be told apart by colour, so
@@ -99,42 +107,6 @@
     }
   }
 
-  /* Assignee identity is a shape before it is an icon. An agent is a lit
-     sphere — a highlight up and left of centre, a shaded rim below — a squad
-     is two of them overlapping, and a person stays a flat disc. Those read
-     apart at 20px in a dense row, which a bot glyph and a people glyph do not.
-     An actor with its own picture or emoji keeps it and gets no treatment. */
-  .enact-actor-avatar[data-actor="agent"] {
-    background-color: var(--identity-agent);
-    background-image: radial-gradient(
-      circle at 32% 28%,
-      var(--identity-agent-highlight),
-      var(--identity-agent) 46%,
-      color-mix(in oklab, var(--identity-agent) 55%, black) 100%
-    );
-    box-shadow: inset 0 calc(var(--border-width) * -2) calc(var(--space-unit))
-      color-mix(in oklab, black 20%, transparent);
-    color: var(--brand-foreground);
-  }
-
-  .enact-actor-avatar[data-actor="squad"] {
-    background-color: var(--identity-squad);
-    background-image: radial-gradient(
-      circle at 30% 30%,
-      var(--identity-squad-highlight),
-      var(--identity-squad) 48%,
-      color-mix(in oklab, var(--identity-squad) 55%, black) 100%
-    );
-    box-shadow: inset 0 calc(var(--border-width) * -2) calc(var(--space-unit))
-      color-mix(in oklab, black 20%, transparent);
-    color: var(--brand-foreground);
-  }
-
-  .enact-actor-avatar[data-actor="human"] {
-    background-color: var(--identity-human);
-    color: var(--identity-human-foreground);
-  }
-
   /* A running agent wears the run gradient as a ring, which is the same colour
      pair the progress bar uses. It is the only looping animation left in the
      product, and it is describing a fact: something is executing right now. */
@@ -173,6 +145,16 @@
     }
   }
 
+  /* A control that stands on the surface: the same ring, contact shadow and
+     top highlight as a panel, without claiming a ground of its own so the
+     variant's own background (and its dark-mode fill) still wins. */
+  .enact-raised {
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-2xs);
+  }
+
   /* The one place the brand becomes a filled surface. The gradient is
      Deloitte's own suggested pairing (Green into Mid Green) laid over a solid
      --brand, so forced colours, print and any engine that drops the image
@@ -185,6 +167,11 @@
     box-shadow: inset 0 var(--border-width) 0
       color-mix(in oklab, white 35%, transparent);
     color: var(--brand-foreground);
+    /* White on this green is the product owner's call, not a palette pairing;
+       the weight and the shadow are what keep the label readable on it. */
+    font-weight: var(--font-weight-semibold);
+    text-shadow: 0 var(--border-width) var(--border-width)
+      color-mix(in oklab, black 28%, transparent);
   }
 
   .enact-brand-fill:hover {

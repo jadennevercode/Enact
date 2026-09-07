@@ -15,7 +15,56 @@
   .enact-home-section,
   .enact-home-setup {
     background-color: var(--surface);
-    border-color: var(--border);
+    border-color: var(--surface-border);
+  }
+
+  /* The header row is the tinted band of a list panel: it names the block and
+     carries the count and the way to the full list, and its ground is one
+     step off the rows so the eye finds the seam without a rule. */
+  .enact-home-section-header {
+    background-color: var(--surface-hover);
+    border-bottom: var(--border-width) solid var(--border-soft);
+  }
+
+  .enact-home-kpi-label {
+    color: var(--muted-foreground);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .enact-home-kpi-value {
+    color: var(--foreground);
+    font-size: var(--text-display-sm);
+    line-height: var(--text-display-sm--line-height);
+    font-weight: var(--font-weight-light);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The acceptance queue and running work each get a 2px rule in their own
+     colour along the tile's left edge — the same device the sidebar and the
+     selected row use, so "this needs you" and "this is alive" read without
+     a second glance at the label. */
+  .enact-home-kpi[data-tone="accept"] {
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--brand),
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
+  }
+
+  .enact-home-kpi[data-tone="live"] {
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--status-in-progress),
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
+  }
+
+  .enact-home-kpi[data-pending="true"] .enact-home-kpi-value {
+    color: var(--faint-foreground);
   }
 
   .enact-home-row {

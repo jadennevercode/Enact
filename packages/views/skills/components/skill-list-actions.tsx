@@ -340,7 +340,7 @@ export function AddToAgentDialog({
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border bg-card p-1.5">
+        <div className="enact-surface-panel min-h-0 flex-1 overflow-y-auto p-1.5">
           {!hasAnyAgent ? (
             <div className="py-6 text-center text-caption text-muted-foreground">
               {t(($) => $.actions.no_agents)}

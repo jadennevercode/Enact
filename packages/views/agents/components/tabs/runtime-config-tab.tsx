@@ -183,7 +183,7 @@ export function RuntimeConfigTab({
       </fieldset>
 
       <fieldset
-        className={`space-y-3 rounded-md border p-3 ${isGateway ? "" : "opacity-50"}`}
+        className={`enact-surface-panel space-y-3 p-3 ${isGateway ? "" : "opacity-50"}`}
         disabled={!isGateway}
       >
         <legend className="px-1 text-caption font-medium">

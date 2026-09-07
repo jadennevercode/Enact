@@ -52,13 +52,13 @@ export function HomeSection({
     <section
       aria-labelledby={`home-${id}`}
       className={cn(
-        "enact-home-section flex min-w-0 flex-col rounded-lg border border-border bg-card",
+        "enact-home-section enact-surface-panel flex min-w-0 flex-col overflow-hidden",
         className,
       )}
     >
-      <header className="flex h-11 shrink-0 items-center gap-2 px-3">
+      <header className="enact-home-section-header flex h-11 shrink-0 items-center gap-2 px-4">
         <Icon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-        <h2 id={`home-${id}`} className="truncate text-label font-medium">
+        <h2 id={`home-${id}`} className="truncate text-label font-semibold">
           {title}
         </h2>
         {count !== undefined && count > 0 && (

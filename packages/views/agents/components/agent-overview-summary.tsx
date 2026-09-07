@@ -35,7 +35,7 @@ export function AgentOverviewSummary({
   const ontologies = agent.skills.filter(isOntologySkill);
 
   return (
-    <aside className="self-start rounded-xl border border-surface-border bg-surface p-5 shadow-[var(--surface-shadow)] xl:sticky xl:top-6">
+    <aside className="enact-surface-card self-start p-5 xl:sticky xl:top-6">
       <section>
         <h2 className="text-body font-medium">
           {t(($) => $.overview.agent_context)}

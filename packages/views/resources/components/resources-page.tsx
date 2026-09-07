@@ -43,6 +43,7 @@ import { Badge } from "@enact/ui/components/ui/badge";
 import { Button } from "@enact/ui/components/ui/button";
 import { Checkbox } from "@enact/ui/components/ui/checkbox";
 import { Input } from "@enact/ui/components/ui/input";
+import { cn } from "@enact/ui/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -83,16 +84,9 @@ import {
 import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
 import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
-// Resources kept its layout when it left Settings: the wrappers are a titled
-// section with cards, not a settings-only device, and restyling four sections
-// was not part of moving them.
-import {
-  SettingsCard,
-  SettingsSection,
-  SettingsTab,
-} from "../../settings/components/settings-layout";
 import { GitHubMark } from "../../settings/components/github-mark";
 import { CollectionPageHeader } from "../../layout/collection-page";
+import { PAGE_GUTTER } from "../../layout/page-header";
 
 // Workspace Resources settings tab.
 //
@@ -641,386 +635,390 @@ export function ResourcesPage() {
     <div className="enact-management-page flex flex-1 min-h-0 flex-col">
       <CollectionPageHeader icon={FolderOpen} title={t(($) => $.tab_title)} />
       <div className="flex-1 overflow-y-auto">
-    <SettingsTab title={null} description={t(($) => $.tab_description)}>
-      <SettingsSection
-        title={t(($) => $.repos_section_title)}
-        description={t(($) => $.repos_section_description)}
-        action={
-          <div className="flex items-center gap-2">
-            <Popover open={addOpen} onOpenChange={setAddOpen}>
-              <PopoverTrigger
-                render={
-                  <Button variant="outline" size="sm">
-                    <Plus className="size-3.5" />
-                    {t(($) => $.add_button)}
-                  </Button>
-                }
-              />
-              <PopoverContent align="end" className="w-80 space-y-2 p-2">
-                <div className="text-caption font-medium text-muted-foreground">
-                  {t(($) => $.popover_title)}
-                </div>
-                <CustomRepoForm
-                  onSubmit={async (url) => {
-                    await handleAttach(url);
-                    setAddOpen(false);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            {canManageGitHub && (
-              <Button
-                size="sm"
-                onClick={() => void handleGitHubAction()}
-                disabled={
-                  connectingGitHub ||
-                  !githubBrowseConfigured ||
-                  (!githubConnectConfigured && githubInstallations.length === 0)
-                }
-                title={
-                  !githubBrowseConfigured
-                    ? t(($) => $.github_browse_not_configured)
-                    : undefined
+        {/* The body shares the header's gutter and caps its column: three
+            list panels reading edge to edge at 1440px is a spreadsheet, not a
+            page, and the intro is a sentence, so it wraps like one. */}
+        <div className={cn(PAGE_GUTTER, "py-6")}>
+          <div className="flex max-w-[1120px] flex-col gap-4">
+            <p className="max-w-[70ch] text-body text-muted-foreground">
+              {t(($) => $.tab_description)}
+            </p>
+            <ResourceSection
+              title={t(($) => $.repos_section_title)}
+              description={t(($) => $.repos_section_description)}
+              actions={
+                <>
+                  <Popover open={addOpen} onOpenChange={setAddOpen}>
+                    <PopoverTrigger
+                      render={
+                        <Button variant="outline" size="sm">
+                          <Plus className="size-3.5" />
+                          {t(($) => $.add_button)}
+                        </Button>
+                      }
+                    />
+                    <PopoverContent align="end" className="w-80 space-y-2 p-2">
+                      <div className="text-caption font-medium text-muted-foreground">
+                        {t(($) => $.popover_title)}
+                      </div>
+                      <CustomRepoForm
+                        onSubmit={async (url) => {
+                          await handleAttach(url);
+                          setAddOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {canManageGitHub && (
+                    <Button
+                      size="sm"
+                      onClick={() => void handleGitHubAction()}
+                      disabled={
+                        connectingGitHub ||
+                        !githubBrowseConfigured ||
+                        (!githubConnectConfigured && githubInstallations.length === 0)
+                      }
+                      title={
+                        !githubBrowseConfigured
+                          ? t(($) => $.github_browse_not_configured)
+                          : undefined
+                      }
+                    >
+                      {connectingGitHub ? (
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                      ) : (
+                        <GitHubMark className="size-3.5" />
+                      )}
+                      {githubInstallations.length > 0
+                        ? t(($) => $.choose_from_github)
+                        : t(($) => $.connect_github)}
+                    </Button>
+                  )}
+                </>
+              }
+            >
+                {githubResources.length === 0 ? (
+                  <EmptyRow>{t(($) => $.repos_empty)}</EmptyRow>
+                ) : (
+                  githubResources.map((resource) => (
+                    <GithubRepoRow
+                      key={resource.id}
+                      resource={resource}
+                      onRemove={() => void handleRemove(resource)}
+                    />
+                  ))
+                )}
+            </ResourceSection>
+
+            {/* The hints belong to this panel, not to the page: they sit tighter
+                under it than the next section sits after them. */}
+            <div className="flex flex-col gap-2">
+              <ResourceSection
+                title={t(($) => $.local_section_title)}
+                description={t(($) => $.local_section_description)}
+                actions={
+                  desktopMode ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        picking ||
+                        createResource.isPending ||
+                        !daemonStatus.running ||
+                        hasLocalDirectoryForCurrentDaemon
+                      }
+                      onClick={() => {
+                        void handleAttachLocalDirectory();
+                      }}
+                    >
+                      <FolderOpen className="size-3.5" />
+                      {t(($) => $.add_local_directory_button)}
+                    </Button>
+                  ) : undefined
                 }
               >
-                {connectingGitHub ? (
-                  <LoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  <GitHubMark className="size-3.5" />
+                  {localResources.length === 0 ? (
+                    <EmptyRow>{t(($) => $.local_empty)}</EmptyRow>
+                  ) : (
+                    localResources.map((resource) => (
+                      <LocalDirectoryRow
+                        key={resource.id}
+                        resource={resource}
+                        localDaemonId={localDaemonId}
+                        canEdit={desktopMode}
+                        onRemove={() => void handleRemove(resource)}
+                        onRename={handleRenameLocalDirectory}
+                        onEditMode={openModeDialogFor}
+                      />
+                    ))
+                  )}
+              </ResourceSection>
+                {/* Why the add control is missing or inert, said once, under the panel
+                    it belongs to — a disabled button with no reason reads as a bug. */}
+                {!desktopMode && (
+                  <p className="text-caption text-muted-foreground">
+                    {t(($) => $.local_desktop_only_hint)}
+                  </p>
                 )}
-                {githubInstallations.length > 0
-                  ? t(($) => $.choose_from_github)
-                  : t(($) => $.connect_github)}
-              </Button>
-            )}
-          </div>
-        }
-      >
-        <SettingsCard>
-          {githubResources.length === 0 ? (
-            <EmptyRow>{t(($) => $.repos_empty)}</EmptyRow>
-          ) : (
-            githubResources.map((resource) => (
-              <GithubRepoRow
-                key={resource.id}
-                resource={resource}
-                onRemove={() => void handleRemove(resource)}
-              />
-            ))
-          )}
-        </SettingsCard>
-      </SettingsSection>
+                {desktopMode && !daemonStatus.running && (
+                  <p className="text-caption text-muted-foreground">
+                    {t(($) => $.local_daemon_offline_hint)}
+                  </p>
+                )}
+                {desktopMode &&
+                  daemonStatus.running &&
+                  hasLocalDirectoryForCurrentDaemon && (
+                    <p className="text-caption text-muted-foreground">
+                      {t(($) => $.local_daemon_already_attached_hint)}
+                    </p>
+                  )}
+            </div>
 
-      <SettingsSection
-        title={t(($) => $.local_section_title)}
-        description={t(($) => $.local_section_description)}
-        action={
-          desktopMode ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={
-                picking ||
-                createResource.isPending ||
-                !daemonStatus.running ||
-                hasLocalDirectoryForCurrentDaemon
+            <ResourceSection
+              title={t(($) => $.knowledge_section_title)}
+              description={t(($) => $.knowledge_section_description)}
+              actions={
+                <Popover open={addKnowledgeOpen} onOpenChange={setAddKnowledgeOpen}>
+                  <PopoverTrigger
+                    render={
+                      <Button variant="outline" size="sm">
+                        <Plus className="size-3.5" />
+                        {t(($) => $.knowledge_add_button)}
+                      </Button>
+                    }
+                  />
+                  <PopoverContent align="end" className="w-96 space-y-2 p-2">
+                    <div className="text-caption font-medium text-muted-foreground">
+                      {t(($) => $.knowledge_popover_title)}
+                    </div>
+                    <KnowledgeRepoForm
+                      onSubmit={async (url, path) => {
+                        await handleAttachKnowledge(url, path);
+                        setAddKnowledgeOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               }
-              onClick={() => {
-                void handleAttachLocalDirectory();
+            >
+                {knowledgeResources.length === 0 ? (
+                  <EmptyRow>{t(($) => $.knowledge_empty)}</EmptyRow>
+                ) : (
+                  knowledgeResources.map((resource) => (
+                    <KnowledgeRepoRow
+                      key={resource.id}
+                      resource={resource}
+                      onRemove={() => void handleRemove(resource)}
+                    />
+                  ))
+                )}
+            </ResourceSection>
+
+            {/* Rendered only when the server sent a type this build does not know.
+                Removal is the one thing the user can still do with it. */}
+            {otherResources.length > 0 && (
+              <ResourceSection title={t(($) => $.other_section_title)}>
+                  {otherResources.map((resource) => (
+                    <UnknownResourceRow
+                      key={resource.id}
+                      resource={resource}
+                      onRemove={() => void handleRemove(resource)}
+                    />
+                  ))}
+              </ResourceSection>
+            )}
+
+            <Dialog
+              open={githubPickerOpen}
+              onOpenChange={(open) => {
+                if (!open) closeGitHubPicker();
               }}
             >
-              <FolderOpen className="size-3.5" />
-              {t(($) => $.add_local_directory_button)}
-            </Button>
-          ) : undefined
-        }
-      >
-        <SettingsCard>
-          {localResources.length === 0 ? (
-            <EmptyRow>{t(($) => $.local_empty)}</EmptyRow>
-          ) : (
-            localResources.map((resource) => (
-              <LocalDirectoryRow
-                key={resource.id}
-                resource={resource}
-                localDaemonId={localDaemonId}
-                canEdit={desktopMode}
-                onRemove={() => void handleRemove(resource)}
-                onRename={handleRenameLocalDirectory}
-                onEditMode={openModeDialogFor}
-              />
-            ))
-          )}
-        </SettingsCard>
-        {/* Why the add control is missing or inert, said once, under the card
-            it belongs to — a disabled button with no reason reads as a bug. */}
-        {!desktopMode && (
-          <p className="px-0.5 text-caption text-muted-foreground">
-            {t(($) => $.local_desktop_only_hint)}
-          </p>
-        )}
-        {desktopMode && !daemonStatus.running && (
-          <p className="px-0.5 text-caption text-muted-foreground">
-            {t(($) => $.local_daemon_offline_hint)}
-          </p>
-        )}
-        {desktopMode &&
-          daemonStatus.running &&
-          hasLocalDirectoryForCurrentDaemon && (
-            <p className="px-0.5 text-caption text-muted-foreground">
-              {t(($) => $.local_daemon_already_attached_hint)}
-            </p>
-          )}
-      </SettingsSection>
+              <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-2xl">
+                <DialogHeader className="border-b px-6 py-5">
+                  <DialogTitle>{t(($) => $.github_picker_title)}</DialogTitle>
+                  <DialogDescription>
+                    {t(($) => $.github_picker_description)}
+                  </DialogDescription>
+                </DialogHeader>
 
-      {/* Rendered only when the server sent a type this build does not know.
-          Removal is the one thing the user can still do with it. */}
-      <SettingsSection
-        title={t(($) => $.knowledge_section_title)}
-        description={t(($) => $.knowledge_section_description)}
-        action={
-          <Popover open={addKnowledgeOpen} onOpenChange={setAddKnowledgeOpen}>
-            <PopoverTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  <Plus className="size-3.5" />
-                  {t(($) => $.knowledge_add_button)}
-                </Button>
-              }
-            />
-            <PopoverContent align="end" className="w-96 space-y-2 p-2">
-              <div className="text-caption font-medium text-muted-foreground">
-                {t(($) => $.knowledge_popover_title)}
-              </div>
-              <KnowledgeRepoForm
-                onSubmit={async (url, path) => {
-                  await handleAttachKnowledge(url, path);
-                  setAddKnowledgeOpen(false);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-        }
-      >
-        <SettingsCard>
-          {knowledgeResources.length === 0 ? (
-            <EmptyRow>{t(($) => $.knowledge_empty)}</EmptyRow>
-          ) : (
-            knowledgeResources.map((resource) => (
-              <KnowledgeRepoRow
-                key={resource.id}
-                resource={resource}
-                onRemove={() => void handleRemove(resource)}
-              />
-            ))
-          )}
-        </SettingsCard>
-      </SettingsSection>
-
-      {otherResources.length > 0 && (
-        <SettingsSection title={t(($) => $.other_section_title)}>
-          <SettingsCard>
-            {otherResources.map((resource) => (
-              <UnknownResourceRow
-                key={resource.id}
-                resource={resource}
-                onRemove={() => void handleRemove(resource)}
-              />
-            ))}
-          </SettingsCard>
-        </SettingsSection>
-      )}
-
-      <Dialog
-        open={githubPickerOpen}
-        onOpenChange={(open) => {
-          if (!open) closeGitHubPicker();
-        }}
-      >
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-2xl">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle>{t(($) => $.github_picker_title)}</DialogTitle>
-            <DialogDescription>
-              {t(($) => $.github_picker_description)}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 px-6 py-4">
-            {githubInstallations.length > 1 ? (
-              <Select
-                items={githubInstallations.map((installation) => ({
-                  value: installation.id,
-                  label: installation.account_login,
-                }))}
-                value={selectedInstallationID}
-                onValueChange={(value) => setSelectedInstallationID(value ?? "")}
-              >
-                <SelectTrigger aria-label={t(($) => $.github_account)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {githubInstallations.map((installation) => (
-                    <SelectItem key={installation.id} value={installation.id}>
-                      {installation.account_login}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : githubInstallations[0] ? (
-              <p className="text-caption text-muted-foreground">
-                {t(($) => $.github_account)}:{" "}
-                <span className="font-medium text-foreground">
-                  {githubInstallations[0].account_login}
-                </span>
-              </p>
-            ) : null}
-
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={repositorySearch}
-                onChange={(event) => setRepositorySearch(event.target.value)}
-                placeholder={t(($) => $.github_search_placeholder)}
-                aria-label={t(($) => $.github_search_placeholder)}
-                className="pl-8"
-              />
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto border-y">
-            {githubRepositoriesQuery.isPending ? (
-              <div className="flex items-center justify-center gap-2 px-6 py-12 text-body text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin" />
-                {t(($) => $.github_loading)}
-              </div>
-            ) : githubRepositoriesQuery.isError ? (
-              <div className="px-6 py-12 text-center text-body text-muted-foreground">
-                {t(($) => $.github_load_failed)}
-              </div>
-            ) : filteredGitHubRepositories.length === 0 ? (
-              <div className="px-6 py-12 text-center text-body text-muted-foreground">
-                {repositorySearch
-                  ? t(($) => $.github_no_search_results)
-                  : t(($) => $.github_empty)}
-              </div>
-            ) : (
-              <div className="divide-y">
-                {filteredGitHubRepositories.map((repository) => {
-                  const identity = repositoryIdentity(repository.clone_url);
-                  const alreadyAdded =
-                    !!identity && attachedRepositoryIdentities.has(identity);
-                  const disabled = alreadyAdded || repository.archived;
-                  return (
-                    <label
-                      key={repository.id}
-                      htmlFor={`github-repository-${repository.id}`}
-                      className="flex items-start gap-3 px-6 py-3.5"
+                <div className="space-y-3 px-6 py-4">
+                  {githubInstallations.length > 1 ? (
+                    <Select
+                      items={githubInstallations.map((installation) => ({
+                        value: installation.id,
+                        label: installation.account_login,
+                      }))}
+                      value={selectedInstallationID}
+                      onValueChange={(value) => setSelectedInstallationID(value ?? "")}
                     >
-                      <Checkbox
-                        id={`github-repository-${repository.id}`}
-                        checked={
-                          alreadyAdded || selectedRepositories.has(repository.id)
-                        }
-                        disabled={disabled}
-                        onCheckedChange={(checked) =>
-                          toggleGitHubRepository(repository, checked === true)
-                        }
-                        className="mt-0.5"
-                      />
-                      <span className="min-w-0 flex-1 space-y-1">
-                        <span className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-body font-medium">
-                            {repository.full_name}
-                          </span>
-                          {repository.private ? (
-                            <Badge variant="secondary">
-                              {t(($) => $.github_private)}
-                            </Badge>
-                          ) : null}
-                          {repository.archived ? (
-                            <Badge variant="outline">
-                              {t(($) => $.github_archived)}
-                            </Badge>
-                          ) : null}
-                          {alreadyAdded ? (
-                            <Badge variant="outline">
-                              {t(($) => $.github_added)}
-                            </Badge>
-                          ) : null}
-                        </span>
-                        {repository.description ? (
-                          <span className="block truncate text-caption text-muted-foreground">
-                            {repository.description}
-                          </span>
-                        ) : null}
+                      <SelectTrigger aria-label={t(($) => $.github_account)}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {githubInstallations.map((installation) => (
+                          <SelectItem key={installation.id} value={installation.id}>
+                            {installation.account_login}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : githubInstallations[0] ? (
+                    <p className="text-caption text-muted-foreground">
+                      {t(($) => $.github_account)}:{" "}
+                      <span className="font-medium text-foreground">
+                        {githubInstallations[0].account_login}
                       </span>
-                    </label>
-                  );
-                })}
-              </div>
+                    </p>
+                  ) : null}
+
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={repositorySearch}
+                      onChange={(event) => setRepositorySearch(event.target.value)}
+                      placeholder={t(($) => $.github_search_placeholder)}
+                      aria-label={t(($) => $.github_search_placeholder)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto border-y">
+                  {githubRepositoriesQuery.isPending ? (
+                    <div className="flex items-center justify-center gap-2 px-6 py-12 text-body text-muted-foreground">
+                      <LoaderCircle className="size-4 animate-spin" />
+                      {t(($) => $.github_loading)}
+                    </div>
+                  ) : githubRepositoriesQuery.isError ? (
+                    <div className="px-6 py-12 text-center text-body text-muted-foreground">
+                      {t(($) => $.github_load_failed)}
+                    </div>
+                  ) : filteredGitHubRepositories.length === 0 ? (
+                    <div className="px-6 py-12 text-center text-body text-muted-foreground">
+                      {repositorySearch
+                        ? t(($) => $.github_no_search_results)
+                        : t(($) => $.github_empty)}
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredGitHubRepositories.map((repository) => {
+                        const identity = repositoryIdentity(repository.clone_url);
+                        const alreadyAdded =
+                          !!identity && attachedRepositoryIdentities.has(identity);
+                        const disabled = alreadyAdded || repository.archived;
+                        return (
+                          <label
+                            key={repository.id}
+                            htmlFor={`github-repository-${repository.id}`}
+                            className="flex items-start gap-3 px-6 py-3.5"
+                          >
+                            <Checkbox
+                              id={`github-repository-${repository.id}`}
+                              checked={
+                                alreadyAdded || selectedRepositories.has(repository.id)
+                              }
+                              disabled={disabled}
+                              onCheckedChange={(checked) =>
+                                toggleGitHubRepository(repository, checked === true)
+                              }
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0 flex-1 space-y-1">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="truncate text-body font-medium">
+                                  {repository.full_name}
+                                </span>
+                                {repository.private ? (
+                                  <Badge variant="secondary">
+                                    {t(($) => $.github_private)}
+                                  </Badge>
+                                ) : null}
+                                {repository.archived ? (
+                                  <Badge variant="outline">
+                                    {t(($) => $.github_archived)}
+                                  </Badge>
+                                ) : null}
+                                {alreadyAdded ? (
+                                  <Badge variant="outline">
+                                    {t(($) => $.github_added)}
+                                  </Badge>
+                                ) : null}
+                              </span>
+                              {repository.description ? (
+                                <span className="block truncate text-caption text-muted-foreground">
+                                  {repository.description}
+                                </span>
+                              ) : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {githubRepositoriesQuery.hasNextPage ? (
+                    <div className="flex justify-center border-t p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => githubRepositoriesQuery.fetchNextPage()}
+                        disabled={githubRepositoriesQuery.isFetchingNextPage}
+                      >
+                        {githubRepositoriesQuery.isFetchingNextPage
+                          ? t(($) => $.github_loading)
+                          : t(($) => $.github_load_more)}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+
+                <DialogFooter className="m-0 border-t bg-muted/30 px-6 py-4">
+                  <p className="mr-auto text-caption text-muted-foreground">
+                    {t(($) => $.github_selected_count, {
+                      count: selectedRepositories.size,
+                    })}
+                  </p>
+                  <Button variant="ghost" onClick={closeGitHubPicker}>
+                    {t(($) => $.github_cancel)}
+                  </Button>
+                  <Button
+                    onClick={() => void importGitHubRepositories()}
+                    disabled={selectedRepositories.size === 0 || importing}
+                  >
+                    {t(($) => $.github_import)}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {modeDialog && (
+              <LocalDirectoryModeDialog
+                open
+                onOpenChange={(next) => {
+                  if (!next) {
+                    setModeDialog(null);
+                    setModeError(null);
+                  }
+                }}
+                path={modeDialog.path}
+                value={modeDialog.mode}
+                unavailableReason={worktreeUnavailableReason(
+                  modeDialog.isGitRepo,
+                  serverValidatesWorktree,
+                )}
+                errorMessage={modeError ?? undefined}
+                saving={modeSaving}
+                confirmLabel={
+                  modeDialog.resource
+                    ? t(($) => $.mode_save)
+                    : t(($) => $.mode_add)
+                }
+                onConfirm={(mode) => void handleConfirmMode(mode)}
+              />
             )}
-
-            {githubRepositoriesQuery.hasNextPage ? (
-              <div className="flex justify-center border-t p-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => githubRepositoriesQuery.fetchNextPage()}
-                  disabled={githubRepositoriesQuery.isFetchingNextPage}
-                >
-                  {githubRepositoriesQuery.isFetchingNextPage
-                    ? t(($) => $.github_loading)
-                    : t(($) => $.github_load_more)}
-                </Button>
-              </div>
-            ) : null}
           </div>
-
-          <DialogFooter className="m-0 border-t bg-muted/30 px-6 py-4">
-            <p className="mr-auto text-caption text-muted-foreground">
-              {t(($) => $.github_selected_count, {
-                count: selectedRepositories.size,
-              })}
-            </p>
-            <Button variant="ghost" onClick={closeGitHubPicker}>
-              {t(($) => $.github_cancel)}
-            </Button>
-            <Button
-              onClick={() => void importGitHubRepositories()}
-              disabled={selectedRepositories.size === 0 || importing}
-            >
-              {t(($) => $.github_import)}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {modeDialog && (
-        <LocalDirectoryModeDialog
-          open
-          onOpenChange={(next) => {
-            if (!next) {
-              setModeDialog(null);
-              setModeError(null);
-            }
-          }}
-          path={modeDialog.path}
-          value={modeDialog.mode}
-          unavailableReason={worktreeUnavailableReason(
-            modeDialog.isGitRepo,
-            serverValidatesWorktree,
-          )}
-          errorMessage={modeError ?? undefined}
-          saving={modeSaving}
-          confirmLabel={
-            modeDialog.resource
-              ? t(($) => $.mode_save)
-              : t(($) => $.mode_add)
-          }
-          onConfirm={(mode) => void handleConfirmMode(mode)}
-        />
-      )}
-    </SettingsTab>
+        </div>
       </div>
     </div>
   );
@@ -1059,7 +1057,42 @@ const ROW_ACTION_CLASS =
 
 function EmptyRow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-4 py-3 text-body text-muted-foreground">{children}</p>
+    <p className="px-4 py-6 text-body text-muted-foreground">{children}</p>
+  );
+}
+
+/**
+ * One Level 2 panel per resource kind: a header row carrying the name, the
+ * one-line description and the actions, then the rows. The copy block keeps
+ * an 18rem basis so the actions wrap under the title before they can squeeze
+ * it — at 1024px the GitHub pair is the widest thing on the page.
+ */
+function ResourceSection({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="enact-surface-panel overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border-soft px-4 py-3">
+        <div className="min-w-0 flex-[1_1_18rem]">
+          <h2 className="text-title-sm font-semibold">{title}</h2>
+          {description ? (
+            <p className="text-caption text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        {actions ? (
+          <div className="flex shrink-0 items-center gap-2">{actions}</div>
+        ) : null}
+      </div>
+      <div className="divide-y divide-border-soft">{children}</div>
+    </section>
   );
 }
 

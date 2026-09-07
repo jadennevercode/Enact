@@ -144,7 +144,31 @@ written as `[data-active="true"]` and silently matched nothing, which is why the
 green rule was missing from every top-level entry while the pinned rows had it.
 Matching by attribute presence fixed it.
 
-## 6. Not done
+## 6. Round two: composition
+
+The first commit changed values; the product stayed flat because the
+composition never used them. Three causes, all verified in the browser:
+
+- The sidebar's inner panel painted a solid `bg-sidebar` and the canvas was an
+  inset card, so the shell light was covered. The web sidebar is now the flush
+  `sidebar` variant, its inner panel and the top bar are transparent inside the
+  dashboard, and the sidebar starts under the top bar (it had been `fixed
+  inset-y-0`, overlapping the bar's brand and search — hidden only while opaque).
+- Zero view files used the surface primitives; 88 built containers from raw
+  `rounded-* border`. `enact-surface-panel` now carries Level 2 and 43 files
+  were moved onto the primitives; outline and secondary buttons carry
+  `enact-raised`; board cards lift a notch under the pointer.
+- The page header was a 40px strip, tabs were filled pills, the empty state was
+  a dashed full-bleed box, and the Resources page had no gutter. The header is a
+  title block, the underline tab is the default, the empty state is a compact
+  lifted card, Home opens with a KPI strip, and Resources is three panels.
+
+Two product-owner reversals landed with it: white text on Deloitte Green for
+primary actions (2.27:1 — compensated with weight and a text shadow; the guard
+for that one pair is off and the decision is recorded in MASTER.md §3.1), and
+the avatar orbs withdrawn.
+
+## 7. Not done
 
 - The mark's gradient is not tightened at 16 and 24px as `MASTER.md` §10
   suggests. The three cubes still read as a trio at those sizes, so it was left

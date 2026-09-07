@@ -423,7 +423,7 @@ function UsedByList({ agents }: { agents: Agent[] }) {
     );
   }
   return (
-    <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+    <ul className="enact-surface-panel divide-y divide-border-soft overflow-hidden">
       {agents.map((a) => (
         <li key={a.id} className="flex items-center gap-2.5 px-3 py-2.5">
           <ActorAvatar
@@ -549,7 +549,7 @@ function OverviewTab({
         {/* Everyone can read the history; only someone who may edit the skill
             sees the way back. A skill that changed under you is a thing you
             need to be able to look up either way. */}
-        <div className="mt-3 overflow-hidden rounded-lg border">
+        <div className="enact-surface-panel mt-3 overflow-hidden">
           <SkillVersionsPanel skillId={skill.id} canManage={canEdit} />
         </div>
       </section>

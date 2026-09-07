@@ -331,7 +331,7 @@ function SquadDetailSkeleton() {
         <Skeleton className="h-5 w-48" />
       </PageHeader>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto p-3 md:grid md:grid-cols-[280px_minmax(0,1fr)] md:gap-4 md:overflow-hidden md:p-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4 rounded-lg border p-5">
+        <div className="flex flex-col gap-4 enact-surface-panel p-5">
           <Skeleton className="h-16 w-16 rounded-full" />
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-3 w-full" />
@@ -341,7 +341,7 @@ function SquadDetailSkeleton() {
             <Skeleton className="h-3 w-1/2" />
           </div>
         </div>
-        <div className="flex flex-col gap-4 rounded-lg border p-6">
+        <div className="flex flex-col gap-4 enact-surface-panel p-6">
           <div className="flex items-center gap-4">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-24" />
@@ -767,9 +767,9 @@ function SquadDetailInspector({
     .slice(0, 2);
 
   return (
-    <aside className="flex w-full flex-col rounded-lg border bg-background md:h-full md:min-h-0 md:overflow-y-auto">
+    <aside className="flex w-full flex-col enact-surface-panel md:h-full md:min-h-0 md:overflow-y-auto">
       {/* Identity */}
-      <div className="flex flex-col gap-3 border-b px-5 pb-5 pt-5">
+      <div className="flex flex-col gap-3 border-b border-border-soft px-5 pb-5 pt-5">
         {canManage ? (
           <>
             <AvatarUploadControl
@@ -807,7 +807,7 @@ function SquadDetailInspector({
       </div>
 
       {/* Details — read-only */}
-      <div className="border-b px-5 py-4">
+      <div className="border-b border-border-soft px-5 py-4">
         <div className="mb-1 -mx-2 px-2 text-micro font-medium uppercase tracking-wider text-muted-foreground">
           {t(($) => $.inspector.details_section)}
         </div>
@@ -1022,8 +1022,8 @@ function SquadOverviewPane({
   };
 
   return (
-    <div className="flex min-h-[60vh] flex-col overflow-hidden rounded-lg border bg-background md:h-full md:min-h-0">
-      <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b px-2 md:px-4">
+    <div className="flex min-h-[60vh] flex-col overflow-hidden enact-surface-panel md:h-full md:min-h-0">
+      <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b border-border-soft px-2 md:px-4">
         {squadDetailTabs.map((tab) => (
           <button
             key={tab.id}

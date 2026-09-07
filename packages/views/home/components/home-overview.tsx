@@ -135,6 +135,18 @@ export function HomeOverview() {
         <div className={`mx-auto w-full max-w-5xl pb-8 ${PAGE_GUTTER}`}>
           {agentAvailability === "none" && <SetUpFirstAgent />}
 
+          {/* The four numbers first, each the count its block below carries:
+              a home is read at a glance before it is read as lists, and the
+              same figures on the block headings mean the strip never says
+              something the page does not. Display weight is 300 so a large
+              digit reads as a measurement rather than a shout. */}
+          <dl className="enact-home-kpis mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <HomeKpi label={t(($) => $.awaiting.title)} value={awaiting.length} pending={issuesQuery.isPending} tone="accept" />
+            <HomeKpi label={t(($) => $.mine.title)} value={mine.length} pending={issuesQuery.isPending} />
+            <HomeKpi label={t(($) => $.in_progress.title)} value={working.length} pending={workingQuery.isPending} tone="live" />
+            <HomeKpi label={t(($) => $.needs_me.title)} value={needsMe.length} pending={inboxQuery.isPending} />
+          </dl>
+
           {/* Two columns of unequal weight, not a four-up grid: the two
               things a person must act on carry the page, and the three that
               are only worth knowing sit beside them. */}
@@ -280,7 +292,7 @@ function SetUpFirstAgent() {
   const p = useWorkspacePaths();
   const navigation = useNavigation();
   return (
-    <div className="enact-home-setup mb-3 flex flex-col gap-2 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center">
+    <div className="enact-home-setup enact-surface-panel mb-3 flex flex-col gap-2 p-4 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <p className="text-body font-medium">{t(($) => $.setup.title)}</p>
         <p className="text-muted-foreground text-caption">
@@ -299,6 +311,27 @@ function SetUpFirstAgent() {
           {t(($) => $.setup.connect_runtime)}
         </Button>
       </div>
+    </div>
+  );
+}
+
+interface HomeKpiProps {
+  label: string;
+  value: number;
+  pending?: boolean;
+  /** `accept` marks the queue a person must clear; `live` marks running work. */
+  tone?: "accept" | "live";
+}
+
+function HomeKpi({ label, value, pending = false, tone }: HomeKpiProps) {
+  return (
+    <div
+      className="enact-home-kpi enact-surface-panel flex min-w-0 flex-col gap-1 px-4 py-3"
+      data-tone={tone}
+      data-pending={pending ? "true" : undefined}
+    >
+      <dt className="enact-home-kpi-label truncate">{label}</dt>
+      <dd className="enact-home-kpi-value tabular-nums">{pending ? "–" : value}</dd>
     </div>
   );
 }

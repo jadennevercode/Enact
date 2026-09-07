@@ -3263,11 +3263,11 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
                   const groups = groupSubIssuesByStage(childIssues);
                   const staged = childIssues.some((c) => c.stage != null);
                   return (
-                    <div className="overflow-hidden rounded-lg border bg-card/30 divide-y divide-border/60">
+                    <div className="overflow-hidden enact-surface-panel divide-y divide-border-soft">
                       {groups.map(({ stage: groupStage, items }) => (
                         <Fragment key={groupStage ?? "unstaged"}>
                           {staged && (
-                            <div className="bg-muted/40 px-3 py-1 text-micro font-medium uppercase tracking-wider text-muted-foreground">
+                            <div className="bg-surface-hover px-3 py-1 text-micro font-medium uppercase tracking-wider text-muted-foreground">
                               {groupStage == null
                                 ? t(($) => $.stage.none)
                                 : t(($) => $.stage.value, { n: groupStage })}

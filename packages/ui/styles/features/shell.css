@@ -26,6 +26,42 @@
       );
   }
 
+  /* The light lives on the shell, so nothing inside the shell may paint over
+     it. The sidebar's inner panel and the top bar both default to a solid
+     ground for the standalone case; within the dashboard they go transparent
+     and the shell's own colour plus its light show through. The sidebar's
+     right edge and the canvas's top edge are the same hairline token. */
+  .enact-dashboard-shell [data-slot="sidebar-inner"],
+  .enact-dashboard-shell .enact-topbar {
+    background-color: transparent;
+  }
+
+  /* The bar spans the window; the sidebar starts under it. The container is
+     positioned `fixed inset-y-0` for the standalone case, which is full window
+     height — inside the dashboard that put it over the bar's brand and search,
+     hidden only while the sidebar was opaque. */
+  .enact-dashboard-shell {
+    --enact-topbar-height: calc(var(--space-unit) * 11);
+  }
+
+  .enact-dashboard-shell [data-slot="sidebar-container"] {
+    top: var(--enact-topbar-height);
+    height: calc(100svh - var(--enact-topbar-height));
+    border-color: var(--shell-edge);
+  }
+
+  /* Group labels are the shell's quiet wayfinding: micro, uppercase, tracked,
+     in the shell's own tertiary tone rather than the canvas's muted text. */
+  .enact-dashboard-shell [data-slot="sidebar-group-label"],
+  .enact-desktop-shell [data-slot="sidebar-group-label"] {
+    color: var(--shell-group);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
   /* One hairline is what separates the canvas from the shell in light mode,
      where the two grounds are only a step apart. It is not decoration: without
      it the sidebar stops reading as a layer behind the page. */
@@ -211,7 +247,7 @@
   }
 
   .enact-page-header {
-    border-bottom: var(--border-width) solid var(--border);
+    border-bottom: var(--border-width) solid var(--border-soft);
   }
 
   .enact-collection-icon,
@@ -221,9 +257,11 @@
   }
 
   .enact-collection-title {
-    font-size: var(--text-body);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--text-body--line-height);
+    color: var(--foreground);
+    font-size: var(--text-title-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-title-lg--line-height);
+    letter-spacing: -0.01em;
   }
 
   .enact-collection-count,

@@ -427,6 +427,17 @@
     }
   }
 
+  /* Level 2 for this file's in-flow containers: the ring, contact shadow and
+     top highlight every lifted surface shares. Declared once here, after the
+     rules above, so a container that used to opt out of shadow now lifts. */
+  .enact-usage-card,
+  .enact-autopilot-template-card {
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .enact-management-scope-trigger,
     .enact-management-filter-trigger,

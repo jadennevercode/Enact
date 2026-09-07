@@ -174,7 +174,7 @@ export function AgentMcpTab({ agent }: { agent: Agent }) {
           </AppLink>
         </div>
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="enact-surface-panel divide-y divide-border-soft">
           {activeSlugs.map((slug) => {
             const tk = toolkitBySlug.get(slug);
             const name = tk?.name || slug;

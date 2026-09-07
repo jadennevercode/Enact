@@ -160,9 +160,12 @@
 
   /* Roles. */
   --primary: #86bc25; /* Deloitte Green */
-  --primary-foreground: #000000; /* Green only ever carries black text */
+  /* White on Deloitte Green is 2.27:1 — below AA. The product owner chose
+     it over the deck's black pairing (2026-09-07); the fill compensates with
+     a 600 weight and a dark text shadow (see .enact-brand-fill). */
+  --primary-foreground: #ffffff;
   --brand: #86bc25;
-  --brand-foreground: #000000;
+  --brand-foreground: #ffffff;
   --secondary: #f3f3f2;
   --secondary-foreground: #222222;
   --muted: #f3f3f2;
@@ -310,9 +313,9 @@
   --popover-foreground: var(--surface-foreground);
 
   --primary: #86bc25;
-  --primary-foreground: #000000;
+  --primary-foreground: #ffffff;
   --brand: #86bc25;
-  --brand-foreground: #000000;
+  --brand-foreground: #ffffff;
   --secondary: #262626;
   --secondary-foreground: #e6e6e6;
   --muted: #1f1f1f;

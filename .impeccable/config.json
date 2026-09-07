@@ -23,6 +23,15 @@
         ],
         "createdAt": "2026-09-07T16:40:29.353Z",
         "reason": "type specimen: the uppercase string is the micro-label role being demonstrated, not body copy; product use is 1-2 word sidebar group labels (MASTER.md §5)"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "packages/ui/styles/tokens.css"
+        ],
+        "createdAt": "2026-09-07T19:18:25.920Z",
+        "reason": "user confirmed: white text on Deloitte Green #86BC25 for primary actions, chosen over the deck's black pairing on 2026-09-07"
       }
     ]
   }

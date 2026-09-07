@@ -2565,7 +2565,7 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/globals.css",
     );
 
-    expect(pageHeader).toContain('export const PAGE_GUTTER = "px-4";');
+    expect(pageHeader).toContain('export const PAGE_GUTTER = "px-6";');
     expect(pageHeader).toContain("export const PAGE_TOOLBAR = cn(");
     expect(pageHeader).toContain("h-12");
     expect(pageHeader).toContain("sidebar.hasExternalTrigger");

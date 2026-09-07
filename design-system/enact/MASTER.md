@@ -52,7 +52,7 @@ explains state and never decorates.
 | `--foreground` | `#222222` | `#E6E6E6` | Body text |
 | `--muted-foreground` | `#53565A` Cool Gray 11 | `#A7A8AA` Cool Gray 6 | Secondary text, 7.4:1 / 6.7:1 |
 | `--faint-foreground` | `#75787B` | `#75787B` | Marks that are not text |
-| `--brand` / `--primary` | `#86BC25` | `#86BC25` | Fills with **black** text (`--brand-foreground: #000000`) |
+| `--brand` / `--primary` | `#86BC25` | `#86BC25` | Fills with **white** text by product-owner decision (2.27:1, below AA; the deck pairs it with black). The fill uses 600 weight and a 1px dark text shadow to compensate |
 | `--ring` | `#26890D` Mid Green | `#86BC25` | Focus, 4.5:1 / 7.0:1 |
 | `--link` | `#046A38` Deep Green | `#86BC25` | Interactive text |
 | `--destructive` | `#DA291C` | `#E4655C` (Red 72% × white) | Danger; Red itself cannot carry text on a dark surface |
@@ -105,14 +105,11 @@ keep the existing `--enact-issue-status` tint mechanism and read these tokens.
 
 ### 3.5 Identity
 
-| Assignee | Shape | Light | Dark |
-| --- | --- | --- | --- |
-| Human | flat disc, initials or photo | `--identity-human: #D0D0CE`, text `#222222` | `#53565A`, text `#E6E6E6` |
-| Agent | orb: radial highlight, dark rim | `--identity-agent: #0D8390`, `--identity-agent-highlight: #6FC2B4` | `#00ABAB`, `#9DD4CF` |
-| Squad | two stacked orbs | `--identity-squad: #005587`, highlight `#62B5E5` | `#62B5E5`, `#A0DCFF` |
-
-A running agent gets a 1.5px arc (`--run-gradient` colours) rotating around the orb;
-reduced motion shows the arc static.
+Every actor renders as the same disc: `--muted` ground with initials, a photo, an
+emoji, or the kind's icon (person, bot, people). The orb treatment for agents and
+squads was built and then withdrawn by the product owner on 2026-09-07; the
+identity tokens stay defined for status dots and charts. A running agent still
+wears the run ring (§9, Avatar).
 
 ### 3.6 Charts
 
@@ -205,7 +202,7 @@ Every component below is a `packages/ui` primitive; values reference §3–§6.
 
 | Component | Specification |
 | --- | --- |
-| Button `default` | `--brand-gradient` on `--brand`, black text 600, 6px radius, inset 1px 35% white highlight, press sinks 1px. Focus: 2px `--ring` outline, 2px offset |
+| Button `default` | `--brand-gradient` on `--brand`, white text 600 with a 1px dark shadow, 6px radius, inset 1px 35% white highlight, press sinks 1px. Focus: 2px `--ring` outline, 2px offset |
 | Button `outline` / `secondary` | `--surface` + `--surface-ring` + contact shadow; hover `--surface-hover` |
 | Button `ghost` | transparent; hover `--surface-hover` |
 | Button `destructive` | `--destructive` 10% tint with `--destructive` text; filled variant white on `--destructive` |
@@ -216,7 +213,7 @@ Every component below is a `packages/ui` primitive; values reference §3–§6.
 | Popover, Dropdown, Command, Tooltip | L3 glass, 8px radius, items 4px radius hover `--surface-hover`; tooltip is solid `--foreground` on `--background` inverse |
 | Dialog, Sheet | L4: `--surface-raised` + `--floating-shadow`, 12px radius; backdrop 40% black |
 | Badge | 4px radius, 1px `--border`, 600 caption; `accept` variant `--brand` border on `--surface-selected` |
-| Avatar | `kind="human" \| "agent" \| "squad"` (§3.5), `running` adds the arc |
+| Avatar | One disc for every kind (§3.5); `running` adds the arc |
 | Progress | 4px track `--border-soft`, fill `--run-gradient` |
 | Switch, Checkbox | on: `--brand` with black check / knob; off: `--input` border |
 | Skeleton | `--surface-hover` with a slow 1.6s sheen, none under reduced motion |
@@ -307,10 +304,24 @@ and brand pairs, and a status-mark guard (which caught two Deloitte colours that
 cannot carry a mark on white); `visual-architecture.test.ts` has the new token
 scopes and theme-colour metadata.
 
+### Round two (2026-09-07, later the same day): composition
+
+The first pass changed values; the product stayed flat because the composition
+never used them. Round two changed the composition:
+
+| What | Where |
+| --- | --- |
+| Sidebar is the flush `sidebar` variant on web (desktop keeps `inset`); its inner panel and the top bar are transparent inside the dashboard so the shell light shows; the sidebar starts under the top bar instead of overlapping its brand and search | `packages/views/layout/app-sidebar.tsx`, `apps/desktop/.../desktop-layout.tsx`, `packages/ui/styles/features/shell.css` |
+| `enact-surface-panel` carries Level 2; 88 view files were moved off raw `rounded-* border` clusters onto the surface primitives; `enact-raised` lifts outline/secondary buttons; board cards lift a notch under the pointer; the governed feature containers (composer, comment card, settings card, usage card, template cards, integration cards, onboarding cards) lift | `primitives.css`, `button.tsx`, `issues.css`, `settings.css`, `chat-inbox.css`, `agents-runtimes.css`, `integrations.css`, `onboarding-auth.css`, `packages/views/**` |
+| Page header is a title block (title-lg 600, description on its own line, 24px gutter); tabs default to the underline variant with a 2px brand rule; the empty state is a compact lifted card; Home opens with a four-tile KPI strip whose figures are the block counts | `page-header.tsx`, `collection-page.tsx`, `tabs.tsx`, `empty.tsx`, `home-overview.tsx`, `home.css` |
+| Resources page: body in the gutter, each section one panel with a header row, actions inside the panel, nothing overflowing at 1024/1440 | `packages/views/resources/components/resources-page.tsx` |
+| Product-owner reversals: white text on Deloitte Green for primary actions (below AA; compensated with weight and a text shadow, guard removed for this pair); avatar orbs withdrawn, every actor is the default disc | `tokens.css`, `primitives.css`, `actor-avatar.tsx`, `text-contrast.test.ts` |
+
 ### Still open
 
 - The 16px mark: MASTER.md §10 calls for tightening the top cube's gradient at
   16 and 24px. The mark reads correctly at those sizes without it, so it was not
   built; revisit if the favicon looks flat in a browser tab.
-- Desktop chrome beyond the tab bar, and a Playwright screenshot sweep across
-  1024 and 1440 in both themes, were not run against a live workspace.
+- The desktop canvas is still an inset card inside window chrome; its tab strip
+  and flares assume it. Flattening it the way the web canvas was is a separate
+  change.

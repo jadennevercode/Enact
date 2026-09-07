@@ -42,17 +42,22 @@ export function CollectionPageHeader({
 }: CollectionPageHeaderProps) {
   return (
     <PageHeader className={className}>
-      <div className="enact-collection-heading flex min-w-0 flex-1 items-center gap-2">
-        <Icon
-          aria-hidden="true"
-          className="enact-collection-icon size-4 shrink-0"
-        />
-        <h1 className="enact-collection-title truncate">{title}</h1>
-        {typeof count === "number" && count > 0 ? (
-          <span className="enact-collection-count shrink-0">{count}</span>
-        ) : null}
+      {/* Title block: icon and title on one line, the supporting sentence
+          under them. The description used to hang off the end of the title
+          and truncate; a page's one sentence about itself deserves a line. */}
+      <div className="enact-collection-heading flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Icon
+            aria-hidden="true"
+            className="enact-collection-icon size-4 shrink-0"
+          />
+          <h1 className="enact-collection-title truncate">{title}</h1>
+          {typeof count === "number" && count > 0 ? (
+            <span className="enact-collection-count shrink-0">{count}</span>
+          ) : null}
+        </div>
         {description ? (
-          <p className="enact-collection-description ml-2 hidden min-w-0 truncate md:block">
+          <p className="enact-collection-description hidden min-w-0 truncate pl-6 md:block">
             {description}
             {learnMore ? (
               <>

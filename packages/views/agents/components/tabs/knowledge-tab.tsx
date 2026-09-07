@@ -125,7 +125,7 @@ export function KnowledgeTab({
           {t(($) => $.tab_body.knowledge.empty)}
         </p>
       ) : (
-        <ul className="divide-y rounded-md border">
+        <ul className="enact-surface-panel divide-y divide-border-soft">
           {attached.map((source) => (
             <li
               key={source.resource_id}
@@ -180,7 +180,7 @@ export function KnowledgeTab({
               {t(($) => $.tab_body.knowledge.none_available)}
             </p>
           ) : (
-            <ul className="max-h-80 divide-y overflow-y-auto rounded-md border">
+            <ul className="enact-surface-panel max-h-80 divide-y divide-border-soft overflow-y-auto">
               {available.map((resource: WorkspaceResource) => {
                 const ref = resource.resource_ref as {
                   url?: string;
