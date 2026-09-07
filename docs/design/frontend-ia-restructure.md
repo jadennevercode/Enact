@@ -250,3 +250,63 @@ Branch `feat/frontend-ia-restructure`, 2026-09-07.
 Verified: `pnpm typecheck` across all workspaces, and the full Vitest suites for
 `@enact/core` (1656), `@enact/views` (4645), `@enact/desktop` (520) and `@enact/web` (295).
 The e2e suite was updated but not run.
+
+## 12. Round two
+
+Approved 2026-09-07, same session. Round one replaced the inherited grouping;
+this one replaces what was left of the inherited shell.
+
+### The shell
+
+A top bar spans the window. Which workspace you are in, how to search it, what
+just happened and who you are were spread down the sidebar's head and foot,
+competing with the navigation and pushing it down the column. None of them is
+navigation. The bar carries them; page headers drop to 40px and stop drawing
+their own nav trigger. Desktop does not render the bar — its tab bar already
+spans the top and takes the trailing cluster instead.
+
+The inbox gains a bell there. Its triage view is a tab of Home; the bell
+answers "did anything just happen" from anywhere and hands off once the answer
+is more than a few rows. Unread is a dot, not a number: the count is on the
+Home tab, and a rolling digit in the corner of every screen reads as an alarm.
+
+### The nav
+
+Ten entries in four groups.
+
+| Group | Entry | Route |
+| --- | --- | --- |
+| *(me)* | Home · Chat | `/home?tab=overview\|my-issues\|inbox` · `/chat` |
+| Work | Issues · Autopilot | `/issues` · `/autopilots` |
+| Intelligence | Agents · Members · Capability Hub | `/agents?tab=families\|agents\|skills\|mcp\|ontologies` · `/members` · `/marketplace` |
+| Execution | Runtimes · Resources · Insights | `/runtimes` · `/resources` · `/usage` |
+| *(admin)* | Settings | `/settings` |
+
+Home absorbs the inbox and the viewer's issues, so a person's own work is one
+destination rather than three. Agents absorbs everything an agent is made of,
+including the MCP library that was in settings. Members and Resources become
+pages; Resources moving whole retired round one's highest risk, the three-way
+split of a 1458-line file.
+
+### Naming
+
+`Agent Family` is the term in every language. It was translated, and the
+Chinese translation was the same string as the page that now holds it — with
+both on screen, neither name said which one it meant. `Capability Hub` is the
+marketplace; the external `CapHub` that ontology copy links to keeps its name.
+Both decisions are recorded in the conventions glossary.
+
+### Landed
+
+| Item | State |
+| --- | --- |
+| Contract, glossary, four locales | Done |
+| Top bar, account menu, inbox bell, desktop trailing cluster | Done |
+| Agents page with five tabs; Members and Resources pages | Done |
+| Home with three tabs, reweighted overview, "on your plate" block | Done |
+| Accept / send back on issue detail | Done |
+| Built-in "awaiting acceptance" scopes on Issues and My Issues | **Not started** |
+| Issue detail's execution-and-delivery panel section | **Not started** |
+| Inbox "needs a decision / all" segment | **Not started** |
+| Runs tab | **Not started**, still gated on the server endpoint |
+| Desktop tab-bar strings, docs navigation, mobile links | **Not started** |
