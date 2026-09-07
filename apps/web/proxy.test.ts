@@ -112,9 +112,9 @@ describe("proxy legacy workspace route redirects", () => {
     expect(redirectLocation("/acme/squads", sessionCookies)).toBeNull();
   });
 
-  it("redirects app-host root URLs to the last workspace", () => {
+  it("redirects app-host root URLs to the last workspace's home", () => {
     expect(redirectLocation("/", sessionCookies)).toBe(
-      "https://app.enact.test/acme/issues",
+      "https://app.enact.test/acme/home",
     );
   });
 
@@ -230,7 +230,7 @@ describe("proxy root and locale handling", () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe(
-      "https://app.enact.test/acme/issues",
+      "https://app.enact.test/acme/home",
     );
   });
 
