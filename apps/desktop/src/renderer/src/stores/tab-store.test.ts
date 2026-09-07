@@ -56,15 +56,20 @@ describe("sanitizeTabPath", () => {
   // The Team page absorbed both list routes. A persisted or pinned tab still
   // holds the old URL, and the desktop router may not redirect (ENA-4741),
   // so the fold happens here instead.
-  it("folds the list routes the Team page absorbed into their tab", () => {
+  it("folds the list routes a shell page absorbed into their tab", () => {
     expect(sanitizeTabPath("/acme/agents")).toBe("/acme/team?tab=agents");
     expect(sanitizeTabPath("/acme/squads")).toBe("/acme/team?tab=families");
+    expect(sanitizeTabPath("/acme/skills")).toBe("/acme/capabilities?tab=skills");
+    expect(sanitizeTabPath("/acme/ontologies")).toBe(
+      "/acme/capabilities?tab=ontologies",
+    );
   });
 
   it("leaves the pages under those segments alone", () => {
     expect(sanitizeTabPath("/acme/agents/new")).toBe("/acme/agents/new");
     expect(sanitizeTabPath("/acme/agents/abc")).toBe("/acme/agents/abc");
     expect(sanitizeTabPath("/acme/squads/abc")).toBe("/acme/squads/abc");
+    expect(sanitizeTabPath("/acme/skills/abc")).toBe("/acme/skills/abc");
   });
 });
 
@@ -216,8 +221,8 @@ describe("useTabStore actions", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A = /acme/issues, active
       store.addTab("/acme/artifacts", "B");
-      store.addTab("/acme/skills", "C");
-      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
+      store.addTab("/acme/inbox", "C");
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/inbox"]);
 
       store.openTab("/acme/issues/d", "D"); // background: A stays active
       const s = useTabStore.getState();
@@ -225,7 +230,7 @@ describe("useTabStore actions", () => {
         "/acme/issues",
         "/acme/issues/d",
         "/acme/artifacts",
-        "/acme/skills",
+        "/acme/inbox",
       ]);
       expect(getActiveTab(s)?.url).toBe("/acme/issues");
     });
@@ -234,7 +239,7 @@ describe("useTabStore actions", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A
       store.addTab("/acme/artifacts", "B");
-      store.addTab("/acme/skills", "C");
+      store.addTab("/acme/inbox", "C");
       const bId = useTabStore.getState().byWorkspace.acme.tabs[1].id;
       store.setActiveTab(bId);
 
@@ -244,7 +249,7 @@ describe("useTabStore actions", () => {
         "/acme/issues",
         "/acme/artifacts",
         "/acme/issues/d",
-        "/acme/skills",
+        "/acme/inbox",
       ]);
       expect(getActiveTab(s)?.url).toBe("/acme/issues/d"); // foreground open
     });
@@ -267,20 +272,20 @@ describe("useTabStore actions", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A active
       store.addTab("/acme/artifacts", "B");
-      store.addTab("/acme/skills", "C"); // active is still A — must append anyway
-      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
+      store.addTab("/acme/inbox", "C"); // active is still A — must append anyway
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/inbox"]);
     });
 
     it("a dedupe hit focuses the existing tab without reordering", () => {
       const store = useTabStore.getState();
       store.switchWorkspace("acme"); // A active
       store.addTab("/acme/artifacts", "B");
-      store.addTab("/acme/skills", "C");
+      store.addTab("/acme/inbox", "C");
 
-      store.openTab("/acme/skills", "C again"); // hits C, at the far end
+      store.openTab("/acme/inbox", "C again"); // hits C, at the far end
       const s = useTabStore.getState();
-      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/skills"]);
-      expect(getActiveTab(s)?.url).toBe("/acme/skills");
+      expect(urls()).toEqual(["/acme/issues", "/acme/artifacts", "/acme/inbox"]);
+      expect(getActiveTab(s)?.url).toBe("/acme/inbox");
     });
   });
 

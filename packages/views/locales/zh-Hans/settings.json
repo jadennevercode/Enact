@@ -231,9 +231,9 @@
         "label": "前往运行时",
         "description": "打开运行时配置。"
       },
-      "goSkills": {
-        "label": "前往 Skills",
-        "description": "打开 skill 库。"
+      "goCapabilities": {
+        "label": "跳转到能力库",
+        "description": "打开能力库。"
       },
       "goSettings": {
         "label": "前往设置",

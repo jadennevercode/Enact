@@ -1,0 +1,13 @@
+{
+  "page": {
+    "title": "역량",
+    "tagline": "스킬, 온톨로지 등 에이전트에 부여할 수 있는 것들.",
+    "learn_more": "자세히 보기",
+    "new_skill": "새 스킬",
+    "import_from_marketplace": "마켓플레이스"
+  },
+  "tabs": {
+    "skills": "스킬",
+    "ontologies": "온톨로지"
+  }
+}

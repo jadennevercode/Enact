@@ -19,8 +19,6 @@ import { IssuesPage } from "@enact/views/issues/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
 import { MyIssuesPage } from "@enact/views/my-issues";
-import { OntologiesPage } from "@enact/views/ontologies";
-import { SkillsPage } from "@enact/views/skills";
 import { MarketplacePage } from "@enact/views/marketplace";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
 import {
@@ -30,6 +28,7 @@ import {
 } from "@enact/views/agents";
 import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
 import { TeamPage } from "@enact/views/team";
+import { CapabilitiesPage } from "@enact/views/capabilities";
 import { InboxPage } from "@enact/views/inbox";
 import { ChatPage } from "@enact/views/chat";
 import { SettingsPage } from "@enact/views/settings";
@@ -176,12 +175,6 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Runtime" },
           },
           {
-            path: "ontologies",
-            element: <OntologiesPage />,
-            handle: { title: "Ontology" },
-          },
-          { path: "skills", element: <SkillsPage />, handle: { title: "Skills" } },
-          {
             path: "skills/:id",
             element: <SkillDetailPage />,
             handle: { title: "Skill" },
@@ -197,6 +190,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Marketplace" },
           },
           { path: "team", element: <TeamPage />, handle: { title: "Team" } },
+          {
+            path: "capabilities",
+            element: <CapabilitiesPage />,
+            handle: { title: "Capabilities" },
+          },
           {
             path: "agents/new",
             element: <ChooseCreateMethodPage />,

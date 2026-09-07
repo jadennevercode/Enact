@@ -33,6 +33,7 @@ export type RouteIconName =
   | "Network"
   | "Server"
   | "BookOpenText"
+  | "Library"
   | "Store"
   | "Settings"
   | "File"
@@ -58,6 +59,7 @@ export type NavLabelKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "capabilities"
   | "marketplace"
   | "settings";
 
@@ -75,6 +77,7 @@ export type WorkspacePageKey =
   | "runtimes"
   | "ontologies"
   | "skills"
+  | "capabilities"
   | "marketplace"
   | "settings";
 
@@ -104,6 +107,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
   skills: { segment: "skills", icon: "BookOpenText", navKey: "skills" },
+  capabilities: { segment: "capabilities", icon: "Library", navKey: "capabilities" },
   marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
@@ -146,7 +150,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
   {
     id: "configure",
     labelKey: "configure_group",
-    pages: ["runtimes", "ontologies", "skills", "marketplace", "settings"],
+    pages: ["runtimes", "capabilities", "marketplace", "settings"],
   },
 ];
 

@@ -231,9 +231,9 @@
         "label": "ランタイムへ移動",
         "description": "ランタイム設定を開きます。"
       },
-      "goSkills": {
-        "label": "Skillsへ移動",
-        "description": "Skillライブラリを開きます。"
+      "goCapabilities": {
+        "label": "ケイパビリティへ移動",
+        "description": "ケイパビリティライブラリを開きます。"
       },
       "goSettings": {
         "label": "設定へ移動",

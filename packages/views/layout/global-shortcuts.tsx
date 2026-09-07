@@ -34,7 +34,7 @@ const GLOBAL_ACTIONS: readonly ShortcutActionId[] = [
   "goTeam",
   "goUsage",
   "goRuntimes",
-  "goSkills",
+  "goCapabilities",
   "goSettings",
 ];
 
@@ -63,7 +63,7 @@ export function GlobalShortcuts() {
       goTeam: workspacePaths.team(),
       goUsage: workspacePaths.usage(),
       goRuntimes: workspacePaths.runtimes(),
-      goSkills: workspacePaths.skills(),
+      goCapabilities: workspacePaths.capabilities(),
       goSettings: workspacePaths.settings(),
     };
 

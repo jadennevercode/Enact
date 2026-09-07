@@ -231,9 +231,9 @@
         "label": "Go to Runtimes",
         "description": "Open runtime configuration."
       },
-      "goSkills": {
-        "label": "Go to Skills",
-        "description": "Open the skill library."
+      "goCapabilities": {
+        "label": "Go to Capabilities",
+        "description": "Open the capability library."
       },
       "goSettings": {
         "label": "Go to Settings",

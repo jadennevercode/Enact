@@ -64,6 +64,10 @@ function workspaceScoped(slug: string) {
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,
     ontologies: () => `${ws}/ontologies`,
     skills: () => `${ws}/skills`,
+    // Everything an agent can be given: skills, ontologies, knowledge repos,
+    // MCP servers and quick actions. `?tab=` selects which.
+    capabilities: () => `${ws}/capabilities`,
+    capabilitiesTab: (tab: string) => `${ws}/capabilities?tab=${encode(tab)}`,
     // The capability directory. A single-word section like every other
     // workspace destination; a listing is addressed by id because slugs are
     // scoped to their publisher and two workspaces may use the same one.

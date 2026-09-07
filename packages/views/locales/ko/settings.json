@@ -231,9 +231,9 @@
         "label": "런타임으로 이동",
         "description": "런타임 설정을 엽니다."
       },
-      "goSkills": {
-        "label": "Skills로 이동",
-        "description": "Skill 라이브러리를 엽니다."
+      "goCapabilities": {
+        "label": "역량으로 이동",
+        "description": "역량 라이브러리를 엽니다."
       },
       "goSettings": {
         "label": "설정으로 이동",

@@ -1,0 +1,13 @@
+{
+  "page": {
+    "title": "ケイパビリティ",
+    "tagline": "スキル、オントロジーなど、エージェントに与えられるもの。",
+    "learn_more": "詳細",
+    "new_skill": "新しいスキル",
+    "import_from_marketplace": "マーケットプレイス"
+  },
+  "tabs": {
+    "skills": "スキル",
+    "ontologies": "オントロジー"
+  }
+}

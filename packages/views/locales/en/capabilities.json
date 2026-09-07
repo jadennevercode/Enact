@@ -1,0 +1,13 @@
+{
+  "page": {
+    "title": "Capabilities",
+    "tagline": "Skills, ontologies and the rest of what an agent can be given.",
+    "learn_more": "Learn more",
+    "new_skill": "New skill",
+    "import_from_marketplace": "Marketplace"
+  },
+  "tabs": {
+    "skills": "Skills",
+    "ontologies": "Ontology"
+  }
+}

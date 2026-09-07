@@ -35,7 +35,6 @@ import {
 } from "@enact/ui/components/ui/tabs";
 import { RichContent } from "../../rich-content";
 import { useLocale, useT } from "../../i18n";
-import { CollectionPageHeader } from "../../layout/collection-page";
 import { openExternal } from "../../platform";
 
 function localized(
@@ -58,13 +57,6 @@ export function OntologiesPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <CollectionPageHeader
-        icon={Network}
-        title={t(($) => $.ontology.title)}
-        count={listQuery.data?.length}
-        description={t(($) => $.ontology.description)}
-      />
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">
           {listQuery.isPending ? (

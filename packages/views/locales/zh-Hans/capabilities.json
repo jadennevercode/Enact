@@ -1,0 +1,13 @@
+{
+  "page": {
+    "title": "能力库",
+    "tagline": "Skills、Ontology，以及可以交给智能体的其它能力。",
+    "learn_more": "了解更多",
+    "new_skill": "新建 Skill",
+    "import_from_marketplace": "市场"
+  },
+  "tabs": {
+    "skills": "Skills",
+    "ontologies": "Ontology"
+  }
+}

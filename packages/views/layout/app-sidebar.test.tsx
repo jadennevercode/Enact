@@ -420,22 +420,47 @@ describe("personal nav — Chat", () => {
 });
 
 describe("configure navigation", () => {
-  it("places Ontology between Runtimes and Skills with its route icon", () => {
-    const { container } = render(<AppSidebar />);
-    const links = Array.from(
+  function navHrefs(container: HTMLElement): (string | undefined)[] {
+    return Array.from(
       container.querySelectorAll<HTMLElement>("button[data-href]"),
-    );
-    const hrefs = links.map((link) => link.dataset.href);
+    ).map((link) => link.dataset.href);
+  }
 
-    expect(hrefs.indexOf("/acme/ontologies")).toBe(
+  it("runs Runtimes, Capabilities, Marketplace, Settings in order", () => {
+    const { container } = render(<AppSidebar />);
+    const hrefs = navHrefs(container);
+
+    expect(hrefs.indexOf("/acme/capabilities")).toBe(
       hrefs.indexOf("/acme/runtimes") + 1,
     );
-    expect(hrefs.indexOf("/acme/skills")).toBe(
-      hrefs.indexOf("/acme/ontologies") + 1,
+    expect(hrefs.indexOf("/acme/marketplace")).toBe(
+      hrefs.indexOf("/acme/capabilities") + 1,
+    );
+    expect(hrefs.indexOf("/acme/settings")).toBe(
+      hrefs.indexOf("/acme/marketplace") + 1,
     );
     expect(
-      container.querySelector('button[data-href="/acme/ontologies"] svg'),
+      container.querySelector('button[data-href="/acme/capabilities"] svg'),
     ).not.toBeNull();
+  });
+
+  // Skills and Ontology are tabs of Capabilities, and Agents and Agent
+  // Families are tabs of Team. Their segments stay in the icon registry so a
+  // desktop tab keeps its icon, which is exactly why the sidebar has to be
+  // checked separately: a registry entry is no longer a nav entry.
+  it("drops the list pages the shells absorbed", () => {
+    const { container } = render(<AppSidebar />);
+    const hrefs = navHrefs(container);
+
+    for (const absorbed of [
+      "/acme/skills",
+      "/acme/ontologies",
+      "/acme/agents",
+      "/acme/squads",
+    ]) {
+      expect(hrefs).not.toContain(absorbed);
+    }
+    expect(hrefs).toContain("/acme/team");
   });
 });
 
