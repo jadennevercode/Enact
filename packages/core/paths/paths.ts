@@ -93,7 +93,6 @@ function workspaceScoped(slug: string) {
     settingsResources: () => `${ws}/settings/resources`,
     // Membership administration — inviting, roles, removal. The Team page
     // shows the roster; changing who may do what stays in settings.
-    settingsMembers: () => `${ws}/settings?tab=members`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
 }

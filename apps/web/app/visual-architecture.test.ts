@@ -523,7 +523,7 @@ const dynamicStyleAllowlist: Partial<
       pattern: /style=\{\{ maskType: "luminance" \}\}/g,
     },
   ],
-  "packages/views/settings/components/members-tab.tsx": [
+  "packages/views/members/components/invite-dialog.tsx": [
     {
       description: "legacy clipboard fallback offscreen geometry",
       expectedMatches: 2,

@@ -37,7 +37,6 @@ describe("paths.workspace() shape", () => {
         "members",
         "resources",
         "settings",
-        "settingsMembers",
         "settingsResources",
         "settingsWorkspace",
       ]),

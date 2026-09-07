@@ -6,7 +6,6 @@ import {
   SlidersHorizontal,
   Key,
   Settings,
-  Users,
   FlaskConical,
   Bell,
   Plug,
@@ -36,7 +35,6 @@ import { ChatTab } from "./chat-tab";
 import { IssueTab } from "./issue-tab";
 import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
-import { MembersTab } from "./members-tab";
 import { GitHubTab } from "./github-tab";
 import { IntegrationsTab } from "./integrations-tab";
 import { LabsTab } from "./labs-tab";
@@ -67,7 +65,6 @@ const WORKSPACE_TAB_KEYS = [
   "github",
   "integrations",
   "labs",
-  "members",
   "billing",
   "labels",
   "issue_statuses",
@@ -80,7 +77,6 @@ const WORKSPACE_TAB_VALUES = {
   github: "github",
   integrations: "integrations",
   labs: "labs",
-  members: "members",
   billing: "billing",
   labels: "labels",
   issue_statuses: "issue-statuses",
@@ -93,7 +89,6 @@ const WORKSPACE_TAB_ICONS = {
   github: GitHubMark,
   integrations: Plug,
   labs: FlaskConical,
-  members: Users,
   billing: CreditCard,
   labels: Tags,
   issue_statuses: CircleDot,
@@ -127,6 +122,10 @@ const MOVED_TAB_DESTINATIONS: Record<
   mcp: (paths) => paths.agentsTab("mcp"),
   resources: (paths) => paths.resources(),
   repositories: (paths) => paths.resources(),
+  // Who belongs to a workspace is not a setting. Inviting, changing a role and
+  // removing someone now sit on the Members page, beside the roster they act
+  // on. Old `?tab=members` links still land there.
+  members: (paths) => paths.members(),
 };
 
 const SETTINGS_TAB_TRIGGER_CLASS = "enact-settings-tab-trigger";
@@ -301,7 +300,6 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="github"><GitHubTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
-          <TabsContent value="members"><MembersTab /></TabsContent>
           {billingEnabled ? (
             <TabsContent value="billing"><BillingTab /></TabsContent>
           ) : null}
