@@ -106,7 +106,18 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
     "小组",
   ],
   squads: ["squads", "teams", "小队", "团队"],
-  members: ["members", "people", "roster", "team", "成员", "团队", "人"],
+  members: [
+    "members",
+    "people",
+    "roster",
+    "team",
+    "invite",
+    "成员",
+    "成员管理",
+    "团队",
+    "邀请",
+    "人",
+  ],
   resources: [
     "resources",
     "repositories",
@@ -125,6 +136,7 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   marketplace: [
     "capability hub",
     "caphub",
+    "能力中心",
     "marketplace",
     "store",
     "catalog",
