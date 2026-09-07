@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  Undo2,
   Milestone,
   FolderOpen,
   MoreHorizontal,
@@ -1168,8 +1169,11 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
   // is what carries a custom status's own identity, as the inbox row and the
   // status-changed detail label already render it. `colorOf` is what keeps a
   // built-in on its semantic token instead of the catalog's seed hex.
-  const { categoryOf: resolveStatusCategory, colorOf: resolveStatusColor } =
-    useIssueStatuses(wsId);
+  const {
+    categoryOf: resolveStatusCategory,
+    colorOf: resolveStatusColor,
+    inCategory: statusesInCategory,
+  } = useIssueStatuses(wsId);
   // Description autosave is deliberately NOT gated (no explicit submit; the
   // editor already strips `blob:` before serializing and binds ids on the
   // later save). It still needs the failure toast, or a failed upload just
@@ -2775,6 +2779,9 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
               />
               <TooltipContent side="bottom">{t(($) => $.detail.artifacts_tooltip)}</TooltipContent>
             </Tooltip>
+            {/* Work an agent has delivered is waiting on a person, and this
+                is that person saying yes. Same write either way — the label is
+                what tells them which of the two things they are doing. */}
             {onDone && !issueBehavesAsAny(issue, ["done", "cancelled"]) && (
               <Tooltip>
                 <TooltipTrigger
@@ -2789,7 +2796,38 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
                     </Button>
                   }
                 />
-                <TooltipContent side="bottom">{t(($) => $.detail.mark_done_tooltip)}</TooltipContent>
+                <TooltipContent side="bottom">
+                  {issueBehavesAs(issue, "in_review")
+                    ? t(($) => $.detail.accept_tooltip)
+                    : t(($) => $.detail.mark_done_tooltip)}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {/* And this is them saying not yet. Sending it back to `todo` is
+                what re-arms the agent: an assigned issue in that category
+                starts a run, so the work resumes instead of stalling in a
+                state nobody is looking at. */}
+            {onDone && issueBehavesAs(issue, "in_review") && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground"
+                      disabled={!statusesInCategory("todo")[0]}
+                      onClick={() => {
+                        const todo = statusesInCategory("todo")[0];
+                        if (todo) handleUpdateField({ status: todo.key });
+                      }}
+                    >
+                      <Undo2 />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom">
+                  {t(($) => $.detail.return_tooltip)}
+                </TooltipContent>
               </Tooltip>
             )}
             {onDone && issueBehavesAs(issue, "done") && (
