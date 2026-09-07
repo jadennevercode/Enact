@@ -35,6 +35,7 @@
     "./squads": "./squads/index.ts",
     "./team": "./team/index.ts",
     "./capabilities": "./capabilities/index.ts",
+    "./home": "./home/index.ts",
     "./squads/components": "./squads/components/index.ts",
     "./workspace/workspace-avatar": "./workspace/workspace-avatar.tsx",
     "./workspace/no-access-page": "./workspace/no-access-page.tsx",

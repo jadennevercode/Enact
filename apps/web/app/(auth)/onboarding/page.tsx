@@ -57,7 +57,7 @@ export default function OnboardingPage() {
         await completeOnboarding(undefined, workspace.id);
       }
 
-      router.replace(paths.workspace(workspace.slug).issues());
+      router.replace(paths.workspace(workspace.slug).home());
     })().catch((reason: unknown) => {
       setError(
         reason instanceof Error

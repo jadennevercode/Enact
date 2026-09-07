@@ -49,8 +49,8 @@ describe("sanitizeTabPath", () => {
   });
 
   it("normalizes a bare workspace url to its default surface (replaces the in-router index redirect)", () => {
-    expect(sanitizeTabPath("/acme")).toBe("/acme/issues");
-    expect(sanitizeTabPath("/acme?welcome=1")).toBe("/acme/issues?welcome=1");
+    expect(sanitizeTabPath("/acme")).toBe("/acme/home");
+    expect(sanitizeTabPath("/acme?welcome=1")).toBe("/acme/home?welcome=1");
   });
 
   // The Team page absorbed both list routes. A persisted or pinned tab still

@@ -199,6 +199,10 @@
         "label": "Go forward",
         "description": "Navigate forward through history, like a browser."
       },
+      "goHome": {
+        "label": "Go to Home",
+        "description": "Open the workspace home."
+      },
       "goInbox": {
         "label": "Go to Inbox",
         "description": "Open the workspace inbox."

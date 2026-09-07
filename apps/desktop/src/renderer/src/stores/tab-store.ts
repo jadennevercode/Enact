@@ -333,7 +333,7 @@ export function resourceKeyForUrl(url: string): string {
  *     interpret `issues` as a workspace slug → NoAccessPage.
  *
  * Normalizes:
- *  - a bare `/{slug}` (no route segment) becomes `/{slug}/issues` — the
+ *  - a bare `/{slug}` (no route segment) becomes `/{slug}/home` — the
  *    workspace's default surface.
  *  - the list routes the Team and Capabilities pages absorbed become the
  *    matching tab. Persisted tabs and pinned tabs hold the old URLs, and the
@@ -375,7 +375,7 @@ export function sanitizeTabPath(path: string): string | null {
     return null;
   }
   if (segments.length === 1) {
-    return `/${firstSegment}/issues${suffix}`;
+    return `/${firstSegment}/home${suffix}`;
   }
   // Only the bare list routes move; `/agents/new`, `/agents/:id`,
   // `/squads/:id` and `/skills/:id` are still their own pages.

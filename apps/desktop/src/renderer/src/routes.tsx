@@ -27,6 +27,7 @@ import {
   ManualCreateAgentPage,
 } from "@enact/views/agents";
 import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
+import { HomePage } from "@enact/views/home";
 import { TeamPage } from "@enact/views/team";
 import { CapabilitiesPage } from "@enact/views/capabilities";
 import { InboxPage } from "@enact/views/inbox";
@@ -129,6 +130,7 @@ export const appRoutes: RouteObject[] = [
           // safety net instead of an in-router <Navigate> (ENA-4741
           // invariant 1: the router never self-navigates).
           { index: true, element: null },
+          { path: "home", element: <HomePage />, handle: { title: "Home" } },
           {
             path: "issues",
             element: <IssuesPage />,

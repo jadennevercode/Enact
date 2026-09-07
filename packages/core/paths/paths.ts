@@ -17,7 +17,11 @@ const encode = (id: string) => encodeURIComponent(id);
 function workspaceScoped(slug: string) {
   const ws = `/${encode(slug)}`;
   return {
-    root: () => `${ws}/issues`,
+    // Where a workspace opens: what is waiting, what is stuck, what is
+    // running. The Issues list answers "what exists", which is not the
+    // question anyone arrives with.
+    root: () => `${ws}/home`,
+    home: () => `${ws}/home`,
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,

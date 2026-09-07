@@ -199,6 +199,10 @@
         "label": "前进",
         "description": "像浏览器一样在历史记录中前进。"
       },
+      "goHome": {
+        "label": "跳转到工作台",
+        "description": "打开工作区首页。"
+      },
       "goInbox": {
         "label": "前往收件箱",
         "description": "打开工作区收件箱。"

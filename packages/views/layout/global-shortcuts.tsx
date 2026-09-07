@@ -26,6 +26,7 @@ const GLOBAL_ACTIONS: readonly ShortcutActionId[] = [
   "toggleChat",
   "goBack",
   "goForward",
+  "goHome",
   "goInbox",
   "goChat",
   "goMyIssues",
@@ -55,6 +56,7 @@ export function GlobalShortcuts() {
   useEffect(() => {
     const chatPath = workspacePaths.chat();
     const destinations: Partial<Record<ShortcutActionId, string>> = {
+      goHome: workspacePaths.home(),
       goInbox: workspacePaths.inbox(),
       goChat: chatPath,
       goMyIssues: workspacePaths.myIssues(),

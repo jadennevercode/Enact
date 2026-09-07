@@ -11,6 +11,8 @@
   }
 
   .enact-management-toolbar,
+  .enact-team-toolbar,
+  .enact-capabilities-toolbar,
   .enact-usage-toolbar {
     min-width: 0;
     border-bottom: var(--border-width) solid var(--border);

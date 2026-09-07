@@ -1,0 +1,42 @@
+/* Workspace home: the four blocks that answer what is waiting, stuck, running and broken. */
+
+@layer utilities {
+  .enact-home-page {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--page-canvas);
+    color: var(--foreground);
+  }
+
+  /* A block is a surface, not a card stack: one border, one ground, and the
+     rows inside carry the only hover state. Giving each row its own border
+     would turn four short answers into twenty separate objects. */
+  .enact-home-section,
+  .enact-home-setup {
+    background-color: var(--surface);
+    border-color: var(--border);
+  }
+
+  .enact-home-row {
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-home-row:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-home-row:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: calc(var(--focus-ring-offset) * -1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-home-row {
+      transition: none;
+    }
+  }
+}

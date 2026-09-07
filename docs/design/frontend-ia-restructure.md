@@ -96,10 +96,15 @@ Four blocks, all built from queries that already exist. No new API.
 
 | Block | Source today | Content |
 | --- | --- | --- |
-| Awaiting my acceptance | Nothing; the filter must be built by hand on Issues | Issues in the `in_review` category the viewer created or subscribes to, grouped by agent |
+| Awaiting my acceptance | Nothing; the filter must be built by hand on Issues | Issues in the `in_review` category the viewer created |
 | Needs me | Mixed into the inbox with informational notifications | Unread inbox items of type agent blocked, task failed, mention, quick-create failed |
 | In progress | The "agent working" filter chip on Issues; presence dots on the agents list | Running agents and the issue each is working on, from the existing working-agents projection |
 | Autopilot trouble | The "Last run" column on the autopilots list | Autopilots whose last run failed, or that are paused waiting for a runtime |
+
+Scoped to the viewer's own issues, not everything they subscribe to: the server can
+filter by creator and has no subscriber filter, and inventing one to widen a home
+block would be the tail wagging the dog. Widening it is a server change, not a
+frontend one.
 
 The header carries three quick entries: new issue, hand to an agent, new chat — all reusing
 the existing modal and store. The empty-workspace state is the hook for first-run guidance;

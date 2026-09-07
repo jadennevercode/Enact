@@ -30,6 +30,7 @@ import type usage from "../locales/en/usage.json";
 import type squads from "../locales/en/squads.json";
 import type team from "../locales/en/team.json";
 import type capabilities from "../locales/en/capabilities.json";
+import type home from "../locales/en/home.json";
 import type billing from "../locales/en/billing.json";
 
 // Module augmentation enables i18next v26 selector API across the monorepo:
@@ -75,6 +76,7 @@ declare global {
     squads: typeof squads;
     team: typeof team;
     capabilities: typeof capabilities;
+    home: typeof home;
     billing: typeof billing;
   }
 }

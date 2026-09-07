@@ -199,6 +199,10 @@
         "label": "進む",
         "description": "ブラウザーのように履歴を進みます。"
       },
+      "goHome": {
+        "label": "ホームへ移動",
+        "description": "ワークスペースのホームを開きます。"
+      },
       "goInbox": {
         "label": "受信トレイへ移動",
         "description": "ワークスペースの受信トレイを開きます。"

@@ -1,5 +1,6 @@
 import {
   Inbox,
+  LayoutDashboard,
   MessageSquare,
   CircleUser,
   ListTodo,
@@ -35,6 +36,7 @@ import { resolveRouteIconName, type RouteIconName } from "@enact/core/paths";
  * missing key a compile error.
  */
 export const ROUTE_ICON_COMPONENTS: Record<RouteIconName, LucideIcon> = {
+  LayoutDashboard,
   Inbox,
   MessageSquare,
   CircleUser,

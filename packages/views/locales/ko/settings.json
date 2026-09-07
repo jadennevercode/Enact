@@ -199,6 +199,10 @@
         "label": "앞으로 가기",
         "description": "브라우저처럼 기록을 따라 앞으로 이동합니다."
       },
+      "goHome": {
+        "label": "홈으로 이동",
+        "description": "워크스페이스 홈을 엽니다."
+      },
       "goInbox": {
         "label": "받은 편지함으로 이동",
         "description": "워크스페이스 받은 편지함을 엽니다."

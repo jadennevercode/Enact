@@ -16,6 +16,7 @@ export type ShortcutActionId =
   | "send"
   | "goBack"
   | "goForward"
+  | "goHome"
   | "goInbox"
   | "goChat"
   | "goMyIssues"
@@ -115,6 +116,7 @@ export const SHORTCUT_ACTIONS: readonly ShortcutActionDefinition[] = [
   // away from the page while the caret sits in an input, textarea, or editor.
   { id: "goBack", category: "navigation", defaultShortcut: primary("["), allowInEditable: false },
   { id: "goForward", category: "navigation", defaultShortcut: primary("]"), allowInEditable: false },
+  { id: "goHome", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goInbox", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goChat", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goMyIssues", category: "navigation", defaultShortcut: null, allowInEditable: false },

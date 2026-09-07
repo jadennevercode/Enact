@@ -120,7 +120,10 @@ vi.mock("@enact/core/paths", async (importOriginal) => {
     // nav to derive each item's icon from its href) stay intact; only the
     // workspace/context hooks below are stubbed to control routes in tests.
     ...actual,
-    paths: { workspace: (slug: string) => ({ issues: () => `/${slug}/issues` }) },
+    // Real builders here too: the switcher rows and the invitation flow both
+    // resolve a workspace's landing surface, and a stub of one method breaks
+    // the moment that surface moves.
+    paths: actual.paths,
     useCurrentWorkspace: () => ({ id: "ws-1", name: "Acme", slug: "acme" }),
     // Built from the real path builders rather than a hand-written copy:
     // this fixture gets iterated over every nav page, so a literal list
@@ -439,6 +442,7 @@ describe("nav grouping", () => {
     const hrefs = navHrefs(container);
 
     expect(hrefs).toEqual([
+      "/acme/home",
       "/acme/inbox",
       "/acme/chat",
       "/acme/my-issues",
