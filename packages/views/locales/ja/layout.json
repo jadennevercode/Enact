@@ -58,7 +58,7 @@
     "new_issue": "新規タスク",
     "new_issue_shortcut": "C",
     "pinned_label": "ピン留め済み",
-    "work_group": "作業",
+    "collaboration_group": "コラボレーション",
     "intelligence_group": "インテリジェンス",
     "execution_group": "実行",
     "unread_overflow": "99+",

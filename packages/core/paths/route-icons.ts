@@ -118,7 +118,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
 
 /** i18n key (under `layout.sidebar`) for a nav group's heading. */
 export type NavGroupLabelKey =
-  | "work_group"
+  | "collaboration_group"
   | "intelligence_group"
   | "execution_group";
 
@@ -148,19 +148,28 @@ export interface WorkspaceNavGroup {
  * both consumers resolve the destination as `p[key]()`.
  */
 export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
-  // The order is the work model: what is mine, the work itself, who and what
-  // does it, where it runs. Settings closes as its own unlabelled group
-  // because administering the workspace is not a step in that sequence.
+  // The order is the work model: what is mine, the work and the people it is
+  // shared with, what the workspace can do, where it runs. Settings closes as
+  // its own unlabelled group because administering the workspace is not a step
+  // in that sequence.
+  //
+  // Members sits with the work rather than with the agents: a colleague is
+  // someone you hand an issue to, not a capability the workspace is equipped
+  // with. Intelligence keeps what the workspace can be taught to do.
   //
   // The inbox and the viewer's own issues are not entries: they are tabs of
   // Home, which is the one place a person's own work is answered. The inbox
   // keeps a second, faster way in through the top bar's bell.
   { id: "personal", labelKey: null, pages: ["home", "chat"] },
-  { id: "work", labelKey: "work_group", pages: ["issues", "autopilots"] },
+  {
+    id: "collaboration",
+    labelKey: "collaboration_group",
+    pages: ["issues", "autopilots", "members"],
+  },
   {
     id: "intelligence",
     labelKey: "intelligence_group",
-    pages: ["agents", "members", "marketplace"],
+    pages: ["agents", "marketplace"],
   },
   {
     id: "execution",
