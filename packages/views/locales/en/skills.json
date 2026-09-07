@@ -63,7 +63,7 @@
     "source_clawhub": "From ClawHub",
     "source_skills_sh": "From Skills.sh",
     "source_github": "From GitHub",
-    "source_marketplace": "Marketplace"
+    "source_marketplace": "Capability Hub"
   },
   "actions": {
     "row_menu": "Actions",
@@ -136,7 +136,7 @@
       "origin_clawhub": "Imported · ClawHub",
       "origin_skills_sh": "Imported · Skills.sh",
       "origin_github": "Imported · GitHub",
-      "origin_marketplace": "Installed · Marketplace",
+      "origin_marketplace": "Installed · Capability Hub",
       "origin_workspace": "Created manually"
     },
     "conflict_banner": {

@@ -248,7 +248,7 @@
         "description": "打开代码仓库、本地目录与知识库。"
       },
       "goMarketplace": {
-        "label": "跳转到 Capability Hub",
+        "label": "跳转到能力中心",
         "description": "打开能力目录。"
       }
     },

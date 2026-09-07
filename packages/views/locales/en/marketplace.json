@@ -1,5 +1,5 @@
 {
-  "title": "Marketplace",
+  "title": "Capability Hub",
   "description": "Capability published by this deployment's workspaces. Install a copy into your own.",
   "kind": {
     "skill": "Skills",
@@ -14,14 +14,14 @@
     "mcp": "MCP server",
     "squad": "agent family"
   },
-  "search_placeholder": "Search the marketplace",
+  "search_placeholder": "Search the Capability Hub",
   "all_kinds": "Everything",
   "mine": "Published by us",
   "clear_filters": "Clear filters",
   "empty": "Nothing published yet.",
   "empty_filtered": "No listing matches these filters.",
   "empty_mine": "This workspace has not published anything yet.",
-  "load_failed": "The marketplace could not be loaded.",
+  "load_failed": "The Capability Hub could not be loaded.",
   "retry": "Try again",
   "by": "by {{publisher}}",
   "installs_one": "{{count}} install",
@@ -42,7 +42,7 @@
     "workspace_hint": "Only this workspace can see it. Use it to rehearse a listing before making it public."
   },
   "detail": {
-    "back": "Marketplace",
+    "back": "Capability Hub",
     "unavailable": "This listing is not available.",
     "no_version": "Nothing has been published to this listing yet.",
     "overview": "Overview",
@@ -99,7 +99,7 @@
   },
   "publish": {
     "action": "Publish",
-    "title": "Publish to the marketplace",
+    "title": "Publish to the Capability Hub",
     "description": "The server reads the entity you name and strips every credential from it before storing anything.",
     "source_label": "What to publish",
     "source_placeholder": "Choose a {{kind}}",

@@ -1,5 +1,5 @@
 {
-  "title": "マーケットプレイス",
+  "title": "Capability Hub",
   "description": "このデプロイのワークスペースが公開した機能です。コピーを自分のワークスペースにインストールできます。",
   "kind": {
     "skill": "スキル",
@@ -14,14 +14,14 @@
     "mcp": "MCP サーバー",
     "squad": "Agent Family"
   },
-  "search_placeholder": "マーケットプレイスを検索",
+  "search_placeholder": "Capability Hub を検索",
   "all_kinds": "すべて",
   "mine": "自ワークスペースが公開",
   "clear_filters": "フィルターをクリア",
   "empty": "まだ何も公開されていません。",
   "empty_filtered": "このフィルターに一致する項目がありません。",
   "empty_mine": "このワークスペースはまだ何も公開していません。",
-  "load_failed": "マーケットプレイスを読み込めませんでした。",
+  "load_failed": "Capability Hub を読み込めませんでした。",
   "retry": "再試行",
   "by": "{{publisher}} が公開",
   "installs_other": "{{count}} 件のインストール",
@@ -41,7 +41,7 @@
     "workspace_hint": "このワークスペースだけが表示できます。公開する前のリハーサルに使ってください。"
   },
   "detail": {
-    "back": "マーケットプレイス",
+    "back": "Capability Hub",
     "unavailable": "この項目は利用できません。",
     "no_version": "この項目にはまだ何も公開されていません。",
     "overview": "概要",
@@ -98,7 +98,7 @@
   },
   "publish": {
     "action": "公開",
-    "title": "マーケットプレイスに公開",
+    "title": "Capability Hub に公開",
     "description": "サーバーは指定されたエンティティを読み取り、保存する前にすべての認証情報を取り除きます。",
     "source_label": "公開する対象",
     "source_placeholder": "{{kind}} を選択",

@@ -953,7 +953,7 @@
     "new_family": "新建 Agent Family",
     "new_agent": "新建智能体",
     "new_skill": "新建 Skill",
-    "import_from_hub": "Capability Hub",
+    "import_from_hub": "能力中心",
     "tabs": {
       "families": "Agent Family",
       "agents": "Agent",
