@@ -364,9 +364,11 @@ export function ChatThreadList({
         data-confirming={isConfirmingAction ? "true" : undefined}
       >
         {/* Thin ring keeps photo + fallback avatars reading as the same circle
-            (the fallback's faint bg otherwise looks smaller). */}
+            (the fallback's faint bg otherwise looks smaller). While the session
+            has a pending task the avatar itself carries the run ring, so the
+            row says "this agent is working" without spending a second glyph. */}
         {agent ? (
-          <ActorAvatar actorType="agent" actorId={agent.id} size="lg" enableHoverCard className="ring-1 ring-inset ring-border" />
+          <ActorAvatar actorType="agent" actorId={agent.id} size="lg" enableHoverCard isRunning={isRunning} className="ring-1 ring-inset ring-border" />
         ) : (
           <span className="size-8 shrink-0" />
         )}

@@ -120,10 +120,16 @@
     min-height: 0;
   }
 
+  /* Board columns, swimlane headers, swimlane cells and Gantt bars all take
+     their tint from the per-category status tokens, so a category is the same
+     colour everywhere it appears. Before this they disagreed: the board painted
+     Todo in the danger colour and In Review in amber, while the Gantt painted
+     Done in blue and In Progress in amber — three surfaces, three answers, none
+     of them chosen. See design-system/enact/MASTER.md §3.4. */
   .enact-issue-board-column,
   .enact-issue-swimlane-status,
   .enact-issue-swimlane-cell {
-    --enact-issue-status: var(--muted-foreground);
+    --enact-issue-status: var(--status-backlog);
 
     border-radius: var(--radius-xl);
     background-color: color-mix(
@@ -134,23 +140,27 @@
   }
 
   :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="todo"] {
-    --enact-issue-status: var(--destructive);
+    --enact-issue-status: var(--status-todo);
   }
 
   :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="in_progress"] {
-    --enact-issue-status: var(--info);
+    --enact-issue-status: var(--status-in-progress);
   }
 
   :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="in_review"] {
-    --enact-issue-status: var(--warning);
+    --enact-issue-status: var(--status-in-review);
   }
 
   :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="done"] {
-    --enact-issue-status: var(--success);
+    --enact-issue-status: var(--status-done);
   }
 
   :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="blocked"] {
-    --enact-issue-status: var(--destructive);
+    --enact-issue-status: var(--status-blocked);
+  }
+
+  :is(.enact-issue-board-column, .enact-issue-swimlane-status, .enact-issue-swimlane-cell)[data-status="cancelled"] {
+    --enact-issue-status: var(--status-cancelled);
   }
 
   .enact-issue-board-card {
@@ -205,7 +215,7 @@
   }
 
   .enact-issue-gantt-bar {
-    --enact-issue-status: var(--muted-foreground);
+    --enact-issue-status: var(--status-backlog);
     --enact-issue-status-foreground: var(--background);
 
     border-radius: var(--radius-md);
@@ -222,24 +232,34 @@
     opacity: 0.9;
   }
 
-  .enact-issue-gantt-bar[data-status="done"] {
-    --enact-issue-status: var(--info);
-    --enact-issue-status-foreground: var(--info-foreground);
+  .enact-issue-gantt-bar[data-status="todo"] {
+    --enact-issue-status: var(--status-todo);
+    --enact-issue-status-foreground: var(--background);
   }
 
   .enact-issue-gantt-bar[data-status="in_progress"] {
-    --enact-issue-status: var(--warning);
-    --enact-issue-status-foreground: var(--warning-foreground);
+    --enact-issue-status: var(--status-in-progress);
+    --enact-issue-status-foreground: var(--info-foreground);
   }
 
   .enact-issue-gantt-bar[data-status="in_review"] {
-    --enact-issue-status: var(--success);
+    --enact-issue-status: var(--status-in-review);
+    --enact-issue-status-foreground: var(--warning-foreground);
+  }
+
+  .enact-issue-gantt-bar[data-status="done"] {
+    --enact-issue-status: var(--status-done);
     --enact-issue-status-foreground: var(--success-foreground);
   }
 
   .enact-issue-gantt-bar[data-status="blocked"] {
-    --enact-issue-status: var(--destructive);
+    --enact-issue-status: var(--status-blocked);
     --enact-issue-status-foreground: var(--destructive-foreground);
+  }
+
+  .enact-issue-gantt-bar[data-status="cancelled"] {
+    --enact-issue-status: var(--status-cancelled);
+    --enact-issue-status-foreground: var(--background);
   }
 
   .enact-issue-picker-trigger {

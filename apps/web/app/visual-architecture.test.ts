@@ -1128,7 +1128,7 @@ const rawVisualAllowlist: Partial<
     {
       description: "browser light and dark theme metadata",
       expectedMatches: 2,
-      pattern: /color:\s*"#(?:ffffff|05070b)"/gi,
+      pattern: /color:\s*"#(?:ffffff|000000)"/gi,
     },
   ],
   "packages/views/editor/mermaid-diagram.tsx": [
@@ -2266,14 +2266,20 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/components/route-error-page.tsx",
     );
 
+    // Light is the default scope, so `:root`, `.light` and `.enact-fixed-light`
+    // share one block: the pre-hydration document, an explicit light choice and
+    // an embedded light subtree must resolve to the same palette, and a fixed
+    // subtree additionally forces the light scheme onto its descendants.
     expect(tokens).toMatch(
       /\.enact-fixed-light,\s*\.enact-fixed-light \*\s*\{[^}]*color-scheme:\s*light;/,
     );
     expect(tokens).toMatch(
-      /:root,\s*\.dark\s*\{[^}]*color-scheme:\s*dark;[^}]*--app-shell:\s*hsl\(228 24% 8%\);[^}]*--primary:\s*hsl\(147 87% 33%\);/,
+      /:root,\s*\.light,\s*\.enact-fixed-light\s*\{[^}]*color-scheme:\s*light;[^}]*--app-shell:\s*#f7f7f6;[^}]*--primary:\s*#86bc25;/,
     );
+    // Dark is the second value set under the same names — a black shell over a
+    // near-black canvas, with Deloitte Green still the only brand colour.
     expect(tokens).toMatch(
-      /\.light,\s*\.enact-fixed-light\s*\{[^}]*color-scheme:\s*light;[^}]*--app-shell:\s*hsl\(220 20% 96%\);/,
+      /\.dark\s*\{[^}]*color-scheme:\s*dark;[^}]*--app-shell:\s*#000000;[^}]*--primary:\s*#86bc25;/,
     );
     expect(landingLayout).toContain("enact-fixed-light landing-light");
     expect(landingCss).not.toMatch(

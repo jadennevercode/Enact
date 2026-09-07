@@ -76,8 +76,8 @@ afterEach(() => {
 describe("StatusPicker trigger color", () => {
   // The bug: the trigger read the catalog entry's raw color while the list read
   // the resolved one, so a built-in rendered as the server's seeded #22c55e in
-  // one and as the `text-success` token in the other — the same status in two
-  // visibly different greens, side by side. (ENA-6440)
+  // one and as its status token in the other — the same status in two visibly
+  // different colours, side by side. (ENA-6440)
   it("paints a built-in from the token, exactly like its row in the list", () => {
     catalogEntries = [IN_REVIEW, QA];
     const { container } = renderWithI18n(
@@ -91,8 +91,8 @@ describe("StatusPicker trigger color", () => {
     // the token and produces the two-greens mismatch.
     expect(trigger?.getAttribute("style")).toBeNull();
     expect(row?.getAttribute("style")).toBeNull();
-    expect(trigger?.getAttribute("class")).toContain("text-success");
-    expect(row?.getAttribute("class")).toContain("text-success");
+    expect(trigger?.getAttribute("class")).toContain("text-status-in-review");
+    expect(row?.getAttribute("class")).toContain("text-status-in-review");
   });
 
   // The other half of the same rule: a CUSTOM status has no token to fall back

@@ -7,19 +7,33 @@
     background-color: var(--app-shell);
   }
 
+  /* The shell carries the one ambient light in the product: a wide, static
+     green bloom in the top-left corner, met from below by a narrower Green 2
+     wash so the light reads as daylight rather than as a neon halo. Both are
+     painted once and never animate; every other glow in the product encodes
+     live state. Text always sits outside the bright core. */
   .enact-dashboard-shell {
-    background-image: radial-gradient(
-      circle at top left,
-      color-mix(in oklab, var(--primary) 10%, transparent),
-      transparent 30%
-    );
+    background-image:
+      radial-gradient(
+        720px 340px at 0% 0%,
+        var(--shell-light),
+        transparent 62%
+      ),
+      radial-gradient(
+        420px 260px at 30% 100%,
+        var(--shell-light-2),
+        transparent 70%
+      );
   }
 
+  /* One hairline is what separates the canvas from the shell in light mode,
+     where the two grounds are only a step apart. It is not decoration: without
+     it the sidebar stops reading as a layer behind the page. */
   .enact-dashboard-canvas {
     min-width: 0;
     min-height: 0;
     background-color: var(--page-canvas);
-    box-shadow: inset 0 var(--border-width) 0 var(--surface-border);
+    box-shadow: inset 0 var(--border-width) 0 var(--shell-edge);
   }
 
   .enact-dashboard-loading {
@@ -48,17 +62,35 @@
   }
 
   .enact-sidebar-nav-item {
-    color: var(--muted-foreground);
+    color: var(--shell-muted);
   }
 
-  .enact-sidebar-nav-item:hover:not([data-active="true"]) {
-    background-color: color-mix(in oklab, var(--sidebar-accent) 70%, transparent);
+  /* Hover moves the ground; the active state adds weight, a lift and a green
+     rule. They live on different dimensions on purpose, so hovering the
+     current page never visually demotes it to "just hovered".
+     
+     The attribute is matched by PRESENCE, not by the string "true": the shared
+     SidebarMenuButton renders `data-active` as a bare boolean attribute, so it
+     arrives in the DOM as `data-active=""`. `[data-active="true"]` silently
+     matched nothing there, which is how the green rule went missing from every
+     top-level entry while the pinned rows kept it. */
+  .enact-sidebar-nav-item:hover:not([data-active]) {
+    background-color: var(--shell-hover);
+    color: var(--shell-foreground);
   }
 
-  .enact-sidebar-nav-item[data-active="true"],
-  .enact-sidebar-nav-item[data-active="true"]:hover {
+  /* Light mode has no room to brighten a near-white shell, so the current item
+     is lifted off it instead: a white card with a contact shadow. Dark mode
+     resolves the same tokens to a brightened panel. Either way the 2px green
+     rule is what names it. */
+  .enact-sidebar-nav-item[data-active],
+  .enact-sidebar-nav-item[data-active]:hover {
     background-color: var(--sidebar-accent);
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--brand),
+      var(--shell-active-shadow);
     color: var(--sidebar-accent-foreground);
+    font-weight: 600;
   }
 
   .enact-sidebar-pin-label,
@@ -622,16 +654,19 @@
 }
 
 @layer utilities {
-  /* Top bar: session controls, spanning the window above sidebar and canvas. */
+  /* Top bar: session controls, spanning the window above sidebar and canvas.
+     It is shell, not a floating layer — nothing scrolls underneath it — so it
+     takes the shell ground and its hairline rather than the glass treatment
+     the popup surfaces get. */
   .enact-topbar {
-    background-color: var(--sidebar);
-    color: var(--sidebar-foreground);
-    border-bottom: var(--border-width) solid var(--border);
+    background-color: var(--app-shell);
+    color: var(--shell-foreground);
+    border-bottom: var(--border-width) solid var(--shell-edge);
   }
 
   .enact-topbar-action,
   .enact-topbar-avatar {
-    color: var(--muted-foreground);
+    color: var(--shell-muted);
     transition:
       background-color var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard);
@@ -639,8 +674,8 @@
 
   .enact-topbar-action:hover,
   .enact-topbar-avatar:hover {
-    background-color: var(--accent);
-    color: var(--accent-foreground);
+    background-color: var(--shell-hover);
+    color: var(--shell-foreground);
   }
 
   .enact-topbar-action:focus-visible,

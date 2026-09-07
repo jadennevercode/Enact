@@ -1,17 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Enact">
   <!--
-    The Enact mark: three cubes stacked in isometric projection. Depth comes
-    from fill-opacity on one colour, so the mark works on any surface.
-    Geometry is generated from packages/ui/components/common/enact-icon.tsx —
-    edit there and keep these files in sync.
+    The Enact mark: three cubes stacked in isometric projection, in the colour
+    variant — a three-step green ladder, one gradient per cube running top-left
+    to bottom-right across that cube's own box, with the left and right faces
+    darkened 18% and 36% by a black overlay. Transparent ground, so it reads on
+    light and dark alike; logo-light.svg and logo-dark.svg are identical.
+    Geometry and colours come from design-system/enact/MASTER.md §10 and
+    packages/ui/components/common/enact-icon.tsx — edit there and keep in sync.
   -->
-  <path fill="#ffffff" fill-opacity="1" d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z"/>
-  <path fill="#ffffff" fill-opacity="1" d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z"/>
-  <path fill="#ffffff" fill-opacity="1" d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z"/>
+  <defs>
+    <linearGradient id="enact-logo-dark-top" gradientUnits="userSpaceOnUse" x1="6.5" y1="2.375" x2="17.5" y2="13.375">
+      <stop offset="0" stop-color="#c4d600"/>
+      <stop offset="1" stop-color="#86bc25"/>
+    </linearGradient>
+    <linearGradient id="enact-logo-dark-left" gradientUnits="userSpaceOnUse" x1="1" y1="10.625" x2="12" y2="21.625">
+      <stop offset="0" stop-color="#86bc25"/>
+      <stop offset="1" stop-color="#26890d"/>
+    </linearGradient>
+    <linearGradient id="enact-logo-dark-right" gradientUnits="userSpaceOnUse" x1="12" y1="10.625" x2="23" y2="21.625">
+      <stop offset="0" stop-color="#26890d"/>
+      <stop offset="1" stop-color="#046a38"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#enact-logo-dark-top)" d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z"/>
+  <path fill="url(#enact-logo-dark-top)" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z"/>
+  <path fill="url(#enact-logo-dark-top)" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z"/>
+  <path fill="url(#enact-logo-dark-left)" d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z"/>
+  <path fill="url(#enact-logo-dark-left)" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z"/>
+  <path fill="url(#enact-logo-dark-left)" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z"/>
+  <path fill="url(#enact-logo-dark-right)" d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z"/>
+  <path fill="url(#enact-logo-dark-right)" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z"/>
+  <path fill="url(#enact-logo-dark-right)" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z"/>
+  <path fill="#000000" fill-opacity="0.18" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z"/>
+  <path fill="#000000" fill-opacity="0.36" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z"/>
+  <path fill="#000000" fill-opacity="0.18" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z"/>
+  <path fill="#000000" fill-opacity="0.36" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z"/>
+  <path fill="#000000" fill-opacity="0.18" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z"/>
+  <path fill="#000000" fill-opacity="0.36" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z"/>
 </svg>

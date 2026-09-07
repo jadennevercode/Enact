@@ -10,7 +10,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        // The primary action is the loudest thing on any screen and there is
+        // at most one per surface, so it is the only control that carries the
+        // brand gradient. `.enact-brand-fill` owns the paint (see
+        // primitives.css) — passing brand classes through `className` cannot
+        // work here for the same cascade reason documented on `brand` below.
+        //
+        // The gradient deliberately stops here. `brand` below is the ON state
+        // of a toggle, and a filter bar can have six of them lit at once; six
+        // gradients is a pattern, not an emphasis.
+        default: "enact-brand-fill",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         // Brand-filled state for a control that is currently ON (an active

@@ -12,6 +12,7 @@
  *   apps/web/public/icons/icon-maskable-512.png   PWA maskable
  *   apps/web/public/icons/apple-touch-icon.png    iOS home screen
  *   apps/desktop/build/icon.png                   electron-builder (Linux)
+ *   apps/desktop/build/icons/<n>x<n>.png          electron-builder (Linux set)
  *   apps/desktop/build/icon.icns                  electron-builder (macOS)
  *   apps/desktop/build/icon.ico                   electron-builder (Windows)
  *   apps/desktop/resources/icon.png               runtime tray/window icon
@@ -41,6 +42,11 @@ const PNG_TARGETS = [
   ["apps/desktop/build/icon.png", 1024],
   ["apps/desktop/resources/icon.png", 1024],
   ["apps/mobile/assets/icon.png", 1024],
+  // electron-builder's Linux icon set, one PNG per size it packages.
+  ...[16, 24, 32, 48, 64, 128, 256, 512].map((size) => [
+    `apps/desktop/build/icons/${size}x${size}.png`,
+    size,
+  ]),
 ];
 
 // macOS .iconset slot -> pixel size.

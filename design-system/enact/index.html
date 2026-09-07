@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enact Design System specimen</title>
+  <!--
+    Interactive specimen for the Enact design system (design-system/enact/MASTER.md).
+    Sample data only. Phase 0 reads specimen.css, which carries the proposed token
+    values under the same names as packages/ui/styles/tokens.css; from Phase 1 on,
+    specimen.css imports tokens.css instead.
+
+    Open Sans and Geist Mono are pulled from Google Fonts here so the specimen works
+    from a plain file:// open. The product self-hosts both (MASTER.md §5).
+  -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="specimen.css">
+  <script>
+    // Apply a stored theme before first paint; the toggle below writes it.
+    try {
+      const t = localStorage.getItem("enact-specimen-theme");
+      const dark = t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.className = dark ? "dark" : "light";
+    } catch (e) { /* file:// without storage: keep light */ }
+  </script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Brand mark, variant A "three-step green" (MASTER.md §10). -->
+    <linearGradient id="mk-t" gradientUnits="userSpaceOnUse" x1="6.5" y1="2.375" x2="17.5" y2="13.375"><stop offset="0" stop-color="#C4D600"/><stop offset="1" stop-color="#86BC25"/></linearGradient>
+    <linearGradient id="mk-l" gradientUnits="userSpaceOnUse" x1="1" y1="10.625" x2="12" y2="21.625"><stop offset="0" stop-color="#86BC25"/><stop offset="1" stop-color="#26890D"/></linearGradient>
+    <linearGradient id="mk-r" gradientUnits="userSpaceOnUse" x1="12" y1="10.625" x2="23" y2="21.625"><stop offset="0" stop-color="#26890D"/><stop offset="1" stop-color="#046A38"/></linearGradient>
+    <symbol id="mark-color" viewBox="0 0 24 24">
+      <path d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z" fill="url(#mk-t)"/>
+      <path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="url(#mk-t)"/><path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="#000" fill-opacity="0.18"/>
+      <path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="url(#mk-t)"/><path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="#000" fill-opacity="0.36"/>
+      <path d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z" fill="url(#mk-l)"/>
+      <path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="url(#mk-l)"/><path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="#000" fill-opacity="0.18"/>
+      <path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="url(#mk-l)"/><path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="#000" fill-opacity="0.36"/>
+      <path d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z" fill="url(#mk-r)"/>
+      <path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="url(#mk-r)"/><path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="#000" fill-opacity="0.18"/>
+      <path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="url(#mk-r)"/><path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="#000" fill-opacity="0.36"/>
+    </symbol>
+    <symbol id="mark-mono" viewBox="0 0 24 24">
+      <path d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z" fill="currentColor"/>
+      <path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="currentColor" fill-opacity="0.62"/>
+      <path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="currentColor" fill-opacity="0.38"/>
+      <path d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z" fill="currentColor"/>
+      <path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="currentColor" fill-opacity="0.62"/>
+      <path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="currentColor" fill-opacity="0.38"/>
+      <path d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z" fill="currentColor"/>
+      <path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="currentColor" fill-opacity="0.62"/>
+      <path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="currentColor" fill-opacity="0.38"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="sp-app">
+  <aside class="sp-shell" aria-label="Sidebar specimen">
+    <div class="sp-ws"><svg><use href="#mark-color"/></svg>Acme Delivery</div>
+    <a class="sp-nav" href="#home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="sp-nav" href="#inbox"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/></svg>Inbox<span class="cnt">3</span></a>
+    <a class="sp-nav" href="#chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.2L4 21l1.8-5.4A8 8 0 1 1 21 12z"/></svg>Chat</a>
+    <a class="sp-nav" href="#mine"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>My Issues<span class="cnt">9</span></a>
+    <div class="sp-group">Work</div>
+    <a class="sp-nav" href="#issues" data-active="true"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z M9 9h6 M9 13h6"/></svg>Issues</a>
+    <a class="sp-nav" href="#autopilot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Autopilot</a>
+    <div class="sp-group">Team</div>
+    <a class="sp-nav" href="#team"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5 M15 14c3 0 5 2 5 4"/></svg>Team</a>
+    <div class="sp-group">Capability</div>
+    <a class="sp-nav" href="#capabilities"><svg viewBox="0 0 24 24"><path d="M4 6h16 M4 12h16 M4 18h10"/></svg>Capability Hub</a>
+    <a class="sp-nav" href="#marketplace"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1 12H5z M9 8V5a3 3 0 0 1 6 0v3"/></svg>Marketplace</a>
+    <div class="sp-group">Execution</div>
+    <a class="sp-nav" href="#runtimes"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1"/><path d="M8 20h8"/></svg>Runtimes<span class="cnt" data-live>2 live</span></a>
+    <a class="sp-nav" href="#insights"><svg viewBox="0 0 24 24"><path d="M4 19V9 M10 19V5 M16 19v-7 M22 19H2"/></svg>Insights</a>
+    <div class="sp-group">&nbsp;</div>
+    <a class="sp-nav" href="#settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.8-1L14.5 3h-5l-.3 2.5a7 7 0 0 0-1.8 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.8 1l.3 2.5h5l.3-2.5a7 7 0 0 0 1.8-1l2.3 1 2-3.5-2-1.5c.1-.3.1-.7.1-1z"/></svg>Settings</a>
+    <div class="sp-shell-foot">Specimen · sample data</div>
+  </aside>
+
+  <main class="sp-main">
+    <header class="sp-topbar">
+      <div class="sp-crumb">Acme Delivery / <b>Design specimen</b></div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span class="sp-tele"><b>3</b> runs · <b>$1.24</b> today</span>
+        <div class="sp-toggle" role="group" aria-label="Theme">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="sp-body">
+      <section class="sp-section" id="home">
+        <div class="sp-rule"></div>
+        <h1 class="sp-h1">今天有 <b>4 项</b>工作等你验收</h1>
+        <p style="color:var(--muted-foreground);margin:8px 0 16px;max-width:70ch">Home 的页题是唯一使用 Green → Blue 8 渐变的位置：人与 agent 的协作在此汇合。下面的数字块是 L2 表面，白上白靠 1px 环与两层影成立。</p>
+        <div class="sp-grid sp-grid-4">
+          <div class="sp-surface sp-pad"><div class="sp-k">待验收</div><div class="sp-v"><b>4</b></div><div class="sp-d">2 项超过 24 小时</div></div>
+          <div class="sp-surface sp-pad"><div class="sp-k">执行中</div><div class="sp-v"><b>3</b> runs</div><div class="sp-d">claude-code · codex · cursor</div></div>
+          <div class="sp-surface sp-pad"><div class="sp-k">今日成本</div><div class="sp-v">$<b>1.24</b></div><div class="sp-d">12,480 tokens</div></div>
+          <div class="sp-surface sp-pad"><div class="sp-k">近 14 天 run</div>
+            <svg class="sp-spark" viewBox="0 0 300 48" preserveAspectRatio="none" aria-label="近 14 天 run 数量"><defs><linearGradient id="spk" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#86BC25" stop-opacity="0.35"/><stop offset="1" stop-color="#86BC25" stop-opacity="0"/></linearGradient></defs><path d="M0 40 L23 34 L46 36 L69 27 L92 29 L115 20 L138 24 L161 15 L184 18 L207 11 L230 14 L253 8 L276 11 L300 4 L300 48 L0 48 Z" fill="url(#spk)"/><path d="M0 40 L23 34 L46 36 L69 27 L92 29 L115 20 L138 24 L161 15 L184 18 L207 11 L230 14 L253 8 L276 11 L300 4" fill="none" stroke="#86BC25" stroke-width="1.5"/><circle cx="300" cy="4" r="3" fill="#C4D600"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="issues">
+        <h2>Issues 列表</h2>
+        <p>选中行 = Pale Green 底 + 2px 绿左线；hover = 中性灰。状态是形状 + 颜色 + 文字；执行人是球（agent）或盘（人）。</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px">
+          <div class="sp-tabs" style="flex:1">
+            <span class="sp-tab" data-active="true">待验收<span class="cnt">4</span></span>
+            <span class="sp-tab">全部<span class="cnt">128</span></span>
+            <span class="sp-tab">我负责的<span class="cnt">9</span></span>
+            <span class="sp-tab">看板</span>
+          </div>
+          <div style="display:flex;gap:8px"><button class="sp-btn sp-btn-outline">筛选</button><button class="sp-btn sp-btn-primary">新建 Issue</button></div>
+        </div>
+        <div class="sp-surface" style="overflow:hidden">
+          <table class="sp-table">
+            <thead><tr><th style="width:96px">编号</th><th>标题</th><th style="width:120px">状态</th><th style="width:160px">执行</th><th style="width:180px">遥测</th></tr></thead>
+            <tbody>
+              <tr data-selected="true"><td class="sp-key">ENA-4884</td><td>暗色主题下品牌色被 outline 变体覆盖</td><td><span class="sp-status"><span class="sp-dot" data-status="in_review"></span>审阅中</span></td><td><span class="sp-who"><span class="sp-av" data-kind="agent"></span>codex-review</span></td><td><span class="sp-badge" data-variant="accept">待验收</span></td></tr>
+              <tr><td class="sp-key">ENA-4871</td><td>成员管理迁出设置页</td><td><span class="sp-status"><span class="sp-dot" data-status="in_progress"></span>进行中</span></td><td><span class="sp-who"><span class="sp-av" data-kind="agent" data-running="true"></span>claude-code</span></td><td><span class="sp-tele"><span class="sp-progress" style="display:inline-block;width:64px;vertical-align:middle;margin-right:6px"><i style="width:62%"></i></span><b>02:17</b> · $0.04</span></td></tr>
+              <tr><td class="sp-key">ENA-4866</td><td>Capability Hub 的 MCP 标签页</td><td><span class="sp-status"><span class="sp-dot" data-status="blocked"></span>阻塞</span></td><td><span class="sp-who"><span class="sp-av" data-kind="squad"></span>platform</span></td><td><span class="sp-tele">需要人决定</span></td></tr>
+              <tr><td class="sp-key">ENA-4852</td><td>Insights 里的 run 记录</td><td><span class="sp-status"><span class="sp-dot" data-status="done"></span>已完成</span></td><td><span class="sp-who"><span class="sp-av" data-kind="human">JD</span>Jaden</span></td><td><span class="sp-badge">已验收</span></td></tr>
+              <tr><td class="sp-key">ENA-4840</td><td>Runtime 注册流程文案</td><td><span class="sp-status"><span class="sp-dot" data-status="todo"></span>待办</span></td><td><span class="sp-who"><span class="sp-av" data-kind="human">LW</span>Li Wei</span></td><td></td></tr>
+              <tr><td class="sp-key">ENA-4831</td><td>Ontology 详情改为页面</td><td><span class="sp-status"><span class="sp-dot" data-status="backlog"></span>规划中</span></td><td><span style="color:var(--faint-foreground)">未指派</span></td><td></td></tr>
+              <tr><td class="sp-key">ENA-4822</td><td>旧的 Projects 路由清理</td><td><span class="sp-status"><span class="sp-dot" data-status="cancelled"></span>已取消</span></td><td><span class="sp-who"><span class="sp-av" data-kind="human">JD</span>Jaden</span></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sp-section" id="elevation">
+        <h2>五级抬升</h2>
+        <p>结构在两套主题里相同：壳 → 画布 → 表面 → 浮层（玻璃）→ 覆盖层。切换右上角主题看数值如何变化。</p>
+        <div class="sp-grid sp-grid-2">
+          <div class="sp-ladder" aria-label="Elevation ladder">
+            <div class="sp-lv sp-lv0">L0 壳层<span>--app-shell · --shell-light</span></div>
+            <div class="sp-lv sp-lv1">L1 画布<span>--page-canvas</span></div>
+            <div class="sp-lv sp-lv2 sp-surface">L2 表面<span>--surface-shadow · --surface-ring</span></div>
+            <div class="sp-lv sp-lv3 sp-glass" style="padding:8px 12px">L3 浮层<span>--glass-* · --menu-shadow</span></div>
+            <div class="sp-lv sp-lv4 sp-dialog" style="padding:8px 12px;max-width:none">L4 覆盖<span>--floating-shadow</span></div>
+          </div>
+          <div style="display:grid;gap:12px;align-content:start">
+            <div class="sp-glass" style="max-width:240px">
+              <div>指派给我<span class="sp-kbd">A</span></div>
+              <div>改状态<span class="sp-kbd">S</span></div>
+              <div>验收<span class="sp-kbd">⇧A</span></div>
+              <div>退回<span class="sp-kbd">⇧R</span></div>
+            </div>
+            <div class="sp-dialog">
+              <h3>验收 ENA-4884？</h3>
+              <p>验收后 issue 进入 done。run 记录、成本与 diff 会保留在 issue 上。</p>
+              <div class="sp-dialog-actions"><button class="sp-btn sp-btn-ghost">取消</button><button class="sp-btn sp-btn-primary">验收</button></div>
+            </div>
+            <div><span class="sp-tooltip">Tooltip 用反色实底，不用玻璃</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="controls">
+        <h2>控件</h2>
+        <p>主按钮 = 德勤第 1 组渐变 + 黑字 + 顶部高光；边框控件 3:1；焦点环 Mid Green。</p>
+        <div class="sp-grid sp-grid-2">
+          <div class="sp-surface sp-pad" style="display:grid;gap:14px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="sp-btn sp-btn-primary">新建 Issue</button>
+              <button class="sp-btn sp-btn-outline">次要操作</button>
+              <button class="sp-btn sp-btn-ghost">幽灵</button>
+              <button class="sp-btn sp-btn-destructive">删除</button>
+              <button class="sp-btn sp-btn-primary" disabled>禁用</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="sp-btn sp-btn-primary sp-btn-sm">验收</button>
+              <button class="sp-btn sp-btn-outline sp-btn-sm">退回</button>
+              <span class="sp-badge">默认</span><span class="sp-badge" data-variant="accept">待验收</span><span class="sp-badge" data-variant="info">进行中</span><span class="sp-badge" data-variant="warning">需要决定</span><span class="sp-badge" data-variant="destructive">阻塞</span>
+            </div>
+            <div style="display:flex;gap:16px;align-items:center">
+              <span class="sp-switch" data-on role="switch" aria-checked="true" aria-label="开"></span>
+              <span class="sp-switch" role="switch" aria-checked="false" aria-label="关"></span>
+              <span class="sp-check" data-on role="checkbox" aria-checked="true" aria-label="选中"></span>
+              <span class="sp-check" role="checkbox" aria-checked="false" aria-label="未选"></span>
+              <div class="sp-progress" style="flex:1"><i style="width:62%"></i></div>
+            </div>
+          </div>
+          <div class="sp-surface sp-pad" style="display:grid;gap:14px">
+            <div class="sp-field"><label class="sp-label" for="f1">Issue 标题</label><input class="sp-input" id="f1" placeholder="用一句话说清要做什么"><span class="sp-help">Enter 创建，⌘Enter 创建并指派</span></div>
+            <div class="sp-field"><label class="sp-label" for="f2">仓库地址</label><input class="sp-input" id="f2" value="git@github.com:acme/deliver" aria-invalid="true"><span class="sp-help" data-error>这个地址的 deploy key 尚未授权，去 Runtimes → Resources 添加</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="identity">
+        <h2>身份与状态</h2>
+        <p>形状先于颜色：agent 是球，人是盘，squad 是相叠的球；状态七种形状固定，颜色来自功能色。</p>
+        <div class="sp-grid sp-grid-2">
+          <div class="sp-surface sp-pad" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+            <span class="sp-who"><span class="sp-av sp-av-lg" data-kind="human">JD</span>Jaden<br><small style="color:var(--muted-foreground)">人 · 平圆盘</small></span>
+            <span class="sp-who"><span class="sp-av sp-av-lg" data-kind="agent"></span>codex-review<br><small style="color:var(--muted-foreground)">agent · 球体</small></span>
+            <span class="sp-who"><span class="sp-av sp-av-lg" data-kind="agent" data-running="true"></span>claude-code<br><small style="color:var(--muted-foreground)">执行中 · 旋转弧</small></span>
+            <span class="sp-who"><span class="sp-av sp-av-lg" data-kind="squad"></span>platform<br><small style="color:var(--muted-foreground)">squad · 球组</small></span>
+          </div>
+          <div class="sp-surface sp-pad" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px">
+            <span class="sp-status"><span class="sp-dot" data-status="backlog"></span>规划中</span>
+            <span class="sp-status"><span class="sp-dot" data-status="todo"></span>待办</span>
+            <span class="sp-status"><span class="sp-dot" data-status="in_progress"></span>进行中</span>
+            <span class="sp-status"><span class="sp-dot" data-status="in_review"></span>审阅中</span>
+            <span class="sp-status"><span class="sp-dot" data-status="done"></span>已完成</span>
+            <span class="sp-status"><span class="sp-dot" data-status="blocked"></span>阻塞</span>
+            <span class="sp-status"><span class="sp-dot" data-status="cancelled"></span>已取消</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="type">
+        <h2>字体尺度</h2>
+        <p>Open Sans 300 / 400 / 600 / 700 + Geist Mono；角色命名的尺度不变。</p>
+        <div class="sp-surface sp-pad sp-type">
+          <div><span class="lbl">display 36/40 · 300</span><span style="font-size:36px;line-height:40px;font-weight:300">今天有 <b style="font-weight:700">4 项</b>工作等你验收</span></div>
+          <div><span class="lbl">display-sm 24/32 · 300</span><span style="font-size:24px;line-height:32px;font-weight:300">Capability Hub</span></div>
+          <div><span class="lbl">title 18/28 · 600</span><span style="font-size:18px;line-height:28px;font-weight:600">ENA-4884 · 修复暗色主题下品牌色被覆盖</span></div>
+          <div><span class="lbl">title-sm 16/24 · 600</span><span style="font-size:16px;line-height:24px;font-weight:600">对话框标题、面板标题</span></div>
+          <div><span class="lbl">body 14/20 · 400</span><span>正文与列表。Open Sans 的 x 高度比 Inter 高约 6%，字宽约宽 8%，正文行高保持 20px。中文回退链 PingFang → 微软雅黑 → Noto Sans CJK SC。</span></div>
+          <div><span class="lbl">label 13/18 · 600</span><span style="font-size:13px;line-height:18px;font-weight:600">表头、字段名、表单标签</span></div>
+          <div><span class="lbl">caption 12/16</span><span style="font-size:12px;line-height:16px;color:var(--muted-foreground)">辅助说明，--muted-foreground</span></div>
+          <div><span class="lbl">micro 11/15 · caps</span><span class="sp-k">Work · Team · Capability · Execution</span></div>
+          <div><span class="lbl">mono 13 · tabular</span><span class="sp-tele" style="font-size:13px">run 7f3a2c · 12,480 tokens · $0.041 · 00:02:17</span></div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="palette">
+        <h2>色卡角色</h2>
+        <p>全部来自德勤第 20 页；切换主题看同名 token 的另一组值。</p>
+        <div class="sp-swatches">
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--app-shell);color:var(--shell-foreground)">shell</div><div class="body"><b>--app-shell</b><span>侧栏 · 顶栏</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--page-canvas);color:var(--foreground);box-shadow:inset 0 0 0 1px var(--border-soft)">canvas</div><div class="body"><b>--page-canvas</b><span>画布</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--surface-hover);color:var(--foreground)">hover</div><div class="body"><b>--surface-hover</b><span>悬停</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--surface-selected);color:var(--surface-selected-foreground)">selected</div><div class="body"><b>--surface-selected</b><span>选中</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--border);color:var(--foreground)">border</div><div class="body"><b>--border</b><span>结构线</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--input);color:#fff">input</div><div class="body"><b>--input</b><span>控件边 3:1</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--muted-foreground);color:var(--background)">muted</div><div class="body"><b>--muted-foreground</b><span>次级文字</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--foreground);color:var(--background)">fg</div><div class="body"><b>--foreground</b><span>正文</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--brand);color:var(--brand-foreground)">brand</div><div class="body"><b>--brand</b><span>黑字 9.2:1</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--ring);color:#fff">ring</div><div class="body"><b>--ring</b><span>焦点</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--link);color:#fff">link</div><div class="body"><b>--link</b><span>可点文字</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--info);color:var(--info-foreground)">info</div><div class="body"><b>--info</b><span>进行中</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--warning);color:var(--warning-foreground)">warning</div><div class="body"><b>--warning</b><span>审阅 · 需决定</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--success);color:var(--success-foreground)">success</div><div class="body"><b>--success</b><span>文字安全的成功色</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--destructive);color:var(--destructive-foreground)">destructive</div><div class="body"><b>--destructive</b><span>阻塞 · 危险</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--identity-agent);color:#fff">agent</div><div class="body"><b>--identity-agent</b><span>球体主色</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--identity-squad);color:#fff">squad</div><div class="body"><b>--identity-squad</b><span>球组</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--brand-gradient);color:#000">gradient</div><div class="body"><b>--brand-gradient</b><span>主按钮</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--run-gradient);color:#000">run</div><div class="body"><b>--run-gradient</b><span>执行中 · 进度</span></div></div>
+          <div class="sp-sw sp-surface"><div class="chip" style="background:var(--duo-gradient);color:#fff">duo</div><div class="body"><b>--duo-gradient</b><span>Home 页题</span></div></div>
+        </div>
+      </section>
+
+      <section class="sp-section" id="brand">
+        <h2>品牌标记</h2>
+        <p>几何不变；彩色版三块三组德勤渐变，透明底；单色版继续跟随文字色。</p>
+        <div class="sp-grid sp-grid-2">
+          <div class="sp-surface sp-pad">
+            <div class="sp-marks">
+              <div class="sp-mark-cell" style="width:112px;height:112px;background:#fff;box-shadow:inset 0 0 0 1px #e6e6e6"><svg width="80" height="80"><use href="#mark-color"/></svg></div>
+              <div class="sp-mark-cell" style="width:112px;height:112px;background:#000"><svg width="80" height="80"><use href="#mark-color"/></svg></div>
+              <div class="sp-appicon"><svg width="56" height="56"><use href="#mark-color"/></svg></div>
+            </div>
+            <div class="sp-marks" style="margin-top:14px">
+              <div><svg width="16" height="16"><use href="#mark-color"/></svg><div class="sp-d">16</div></div>
+              <div><svg width="20" height="20"><use href="#mark-color"/></svg><div class="sp-d">20</div></div>
+              <div><svg width="24" height="24"><use href="#mark-color"/></svg><div class="sp-d">24</div></div>
+              <div><svg width="32" height="32"><use href="#mark-color"/></svg><div class="sp-d">32</div></div>
+              <div><svg width="48" height="48"><use href="#mark-color"/></svg><div class="sp-d">48</div></div>
+              <div><svg width="64" height="64"><use href="#mark-color"/></svg><div class="sp-d">64</div></div>
+            </div>
+          </div>
+          <div class="sp-surface sp-pad">
+            <div class="sp-k" style="margin-bottom:10px">单色回退</div>
+            <div class="sp-marks">
+              <div class="sp-mark-cell" style="width:72px;height:72px;background:#fff;box-shadow:inset 0 0 0 1px #e6e6e6;color:#222"><svg width="44" height="44"><use href="#mark-mono"/></svg></div>
+              <div class="sp-mark-cell" style="width:72px;height:72px;background:#fff;box-shadow:inset 0 0 0 1px #e6e6e6;color:#86BC25"><svg width="44" height="44"><use href="#mark-mono"/></svg></div>
+              <div class="sp-mark-cell" style="width:72px;height:72px;background:#000;color:#E6E6E6"><svg width="44" height="44"><use href="#mark-mono"/></svg></div>
+              <div class="sp-mark-cell" style="width:72px;height:72px;background:#000;color:#86BC25"><svg width="44" height="44"><use href="#mark-mono"/></svg></div>
+            </div>
+            <p style="margin:12px 0 0;font-size:12px;color:var(--muted-foreground)">侧栏、面包屑、行内文字旁用单色版；favicon、应用图标、登录页、工作区切换器、landing、docs 用彩色版。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function () {
+    const root = document.documentElement;
+    const buttons = document.querySelectorAll(".sp-toggle button");
+    function apply(theme) {
+      root.className = theme;
+      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
+      try { localStorage.setItem("enact-specimen-theme", theme); } catch (e) { /* no storage */ }
+    }
+    buttons.forEach((b) => b.addEventListener("click", () => apply(b.dataset.theme)));
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(root.classList.contains(b.dataset.theme))));
+  })();
+</script>
+</body>
+</html>

@@ -18,6 +18,12 @@ interface ActorAvatarProps {
   isAgent?: boolean;
   isSystem?: boolean;
   isSquad?: boolean;
+  /**
+   * The actor is executing something right now. Draws the run ring around the
+   * avatar — the same colour pair the progress bar uses. Only meaningful for
+   * agents and squads; a person is never "running".
+   */
+  isRunning?: boolean;
   size?: AvatarSize;
   className?: string;
 }
@@ -29,6 +35,7 @@ function ActorAvatar({
   isAgent,
   isSystem,
   isSquad,
+  isRunning,
   size = DEFAULT_AVATAR_SIZE,
   className,
 }: ActorAvatarProps) {
@@ -43,11 +50,29 @@ function ActorAvatar({
   // Every actor — member, agent, squad, or system — renders as a circle. This
   // is the single source of truth for avatar shape; the upload editors mirror
   // it (packages/views/common/avatar-upload-control.tsx).
+  //
+  // What KIND of actor it is, is carried by `data-actor` and painted in
+  // primitives.css: an agent is a lit orb, a squad a pair of orbs, a person a
+  // flat disc. The distinction is a shape and a shading, not just an icon, so
+  // a dense list still reads "person or machine" at a glance without anyone
+  // having to identify a glyph. A real uploaded image or an emoji outranks all
+  // of it — that is the actor's own chosen face.
+  const actorKind = isSystem
+    ? "system"
+    : isAgent
+      ? "agent"
+      : isSquad
+        ? "squad"
+        : "human";
+  const hasOwnFace = Boolean(avatarUrl && !imgError) || Boolean(emoji);
+
   return (
     <div
       data-slot="avatar"
+      data-actor={hasOwnFace ? undefined : actorKind}
+      data-running={isRunning ? "true" : undefined}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center font-medium overflow-hidden",
+        "enact-actor-avatar inline-flex shrink-0 items-center justify-center font-medium overflow-hidden",
         (!avatarUrl || emoji || imgError) && "bg-muted text-muted-foreground",
         className,
         // rounded-full stays last so a call-site `className` can never override
