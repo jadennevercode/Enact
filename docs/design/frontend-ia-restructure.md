@@ -228,3 +228,25 @@ Four options were open when the plan was approved on 2026-09-07:
    persisted desktop tabs and documentation links.
 4. **Runs stays in the plan as its own phase**, sequenced after the frontend work and
    gated on the server endpoint.
+
+## 11. Landed so far
+
+Branch `feat/frontend-ia-restructure`, 2026-09-07.
+
+| Phase | State |
+| --- | --- |
+| 0 · IA contract | Done. `WORKSPACE_NAV` in core; sidebar and palette read it |
+| 1 · Sidebar regroup | Done. Six groups by the work model; Analytics relabelled Insights |
+| 1 · Settings slimming | **Not started.** Resources, MCP and Quick Actions are still Settings tabs |
+| 2 · Team shell | Done, with People, Agents and Agent Families |
+| 2 · Capability Hub | Partly. Skills and Ontology only; the three Settings tabs have not moved |
+| 2 · Runtimes resources tab | **Not started.** Needs the `resources-tab.tsx` split |
+| 3 · Home | Done, four blocks, and it is the landing destination everywhere |
+| 3 · Acceptance scopes | **Not started** on Issues, My Issues and the Inbox segment |
+| 4 · Issue detail | **Not started** |
+| 5 · Runs | **Not started**, still gated on the server endpoint |
+| 6 · Platforms | Partly. Desktop routes, tab folding and the navigation e2e are updated; tab-bar strings, mobile links and documentation paths are not |
+
+Verified: `pnpm typecheck` across all workspaces, and the full Vitest suites for
+`@enact/core` (1656), `@enact/views` (4645), `@enact/desktop` (520) and `@enact/web` (295).
+The e2e suite was updated but not run.
