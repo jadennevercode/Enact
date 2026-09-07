@@ -1,0 +1,31 @@
+{
+  "page": {
+    "title": "チーム",
+    "tagline": "このワークスペースで働く人とエージェント。",
+    "learn_more": "詳細",
+    "new": "新規作成",
+    "new_agent": "新しいエージェント",
+    "new_family": "新しいエージェントファミリー",
+    "invite_member": "メンバーを招待"
+  },
+  "tabs": {
+    "people": "メンバー",
+    "agents": "エージェント",
+    "families": "エージェントファミリー"
+  },
+  "people": {
+    "search_placeholder": "メンバーを検索",
+    "count_other": "{{count}} 人",
+    "agents_owned_other": "エージェント {{count}} 件",
+    "role": {
+      "owner": "オーナー",
+      "admin": "管理者",
+      "member": "メンバー"
+    },
+    "empty_title": "メンバーがいません",
+    "empty_description": "ワークスペース設定からメンバーを招待してください。",
+    "no_matches_title": "一致するメンバーがいません",
+    "no_matches_description": "別の名前かメールアドレスで検索してください。",
+    "load_failed": "メンバーを読み込めませんでした"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "Team",
+    "tagline": "The people and agents who do the work in this workspace.",
+    "learn_more": "Learn more",
+    "new": "New",
+    "new_agent": "New agent",
+    "new_family": "New agent family",
+    "invite_member": "Invite member"
+  },
+  "tabs": {
+    "people": "People",
+    "agents": "Agents",
+    "families": "Agent Families"
+  },
+  "people": {
+    "search_placeholder": "Search people",
+    "count_one": "{{count}} person",
+    "count_other": "{{count}} people",
+    "agents_owned_one": "{{count}} agent",
+    "agents_owned_other": "{{count}} agents",
+    "role": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "empty_title": "No members yet",
+    "empty_description": "Invite people from workspace settings.",
+    "no_matches_title": "No matching people",
+    "no_matches_description": "Try a different name or email address.",
+    "load_failed": "Members could not be loaded"
+  }
+}

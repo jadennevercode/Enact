@@ -219,13 +219,9 @@
         "label": "前往自动化",
         "description": "打开工作区自动化。"
       },
-      "goAgents": {
-        "label": "前往智能体",
-        "description": "打开智能体列表。"
-      },
-      "goSquads": {
-        "label": "前往智能体小组",
-        "description": "打开智能体小组列表。"
+      "goTeam": {
+        "label": "跳转到团队",
+        "description": "打开成员与智能体名册。"
       },
       "goUsage": {
         "label": "前往用量",

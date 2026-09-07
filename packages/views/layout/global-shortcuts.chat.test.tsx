@@ -25,22 +25,16 @@ vi.mock("@enact/core/issues/stores", () => ({
 vi.mock("@enact/core/modals", () => ({
   useModalStore: { getState: () => ({ modal: null }) },
 }));
-vi.mock("@enact/core/paths", () => ({
-  useWorkspacePaths: () => ({
-    inbox: () => "/acme/inbox",
-    chat: () => "/acme/chat",
-    myIssues: () => "/acme/my-issues",
-    issues: () => "/acme/issues",
-    autopilots: () => "/acme/autopilots",
-    agents: () => "/acme/agents",
-    squads: () => "/acme/squads",
-    usage: () => "/acme/usage",
-    runtimes: () => "/acme/runtimes",
-    ontologies: () => "/acme/ontologies",
-    skills: () => "/acme/skills",
-    settings: () => "/acme/settings",
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    ...actual,
+    // Built from the real path builders rather than a hand-written copy: the
+    // navigation shortcuts resolve every nav page, so a literal list goes
+    // stale the moment a page is added or absorbed.
+    useWorkspacePaths: () => actual.paths.workspace("acme"),
+  };
+});
 vi.mock("@enact/ui/components/ui/sidebar", () => ({
   useSidebar: () => ({ toggleSidebar: h.toggleSidebar }),
 }));

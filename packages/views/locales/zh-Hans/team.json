@@ -1,0 +1,31 @@
+{
+  "page": {
+    "title": "团队",
+    "tagline": "在这个工作区里干活的人和智能体。",
+    "learn_more": "了解更多",
+    "new": "新建",
+    "new_agent": "新建智能体",
+    "new_family": "新建智能体小组",
+    "invite_member": "邀请成员"
+  },
+  "tabs": {
+    "people": "成员",
+    "agents": "智能体",
+    "families": "智能体小组"
+  },
+  "people": {
+    "search_placeholder": "搜索成员",
+    "count_other": "{{count}} 人",
+    "agents_owned_other": "{{count}} 个智能体",
+    "role": {
+      "owner": "所有者",
+      "admin": "管理员",
+      "member": "成员"
+    },
+    "empty_title": "还没有成员",
+    "empty_description": "在工作区设置里邀请成员。",
+    "no_matches_title": "没有匹配的成员",
+    "no_matches_description": "换个名字或邮箱试试。",
+    "load_failed": "成员列表加载失败"
+  }
+}

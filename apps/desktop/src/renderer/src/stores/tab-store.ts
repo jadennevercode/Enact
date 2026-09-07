@@ -332,14 +332,26 @@ export function resourceKeyForUrl(url: string): string {
  *     was constructed without the workspace prefix. The router would
  *     interpret `issues` as a workspace slug → NoAccessPage.
  *
- * Normalizes: a bare `/{slug}` (no route segment) becomes `/{slug}/issues` —
- * the workspace's default surface. This replaces the old in-router
- * `<Navigate to="issues">` index redirect (ENA-4741 invariant 1: the router
- * never self-navigates; URLs are normalized before they become sessions).
+ * Normalizes:
+ *  - a bare `/{slug}` (no route segment) becomes `/{slug}/issues` — the
+ *    workspace's default surface.
+ *  - `/{slug}/agents` and `/{slug}/squads`, the two list routes the Team page
+ *    absorbed, become the matching Team tab. Persisted tabs and pinned tabs
+ *    hold these URLs, and the desktop router cannot redirect them itself.
+ *
+ * Both replace what would otherwise be an in-router `<Navigate>` (ENA-4741
+ * invariant 1: the router never self-navigates; URLs are normalized before
+ * they become sessions).
  *
  * Returns null for rejects (caller decides how to recover — usually by
  * dropping the tab or substituting a default).
  */
+/** Segments the Team page absorbed, mapped to the tab that replaced them. */
+const ABSORBED_LIST_ROUTES: Record<string, string | undefined> = {
+  agents: "agents",
+  squads: "families",
+};
+
 export function sanitizeTabPath(path: string): string | null {
   const { pathname, suffix } = splitTabUrl(path);
   const segments = pathname.split("/").filter(Boolean);
@@ -359,6 +371,12 @@ export function sanitizeTabPath(path: string): string | null {
   }
   if (segments.length === 1) {
     return `/${firstSegment}/issues${suffix}`;
+  }
+  // Only the bare list routes move; `/agents/new`, `/agents/:id` and
+  // `/squads/:id` are still their own pages.
+  if (segments.length === 2) {
+    const tab = ABSORBED_LIST_ROUTES[segments[1] ?? ""];
+    if (tab) return `/${firstSegment}/team?tab=${tab}`;
   }
   return path;
 }

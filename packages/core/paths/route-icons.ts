@@ -53,6 +53,7 @@ export type NavLabelKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "team"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -69,6 +70,7 @@ export type WorkspacePageKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "team"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -97,6 +99,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   autopilots: { segment: "autopilots", icon: "Zap", navKey: "autopilots" },
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },
+  team: { segment: "team", icon: "Users", navKey: "team" },
   usage: { segment: "usage", icon: "BarChart3", navKey: "usage" },
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
@@ -138,7 +141,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
   {
     id: "workspace",
     labelKey: "workspace_group",
-    pages: ["issues", "autopilots", "agents", "squads", "usage"],
+    pages: ["issues", "autopilots", "team", "usage"],
   },
   {
     id: "configure",

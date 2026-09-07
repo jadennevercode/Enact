@@ -13,22 +13,16 @@ vi.mock("@enact/ui/components/ui/sidebar", () => ({
 vi.mock("@enact/core/chat", () => ({
   useChatStore: { getState: () => ({ floatingChatEnabled: false }) },
 }));
-vi.mock("@enact/core/paths", () => ({
-  useWorkspacePaths: () => ({
-    inbox: () => "/w/inbox",
-    chat: () => "/w/chat",
-    myIssues: () => "/w/my-issues",
-    issues: () => "/w/issues",
-    autopilots: () => "/w/autopilots",
-    agents: () => "/w/agents",
-    squads: () => "/w/squads",
-    usage: () => "/w/usage",
-    runtimes: () => "/w/runtimes",
-    ontologies: () => "/w/ontologies",
-    skills: () => "/w/skills",
-    settings: () => "/w/settings",
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    ...actual,
+    // Built from the real path builders rather than a hand-written copy: the
+    // navigation shortcuts resolve every nav page, so a literal list goes
+    // stale the moment a page is added or absorbed.
+    useWorkspacePaths: () => actual.paths.workspace("w"),
+  };
+});
 
 function makeAdapter(overrides: Partial<NavigationAdapter> = {}): NavigationAdapter {
   return {

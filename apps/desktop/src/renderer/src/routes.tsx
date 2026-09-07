@@ -23,13 +23,13 @@ import { OntologiesPage } from "@enact/views/ontologies";
 import { SkillsPage } from "@enact/views/skills";
 import { MarketplacePage } from "@enact/views/marketplace";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
-import { DesktopAgentsPage } from "./components/desktop-agents-page";
 import {
   AiCreateAgentPage,
   ChooseCreateMethodPage,
   ManualCreateAgentPage,
 } from "@enact/views/agents";
-import { SquadsPage, SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
+import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
+import { TeamPage } from "@enact/views/team";
 import { InboxPage } from "@enact/views/inbox";
 import { ChatPage } from "@enact/views/chat";
 import { SettingsPage } from "@enact/views/settings";
@@ -196,7 +196,7 @@ export const appRoutes: RouteObject[] = [
             element: <MarketplaceListingPage />,
             handle: { title: "Marketplace" },
           },
-          { path: "agents", element: <DesktopAgentsPage />, handle: { title: "Agents" } },
+          { path: "team", element: <TeamPage />, handle: { title: "Team" } },
           {
             path: "agents/new",
             element: <ChooseCreateMethodPage />,
@@ -227,7 +227,6 @@ export const appRoutes: RouteObject[] = [
             element: <MemberDetailPage />,
             handle: { title: "Member" },
           },
-          { path: "squads", element: <SquadsPage />, handle: { title: "Agent Families" } },
           {
             path: "squads/:id",
             element: <SquadDetailPageView />,

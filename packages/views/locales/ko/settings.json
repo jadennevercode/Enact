@@ -219,13 +219,9 @@
         "label": "자동화로 이동",
         "description": "워크스페이스 자동화를 엽니다."
       },
-      "goAgents": {
-        "label": "에이전트로 이동",
-        "description": "에이전트 목록을 엽니다."
-      },
-      "goSquads": {
-        "label": "에이전트 패밀리로 이동",
-        "description": "에이전트 패밀리 목록을 엽니다."
+      "goTeam": {
+        "label": "팀으로 이동",
+        "description": "멤버와 에이전트 명단을 엽니다."
       },
       "goUsage": {
         "label": "사용량으로 이동",

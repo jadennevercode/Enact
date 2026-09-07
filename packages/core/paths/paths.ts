@@ -42,6 +42,10 @@ function workspaceScoped(slug: string) {
     agentDetail: (id: string) => `${ws}/agents/${encode(id)}`,
     memberDetail: (id: string) => `${ws}/members/${encode(id)}`,
     squads: () => `${ws}/squads`,
+    // People and agents are one roster; `?tab=` selects which side of it.
+    // The old /agents and /squads list routes redirect here.
+    team: () => `${ws}/team`,
+    teamTab: (tab: string) => `${ws}/team?tab=${encode(tab)}`,
     squadDetail: (id: string) => `${ws}/squads/${encode(id)}`,
     inbox: () => `${ws}/inbox`,
     chat: () => `${ws}/chat`,
@@ -73,6 +77,9 @@ function workspaceScoped(slug: string) {
     // anything pointing at the project profile has to name this one.
     settingsWorkspace: () => `${ws}/settings?tab=workspace`,
     settingsResources: () => `${ws}/settings/resources`,
+    // Membership administration — inviting, roles, removal. The Team page
+    // shows the roster; changing who may do what stays in settings.
+    settingsMembers: () => `${ws}/settings?tab=members`,
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
 }

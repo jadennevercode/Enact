@@ -2858,9 +2858,6 @@ describe("visual architecture", () => {
   });
 
   it("preserves Task 7 Desktop daemon context and lifecycle handlers", () => {
-    const desktopAgents = readRepoFile(
-      "apps/desktop/src/renderer/src/components/desktop-agents-page.tsx",
-    );
     const desktopRuntimes = readRepoFile(
       "apps/desktop/src/renderer/src/components/desktop-runtimes-page.tsx",
     );
@@ -2871,9 +2868,11 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/components/daemon-panel.tsx",
     );
 
-    expect(desktopAgents).toMatch(
-      /useEffect\(\(\) => \{[\s\S]*?window\.daemonAPI\.getStatus\(\)\.then\(apply\);[\s\S]*?window\.daemonAPI\.getHostName\(\)[\s\S]*?return window\.daemonAPI\.onStatusChange\(apply\);[\s\S]*?<AgentsPage[\s\S]*?localDaemonId=\{status\.daemonId \?\? lastIdentity\.daemonId\}[\s\S]*?localMachineName=\{status\.deviceName \?\? lastIdentity\.deviceName \?\? hostName\}[\s\S]*?hasLocalMachine/,
-    );
+    // The agents list had a matching desktop wrapper that subscribed to daemon
+    // status and passed it down. `AgentsPageProps` documented those props as
+    // unused, and they were: the runtime filter lists runtimes by name. Both
+    // the wrapper and the props are gone now that the list is a tab of Team.
+    // The runtimes page below is the one that really consumes this context.
     expect(desktopRuntimes).toMatch(
       /const context = useDesktopRuntimeContext\(\);[\s\S]*?<RuntimesPage[\s\S]*?localDaemonId=\{context\.localDaemonId\}[\s\S]*?localMachineName=\{context\.localMachineName\}[\s\S]*?hasLocalMachine[\s\S]*?bootstrapping=\{context\.bootstrapping\}/,
     );

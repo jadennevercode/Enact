@@ -113,6 +113,12 @@ its content belongs to a separate plan and is not built here.
 | New agent / new family buttons | Each list header | One "New" menu in the Team header: new agent, new agent family, invite member | Move |
 | Agent, family and member detail | `/agents/{id}`, `/squads/{id}`, `/members/{id}` | Routes unchanged; breadcrumbs re-parent under Team | Keep |
 
+Tab order is People, Agents, Agent Families, and People is the default. The
+roster is the frame the other two sit in, and the redirects from `/agents` and
+`/squads` name their tab explicitly, so a bookmark still opens what it opened
+before. If landing on the roster proves to be daily friction, the default is one
+constant.
+
 ### 5.4 Capability Hub (new shell)
 
 | Feature | Today | Target | Action |

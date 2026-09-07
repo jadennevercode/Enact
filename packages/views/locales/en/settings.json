@@ -219,13 +219,9 @@
         "label": "Go to Autopilot",
         "description": "Open workspace automations."
       },
-      "goAgents": {
-        "label": "Go to Agents",
-        "description": "Open the agent list."
-      },
-      "goSquads": {
-        "label": "Go to Agent Families",
-        "description": "Open the agent family list."
+      "goTeam": {
+        "label": "Go to Team",
+        "description": "Open the people and agents roster."
       },
       "goUsage": {
         "label": "Go to Usage",

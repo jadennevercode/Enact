@@ -219,13 +219,9 @@
         "label": "自動化へ移動",
         "description": "ワークスペースの自動化を開きます。"
       },
-      "goAgents": {
-        "label": "エージェントへ移動",
-        "description": "エージェント一覧を開きます。"
-      },
-      "goSquads": {
-        "label": "Squadsへ移動",
-        "description": "Squad一覧を開きます。"
+      "goTeam": {
+        "label": "チームへ移動",
+        "description": "メンバーとエージェントの一覧を開きます。"
       },
       "goUsage": {
         "label": "使用量へ移動",

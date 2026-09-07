@@ -63,8 +63,6 @@ import { useNavigation, useRowLink } from "../../navigation";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { ProviderLogo } from "../../runtimes/components/provider-logo";
 import {
-  CollectionPageHeader,
-  CollectionPageHeaderAction,
   CollectionPageState,
 } from "../../layout/collection-page";
 import { AgentRowActions } from "./agent-row-actions";
@@ -234,61 +232,20 @@ import { isAccessChangeReady } from "@enact/core/agents";
 import { AgentBatchToolbar } from "./agent-batch-toolbar";
 export { isAccessChangeReady };
 
-export interface AgentsPageProps {
-  /** Desktop-only daemon wiring, currently unused by the list (kept for
-   *  platform-layer compatibility; the runtime filter lists runtimes by
-   *  name rather than grouped machines). */
-  localDaemonId?: string | null;
-  localMachineName?: string | null;
-  hasLocalMachine?: boolean;
-}
-
 // ---------------------------------------------------------------------------
 // Page header
 // ---------------------------------------------------------------------------
 
-function PageHeaderBar({
-  totalCount,
-  onCreate,
-}: {
-  totalCount: number;
-  onCreate: () => void;
-}) {
-  const { t } = useT("agents");
-  return (
-    <CollectionPageHeader
-      icon={Bot}
-      title={t(($) => $.page.title)}
-      count={totalCount}
-      description={t(($) => $.page.tagline)}
-      learnMore={{
-        href: "https://enact.ai/docs/agents",
-        label: t(($) => $.page.learn_more),
-      }}
-      actions={
-        <CollectionPageHeaderAction
-          icon={Plus}
-          label={t(($) => $.page.new_agent)}
-          onClick={onCreate}
-        />
-      }
-    />
-  );
-}
-
 function ListError({
-  onCreate,
   listError,
   onRetry,
 }: {
-  onCreate: () => void;
   listError: unknown;
   onRetry: () => void;
 }) {
   const { t } = useT("agents");
   return (
     <div className="flex flex-1 min-h-0 flex-col">
-      <PageHeaderBar totalCount={0} onCreate={onCreate} />
       <CollectionPageState
         role="alert"
         tone="destructive"
@@ -771,7 +728,7 @@ function LoadingSkeleton() {
 // Page
 // ---------------------------------------------------------------------------
 
-export function AgentsPage(_props: AgentsPageProps = {}) {
+export function AgentsPage() {
   const { t } = useT("agents");
   const wsId = useWorkspaceId();
   const paths = useWorkspacePaths();
@@ -1003,15 +960,10 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
 
   if (listError) {
     return (
-      <ListError
-        onCreate={() => navigation.push(paths.newAgent())}
-        listError={listError}
-        onRetry={() => refetchList()}
-      />
+      <ListError listError={listError} onRetry={() => refetchList()} />
     );
   }
 
-  const totalCount = agents.filter((a) => !a.archived_at).length;
   const showEmpty = !isLoading && agents.length === 0;
 
   // The active sort field / availability filter reads columns that arrive in
@@ -1039,11 +991,6 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
     // relative: positioning anchor for the batch toolbar (page-centered,
     // not viewport-centered).
     <div className="enact-management-page relative flex flex-1 min-h-0 flex-col">
-      <PageHeaderBar
-        totalCount={totalCount}
-        onCreate={() => navigation.push(paths.newAgent())}
-      />
-
       {isLoading || (!showEmpty && !listReady) ? (
         <div className="flex-1 overflow-y-auto @container">
           <LoadingSkeleton />

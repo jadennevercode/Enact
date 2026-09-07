@@ -113,31 +113,21 @@ vi.mock("@enact/core/chat", () => ({
     { getState: () => chatStore.current },
   ),
 }));
-vi.mock("@enact/core/paths", async (importOriginal) => ({
-  // Spread the real module so pure helpers (resolveRouteIconName, used by the
-  // nav to derive each item's icon from its href) stay intact; only the
-  // workspace/context hooks below are stubbed to control routes in tests.
-  ...(await importOriginal<typeof import("@enact/core/paths")>()),
-  paths: { workspace: (slug: string) => ({ issues: () => `/${slug}/issues` }) },
-  useCurrentWorkspace: () => ({ id: "ws-1", name: "Acme", slug: "acme" }),
-  useWorkspacePaths: () => ({
-    inbox: () => "/acme/inbox",
-    chat: () => "/acme/chat",
-    myIssues: () => "/acme/my-issues",
-    issues: () => "/acme/issues",
-    artifacts: () => "/acme/artifacts",
-    autopilots: () => "/acme/autopilots",
-    agents: () => "/acme/agents",
-    squads: () => "/acme/squads",
-    usage: () => "/acme/usage",
-    runtimes: () => "/acme/runtimes",
-    ontologies: () => "/acme/ontologies",
-    skills: () => "/acme/skills",
-    marketplace: () => "/acme/marketplace",
-    settings: () => "/acme/settings",
-    issueDetail: (id: string) => `/acme/issues/${id}`,
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    // Spread the real module so pure helpers (resolveRouteIconName, used by the
+    // nav to derive each item's icon from its href) stay intact; only the
+    // workspace/context hooks below are stubbed to control routes in tests.
+    ...actual,
+    paths: { workspace: (slug: string) => ({ issues: () => `/${slug}/issues` }) },
+    useCurrentWorkspace: () => ({ id: "ws-1", name: "Acme", slug: "acme" }),
+    // Built from the real path builders rather than a hand-written copy:
+    // this fixture gets iterated over every nav page, so a literal list
+    // goes stale the moment a page is added or absorbed.
+    useWorkspacePaths: () => actual.paths.workspace("acme"),
+  };
+});
 vi.mock("@enact/core/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@enact/core/api")>();
   return {

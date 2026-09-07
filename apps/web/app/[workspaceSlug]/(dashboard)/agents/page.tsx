@@ -1,12 +1,14 @@
-import { AgentsPage } from "@enact/views/agents";
+import { redirect } from "next/navigation";
+import { paths } from "@enact/core/paths";
 
-// Web has no bundled daemon, so the runtime filter always groups
-// local-mode runtimes under "Remote" (buildRuntimeMachines has no
-// localDaemonId / localMachineName / ensureLocalMachine context
-// here) — that's the expected web behavior, not a bug. The Desktop
-// app wires those props through `DesktopAgentsPage` so the local
-// section appears in the dropdown the same way it does on the
-// Runtimes page.
-export default function AgentsRoute() {
-  return <AgentsPage />;
+// The agents list is a tab of Team now. Kept as a redirect rather than
+// deleted because desktop tabs persist their URL, and this path is what
+// every existing bookmark and tab group holds.
+export default async function AgentsRoute({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>;
+}) {
+  const { workspaceSlug } = await params;
+  redirect(paths.workspace(workspaceSlug).teamTab("agents"));
 }
