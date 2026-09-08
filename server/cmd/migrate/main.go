@@ -304,6 +304,17 @@ var concurrentIndexCleanups = map[string]string{
 	"468_semantic_step_identity":                    "semantic_step_identity",
 	"469_semantic_approval_identity":                "semantic_approval_identity",
 	"470_semantic_receipt_identity":                 "semantic_receipt_identity",
+	"479_semantic_catalog_identity":                 "semantic_catalog_revision_identity",
+	"480_semantic_catalog_scope":                    "semantic_catalog_revision_scope",
+	"481_semantic_snapshot_identity":                "semantic_source_snapshot_identity",
+	"482_semantic_snapshot_scope":                   "semantic_source_snapshot_scope",
+	"483_semantic_revision_identity":                "semantic_ontology_revision_identity",
+	"484_semantic_revision_scope":                   "semantic_ontology_revision_scope",
+	"486_semantic_presentation_identity":            "semantic_run_presentation_identity",
+	"501_semantic_model_operation_active":           "semantic_model_operation_active_task_idx",
+	"502_semantic_model_operation_runtime":          "semantic_model_operation_runtime_idx",
+	"504_semantic_construction_ontology":            "semantic_construction_ontology_idx",
+	"505_semantic_construction_event":               "semantic_construction_event_idx",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

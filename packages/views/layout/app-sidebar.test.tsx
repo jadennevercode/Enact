@@ -384,6 +384,7 @@ describe("nav grouping", () => {
       "/acme/chat",
       "/acme/issues",
       "/acme/autopilots",
+      "/acme/applications",
       "/acme/members",
       "/acme/agents",
       "/acme/marketplace",

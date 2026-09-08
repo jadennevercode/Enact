@@ -88,6 +88,10 @@ vi.mock("@enact/core/runtimes", () => ({
   runtimeListOptions: () => ({ queryKey: ["runtimes"], queryFn: vi.fn() }),
   runtimeAdvertisesLocalWorktree: () => true,
 }));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return { ...actual, useWorkspacePaths: () => actual.paths.workspace("acme") };
+});
 vi.mock("@enact/core/hooks", () => ({ useWorkspaceId: () => "workspace-1" }));
 vi.mock("@enact/core/github", () => ({
   githubInstallationsOptions: () => ({
