@@ -1178,6 +1178,262 @@ type RuntimeProfileWorkspace struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type SemanticApplication struct {
+	ID                pgtype.UUID        `json:"id"`
+	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	OntologyReleaseID pgtype.UUID        `json:"ontology_release_id"`
+	PublishedBuildID  pgtype.UUID        `json:"published_build_id"`
+	CreatedBy         pgtype.UUID        `json:"created_by"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+type SemanticApplicationBuild struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	ApplicationID  pgtype.UUID        `json:"application_id"`
+	SourceRevision string             `json:"source_revision"`
+	Digest         string             `json:"digest"`
+	Manifest       []byte             `json:"manifest"`
+	Files          []byte             `json:"files"`
+	Report         []byte             `json:"report"`
+	CreatedBy      pgtype.UUID        `json:"created_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	SourceFiles    []byte             `json:"source_files"`
+}
+
+type SemanticApplicationDeployment struct {
+	ID            pgtype.UUID        `json:"id"`
+	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
+	ApplicationID pgtype.UUID        `json:"application_id"`
+	BuildID       pgtype.UUID        `json:"build_id"`
+	PublishedBy   pgtype.UUID        `json:"published_by"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticApproval struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	RunID            pgtype.UUID        `json:"run_id"`
+	BindingID        string             `json:"binding_id"`
+	Parameters       []byte             `json:"parameters"`
+	Digest           string             `json:"digest"`
+	Status           string             `json:"status"`
+	RequestedBy      pgtype.UUID        `json:"requested_by"`
+	ApprovedBy       pgtype.UUID        `json:"approved_by"`
+	Reason           string             `json:"reason"`
+	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	DecidedAt        pgtype.Timestamptz `json:"decided_at"`
+	ActorID          pgtype.UUID        `json:"actor_id"`
+	TaskID           pgtype.UUID        `json:"task_id"`
+	EvaluationStepID pgtype.UUID        `json:"evaluation_step_id"`
+	IntentID         pgtype.Text        `json:"intent_id"`
+}
+
+type SemanticCatalogRevision struct {
+	ID                 pgtype.UUID        `json:"id"`
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	ConnectionID       pgtype.UUID        `json:"connection_id"`
+	PrincipalID        pgtype.UUID        `json:"principal_id"`
+	CredentialRevision string             `json:"credential_revision"`
+	SourceDigest       string             `json:"source_digest"`
+	SourceRevision     string             `json:"source_revision"`
+	State              string             `json:"state"`
+	Entries            []byte             `json:"entries"`
+	Warnings           []byte             `json:"warnings"`
+	Metadata           []byte             `json:"metadata"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticConnection struct {
+	ID           pgtype.UUID        `json:"id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	Name         string             `json:"name"`
+	Kind         string             `json:"kind"`
+	Endpoint     string             `json:"endpoint"`
+	Secret       []byte             `json:"secret"`
+	Config       []byte             `json:"config"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Enabled      bool               `json:"enabled"`
+	Capabilities []byte             `json:"capabilities"`
+}
+
+type SemanticConstruction struct {
+	ID                  pgtype.UUID        `json:"id"`
+	WorkspaceID         pgtype.UUID        `json:"workspace_id"`
+	OntologyID          pgtype.UUID        `json:"ontology_id"`
+	IssueID             pgtype.UUID        `json:"issue_id"`
+	SquadID             pgtype.UUID        `json:"squad_id"`
+	CreatedBy           pgtype.UUID        `json:"created_by"`
+	SourceSnapshotIds   []byte             `json:"source_snapshot_ids"`
+	CompetencyQuestions []byte             `json:"competency_questions"`
+	Status              string             `json:"status"`
+	Stage               string             `json:"stage"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type SemanticConstructionEvent struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	ConstructionID pgtype.UUID        `json:"construction_id"`
+	TaskID         pgtype.UUID        `json:"task_id"`
+	ActorType      string             `json:"actor_type"`
+	ActorID        pgtype.UUID        `json:"actor_id"`
+	Stage          string             `json:"stage"`
+	Kind           string             `json:"kind"`
+	Message        string             `json:"message"`
+	Data           []byte             `json:"data"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticModelOperation struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	TaskID         pgtype.UUID        `json:"task_id"`
+	AgentID        pgtype.UUID        `json:"agent_id"`
+	PrincipalID    pgtype.UUID        `json:"principal_id"`
+	RuntimeID      pgtype.UUID        `json:"runtime_id"`
+	Provider       string             `json:"provider"`
+	Model          string             `json:"model"`
+	RequestHash    string             `json:"request_hash"`
+	Prompt         string             `json:"prompt"`
+	ResponseSchema []byte             `json:"response_schema"`
+	TimeoutSeconds int32              `json:"timeout_seconds"`
+	Status         string             `json:"status"`
+	LeaseToken     pgtype.UUID        `json:"lease_token"`
+	Result         []byte             `json:"result"`
+	Usage          []byte             `json:"usage"`
+	Error          string             `json:"error"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	StartedAt      pgtype.Timestamptz `json:"started_at"`
+	CompletedAt    pgtype.Timestamptz `json:"completed_at"`
+	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
+}
+
+type SemanticOntology struct {
+	ID            pgtype.UUID        `json:"id"`
+	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description"`
+	Bundle        []byte             `json:"bundle"`
+	CreatedBy     pgtype.UUID        `json:"created_by"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	BindingConfig []byte             `json:"binding_config"`
+	TestData      []byte             `json:"test_data"`
+}
+
+type SemanticOntologyRevision struct {
+	ID                pgtype.UUID        `json:"id"`
+	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
+	OntologyID        pgtype.UUID        `json:"ontology_id"`
+	Digest            string             `json:"digest"`
+	Artifact          []byte             `json:"artifact"`
+	Stages            []byte             `json:"stages"`
+	Findings          []byte             `json:"findings"`
+	SourceSnapshotIds []byte             `json:"source_snapshot_ids"`
+	ReviewRequired    bool               `json:"review_required"`
+	CreatedBy         pgtype.UUID        `json:"created_by"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticReceipt struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	RunID          pgtype.UUID        `json:"run_id"`
+	ApprovalID     pgtype.UUID        `json:"approval_id"`
+	BindingID      string             `json:"binding_id"`
+	IdempotencyKey string             `json:"idempotency_key"`
+	RequestDigest  string             `json:"request_digest"`
+	Status         string             `json:"status"`
+	Response       []byte             `json:"response"`
+	Readback       []byte             `json:"readback"`
+	Error          string             `json:"error"`
+	ExecutedBy     pgtype.UUID        `json:"executed_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ActorID        pgtype.UUID        `json:"actor_id"`
+	TaskID         pgtype.UUID        `json:"task_id"`
+}
+
+type SemanticRelease struct {
+	ID               pgtype.UUID        `json:"id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	OntologyID       pgtype.UUID        `json:"ontology_id"`
+	Version          string             `json:"version"`
+	Digest           string             `json:"digest"`
+	Artifact         []byte             `json:"artifact"`
+	Validation       []byte             `json:"validation"`
+	BindingConfig    []byte             `json:"binding_config"`
+	PublishedBy      pgtype.UUID        `json:"published_by"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	RetiredAt        pgtype.Timestamptz `json:"retired_at"`
+	RetiredBy        pgtype.UUID        `json:"retired_by"`
+	RetirementReason string             `json:"retirement_reason"`
+}
+
+type SemanticRun struct {
+	ID                 pgtype.UUID        `json:"id"`
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	ReleaseID          pgtype.UUID        `json:"release_id"`
+	RequestedBy        pgtype.UUID        `json:"requested_by"`
+	ActorType          string             `json:"actor_type"`
+	Question           string             `json:"question"`
+	IssueID            pgtype.UUID        `json:"issue_id"`
+	Status             string             `json:"status"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ApplicationID      pgtype.UUID        `json:"application_id"`
+	ActorID            pgtype.UUID        `json:"actor_id"`
+	TaskID             pgtype.UUID        `json:"task_id"`
+	DelegatedAt        pgtype.Timestamptz `json:"delegated_at"`
+	ApplicationBuildID pgtype.UUID        `json:"application_build_id"`
+}
+
+type SemanticRunPresentation struct {
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	RunID              pgtype.UUID        `json:"run_id"`
+	ApplicationID      pgtype.UUID        `json:"application_id"`
+	ApplicationBuildID pgtype.UUID        `json:"application_build_id"`
+	PrincipalID        pgtype.UUID        `json:"principal_id"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticSourceSnapshot struct {
+	ID                 pgtype.UUID        `json:"id"`
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	ConnectionID       pgtype.UUID        `json:"connection_id"`
+	PrincipalID        pgtype.UUID        `json:"principal_id"`
+	CredentialRevision string             `json:"credential_revision"`
+	SourceDigest       string             `json:"source_digest"`
+	SourceRevision     string             `json:"source_revision"`
+	Documents          []byte             `json:"documents"`
+	Metadata           []byte             `json:"metadata"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type SemanticStep struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	RunID       pgtype.UUID        `json:"run_id"`
+	Kind        string             `json:"kind"`
+	Status      string             `json:"status"`
+	Input       []byte             `json:"input"`
+	Output      []byte             `json:"output"`
+	Error       string             `json:"error"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	FinishedAt  pgtype.Timestamptz `json:"finished_at"`
+	Attempt     int32              `json:"attempt"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	ActorID     pgtype.UUID        `json:"actor_id"`
+	TaskID      pgtype.UUID        `json:"task_id"`
+}
+
 type Skill struct {
 	ID                   pgtype.UUID        `json:"id"`
 	WorkspaceID          pgtype.UUID        `json:"workspace_id"`

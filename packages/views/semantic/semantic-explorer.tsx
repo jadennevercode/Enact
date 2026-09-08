@@ -79,15 +79,15 @@ export function SemanticExplorer({ graph = emptyGraph, onSelectNode, compact = f
         sigma.setSetting("edgeReducer", (id, data) => ({ ...data, ...(active ? { hidden: !scoped.hasExtremity(id, active), size: 2.3, color: palette.bindingLayer } : {}) }));
       };
       refreshFocus.current = focus;
-      sigma.on("enterNode", ({ node }) => { hovered = node; element.style.cursor = "pointer"; focus(); });
-      sigma.on("leaveNode", () => { hovered = undefined; element.style.cursor = "grab"; focus(); });
+      sigma.on("enterNode", ({ node }) => { hovered = node; element.dataset.hoveredNode = "true"; focus(); });
+      sigma.on("leaveNode", () => { hovered = undefined; delete element.dataset.hoveredNode; focus(); });
       sigma.on("clickNode", ({ node }) => { const value = scoped.getNodeAttribute(node, "original") as SemanticGraphNode; selectedRef.current = { node: value }; setSelection({ node: value }); selectRef.current?.(value); focus(); });
       sigma.on("clickEdge", ({ edge }) => selectEdge(scoped.getEdgeAttribute(edge, "original") as SemanticGraphEdge));
       sigma.on("clickStage", () => { clearSelection(); hovered = undefined; focus(); });
       focus();
       observer = new ResizeObserver(() => sigma.resize()); observer.observe(element);
     }).catch(() => { if (!disposed) setUnavailable(true); });
-    return () => { disposed = true; observer?.disconnect(); renderer.current?.kill(); renderer.current = null; refreshFocus.current = undefined; };
+    return () => { disposed = true; delete element.dataset.hoveredNode; observer?.disconnect(); renderer.current?.kill(); renderer.current = null; refreshFocus.current = undefined; };
   }, [visible]);
 
   const relatedLabel = (id: string) => { const node = graph.nodes.find(n => n.id === id); return node ? nodeLabel(node) : id; };
@@ -100,8 +100,8 @@ export function SemanticExplorer({ graph = emptyGraph, onSelectNode, compact = f
     {graph.truncated === true && <div className="border-b border-warning/25 bg-warning/5 px-4 py-3 text-caption leading-relaxed" role="status"><strong>{t("graphPartial")} · {graph.nodes.length} {t("graphNodes")} / {graph.edges.length} {t("relations")}</strong><p className="mt-1 text-muted-foreground">{t("graphPartialHelp")}</p></div>}
     {nativeSchema && <div className="flex flex-wrap gap-4 border-b border-border-soft px-4 py-2 text-caption text-muted-foreground"><span>{t("loadedScope")}</span><span>{t("ontologyLayer")} · {graph.nodes.filter(node => node.layer === "schema").length}</span><span>{t("knowledgeLayer")} · {graph.nodes.filter(node => node.layer === "instances").length}</span><span>{t("sourceLayer")} · {graph.nodes.filter(node => node.layer === "provenance").length}</span></div>}
     <div className={`grid ${compact ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "xl:grid-cols-[minmax(0,1fr)_320px]"}`}>
-      <div className="relative min-w-0 bg-background" style={{ backgroundImage: "radial-gradient(var(--border-soft) 1px, transparent 1px)", backgroundSize: "24px 24px" }}>
-        <div ref={host} className={`${compact ? "h-[400px]" : "h-[540px]"} w-full`} role="img" aria-label={`${t("exploreGraph")}: ${visible.nodes.length} ${t("graphNodes")}, ${visible.edges.length} ${t("relations")}`} />
+      <div className="relative min-w-0 bg-background [background-image:radial-gradient(var(--border-soft)_1px,transparent_1px)] [background-size:24px_24px]">
+        <div ref={host} className={`${compact ? "h-[400px]" : "h-[540px]"} w-full cursor-grab data-[hovered-node=true]:cursor-pointer`} role="img" aria-label={`${t("exploreGraph")}: ${visible.nodes.length} ${t("graphNodes")}, ${visible.edges.length} ${t("relations")}`} />
         {(!visible.nodes.length || unavailable) && <div className="absolute inset-0 flex items-center justify-center p-10 text-center text-body text-muted-foreground"><div><Network className="mx-auto mb-4 size-10 opacity-40" />{unavailable ? t("graphUnavailable") : t("graphEmpty")}</div></div>}
         {(search || list || unavailable) && <div className="absolute left-3 top-3 max-h-[340px] w-64 overflow-auto rounded-lg border bg-background p-1 shadow-sm">{matches.slice(0, 100).map(n => <button key={n.id} className="block w-full rounded-md px-3 py-2 text-left text-body hover:bg-muted focus-visible:outline-ring" onClick={() => select(n)}><span className="block truncate font-medium">{nodeLabel(n)}</span><span className="text-caption text-muted-foreground">{nodeTypeLabel(n)}</span></button>)}</div>}
         <div className="absolute bottom-3 left-3 flex gap-1 rounded-lg border bg-background p-1 shadow-sm"><Button variant="ghost" size="icon" aria-label={t("zoomIn")} onClick={() => renderer.current?.getCamera().animatedZoom({ duration: 180 })}><Plus className="size-4" /></Button><Button variant="ghost" size="icon" aria-label={t("zoomOut")} onClick={() => renderer.current?.getCamera().animatedUnzoom({ duration: 180 })}><Minus className="size-4" /></Button><Button variant="ghost" size="icon" aria-label={t("fitGraph")} onClick={() => renderer.current?.getCamera().animatedReset({ duration: 180 })}><Focus className="size-4" /></Button></div>
