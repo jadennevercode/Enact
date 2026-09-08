@@ -438,7 +438,7 @@ function ArtifactDetail({
             {t(($) => $.versions_title)}
           </h3>
           <ul
-            className="divide-y rounded-lg border"
+            className="enact-surface-panel divide-y divide-border-soft"
             data-testid="artifact-versions"
           >
             {entry.versions.map(({ artifact, version }, index) => (

@@ -1302,6 +1302,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	// Daemon API routes (require daemon token or valid user token)
 	r.Route("/api/daemon", func(r chi.Router) {
 		r.Use(middleware.DaemonAuth(queries, patCache, daemonTokenCache, cloudPATVerifier))
+		h.RegisterSemanticModelRuntimeRoutes(r)
 
 		r.Post("/register", h.DaemonRegister)
 		r.Post("/deregister", h.DaemonDeregister)
@@ -2059,7 +2060,10 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				})
 			})
 
-			// CapHub ontology catalog. The upstream URL and optional API key
+			// Workspace semantic control plane and business application runtime.
+			h.RegisterSemanticRoutes(r)
+
+			// CapHub remains an optional external catalog. Its URL and API key
 			// remain server-side; members only receive catalog data and links.
 			r.Get("/api/ontologies", h.ListOntologies)
 			r.Get("/api/ontologies/{domain}", h.GetOntology)

@@ -1,0 +1,31 @@
+# Explicit deployment step, after the backend has applied migrations.
+# Default is a rollback rehearsal. Add --apply to commit the import.
+services:
+  demo-import:
+    profiles: [demo]
+    build:
+      context: .
+      dockerfile: deploy/demo/Dockerfile
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-enact}
+      PGUSER: ${POSTGRES_USER:-enact}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set the existing database password}
+      DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:-}
+      ENACT_SEMANTIC_SECRET_KEY: ${ENACT_SEMANTIC_SECRET_KEY:-}
+      ENACT_VCS_SECRET_KEY: ${ENACT_VCS_SECRET_KEY:-}
+    volumes:
+      - ./deploy/demo:/bundle:ro
+      - backend_uploads:/uploads
+      - ${DEMO_SUPPLEMENTAL_DIR:-./data/demo-dependencies}:/supplemental
+    secrets:
+      - demo_bundle_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+secrets:
+  demo_bundle_key:
+    file: ${DEMO_BUNDLE_KEY_FILE:?Set the path to the separately delivered bundle key}

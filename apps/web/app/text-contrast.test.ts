@@ -100,6 +100,16 @@ const decodeSrgb = (c: number) =>
  * actually paints, not on the unrounded float behind it.
  */
 function cssColorToRgb(value: string): Rgb {
+  const hex = /^#(?:([\da-f])([\da-f])([\da-f])|([\da-f]{2})([\da-f]{2})([\da-f]{2}))$/i.exec(
+    value,
+  );
+  if (hex) {
+    const parts = hex[4]
+      ? [hex[4], hex[5], hex[6]]
+      : [hex[1], hex[2], hex[3]].map((c) => `${c}${c}`);
+    return parts.map((c) => parseInt(c as string, 16)) as unknown as Rgb;
+  }
+
   const hsl = /^hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)$/.exec(value);
   if (hsl?.[1] && hsl[2] && hsl[3]) {
     const hue = (Number(hsl[1]) % 360) / 360;
@@ -130,7 +140,7 @@ function cssColorToRgb(value: string): Rgb {
 
   const oklch = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value);
   if (!oklch?.[1] || !oklch[2] || !oklch[3]) {
-    throw new Error(`expected an alpha-free HSL or OKLCH colour, got "${value}"`);
+    throw new Error(`expected an alpha-free hex, HSL or OKLCH colour, got "${value}"`);
   }
 
   const lightness = Number(oklch[1]);
@@ -435,9 +445,11 @@ function findTransparencyAsHierarchy(source: string): { line: number; found: str
 // ── the contract ───────────────────────────────────────────────────────────
 
 describe("text contrast", () => {
+  // Light is the default scope: `:root` and `.light` share one block, `.dark`
+  // is the second value set. Both must satisfy the same floors.
   const themeScopes = [
-    ["default dark", ":root"],
-    ["light", ".light"],
+    ["default light", ":root"],
+    ["dark", ".dark"],
   ] as const;
 
   describe("--muted-foreground, the floor for text", () => {
@@ -477,6 +489,55 @@ describe("text contrast", () => {
           `--${status}`,
           WCAG_AA_NORMAL_TEXT,
         );
+      }
+    });
+  });
+
+  /**
+   * The shell is its own ground: it is not `--surface`, so the tones painted on
+   * it need their own guard. `--shell-group` is the quietest of the three and
+   * is a real label, not a mark, so it carries the text floor too.
+   */
+  describe("shell tones", () => {
+    const shellTones = ["--shell-foreground", "--shell-muted", "--shell-group"] as const;
+
+    it.each(themeScopes)("keep shell labels readable in %s mode", (_mode, selector) => {
+      const declarations = readBlock(tokensCss(), selector);
+
+      for (const tone of shellTones) {
+        expectTokenPairPasses(declarations, tone, "--app-shell", WCAG_AA_NORMAL_TEXT);
+      }
+    });
+  });
+
+  // `--brand-foreground` on `--brand` is deliberately NOT guarded. White on
+  // Deloitte Green is 2.27:1; the deck pairs the green with black, and so did
+  // this file until the product owner chose white (2026-09-07). The fill
+  // compensates with weight and a text shadow (primitives.css .enact-brand-fill).
+  // Recorded in design-system/enact/MASTER.md §3.1 rather than hidden here.
+
+  /**
+   * Status is shape plus colour, but the colour still has to be visible against
+   * the surface the shape is drawn on — 1.4.11 applies to the mark itself.
+   */
+  describe("status marks", () => {
+    const statusTokens = [
+      "--status-backlog",
+      "--status-todo",
+      "--status-in-progress",
+      "--status-in-review",
+      "--status-done",
+      "--status-blocked",
+      "--status-cancelled",
+    ] as const;
+
+    it.each(themeScopes)("stay visible on the surfaces they sit on in %s mode", (_mode, selector) => {
+      const declarations = readBlock(tokensCss(), selector);
+
+      for (const token of statusTokens) {
+        for (const background of ["--surface", "--surface-hover", "--surface-selected"]) {
+          expectTokenPairPasses(declarations, token, background, WCAG_AA_NON_TEXT);
+        }
       }
     });
   });

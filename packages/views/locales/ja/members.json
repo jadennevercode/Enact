@@ -16,5 +16,88 @@
     "breadcrumb_fallback": "メンバー",
     "not_found_title": "メンバーが見つかりません",
     "not_found_description": "このメンバーはワークスペースから退出した可能性があります。"
+  },
+  "page": {
+    "title": "メンバー",
+    "tagline": "このワークスペースに誰がいて、何を動かしているか。",
+    "invite": "招待"
+  },
+  "roster": {
+    "search_placeholder": "メンバーを検索",
+    "count_other": "{{count}} 人",
+    "agents_owned_other": "エージェント {{count}} 件",
+    "role": {
+      "owner": "オーナー",
+      "admin": "管理者",
+      "member": "メンバー"
+    },
+    "empty_title": "メンバーがいません",
+    "empty_description": "上の「招待」ボタンからメンバーを招待してください。",
+    "no_matches_title": "一致するメンバーがいません",
+    "no_matches_description": "別の名前かメールアドレスで検索してください。",
+    "load_failed": "メンバーを読み込めませんでした"
+  },
+  "manage": {
+    "section_title": "メンバー（{{count}}）",
+    "invite_title": "メンバーを招待",
+    "invite_email_placeholder": "user@company.com",
+    "invite_button": "招待",
+    "inviting": "招待中...",
+    "toast_invitation_sent": "招待を送信しました",
+    "toast_invitation_failed": "招待を送信できませんでした",
+    "no_members": "メンバーが見つかりません。",
+    "pending_title": "保留中の招待（{{count}}）",
+    "pending_status": "保留中",
+    "revoke_invitation_tooltip": "招待を取り消し",
+    "revoke_invitation_title": "招待を取り消し",
+    "revoke_invitation_description": "{{email}} への招待を取り消しますか？このワークスペースに参加できなくなります。",
+    "toast_invitation_revoked": "招待を取り消しました",
+    "toast_invitation_revoke_failed": "招待を取り消せませんでした",
+    "toast_role_updated": "ロールを更新しました",
+    "toast_role_failed": "メンバーを更新できませんでした",
+    "toast_member_removed": "メンバーを削除しました",
+    "toast_member_remove_failed": "メンバーを削除できませんでした",
+    "remove_member_title": "{{name}} を削除",
+    "remove_member_description": "{{workspace}} から {{name}} を削除しますか？このワークスペースへのアクセスを失います。",
+    "confirm_cancel": "キャンセル",
+    "confirm_action": "確認",
+    "change_role": "ロールを変更",
+    "remove_action": "ワークスペースから削除",
+    "cannot_demote_last_owner_title": "先に別のメンバーを owner に昇格させてください。ワークスペースには少なくとも 1 人の owner が必要です。",
+    "cannot_demote_last_owner": "最後の owner は降格できません",
+    "roles": {
+      "owner": {
+        "label": "オーナー",
+        "description": "フルアクセス、すべての設定を管理"
+      },
+      "admin": {
+        "label": "管理者",
+        "description": "メンバーと設定を管理"
+      },
+      "member": {
+        "label": "メンバー",
+        "description": "タスクの作成と作業"
+      }
+    },
+    "share_links_title": "共有リンク",
+    "role_field": "ロール：",
+    "expiry_field": "有効期限：",
+    "share_links_create_title": "共有リンクを作成",
+    "share_links_create_button": "生成",
+    "share_links_creating": "生成中...",
+    "share_link_uses": "{{used}} / {{max}} 回使用",
+    "share_link_expires": "有効期限 {{date}}",
+    "share_link_copy_tooltip": "リンクをコピー",
+    "share_link_revoke_tooltip": "リンクを取り消す",
+    "toast_share_link_created": "共有リンクを作成しました",
+    "toast_share_link_failed": "共有リンクの作成に失敗しました",
+    "toast_share_link_revoked": "共有リンクを取り消しました",
+    "toast_share_link_revoke_failed": "共有リンクの取り消しに失敗しました",
+    "toast_share_link_copied": "リンクをコピーしました",
+    "toast_share_link_copy_failed": "リンクのコピーに失敗しました",
+    "expiry_24h": "24時間",
+    "expiry_7d": "7日",
+    "expiry_30d": "30日",
+    "expiry_never": "無期限"
   }
 }

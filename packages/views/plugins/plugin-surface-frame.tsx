@@ -96,7 +96,7 @@ export function PluginSurfaceFrame({ wsId, installation, surface, issueId, class
 
   if (!surfaceDocument) {
     return (
-      <div ref={anchorRef} className={cn("rounded-lg border border-surface-border px-4 py-3 text-caption text-muted-foreground", className)}>
+      <div ref={anchorRef} className={cn("enact-surface-panel px-4 py-3 text-caption text-muted-foreground", className)}>
         {/* Three states share this box on purpose: still loading, the request
             failed, and the installed version carries no code for this surface.
             All three mean "nothing to render yet"; only the last is permanent,
@@ -108,7 +108,7 @@ export function PluginSurfaceFrame({ wsId, installation, surface, issueId, class
   }
 
   return (
-    <div ref={anchorRef} className={cn("overflow-hidden rounded-lg border border-surface-border", className)}>
+    <div ref={anchorRef} className={cn("enact-surface-panel overflow-hidden", className)}>
       {failed ? (
         <div className="px-4 py-3 text-caption text-muted-foreground">
           <PluginSurfaceNotice installation={installation} kind="failed" />

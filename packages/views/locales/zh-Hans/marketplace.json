@@ -1,5 +1,5 @@
 {
-  "title": "市场",
+  "title": "能力中心",
   "description": "当前部署的各个工作区发布的能力。你可以把副本安装到自己的工作区。",
   "kind": {
     "skill": "Skills",
@@ -14,14 +14,14 @@
     "mcp": "MCP server",
     "squad": "Agent Family"
   },
-  "search_placeholder": "在市场中搜索",
+  "search_placeholder": "在能力中心搜索",
   "all_kinds": "全部",
   "mine": "本工作区发布的",
   "clear_filters": "清除筛选",
   "empty": "还没有任何发布。",
   "empty_filtered": "没有条目匹配当前筛选。",
   "empty_mine": "这个工作区还没有发布过任何内容。",
-  "load_failed": "无法加载市场。",
+  "load_failed": "无法加载能力中心。",
   "retry": "重试",
   "by": "由 {{publisher}} 发布",
   "installs_other": "{{count}} 次安装",
@@ -41,7 +41,7 @@
     "workspace_hint": "只有本工作区能看到。可以先用它演练一遍，再决定是否公开。"
   },
   "detail": {
-    "back": "市场",
+    "back": "能力中心",
     "unavailable": "这个条目不可用。",
     "no_version": "这个条目还没有发布过任何版本。",
     "overview": "概览",
@@ -98,7 +98,7 @@
   },
   "publish": {
     "action": "发布",
-    "title": "发布到市场",
+    "title": "发布到能力中心",
     "description": "服务器会读取你指定的实体，并在存储之前剥离其中的所有凭据。",
     "source_label": "发布什么",
     "source_placeholder": "选择一个 {{kind}}",

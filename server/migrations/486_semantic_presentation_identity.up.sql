@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS semantic_run_presentation_identity ON semantic_run_presentation(workspace_id,run_id,application_id,application_build_id,principal_id);

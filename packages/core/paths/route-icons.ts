@@ -20,6 +20,7 @@
 
 /** Every icon name a nav page or a tab type-icon can resolve to. */
 export type RouteIconName =
+  | "LayoutDashboard"
   | "Inbox"
   | "MessageSquare"
   | "CircleUser"
@@ -33,6 +34,7 @@ export type RouteIconName =
   | "Network"
   | "Server"
   | "BookOpenText"
+  | "Library"
   | "Store"
   | "Settings"
   | "File"
@@ -46,6 +48,7 @@ export type RouteIconName =
 
 /** i18n label key (under the `layout.nav` namespace) for a page. */
 export type NavLabelKey =
+  | "home"
   | "inbox"
   | "chat"
   | "my_issues"
@@ -53,6 +56,10 @@ export type NavLabelKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "members"
+  | "resources"
+  | "connections"
+  | "applications"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -62,6 +69,7 @@ export type NavLabelKey =
 
 /** Stable identifier for each workspace navigation page. */
 export type WorkspacePageKey =
+  | "home"
   | "inbox"
   | "chat"
   | "myIssues"
@@ -69,6 +77,10 @@ export type WorkspacePageKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "members"
+  | "resources"
+  | "connections"
+  | "applications"
   | "usage"
   | "runtimes"
   | "ontologies"
@@ -90,6 +102,7 @@ export interface WorkspacePage {
  * destinations in paths.ts and the sidebar nav groups.
  */
 export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
+  home: { segment: "home", icon: "LayoutDashboard", navKey: "home" },
   inbox: { segment: "inbox", icon: "Inbox", navKey: "inbox" },
   chat: { segment: "chat", icon: "MessageSquare", navKey: "chat" },
   myIssues: { segment: "my-issues", icon: "CircleUser", navKey: "my_issues" },
@@ -97,6 +110,10 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   autopilots: { segment: "autopilots", icon: "Zap", navKey: "autopilots" },
   agents: { segment: "agents", icon: "Bot", navKey: "agents" },
   squads: { segment: "squads", icon: "Users", navKey: "squads" },
+  members: { segment: "members", icon: "CircleUser", navKey: "members" },
+  connections: { segment: "connections", icon: "Network", navKey: "connections" },
+  applications: { segment: "applications", icon: "LayoutDashboard", navKey: "applications" },
+  resources: { segment: "resources", icon: "FolderOpen", navKey: "resources" },
   usage: { segment: "usage", icon: "BarChart3", navKey: "usage" },
   runtimes: { segment: "runtimes", icon: "Monitor", navKey: "runtimes" },
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
@@ -104,6 +121,74 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
+
+/** i18n key (under `layout.sidebar`) for a nav group's heading. */
+export type NavGroupLabelKey =
+  | "collaboration_group"
+  | "intelligence_group"
+  | "execution_group";
+
+export interface WorkspaceNavGroup {
+  /** Stable identity for the group — React key, and what tests name. */
+  id: string;
+  /**
+   * `layout.sidebar.<labelKey>`, or null for a group that renders no heading.
+   * The first group is deliberately unlabelled: it is the viewer's own
+   * surfaces, and a heading over them says nothing the icons do not.
+   */
+  labelKey: NavGroupLabelKey | null;
+  pages: readonly WorkspacePageKey[];
+}
+
+/**
+ * Sidebar nav structure, and the palette's "Pages" group with it.
+ *
+ * Separate from {@link WORKSPACE_PAGES} on purpose: that registry answers
+ * "what icon and name does this route segment have", and must keep an entry
+ * for every segment a desktop tab can hold — including surfaces that are
+ * reachable but not top-level destinations. This one answers "what does the
+ * sidebar offer, in what order, under which heading", so a page can leave the
+ * nav without losing its tab icon.
+ *
+ * Every key listed here must be a parameterless `WorkspacePaths` method, since
+ * both consumers resolve the destination as `p[key]()`.
+ */
+export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
+  // The order is the work model: what is mine, the work and the people it is
+  // shared with, what the workspace can do, where it runs. Settings closes as
+  // its own unlabelled group because administering the workspace is not a step
+  // in that sequence.
+  //
+  // Members sits with the work rather than with the agents: a colleague is
+  // someone you hand an issue to, not a capability the workspace is equipped
+  // with. Intelligence keeps what the workspace can be taught to do.
+  //
+  // The inbox and the viewer's own issues are not entries: they are tabs of
+  // Home, which is the one place a person's own work is answered. The inbox
+  // keeps a second, faster way in through the top bar's bell.
+  { id: "personal", labelKey: null, pages: ["home", "chat"] },
+  {
+    id: "collaboration",
+    labelKey: "collaboration_group",
+    pages: ["issues", "autopilots", "applications", "members"],
+  },
+  {
+    id: "intelligence",
+    labelKey: "intelligence_group",
+    pages: ["agents", "marketplace"],
+  },
+  {
+    id: "execution",
+    labelKey: "execution_group",
+    pages: ["runtimes", "resources", "usage"],
+  },
+  { id: "administration", labelKey: null, pages: ["settings"] },
+];
+
+/** Every page the sidebar links to, in sidebar order. */
+export const NAV_PAGE_KEYS: readonly WorkspacePageKey[] = WORKSPACE_NAV.flatMap(
+  (group) => [...group.pages],
+);
 
 /** Reverse lookup: route segment → page key. */
 const PAGE_BY_SEGMENT: Record<string, WorkspacePageKey> = Object.fromEntries(

@@ -1,5 +1,7 @@
 "use client";
 
+import { OntologyWorkbench } from "../../semantic/ontology-workbench";
+import { useSemanticText } from "../../semantic/shared";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -35,7 +37,6 @@ import {
 } from "@enact/ui/components/ui/tabs";
 import { RichContent } from "../../rich-content";
 import { useLocale, useT } from "../../i18n";
-import { CollectionPageHeader } from "../../layout/collection-page";
 import { openExternal } from "../../platform";
 
 function localized(
@@ -47,6 +48,11 @@ function localized(
 }
 
 export function OntologiesPage() {
+  const t = useSemanticText();
+  return <Tabs defaultValue="workspace" className="flex min-h-0 flex-1 flex-col"><TabsList className="mx-6 mt-3"><TabsTrigger value="workspace">{t("studio")}</TabsTrigger><TabsTrigger value="catalog">{t("capHub")}</TabsTrigger></TabsList><TabsContent value="workspace" className="flex min-h-0 flex-1 flex-col"><OntologyWorkbench /></TabsContent><TabsContent value="catalog" className="flex min-h-0 flex-1 flex-col"><OntologyCatalogPage /></TabsContent></Tabs>;
+}
+
+function OntologyCatalogPage() {
   const { t } = useT("settings");
   const locale = useLocale();
   const wsId = useWorkspaceId();
@@ -58,13 +64,6 @@ export function OntologiesPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <CollectionPageHeader
-        icon={Network}
-        title={t(($) => $.ontology.title)}
-        count={listQuery.data?.length}
-        description={t(($) => $.ontology.description)}
-      />
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">
           {listQuery.isPending ? (
@@ -98,7 +97,7 @@ export function OntologiesPage() {
                     <button
                       type="button"
                       onClick={() => setSelected(ontology)}
-                      className="group flex h-full w-full flex-col rounded-lg border border-surface-border bg-surface-raised/40 p-4 text-left outline-none hover:border-foreground/20 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
+                      className="enact-surface-card group flex h-full w-full flex-col p-4 text-left outline-none hover:border-foreground/20 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <span className="flex w-full min-w-0 items-start gap-3">
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-foreground">
@@ -328,7 +327,7 @@ function OntologyStat({
   locale: string;
 }) {
   return (
-    <div className="rounded-md border border-surface-border px-3 py-2.5">
+    <div className="enact-surface-panel px-3 py-2.5">
       <div className="text-title font-semibold tabular-nums">
         {new Intl.NumberFormat(locale).format(value)}
       </div>
@@ -357,7 +356,7 @@ function OntologyItems({
       {items.length === 0 ? (
         <p className="text-caption text-muted-foreground">{emptyLabel}</p>
       ) : (
-        <ul className="divide-y divide-surface-border rounded-md border border-surface-border">
+        <ul className="enact-surface-panel divide-y divide-border-soft">
           {items.map((item) => (
             <li key={item.name} className="px-3 py-2">
               <div className="text-body font-medium">

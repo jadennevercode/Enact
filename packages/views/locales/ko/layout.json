@@ -1,26 +1,33 @@
 {
   "nav": {
+    "home": "홈",
     "inbox": "인박스",
     "chat": "채팅",
     "my_issues": "내 태스크",
     "issues": "태스크",
-    "artifacts": "산출물",
     "autopilots": "오토파일럿",
-    "agents": "에이전트",
-    "squads": "에이전트 패밀리",
-    "usage": "분석",
+    "agents": "Intelligence Center",
+    "members": "멤버",
+    "marketplace": "Capability Hub",
     "runtimes": "런타임",
+    "resources": "Sources",
+    "usage": "인사이트",
+    "settings": "설정",
+    "artifacts": "산출물",
+    "squads": "Agent Family",
+    "team": "팀",
+    "capabilities": "역량",
     "ontologies": "온톨로지",
     "skills": "스킬",
-    "marketplace": "마켓플레이스",
-    "settings": "설정"
+    "connections": "연결",
+    "applications": "애플리케이션"
   },
   "tab": {
     "issue": "태스크",
     "autopilot": "오토파일럿",
     "agent": "에이전트",
     "member": "멤버",
-    "squad": "에이전트 패밀리",
+    "squad": "Agent Family",
     "skill": "스킬",
     "machine": "머신",
     "runtime": "런타임",
@@ -53,12 +60,17 @@
     "new_issue": "새 태스크",
     "new_issue_shortcut": "C",
     "pinned_label": "고정됨",
-    "workspace_group": "워크스페이스",
-    "configure_group": "설정",
+    "collaboration_group": "협업",
+    "intelligence_group": "인텔리전스",
+    "execution_group": "실행",
     "unread_overflow": "99+",
     "discord_card": {
       "title": "Discord 참여하기",
       "dismiss": "닫기"
     }
+  },
+  "topbar": {
+    "account": "계정",
+    "search": "검색"
   }
 }

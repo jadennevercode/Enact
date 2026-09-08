@@ -168,7 +168,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
           {t(($) => $.tab_body.integrations.intro)}
         </p>
         {dingtalkInstallation ? (
-          <section className="rounded-lg border">
+          <section className="enact-surface-panel">
             <div className="flex items-start gap-3 p-4">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
                 <DingTalkMark className="h-5 w-5" />
@@ -182,7 +182,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
                 </p>
               </div>
             </div>
-            <div className="border-t px-4 py-3">
+            <div className="border-t border-border-soft px-4 py-3">
               <DingTalkConnectionLabel
                 botName={dingtalkBotIdentity?.bot_name ?? ""}
                 botIdentityIssue={dingtalkBotIdentity?.bot_identity_issue ?? ""}
@@ -193,7 +193,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
               />
             </div>
             {showDingtalkGroupDiscovery && (
-              <div className="border-t px-4 pb-4">
+              <div className="border-t border-border-soft px-4 pb-4">
                 <DingTalkBotGroups
                   workspaceId={wsId}
                   agentId={agent.id}
@@ -222,7 +222,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
         {t(($) => $.tab_body.integrations.intro)}
       </p>
 
-      <section className="rounded-lg border">
+      <section className="enact-surface-panel">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <LarkMark className="h-4 w-4" />
@@ -234,7 +234,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
             </p>
           </div>
         </div>
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border-soft px-4 py-3">
           {!configured ? (
             // No at-rest key on this deployment. The tab is only mounted
             // when the feature is configured, so this is the rare "key was
@@ -269,7 +269,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
         </div>
       </section>
 
-      <section className="rounded-lg border">
+      <section className="enact-surface-panel">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <SlackMark className="h-4 w-4" />
@@ -281,7 +281,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
             </p>
           </div>
         </div>
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border-soft px-4 py-3">
           {!canManageSlack ? (
             // Slack install/revoke stay workspace owner/admin-only, so an
             // agent owner who is not an admin only gets the read-only note
@@ -309,7 +309,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
         </div>
       </section>
 
-      <section className="rounded-lg border">
+      <section className="enact-surface-panel">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <DingTalkMark className="h-5 w-5" />
@@ -321,7 +321,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
             </p>
           </div>
         </div>
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border-soft px-4 py-3">
           {!canManageDingtalk ? (
             // Viewers who cannot manage this agent still see its connected
             // DingTalk identity and discovered groups as read-only details.
@@ -362,7 +362,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
           )}
         </div>
         {dingtalkInstallation && showDingtalkGroupDiscovery && (
-          <div className="border-t px-4 pb-4">
+          <div className="border-t border-border-soft px-4 pb-4">
             <DingTalkBotGroups
               workspaceId={wsId}
               agentId={agent.id}
@@ -377,7 +377,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
         )}
       </section>
 
-      <section className="rounded-lg border">
+      <section className="enact-surface-panel">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <WecomMark className="h-4 w-4" />
@@ -389,7 +389,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
             </p>
           </div>
         </div>
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border-soft px-4 py-3">
           {!canManageWecom ? (
             <p className="text-caption text-muted-foreground">
               {t(($) => $.tab_body.integrations.members_note)}
@@ -411,7 +411,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
         </div>
       </section>
 
-      <section className="rounded-lg border">
+      <section className="enact-surface-panel">
         <div className="flex items-start gap-3 p-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
             <TelegramMark className="h-4 w-4" />
@@ -423,7 +423,7 @@ export function IntegrationsTab({ agent }: { agent: Agent }) {
             </p>
           </div>
         </div>
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border-soft px-4 py-3">
           {!canManageTelegram ? (
             <p className="text-caption text-muted-foreground">
               {t(($) => $.tab_body.integrations.members_note)}

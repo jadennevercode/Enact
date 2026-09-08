@@ -33,6 +33,7 @@ import {
   routeContentLinkPath,
 } from "@/platform/navigation";
 import { TabBar } from "./tab-bar";
+import { TopBarActions } from "@enact/views/layout";
 import { TabContent } from "./tab-content";
 import { WindowOverlay } from "./window-overlay";
 
@@ -136,8 +137,17 @@ function MainTopBar() {
         transition={toolbarMotion}
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
-      <div className="enact-desktop-tab-host relative z-10 flex h-full min-w-0 max-w-full items-center">
+      <div className="enact-desktop-tab-host relative z-10 flex h-full min-w-0 flex-1 items-center">
         <TabBar />
+      </div>
+      {/* The session controls the web shell puts in its own bar. This window
+          already has a bar across the top, so they ride along in it rather
+          than costing a second row of height. */}
+      <div
+        className="relative z-10 flex shrink-0 items-center pr-2"
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+      >
+        <TopBarActions />
       </div>
     </motion.header>
   );
@@ -212,7 +222,7 @@ function DesktopInboxBridge() {
   useEffect(() => {
     return window.desktopAPI.onInboxOpen(({ slug, issueKey }) => {
       if (!slug) return;
-      const inboxPath = `${paths.workspace(slug).inbox()}?issue=${encodeURIComponent(issueKey)}`;
+      const inboxPath = `${paths.workspace(slug).homeTab("inbox")}&issue=${encodeURIComponent(issueKey)}`;
       pushRef.current(inboxPath);
     });
   }, []);
@@ -287,7 +297,7 @@ export function DesktopShell() {
           >
             {slug && <GlobalShortcuts />}
             {slug && <WindowToolbar />}
-            {slug && <AppSidebar topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
+            {slug && <AppSidebar variant="inset" topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
             {/* Right side: header + content container */}
             <div className="enact-desktop-main flex flex-1 min-w-0 flex-col">
               <MainTopBar />

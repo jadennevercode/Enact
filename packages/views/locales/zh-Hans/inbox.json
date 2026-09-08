@@ -89,5 +89,10 @@
     "archive_completed_failed": "归档已完成失败",
     "unarchive_failed": "取消归档失败",
     "archived_load_failed": "无法加载已归档通知"
+  },
+  "bell": {
+    "label_other": "收件箱，{{count}} 条未读",
+    "empty": "没有未读。",
+    "see_all": "打开收件箱"
   }
 }

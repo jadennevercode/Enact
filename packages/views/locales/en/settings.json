@@ -199,9 +199,13 @@
         "label": "Go forward",
         "description": "Navigate forward through history, like a browser."
       },
+      "goHome": {
+        "label": "Go to Home",
+        "description": "Open the workspace home."
+      },
       "goInbox": {
         "label": "Go to Inbox",
-        "description": "Open the workspace inbox."
+        "description": "Open the inbox on Home."
       },
       "goChat": {
         "label": "Go to Chat",
@@ -209,7 +213,7 @@
       },
       "goMyIssues": {
         "label": "Go to My Issues",
-        "description": "Open issues assigned to you."
+        "description": "Open your issues on Home."
       },
       "goIssues": {
         "label": "Go to Issues",
@@ -219,29 +223,33 @@
         "label": "Go to Autopilot",
         "description": "Open workspace automations."
       },
-      "goAgents": {
-        "label": "Go to Agents",
-        "description": "Open the agent list."
-      },
-      "goSquads": {
-        "label": "Go to Agent Families",
-        "description": "Open the agent family list."
-      },
       "goUsage": {
-        "label": "Go to Usage",
-        "description": "Open usage analytics."
+        "label": "Go to Insights",
+        "description": "Open usage, errors and runs."
       },
       "goRuntimes": {
         "label": "Go to Runtimes",
         "description": "Open runtime configuration."
       },
-      "goSkills": {
-        "label": "Go to Skills",
-        "description": "Open the skill library."
-      },
       "goSettings": {
         "label": "Go to Settings",
         "description": "Open workspace settings."
+      },
+      "goAgents": {
+        "label": "Go to Agents",
+        "description": "Open agents, families, skills, MCP and ontologies."
+      },
+      "goMembers": {
+        "label": "Go to Members",
+        "description": "Open the member roster."
+      },
+      "goResources": {
+        "label": "Go to Resources",
+        "description": "Open repositories, directories and knowledge bases."
+      },
+      "goMarketplace": {
+        "label": "Go to Capability Hub",
+        "description": "Open the capability catalogue."
       }
     },
     "fixed": {
@@ -314,7 +322,6 @@
       "github": "GitHub",
       "integrations": "Integrations",
       "labs": "Labs",
-      "members": "Members",
       "labels": "Labels",
       "issue_statuses": "Issue Statuses",
       "properties": "Properties",
@@ -1142,68 +1149,5 @@
       "check_now": "Check now",
       "checking": "Checking…"
     }
-  },
-  "members": {
-    "section_title": "Members ({{count}})",
-    "invite_title": "Invite member",
-    "invite_email_placeholder": "user@company.com",
-    "invite_button": "Invite",
-    "inviting": "Inviting...",
-    "toast_invitation_sent": "Invitation sent",
-    "toast_invitation_failed": "Failed to send invitation",
-    "no_members": "No members found.",
-    "pending_title": "Pending invitations ({{count}})",
-    "pending_status": "Pending",
-    "revoke_invitation_tooltip": "Revoke invitation",
-    "revoke_invitation_title": "Revoke invitation",
-    "revoke_invitation_description": "Revoke the invitation to {{email}}? They will no longer be able to join this workspace.",
-    "toast_invitation_revoked": "Invitation revoked",
-    "toast_invitation_revoke_failed": "Failed to revoke invitation",
-    "toast_role_updated": "Role updated",
-    "toast_role_failed": "Failed to update member",
-    "toast_member_removed": "Member removed",
-    "toast_member_remove_failed": "Failed to remove member",
-    "remove_member_title": "Remove {{name}}",
-    "remove_member_description": "Remove {{name}} from {{workspace}}? They will lose access to this workspace.",
-    "confirm_cancel": "Cancel",
-    "confirm_action": "Confirm",
-    "change_role": "Change role",
-    "remove_action": "Remove from workspace",
-    "cannot_demote_last_owner_title": "Promote another member to owner first — a workspace must keep at least one owner.",
-    "cannot_demote_last_owner": "Cannot demote the last owner",
-    "roles": {
-      "owner": {
-        "label": "Owner",
-        "description": "Full access, manage all settings"
-      },
-      "admin": {
-        "label": "Admin",
-        "description": "Manage members and settings"
-      },
-      "member": {
-        "label": "Member",
-        "description": "Create and work on issues"
-      }
-    },
-    "share_links_title": "Share links",
-    "role_field": "Role:",
-    "expiry_field": "Expiry:",
-    "share_links_create_title": "Create share link",
-    "share_links_create_button": "Generate",
-    "share_links_creating": "Generating...",
-    "share_link_uses": "{{used}} / {{max}} uses",
-    "share_link_expires": "Expires {{date}}",
-    "share_link_copy_tooltip": "Copy link",
-    "share_link_revoke_tooltip": "Revoke link",
-    "toast_share_link_created": "Share link created",
-    "toast_share_link_failed": "Failed to create share link",
-    "toast_share_link_revoked": "Share link revoked",
-    "toast_share_link_revoke_failed": "Failed to revoke share link",
-    "toast_share_link_copied": "Link copied",
-    "toast_share_link_copy_failed": "Failed to copy link",
-    "expiry_24h": "24 hours",
-    "expiry_7d": "7 days",
-    "expiry_30d": "30 days",
-    "expiry_never": "Never"
   }
 }

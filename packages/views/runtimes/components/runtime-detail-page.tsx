@@ -328,7 +328,7 @@ export function RuntimeDetailPage({
             )}
           </div>
           {machineRuntimes.length > 0 ? (
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <div className="enact-surface-panel overflow-hidden">
               <RuntimeList
                 runtimes={machineRuntimes}
                 now={now}
@@ -398,9 +398,9 @@ function MachineDetailSkeleton() {
       <div className="mx-auto w-full max-w-[1440px] p-6">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="mt-2 h-3 w-72" />
-        <div className="mt-4 overflow-hidden rounded-lg border">
+        <div className="enact-surface-panel mt-4 overflow-hidden">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 w-full rounded-none border-b last:border-b-0" />
+            <Skeleton key={index} className="h-14 w-full rounded-none border-b border-border-soft last:border-b-0" />
           ))}
         </div>
       </div>

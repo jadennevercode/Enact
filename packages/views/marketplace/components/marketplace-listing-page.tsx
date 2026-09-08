@@ -283,7 +283,7 @@ export function MarketplaceListingPage({ listingId }: MarketplaceListingPageProp
           {prerequisites.length > 0 ? (
             <section
               aria-labelledby="marketplace-prerequisites-heading"
-              className="flex flex-col gap-2 rounded-md border border-surface-border bg-surface-raised/40 px-4 py-3"
+              className="enact-surface-panel flex flex-col gap-2 px-4 py-3"
             >
               <h2
                 id="marketplace-prerequisites-heading"
@@ -441,7 +441,7 @@ function AgentOverview({ agent }: { agent: MarketplaceAgentManifest }) {
             {skills.map((skill) => (
               <li
                 key={skill.dir}
-                className="rounded-md border border-surface-border px-3 py-2"
+                className="enact-surface-panel px-3 py-2"
               >
                 <p className="text-caption font-medium">{skill.name}</p>
                 <p className="text-caption text-muted-foreground">
@@ -461,7 +461,7 @@ function AgentOverview({ agent }: { agent: MarketplaceAgentManifest }) {
             {servers.map((server) => (
               <li
                 key={server.name}
-                className="rounded-md border border-surface-border px-3 py-2"
+                className="enact-surface-panel px-3 py-2"
               >
                 <p className="font-mono text-caption font-medium">{server.name}</p>
                 {server.endpoint_hint ? (
@@ -499,7 +499,7 @@ function SquadOverview({ squad }: { squad: MarketplaceSquadManifest }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="rounded-md border border-surface-border bg-surface-raised/40 px-3 py-2 text-caption text-muted-foreground">
+      <p className="enact-surface-panel px-3 py-2 text-caption text-muted-foreground">
         {t(($) => $.detail.family_installs_all, { count: members.length })}
       </p>
 
@@ -522,7 +522,7 @@ function SquadOverview({ squad }: { squad: MarketplaceSquadManifest }) {
           {members.map((member) => (
             <li
               key={member.dir}
-              className="rounded-lg border border-surface-border p-4"
+              className="enact-surface-panel p-4"
             >
               <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2">
                 <Bot

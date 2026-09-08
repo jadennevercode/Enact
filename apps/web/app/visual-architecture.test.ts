@@ -137,7 +137,7 @@ const governedComponentPaths = [
   "packages/views/inbox/components/inbox-page.tsx",
   "packages/views/inbox/components/inbox-list.tsx",
   "packages/views/inbox/components/inbox-list-item.tsx",
-  "packages/views/agents/components/agents-page.tsx",
+  "packages/views/agents/components/agent-list-page.tsx",
   "packages/views/agents/components/agent-list-toolbar.tsx",
   "packages/views/agents/components/agent-batch-toolbar.tsx",
   "packages/views/agents/components/agent-row-actions.tsx",
@@ -523,7 +523,7 @@ const dynamicStyleAllowlist: Partial<
       pattern: /style=\{\{ maskType: "luminance" \}\}/g,
     },
   ],
-  "packages/views/settings/components/members-tab.tsx": [
+  "packages/views/members/components/invite-dialog.tsx": [
     {
       description: "legacy clipboard fallback offscreen geometry",
       expectedMatches: 2,
@@ -636,8 +636,11 @@ const dynamicStyleAllowlist: Partial<
   ],
   "apps/desktop/src/renderer/src/components/desktop-layout.tsx": [
     {
+      // Seven since the session controls joined the tab bar: their wrapper
+      // has to opt out of the drag region or the bell and account menu
+      // would move the window instead of opening.
       description: "Electron drag and no-drag regions",
-      expectedMatches: 6,
+      expectedMatches: 7,
       pattern:
         /style=\{\{ WebkitAppRegion: "(?:drag|no-drag)" \} as React\.CSSProperties\}/g,
     },
@@ -837,7 +840,7 @@ const dynamicStyleAllowlist: Partial<
         /style=\{\{ transform: `translateY\(\$\{preview\.y\}px\) translateY\(-50%\)` \}\}/g,
     },
   ],
-  "packages/views/agents/components/agents-page.tsx": [
+  "packages/views/agents/components/agent-list-page.tsx": [
     {
       description: "agent collection column track variables",
       expectedMatches: 2,
@@ -1125,7 +1128,7 @@ const rawVisualAllowlist: Partial<
     {
       description: "browser light and dark theme metadata",
       expectedMatches: 2,
-      pattern: /color:\s*"#(?:ffffff|05070b)"/gi,
+      pattern: /color:\s*"#(?:ffffff|000000)"/gi,
     },
   ],
   "packages/views/editor/mermaid-diagram.tsx": [
@@ -1567,7 +1570,7 @@ const requiredComponentClasses: Partial<
   ],
   "packages/views/inbox/components/inbox-list.tsx": ["enact-inbox-list"],
   "packages/views/inbox/components/inbox-list-item.tsx": ["enact-inbox-row"],
-  "packages/views/agents/components/agents-page.tsx": [
+  "packages/views/agents/components/agent-list-page.tsx": [
     "enact-management-page",
     "enact-management-row",
     "enact-agent-status",
@@ -2263,14 +2266,20 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/components/route-error-page.tsx",
     );
 
+    // Light is the default scope, so `:root`, `.light` and `.enact-fixed-light`
+    // share one block: the pre-hydration document, an explicit light choice and
+    // an embedded light subtree must resolve to the same palette, and a fixed
+    // subtree additionally forces the light scheme onto its descendants.
     expect(tokens).toMatch(
       /\.enact-fixed-light,\s*\.enact-fixed-light \*\s*\{[^}]*color-scheme:\s*light;/,
     );
     expect(tokens).toMatch(
-      /:root,\s*\.dark\s*\{[^}]*color-scheme:\s*dark;[^}]*--app-shell:\s*hsl\(228 24% 8%\);[^}]*--primary:\s*hsl\(147 87% 33%\);/,
+      /:root,\s*\.light,\s*\.enact-fixed-light\s*\{[^}]*color-scheme:\s*light;[^}]*--app-shell:\s*#f7f7f6;[^}]*--primary:\s*#86bc25;/,
     );
+    // Dark is the second value set under the same names — a black shell over a
+    // near-black canvas, with Deloitte Green still the only brand colour.
     expect(tokens).toMatch(
-      /\.light,\s*\.enact-fixed-light\s*\{[^}]*color-scheme:\s*light;[^}]*--app-shell:\s*hsl\(220 20% 96%\);/,
+      /\.dark\s*\{[^}]*color-scheme:\s*dark;[^}]*--app-shell:\s*#000000;[^}]*--primary:\s*#86bc25;/,
     );
     expect(landingLayout).toContain("enact-fixed-light landing-light");
     expect(landingCss).not.toMatch(
@@ -2556,7 +2565,7 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/globals.css",
     );
 
-    expect(pageHeader).toContain('export const PAGE_GUTTER = "px-4";');
+    expect(pageHeader).toContain('export const PAGE_GUTTER = "px-6";');
     expect(pageHeader).toContain("export const PAGE_TOOLBAR = cn(");
     expect(pageHeader).toContain("h-12");
     expect(pageHeader).toContain("sidebar.hasExternalTrigger");
@@ -2783,7 +2792,7 @@ describe("visual architecture", () => {
 
   it("preserves Task 7 management and usage behavior boundaries", () => {
     const agents = readRepoFile(
-      "packages/views/agents/components/agents-page.tsx",
+      "packages/views/agents/components/agent-list-page.tsx",
     );
     const agentActions = readRepoFile(
       "packages/views/agents/components/agent-row-actions.tsx",
@@ -2858,9 +2867,6 @@ describe("visual architecture", () => {
   });
 
   it("preserves Task 7 Desktop daemon context and lifecycle handlers", () => {
-    const desktopAgents = readRepoFile(
-      "apps/desktop/src/renderer/src/components/desktop-agents-page.tsx",
-    );
     const desktopRuntimes = readRepoFile(
       "apps/desktop/src/renderer/src/components/desktop-runtimes-page.tsx",
     );
@@ -2871,9 +2877,11 @@ describe("visual architecture", () => {
       "apps/desktop/src/renderer/src/components/daemon-panel.tsx",
     );
 
-    expect(desktopAgents).toMatch(
-      /useEffect\(\(\) => \{[\s\S]*?window\.daemonAPI\.getStatus\(\)\.then\(apply\);[\s\S]*?window\.daemonAPI\.getHostName\(\)[\s\S]*?return window\.daemonAPI\.onStatusChange\(apply\);[\s\S]*?<AgentsPage[\s\S]*?localDaemonId=\{status\.daemonId \?\? lastIdentity\.daemonId\}[\s\S]*?localMachineName=\{status\.deviceName \?\? lastIdentity\.deviceName \?\? hostName\}[\s\S]*?hasLocalMachine/,
-    );
+    // The agents list had a matching desktop wrapper that subscribed to daemon
+    // status and passed it down. `AgentsPageProps` documented those props as
+    // unused, and they were: the runtime filter lists runtimes by name. Both
+    // the wrapper and the props are gone now that the list is a tab of Team.
+    // The runtimes page below is the one that really consumes this context.
     expect(desktopRuntimes).toMatch(
       /const context = useDesktopRuntimeContext\(\);[\s\S]*?<RuntimesPage[\s\S]*?localDaemonId=\{context\.localDaemonId\}[\s\S]*?localMachineName=\{context\.localMachineName\}[\s\S]*?hasLocalMachine[\s\S]*?bootstrapping=\{context\.bootstrapping\}/,
     );

@@ -1,22 +1,25 @@
-"use client";
+import { redirect } from "next/navigation";
+import { paths } from "@enact/core/paths";
 
-import { Suspense } from "react";
-import { MyIssuesPage } from "@enact/views/my-issues";
-import { useIssueViewUrlSync } from "../../../../platform/use-issue-view-url-sync";
-
-function IssueViewUrlSync() {
-  // useSearchParams requires a Suspense boundary in the app router.
-  useIssueViewUrlSync({ scope_type: "my" });
-  return null;
-}
-
-export default function Page() {
-  return (
-    <>
-      <Suspense fallback={null}>
-        <IssueViewUrlSync />
-      </Suspense>
-      <MyIssuesPage />
-    </>
-  );
+// The viewer's own issues are a tab of Home now.
+export default async function Route({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ workspaceSlug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ workspaceSlug }, query] = await Promise.all([
+    params,
+    searchParams,
+  ]);
+  // The old route addressed one notification with `?issue=` and the
+  // archive with `?view=`; both still mean the same thing on the tab.
+  const carried = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (typeof value === "string") carried.set(key, value);
+  }
+  const destination = paths.workspace(workspaceSlug).homeTab("my-issues");
+  const suffix = carried.toString();
+  redirect(suffix ? `${destination}&${suffix}` : destination);
 }

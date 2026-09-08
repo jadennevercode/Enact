@@ -59,7 +59,7 @@ beforeEach(() => {
 });
 
 describe("OnboardingPage", () => {
-  it("creates a default workspace and enters its issue list", async () => {
+  it("creates a default workspace and enters its home", async () => {
     render(<OnboardingPage />);
 
     await waitFor(() => {
@@ -69,7 +69,7 @@ describe("OnboardingPage", () => {
       });
     });
     expect(state.completeOnboarding).toHaveBeenCalledWith(undefined, "ws-1");
-    expect(state.replace).toHaveBeenCalledWith("/workspace-user/issues");
+    expect(state.replace).toHaveBeenCalledWith("/workspace-user/home");
   });
 
   it("uses an existing workspace without rendering the product tour", async () => {
@@ -78,7 +78,7 @@ describe("OnboardingPage", () => {
     render(<OnboardingPage />);
 
     await waitFor(() => {
-      expect(state.replace).toHaveBeenCalledWith("/acme/issues");
+      expect(state.replace).toHaveBeenCalledWith("/acme/home");
     });
     expect(state.mutateAsync).not.toHaveBeenCalled();
     expect(state.completeOnboarding).toHaveBeenCalledWith(undefined, "ws-1");
@@ -91,7 +91,7 @@ describe("OnboardingPage", () => {
     render(<OnboardingPage />);
 
     await waitFor(() => {
-      expect(state.replace).toHaveBeenCalledWith("/acme/issues");
+      expect(state.replace).toHaveBeenCalledWith("/acme/home");
     });
     expect(state.completeOnboarding).not.toHaveBeenCalled();
   });

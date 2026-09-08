@@ -134,7 +134,7 @@ export function WebhookDeliveriesSection({
           {t(($) => $.deliveries.empty)}
         </div>
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="enact-surface-panel overflow-hidden">
           {deliveries.map((delivery) => (
             <DeliveryRow
               key={delivery.id}
@@ -463,8 +463,8 @@ function CodeBlock({ label, value }: { label: string; value: string }) {
     // width — without it, a minified single-line JSON body would push the
     // surrounding grid/flex cell (and the whole DialogContent) past the
     // viewport edge.
-    <div className="min-w-0 rounded-md border bg-background">
-      <div className="flex items-center justify-between border-b px-3 py-1.5 text-micro">
+    <div className="enact-surface-panel min-w-0">
+      <div className="flex items-center justify-between border-b border-border-soft bg-surface-hover px-3 py-1.5 text-micro">
         <span className="font-medium text-muted-foreground">{label}</span>
         <button
           type="button"

@@ -50,14 +50,14 @@ export function ListingFiles({ listingId, versionId, paths }: ListingFilesProps)
 
   return (
     <div className="grid min-h-0 gap-4 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
-      <div className="min-w-0 rounded-md border border-surface-border p-2">
+      <div className="enact-surface-panel min-w-0 p-2">
         <FileTree
           filePaths={paths}
           selectedPath={selected}
           onSelect={setSelected}
         />
       </div>
-      <div className="min-w-0 overflow-hidden rounded-md border border-surface-border">
+      <div className="enact-surface-panel min-w-0 overflow-hidden">
         {selected === "" ? (
           <p className="p-6 text-caption text-muted-foreground">
             {t(($) => $.detail.select_file)}

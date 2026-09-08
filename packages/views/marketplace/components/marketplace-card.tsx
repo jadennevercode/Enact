@@ -39,7 +39,7 @@ export function MarketplaceCard({ listing, onOpen }: MarketplaceCardProps) {
       type="button"
       onClick={() => onOpen(listing)}
       className={cn(
-        "group flex h-full w-full flex-col gap-3 rounded-lg border border-surface-border bg-surface-raised/40 p-4 text-left outline-none",
+        "enact-surface-card group flex h-full w-full flex-col gap-3 p-4 text-left outline-none",
         "transition-colors hover:border-foreground/20 hover:bg-surface-hover",
         "focus-visible:ring-2 focus-visible:ring-ring",
       )}

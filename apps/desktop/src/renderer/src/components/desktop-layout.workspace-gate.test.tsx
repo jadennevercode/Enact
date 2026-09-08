@@ -76,6 +76,7 @@ vi.mock("@enact/views/platform", () => ({
 // which of them the shell decided to mount.
 vi.mock("@enact/views/layout", () => ({
   AppSidebar: () => <div data-testid="app-sidebar" />,
+  TopBarActions: () => <div data-testid="top-bar-actions" />,
   GlobalShortcuts: () => <div data-testid="global-shortcuts" />,
   NavigationProgress: () => <div data-testid="navigation-progress" />,
 }));

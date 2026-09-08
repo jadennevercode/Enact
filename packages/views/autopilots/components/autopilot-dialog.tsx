@@ -964,7 +964,7 @@ function WebhookSection({
     <div className="space-y-3">
       <div>
         <SectionLabel>{t(($) => $.dialog.section_webhook)}</SectionLabel>
-        <p className="rounded-md border bg-background px-3 py-2 text-caption text-muted-foreground leading-relaxed">
+        <p className="enact-surface-panel px-3 py-2 text-caption text-muted-foreground leading-relaxed">
           {isCreate
             ? t(($) => $.dialog.webhook_help_create)
             : t(($) => $.dialog.webhook_help_edit)}

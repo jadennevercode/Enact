@@ -441,8 +441,8 @@ function MachineList({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <div className="divide-y">
+    <div className="enact-surface-panel overflow-hidden">
+      <div className="divide-y divide-border-soft">
         {machines.map((machine) => (
           <MachineRow key={machine.id} machine={machine} />
         ))}
@@ -577,9 +577,9 @@ function RuntimesPageSkeleton() {
         <Skeleton className="h-4 w-24" />
       </PageHeader>
       <div className="mx-auto w-full max-w-[1440px] p-6">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="enact-surface-panel overflow-hidden">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="flex h-[76px] items-center gap-3 border-b px-4 last:border-b-0">
+            <div key={index} className="flex h-[76px] items-center gap-3 border-b border-border-soft px-4 last:border-b-0">
               <Skeleton className="h-10 w-10 rounded-lg" />
               <div className="flex-1">
                 <Skeleton className="h-4 w-44" />

@@ -28,6 +28,7 @@ import type runtimes from "../locales/en/runtimes.json";
 import type layout from "../locales/en/layout.json";
 import type usage from "../locales/en/usage.json";
 import type squads from "../locales/en/squads.json";
+import type home from "../locales/en/home.json";
 import type billing from "../locales/en/billing.json";
 
 // Module augmentation enables i18next v26 selector API across the monorepo:
@@ -71,6 +72,7 @@ declare global {
     layout: typeof layout;
     usage: typeof usage;
     squads: typeof squads;
+    home: typeof home;
     billing: typeof billing;
   }
 }

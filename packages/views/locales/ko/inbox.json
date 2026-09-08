@@ -89,5 +89,10 @@
     "archive_completed_failed": "완료된 항목을 보관하지 못했습니다",
     "unarchive_failed": "보관 해제에 실패했습니다",
     "archived_load_failed": "보관된 알림을 불러오지 못했습니다"
+  },
+  "bell": {
+    "label_other": "인박스, 읽지 않음 {{count}}건",
+    "empty": "읽지 않은 항목이 없습니다.",
+    "see_all": "인박스 열기"
   }
 }

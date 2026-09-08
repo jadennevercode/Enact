@@ -356,7 +356,7 @@ export function PublishDialog({
           </div>
 
           {kind === "mcp" ? (
-            <div className="flex flex-col gap-2 rounded-md border border-surface-border p-3">
+            <div className="enact-surface-panel flex flex-col gap-2 p-3">
               <p className="text-caption font-medium">
                 {t(($) => $.publish.public_fields_title)}
               </p>

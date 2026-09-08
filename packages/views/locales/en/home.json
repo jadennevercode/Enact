@@ -1,0 +1,44 @@
+{
+  "page": {
+    "title": "Home",
+    "new_issue": "New issue",
+    "hand_to_agent": "Hand to an agent",
+    "new_chat": "New chat"
+  },
+  "see_all": "See all",
+  "awaiting": {
+    "title": "Waiting on you",
+    "empty": "Nothing is waiting on your decision."
+  },
+  "needs_me": {
+    "title": "Needs you",
+    "empty": "Nothing is stuck."
+  },
+  "in_progress": {
+    "title": "Working now",
+    "empty": "No agent is running.",
+    "running_one": "{{count}} task",
+    "running_other": "{{count}} tasks"
+  },
+  "autopilots": {
+    "title": "Automation trouble",
+    "empty": "Every automation is healthy.",
+    "last_run_failed": "Last run failed",
+    "runtime_required": "Waiting for a runtime"
+  },
+  "setup": {
+    "title": "No agent to hand work to yet",
+    "description": "Connect a runtime and create an agent, and this page fills itself in.",
+    "create_agent": "Create an agent",
+    "connect_runtime": "Connect a runtime"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "my_issues": "My Issues",
+    "inbox": "Inbox"
+  },
+  "mine": {
+    "title": "On your plate",
+    "empty": "Nothing is assigned to you."
+  }
+}

@@ -1,0 +1,92 @@
+/* Workspace home: the four blocks that answer what is waiting, stuck, running and broken. */
+
+@layer utilities {
+  .enact-home-page,
+  .enact-home-overview {
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--page-canvas);
+    color: var(--foreground);
+  }
+
+  /* A block is a surface, not a card stack: one border, one ground, and the
+     rows inside carry the only hover state. Giving each row its own border
+     would turn four short answers into twenty separate objects. */
+  .enact-home-section,
+  .enact-home-setup {
+    background-color: var(--surface);
+    border-color: var(--surface-border);
+  }
+
+  /* The header row is the tinted band of a list panel: it names the block and
+     carries the count and the way to the full list, and its ground is one
+     step off the rows so the eye finds the seam without a rule. */
+  .enact-home-section-header {
+    background-color: var(--surface-hover);
+    border-bottom: var(--border-width) solid var(--border-soft);
+  }
+
+  .enact-home-kpi-label {
+    color: var(--muted-foreground);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .enact-home-kpi-value {
+    color: var(--foreground);
+    font-size: var(--text-display-sm);
+    line-height: var(--text-display-sm--line-height);
+    font-weight: var(--font-weight-light);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The acceptance queue and running work each get a 2px rule in their own
+     colour along the tile's left edge — the same device the sidebar and the
+     selected row use, so "this needs you" and "this is alive" read without
+     a second glance at the label. */
+  .enact-home-kpi[data-tone="accept"] {
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--brand),
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
+  }
+
+  .enact-home-kpi[data-tone="live"] {
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--status-in-progress),
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
+  }
+
+  .enact-home-kpi[data-pending="true"] .enact-home-kpi-value {
+    color: var(--faint-foreground);
+  }
+
+  .enact-home-row {
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-home-row:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .enact-home-row:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: calc(var(--focus-ring-offset) * -1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-home-row {
+      transition: none;
+    }
+  }
+}

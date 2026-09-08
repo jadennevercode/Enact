@@ -17,7 +17,15 @@ const encode = (id: string) => encodeURIComponent(id);
 function workspaceScoped(slug: string) {
   const ws = `/${encode(slug)}`;
   return {
-    root: () => `${ws}/issues`,
+    // Where a workspace opens: what is waiting, what is stuck, what is
+    // running. The Issues list answers "what exists", which is not the
+    // question anyone arrives with.
+    root: () => `${ws}/home`,
+    home: () => `${ws}/home`,
+    // Home carries the viewer's own work: the overview, their issues and
+    // their inbox. `?tab=` selects which; the old /inbox and /my-issues
+    // routes redirect here.
+    homeTab: (tab: string) => `${ws}/home?tab=${encode(tab)}`,
     usage: () => `${ws}/usage`,
     issues: () => `${ws}/issues`,
     issueDetail: (id: string) => `${ws}/issues/${encode(id)}`,
@@ -29,6 +37,9 @@ function workspaceScoped(slug: string) {
     autopilots: () => `${ws}/autopilots`,
     autopilotDetail: (id: string) => `${ws}/autopilots/${encode(id)}`,
     agents: () => `${ws}/agents`,
+    // Everything an agent is made of: families, agents, skills, MCP servers
+    // and ontologies. `?tab=` selects which.
+    agentsTab: (tab: string) => `${ws}/agents?tab=${encode(tab)}`,
     newAgent: () => `${ws}/agents/new`,
     // The two creation methods behind the chooser. Each is a real route so a
     // half-filled form survives a refresh and can be linked to directly.
@@ -40,6 +51,7 @@ function workspaceScoped(slug: string) {
     newAgentAiSession: (sessionId: string) =>
       `${ws}/agents/new/ai/${encode(sessionId)}`,
     agentDetail: (id: string) => `${ws}/agents/${encode(id)}`,
+    members: () => `${ws}/members`,
     memberDetail: (id: string) => `${ws}/members/${encode(id)}`,
     squads: () => `${ws}/squads`,
     squadDetail: (id: string) => `${ws}/squads/${encode(id)}`,
@@ -55,6 +67,13 @@ function workspaceScoped(slug: string) {
       `${ws}/chat/${encode(sessionId)}/artifacts`,
     myIssues: () => `${ws}/my-issues`,
     runtimes: () => `${ws}/runtimes`,
+    // Repositories, local directories and knowledge bases: what an agent
+    // works ON, next to the machines it runs on.
+    resources: () => `${ws}/resources`,
+    connections: () => `${ws}/connections`,
+    applications: () => `${ws}/applications`,
+    applicationDetail: (id: string) => `${ws}/applications?app=${encode(id)}`,
+    semanticRun: (id: string) => `${ws}/applications?run=${encode(id)}`,
     runtimeDetail: (id: string) => `${ws}/runtimes/${encode(id)}`,
     runtimeSettings: (machineId: string, runtimeId: string) =>
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,
@@ -67,12 +86,17 @@ function workspaceScoped(slug: string) {
     marketplaceListing: (id: string) => `${ws}/marketplace/${encode(id)}`,
     skillDetail: (id: string) => `${ws}/skills/${encode(id)}`,
     settings: () => `${ws}/settings`,
+    // The account tabs are reachable straight from the top bar's account
+    // menu, so each needs an address of its own.
+    settingsTab: (tab: string) => `${ws}/settings?tab=${encode(tab)}`,
     // The workspace's own General tab, where the project profile lives. A bare
     // `settings()` opens the account's Profile tab, which is a different
     // person's-vs-project distinction than the word "profile" suggests, so
     // anything pointing at the project profile has to name this one.
     settingsWorkspace: () => `${ws}/settings?tab=workspace`,
     settingsResources: () => `${ws}/settings/resources`,
+    // Membership administration — inviting, roles, removal. The Team page
+    // shows the roster; changing who may do what stays in settings.
     attachmentPreview: (id: string) => `${ws}/attachments/${encode(id)}/preview`,
   };
 }

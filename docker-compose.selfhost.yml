@@ -152,6 +152,14 @@ services:
       CAPHUB_API_URL: ${CAPHUB_API_URL:-}
       CAPHUB_URL: ${CAPHUB_URL:-}
       CAPHUB_API_KEY: ${CAPHUB_API_KEY:-}
+      # Semantica supplies native ingestion, ontology, reasoning and provenance.
+      # Keys and approved source origins stay on the server, outside Site builds.
+      ENACT_SEMANTIC_SERVICE_URL: ${ENACT_SEMANTIC_SERVICE_URL:-}
+      ENACT_SEMANTIC_SERVICE_KEY: ${ENACT_SEMANTIC_SERVICE_KEY:-}
+      ENACT_SEMANTIC_SECRET_KEY: ${ENACT_SEMANTIC_SECRET_KEY:-}
+      ENACT_SEMANTIC_ALLOWED_ORIGINS: ${ENACT_SEMANTIC_ALLOWED_ORIGINS:-}
+      ENACT_SEMANTIC_ALLOWED_PATHS: ${ENACT_SEMANTIC_ALLOWED_PATHS:-}
+      ENACT_SEMANTIC_MODEL_API_URL: ${ENACT_SEMANTIC_MODEL_API_URL:-}
       # Lark / Feishu bot integration. ENACT_LARK_SECRET_KEY is the
       # opt-in: unset = integration disabled. Mainland 飞书 and international
       # Lark are auto-detected per installation and served side by side, so

@@ -1,3 +1,4 @@
+import { ApplicationsPage, ConnectionsPage } from "@enact/views/semantic";
 import { useEffect } from "react";
 import { createMemoryRouter, Outlet, useMatches } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
@@ -10,6 +11,9 @@ import { MarketplaceListingPage } from "./pages/marketplace-listing-page";
 import { AgentDetailPage } from "./pages/agent-detail-page";
 import { AiBuilderSessionPage } from "./pages/ai-builder-session-page";
 import { MemberDetailPage } from "./pages/member-detail-page";
+import { MembersPage } from "@enact/views/members";
+import { ResourcesPage } from "@enact/views/resources";
+import { AgentsPage } from "@enact/views/agents";
 import {
   RuntimeDetailPage,
   RuntimeSettingsPage,
@@ -18,19 +22,15 @@ import { AttachmentPreviewRoute } from "./pages/attachment-preview-page";
 import { IssuesPage } from "@enact/views/issues/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
-import { MyIssuesPage } from "@enact/views/my-issues";
-import { OntologiesPage } from "@enact/views/ontologies";
-import { SkillsPage } from "@enact/views/skills";
 import { MarketplacePage } from "@enact/views/marketplace";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
-import { DesktopAgentsPage } from "./components/desktop-agents-page";
 import {
   AiCreateAgentPage,
   ChooseCreateMethodPage,
   ManualCreateAgentPage,
 } from "@enact/views/agents";
-import { SquadsPage, SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
-import { InboxPage } from "@enact/views/inbox";
+import { SquadDetailPage as SquadDetailPageView } from "@enact/views/squads/components";
+import { HomePage } from "@enact/views/home";
 import { ChatPage } from "@enact/views/chat";
 import { SettingsPage } from "@enact/views/settings";
 import { useT } from "@enact/views/i18n";
@@ -130,6 +130,7 @@ export const appRoutes: RouteObject[] = [
           // safety net instead of an in-router <Navigate> (ENA-4741
           // invariant 1: the router never self-navigates).
           { index: true, element: null },
+          { path: "home", element: <HomePage />, handle: { title: "Home" } },
           {
             path: "issues",
             element: <IssuesPage />,
@@ -156,11 +157,6 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Autopilot" },
           },
           {
-            path: "my-issues",
-            element: <MyIssuesPage />,
-            handle: { title: "My Issues" },
-          },
-          {
             path: "runtimes",
             element: <DesktopRuntimesPage />,
             handle: { title: "Runtimes" },
@@ -176,12 +172,6 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Runtime" },
           },
           {
-            path: "ontologies",
-            element: <OntologiesPage />,
-            handle: { title: "Ontology" },
-          },
-          { path: "skills", element: <SkillsPage />, handle: { title: "Skills" } },
-          {
             path: "skills/:id",
             element: <SkillDetailPage />,
             handle: { title: "Skill" },
@@ -196,7 +186,23 @@ export const appRoutes: RouteObject[] = [
             element: <MarketplaceListingPage />,
             handle: { title: "Marketplace" },
           },
-          { path: "agents", element: <DesktopAgentsPage />, handle: { title: "Agents" } },
+          { path: "agents", element: <AgentsPage />, handle: { title: "Agents" } },
+          { path: "members", element: <MembersPage />, handle: { title: "Members" } },
+          {
+            path: "applications",
+            element: <ApplicationsPage />,
+            handle: { title: "Applications" },
+          },
+          {
+            path: "connections",
+            element: <ConnectionsPage />,
+            handle: { title: "Connections" },
+          },
+          {
+            path: "resources",
+            element: <ResourcesPage />,
+            handle: { title: "Resources" },
+          },
           {
             path: "agents/new",
             element: <ChooseCreateMethodPage />,
@@ -227,13 +233,11 @@ export const appRoutes: RouteObject[] = [
             element: <MemberDetailPage />,
             handle: { title: "Member" },
           },
-          { path: "squads", element: <SquadsPage />, handle: { title: "Agent Families" } },
           {
             path: "squads/:id",
             element: <SquadDetailPageView />,
             handle: { title: "Agent Family" },
           },
-          { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },
           {
             path: "chat/:sessionId/artifacts",

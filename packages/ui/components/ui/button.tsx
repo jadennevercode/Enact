@@ -10,9 +10,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        // The primary action is the loudest thing on any screen and there is
+        // at most one per surface, so it is the only control that carries the
+        // brand gradient. `.enact-brand-fill` owns the paint (see
+        // primitives.css) — passing brand classes through `className` cannot
+        // work here for the same cascade reason documented on `brand` below.
+        //
+        // The gradient deliberately stops here. `brand` below is the ON state
+        // of a toggle, and a filter bar can have six of them lit at once; six
+        // gradients is a pattern, not an emphasis.
+        default: "enact-brand-fill",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "enact-raised border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         // Brand-filled state for a control that is currently ON (an active
         // filter, a selected toggle). Self-contained on purpose: passing
         // brand classes through `className` on top of `outline` does NOT
@@ -35,7 +44,7 @@ const buttonVariants = cva(
         brandSubtle:
           "border-brand/28 bg-brand/7 text-foreground hover:bg-brand/12 hover:text-foreground active:bg-brand/16 aria-expanded:bg-brand/12 aria-expanded:text-foreground dark:border-brand/45 dark:bg-brand/12 dark:hover:bg-brand/18 dark:active:bg-brand/24 dark:aria-expanded:bg-brand/18",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "enact-raised bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:

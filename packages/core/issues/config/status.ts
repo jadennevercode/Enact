@@ -6,6 +6,13 @@ import type { IssueStatusCategory } from "../../types";
 // paginated fetch all keep a fixed shape. Resolve a status KEY to its category
 // with the workspace catalog (`useIssueStatuses`) before indexing these.
 // (ENA-6243)
+//
+// Colour comes from the per-category status tokens rather than from the generic
+// semantic roles. The two used to disagree — In Progress borrowed `--warning`
+// and Done borrowed `--info`, so a board read amber for "working" and blue for
+// "finished" — and nothing tied a category to a tone on purpose. See
+// design-system/enact/MASTER.md §3.4 for the shape each category also carries;
+// colour is never the only cue.
 
 export const STATUS_ORDER: IssueStatusCategory[] = [
   "backlog",
@@ -37,11 +44,11 @@ export const STATUS_CONFIG: Record<
     columnBg: string;
   }
 > = {
-  backlog: { label: "Backlog", iconColor: "text-muted-foreground", hoverBg: "hover:bg-accent", dividerColor: "bg-muted-foreground/40", columnBg: "bg-muted/40" },
-  todo: { label: "Todo", iconColor: "text-muted-foreground", hoverBg: "hover:bg-accent", dividerColor: "bg-muted-foreground/40", columnBg: "bg-muted/40" },
-  in_progress: { label: "In Progress", iconColor: "text-warning", hoverBg: "hover:bg-warning/10", dividerColor: "bg-warning", columnBg: "bg-warning/5" },
-  in_review: { label: "In Review", iconColor: "text-success", hoverBg: "hover:bg-success/10", dividerColor: "bg-success", columnBg: "bg-success/5" },
-  done: { label: "Done", iconColor: "text-info", hoverBg: "hover:bg-info/10", dividerColor: "bg-info", columnBg: "bg-info/5" },
-  blocked: { label: "Blocked", iconColor: "text-destructive", hoverBg: "hover:bg-destructive/10", dividerColor: "bg-destructive", columnBg: "bg-destructive/5" },
-  cancelled: { label: "Cancelled", iconColor: "text-muted-foreground", hoverBg: "hover:bg-accent", dividerColor: "bg-muted-foreground/40", columnBg: "bg-muted/40" },
+  backlog: { label: "Backlog", iconColor: "text-status-backlog", hoverBg: "hover:bg-accent", dividerColor: "bg-status-backlog", columnBg: "bg-muted/40" },
+  todo: { label: "Todo", iconColor: "text-status-todo", hoverBg: "hover:bg-accent", dividerColor: "bg-status-todo", columnBg: "bg-muted/40" },
+  in_progress: { label: "In Progress", iconColor: "text-status-in-progress", hoverBg: "hover:bg-status-in-progress/10", dividerColor: "bg-status-in-progress", columnBg: "bg-status-in-progress/5" },
+  in_review: { label: "In Review", iconColor: "text-status-in-review", hoverBg: "hover:bg-status-in-review/10", dividerColor: "bg-status-in-review", columnBg: "bg-status-in-review/5" },
+  done: { label: "Done", iconColor: "text-status-done", hoverBg: "hover:bg-status-done/10", dividerColor: "bg-status-done", columnBg: "bg-status-done/5" },
+  blocked: { label: "Blocked", iconColor: "text-status-blocked", hoverBg: "hover:bg-status-blocked/10", dividerColor: "bg-status-blocked", columnBg: "bg-status-blocked/5" },
+  cancelled: { label: "Cancelled", iconColor: "text-status-cancelled", hoverBg: "hover:bg-accent", dividerColor: "bg-status-cancelled", columnBg: "bg-muted/40" },
 };

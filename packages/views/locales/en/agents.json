@@ -966,5 +966,21 @@
     "selected_one": "{{count}} selected",
     "selected_other": "{{count}} selected",
     "clear_selection": "Clear selection"
+  },
+  "hub": {
+    "title": "Intelligence Center",
+    "tagline": "Families, agents, and the skills, servers and ontologies they are made of.",
+    "new": "New",
+    "new_family": "New Agent Family",
+    "new_agent": "New agent",
+    "new_skill": "New skill",
+    "import_from_hub": "Capability Hub",
+    "tabs": {
+      "families": "Agent Family",
+      "agents": "Agent",
+      "skills": "Skill",
+      "mcp": "MCP",
+      "ontologies": "Ontology"
+    }
   }
 }

@@ -53,6 +53,7 @@ export function resetDiagnosticContext(): void {
 type RoutePattern = readonly string[];
 
 const WORKSPACE_ROUTES: readonly RoutePattern[] = [
+  ["home"],
   ["issues"],
   ["issues", ":id"],
   ["issues", ":id", "artifacts"],
@@ -64,9 +65,13 @@ const WORKSPACE_ROUTES: readonly RoutePattern[] = [
   ["agents", "new", "ai"],
   ["agents", "new", "ai", ":sessionId"],
   ["agents", ":id"],
+  ["members"],
   ["members", ":id"],
   ["squads"],
   ["squads", ":id"],
+  ["resources"],
+  ["connections"],
+  ["applications"],
   ["inbox"],
   ["chat"],
   ["chat", ":sessionId", "artifacts"],

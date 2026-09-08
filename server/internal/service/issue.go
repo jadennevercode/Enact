@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/dispatch"
 	"github.com/enact-ai/enact/server/internal/events"
@@ -20,6 +18,8 @@ import (
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // IssueService is the single service-layer entry point for creating issues.
@@ -85,6 +85,9 @@ type IssueCreateParams struct {
 // IssueCreateOpts groups optional knobs for IssueService.Create. Most
 // callers leave it zero-valued.
 type IssueCreateOpts struct {
+	// PersistRelated runs in the issue transaction, before task dispatch. It
+	// lets typed workflows atomically bind their record to the new Issue.
+	PersistRelated func(context.Context, pgx.Tx, db.Issue) error
 	// BroadcastPayload, if non-nil, is invoked after the issue row is
 	// created and attachments are linked. Its return value is sent as
 	// the EventIssueCreated payload via the event bus. The HTTP handler
@@ -344,6 +347,11 @@ func (s *IssueService) Create(ctx context.Context, p IssueCreateParams, opts Iss
 		}
 	}
 
+	if opts.PersistRelated != nil {
+		if err := opts.PersistRelated(ctx, tx, issue); err != nil {
+			return IssueCreateResult{}, fmt.Errorf("persist related workflow: %w", err)
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return IssueCreateResult{}, fmt.Errorf("commit: %w", err)
 	}

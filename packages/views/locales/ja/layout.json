@@ -1,26 +1,33 @@
 {
   "nav": {
+    "home": "ホーム",
     "inbox": "インボックス",
     "chat": "チャット",
     "my_issues": "マイタスク",
     "issues": "タスク",
-    "artifacts": "成果物",
     "autopilots": "オートパイロット",
-    "agents": "エージェント",
-    "squads": "エージェントファミリー",
-    "usage": "分析",
+    "agents": "Intelligence Center",
+    "members": "メンバー",
+    "marketplace": "Capability Hub",
     "runtimes": "ランタイム",
+    "resources": "Sources",
+    "usage": "インサイト",
+    "settings": "設定",
+    "artifacts": "成果物",
+    "squads": "Agent Family",
+    "team": "チーム",
+    "capabilities": "ケイパビリティ",
     "ontologies": "オントロジー",
     "skills": "スキル",
-    "marketplace": "マーケットプレイス",
-    "settings": "設定"
+    "connections": "接続",
+    "applications": "アプリケーション"
   },
   "tab": {
     "issue": "タスク",
     "autopilot": "オートパイロット",
     "agent": "エージェント",
     "member": "メンバー",
-    "squad": "エージェントファミリー",
+    "squad": "Agent Family",
     "skill": "スキル",
     "machine": "マシン",
     "runtime": "ランタイム",
@@ -53,12 +60,17 @@
     "new_issue": "新規タスク",
     "new_issue_shortcut": "C",
     "pinned_label": "ピン留め済み",
-    "workspace_group": "ワークスペース",
-    "configure_group": "設定",
+    "collaboration_group": "コラボレーション",
+    "intelligence_group": "インテリジェンス",
+    "execution_group": "実行",
     "unread_overflow": "99+",
     "discord_card": {
       "title": "Discord に参加",
       "dismiss": "閉じる"
     }
+  },
+  "topbar": {
+    "account": "アカウント",
+    "search": "検索"
   }
 }

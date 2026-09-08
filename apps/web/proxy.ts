@@ -93,7 +93,7 @@ export function proxy(req: NextRequest) {
   // The official cloud host also serves the public marketing site. Visiting
   // https://enact.ai/ must remain a public-site navigation even when a local
   // desktop/runtime session has fresh auth cookies; explicit app routes such
-  // as /acme/issues and legacy /issues still route to the workspace app.
+  // as /acme/home and legacy /issues still route to the workspace app.
   if (
     pathname === "/" &&
     hasSession &&
@@ -101,7 +101,7 @@ export function proxy(req: NextRequest) {
     !isOfficialMarketingHost(req.nextUrl.hostname)
   ) {
     const url = req.nextUrl.clone();
-    url.pathname = `/${lastSlug}/issues`;
+    url.pathname = `/${lastSlug}/home`;
     return NextResponse.redirect(url);
   }
 

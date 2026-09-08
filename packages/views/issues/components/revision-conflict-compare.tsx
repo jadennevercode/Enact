@@ -114,10 +114,10 @@ export function RevisionConflictCompare({
       )}
     >
       <div className="font-medium">{title}</div>
-      <div className="mt-2 overflow-hidden rounded-md border bg-background/70">
-        <div className="grid grid-cols-2 border-b bg-muted/40 font-medium text-muted-foreground">
+      <div className="mt-2 overflow-hidden enact-surface-panel">
+        <div className="grid grid-cols-2 border-b border-border-soft bg-surface-hover font-medium text-muted-foreground">
           <div className="min-w-0 px-3 py-1.5">{serverLabel}</div>
-          <div className="min-w-0 border-l px-3 py-1.5">{localLabel}</div>
+          <div className="min-w-0 border-l border-border-soft px-3 py-1.5">{localLabel}</div>
         </div>
         <div
           data-revision-diff-scroll
@@ -126,7 +126,7 @@ export function RevisionConflictCompare({
           {rows.map((row, index) => (
             <div
               key={index}
-              className="grid grid-cols-2 border-b last:border-b-0"
+              className="grid grid-cols-2 border-b border-border-soft last:border-b-0"
             >
               <DiffCell side="server" line={row.server} />
               <div className="min-w-0 border-l">

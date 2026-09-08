@@ -7,7 +7,10 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty"
       className={cn(
-        "enact-surface-panel flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 border-dashed p-6 text-center text-balance",
+        // A compact lifted card, centred in whatever it is given, rather than
+        // a dashed box that fills the page: an empty state is an object with
+        // one thing to say and one thing to do, not the absence of a page.
+        "enact-surface-panel mx-auto my-12 flex w-full max-w-md min-w-0 flex-col items-center justify-center gap-4 px-8 py-10 text-center text-balance",
         className
       )}
       {...props}
@@ -31,7 +34,7 @@ const emptyMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*='size-'])]:size-4",
+        icon: "flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-selected text-link [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {
@@ -60,7 +63,7 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<"h2">) {
     <h2
       data-slot="empty-title"
       className={cn(
-        "font-heading text-body font-medium tracking-tight",
+        "font-heading text-title-sm font-semibold tracking-tight",
         className
       )}
       {...props}

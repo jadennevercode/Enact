@@ -307,7 +307,7 @@
     "cancel": "취소",
     "create_failed_toast": "에이전트를 만들지 못했습니다",
     "skill_attach_failed_toast": "에이전트는 만들었지만 스킬을 연결하지 못했습니다: {{error}}",
-    "squad_join_failed_toast": "에이전트 \"{{name}}\"은(는) 만들었지만 에이전트 패밀리에 참가하지 못했습니다: {{error}}. 멤버에서 직접 추가할 수 있습니다.",
+    "squad_join_failed_toast": "에이전트 \"{{name}}\"은(는) 만들었지만 Agent Family에 참가하지 못했습니다: {{error}}. 멤버에서 직접 추가할 수 있습니다.",
     "instructions": {
       "label": "지침",
       "placeholder_blank": "클릭해서 지침 작성...",
@@ -834,7 +834,7 @@
   },
   "creation_studio": {
     "title": "에이전트 만들기",
-    "squad_title": "이 에이전트 패밀리용 에이전트 만들기",
+    "squad_title": "이 Agent Family용 에이전트 만들기",
     "duplicate_title": "{{name}} 복제",
     "back": "뒤로",
     "eyebrow": "에이전트 만들기",
@@ -860,7 +860,7 @@
       },
       "retrospect": {
         "title": "회고 에이전트",
-        "description": "Enact에 내장된 회고 담당입니다. 완료된 작업을 읽고 스킬·에이전트·에이전트 패밀리 변경을 제안하며, 팀이 배운 것을 기록합니다."
+        "description": "Enact에 내장된 회고 담당입니다. 완료된 작업을 읽고 스킬·에이전트·Agent Family 변경을 제안하며, 팀이 배운 것을 기록합니다."
       }
     },
     "retrospect": {
@@ -926,7 +926,7 @@
     "duplicate_env_notice": "지침, 스킬, 명령 인수는 복사됩니다. 환경 변수, MCP 서버, 머신 로컬 런타임 설정은 복사되지 않습니다.",
     "duplicate_runtime_reset_notice": "원래 런타임을 사용할 수 없어 이 복사본은 다른 런타임에서 실행됩니다. 모델, 추론 수준, 속도는 선택한 런타임에서만 유효하므로 초기화되었습니다.",
     "create_and_open": "만들고 열기",
-    "create_and_add": "만들고 에이전트 패밀리에 추가",
+    "create_and_add": "만들고 Agent Family에 추가",
     "creating": "에이전트 만드는 중…",
     "create_failed": "에이전트를 만들지 못했습니다.",
     "name_conflict": "같은 이름의 에이전트가 이미 있습니다.",
@@ -945,5 +945,21 @@
   "actions": {
     "selected_other": "{{count}}개 선택됨",
     "clear_selection": "선택 해제"
+  },
+  "hub": {
+    "title": "Intelligence Center",
+    "tagline": "Agent Family와 에이전트, 그리고 이들을 구성하는 Skill, MCP, Ontology.",
+    "new": "새로 만들기",
+    "new_family": "새 Agent Family",
+    "new_agent": "새 에이전트",
+    "new_skill": "새 스킬",
+    "import_from_hub": "Capability Hub",
+    "tabs": {
+      "families": "Agent Family",
+      "agents": "Agent",
+      "skills": "Skill",
+      "mcp": "MCP",
+      "ontologies": "Ontology"
+    }
   }
 }

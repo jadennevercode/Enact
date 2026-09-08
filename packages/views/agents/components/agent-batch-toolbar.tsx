@@ -24,7 +24,7 @@ import {
 import { Archive, ArchiveRestore, Loader2, X } from "lucide-react";
 import { useT } from "../../i18n";
 import { AccessPicker, type AccessChange } from "./inspector/access-picker";
-import type { AgentListRow } from "./agents-page";
+import type { AgentListRow } from "./agent-list-page";
 
 /**
  * Floating batch-toolbar for the agents list page. Renders archive/restore

@@ -24,3 +24,10 @@
 - Indexing is `ScanKnowledgeDocs` in `server/internal/daemon/execenv/knowledge.go`: markdown only, `.`-prefixed directories (including `.git`) skipped, title/description from front-matter with a `# heading` then filename fallback, sorted by path so an unchanged base renders a byte-identical brief. `ApplyKnowledgeIndexLimit` swaps the document list for a directory summary past `maxIndexedKnowledgeDocs` (60), which is what bounds the section's context cost.
 - The brief section is `writeKnowledge` (`server/internal/daemon/execenv/runtime_config_sections.go`). It renders the INDEX only — title, description, relative path — plus the location, the document count, and the write-back instruction derived from `delivery`. Document bodies are never injected; the agent opens what it needs with its own file tools.
 - `server/cmd/enact/cmd_resource.go` gained `--path` / `--delivery` and treats a non-JSON `--ref` as a checkout ref for `knowledge_repo` as well as `github_repo` (`refFlagIsCheckoutRef`). `server/cmd/enact/cmd_agent_knowledge.go` adds `enact agent knowledge list/add/remove`.
+
+## Ontology-backed operational connections and applications
+
+- `server/internal/handler/semantic.go` registers the `/api/semantic` control plane; `semantic_ontology.go`, `semantic_run.go` and `semantic_action.go` implement publication, query evidence, approvals and receipts.
+- `server/internal/semantic/adapter.go` executes configured REST/PostgreSQL/MCP operations with the source caller's scoped credentials.
+- `server/internal/handler/semantic_application.go` stores immutable source/build versions and human publication history; `semantic_application_invoke.go` restricts each app to its pinned release, capability manifest and current user's runs.
+- `packages/views/resources/components/resources-page.tsx` links Connections; `packages/views/semantic` contains the shared web/desktop workbench and application host. `packages/core/semantic` owns wire validation and query state.

@@ -1,19 +1,26 @@
 {
   "nav": {
+    "home": "Home",
     "inbox": "Inbox",
     "chat": "Chat",
     "my_issues": "My Issues",
     "issues": "Issues",
-    "artifacts": "Artifacts",
     "autopilots": "Autopilot",
-    "agents": "Agents",
-    "squads": "Agent Families",
-    "usage": "Analytics",
+    "agents": "Intelligence Center",
+    "members": "Members",
+    "marketplace": "Capability Hub",
     "runtimes": "Runtimes",
+    "resources": "Sources",
+    "usage": "Insights",
+    "settings": "Settings",
+    "artifacts": "Artifacts",
+    "squads": "Agent Families",
+    "team": "Team",
+    "capabilities": "Capabilities",
     "ontologies": "Ontology",
     "skills": "Skills",
-    "marketplace": "Marketplace",
-    "settings": "Settings"
+    "connections": "Connections",
+    "applications": "Applications"
   },
   "tab": {
     "issue": "Issue",
@@ -53,12 +60,17 @@
     "new_issue": "New Issue",
     "new_issue_shortcut": "C",
     "pinned_label": "Pinned",
-    "workspace_group": "Workspace",
-    "configure_group": "Configure",
+    "collaboration_group": "Collaboration",
+    "intelligence_group": "Intelligence",
+    "execution_group": "Execution",
     "unread_overflow": "99+",
     "discord_card": {
       "title": "Join our Discord",
       "dismiss": "Dismiss"
     }
+  },
+  "topbar": {
+    "account": "Account",
+    "search": "Search"
   }
 }

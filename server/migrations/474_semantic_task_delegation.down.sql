@@ -1,0 +1,4 @@
+ALTER TABLE semantic_receipt DROP COLUMN IF EXISTS task_id, DROP COLUMN IF EXISTS actor_id;
+ALTER TABLE semantic_approval DROP COLUMN IF EXISTS task_id, DROP COLUMN IF EXISTS actor_id;
+ALTER TABLE semantic_step DROP COLUMN IF EXISTS task_id, DROP COLUMN IF EXISTS actor_id;
+ALTER TABLE semantic_run DROP COLUMN IF EXISTS delegated_at, DROP COLUMN IF EXISTS task_id, DROP COLUMN IF EXISTS actor_id;

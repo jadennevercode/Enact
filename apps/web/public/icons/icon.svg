@@ -1,21 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Enact">
   <!--
     Full-bleed source for the generated home-screen icons (apple-touch-icon.png,
-    icon-maskable-512.png). Full-bleed because both surfaces mask the artwork
-    themselves: iOS rounds the corners, Android crops to the launcher shape.
-    The mark is /favicon.svg's, inverted to the dark app-icon treatment the
-    desktop and mobile builds already ship, and held at 52% of the canvas so it
-    stays inside the maskable safe zone (the centre circle of 80% diameter).
+    icon-maskable-512.png) and for the desktop app icons. Full-bleed because
+    every surface masks the artwork itself: iOS rounds the corners, Android
+    crops to the launcher shape, macOS applies the squircle.
+    The ground is the light shell treatment — Light Gray #f7f7f6 with the two
+    static shell lights, Deloitte Green from the top-left corner and Green 2
+    from the bottom-right — and never dark (MASTER.md §10). The mark is
+    /favicon.svg's colour variant, held at 52% of the canvas so it stays inside
+    the maskable safe zone (the centre circle of 80% diameter).
     See app/manifest.ts for the regeneration commands.
   -->
-  <rect width="512" height="512" fill="#111827"/>
-  <path fill="#ffffff" fill-opacity="1" d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="1" d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="1" d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.62" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
-  <path fill="#ffffff" fill-opacity="0.38" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" transform="translate(110.778 110.778) scale(12.10182)"/>
+  <defs>
+    <radialGradient id="enact-icon-light-a" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="460">
+      <stop offset="0" stop-color="#86bc25" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#86bc25" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="enact-icon-light-b" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="460">
+      <stop offset="0" stop-color="#c4d600" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#c4d600" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="enact-icon-top" gradientUnits="userSpaceOnUse" x1="6.5" y1="2.375" x2="17.5" y2="13.375">
+      <stop offset="0" stop-color="#c4d600"/>
+      <stop offset="1" stop-color="#86bc25"/>
+    </linearGradient>
+    <linearGradient id="enact-icon-left" gradientUnits="userSpaceOnUse" x1="1" y1="10.625" x2="12" y2="21.625">
+      <stop offset="0" stop-color="#86bc25"/>
+      <stop offset="1" stop-color="#26890d"/>
+    </linearGradient>
+    <linearGradient id="enact-icon-right" gradientUnits="userSpaceOnUse" x1="12" y1="10.625" x2="23" y2="21.625">
+      <stop offset="0" stop-color="#26890d"/>
+      <stop offset="1" stop-color="#046a38"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#f7f7f6"/>
+  <rect width="512" height="512" fill="url(#enact-icon-light-a)"/>
+  <rect width="512" height="512" fill="url(#enact-icon-light-b)"/>
+  <g transform="translate(110.778 110.778) scale(12.10182)">
+    <path fill="url(#enact-icon-top)" d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z"/>
+    <path fill="url(#enact-icon-top)" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z"/>
+    <path fill="url(#enact-icon-top)" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z"/>
+    <path fill="url(#enact-icon-left)" d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z"/>
+    <path fill="url(#enact-icon-left)" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z"/>
+    <path fill="url(#enact-icon-left)" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z"/>
+    <path fill="url(#enact-icon-right)" d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z"/>
+    <path fill="url(#enact-icon-right)" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z"/>
+    <path fill="url(#enact-icon-right)" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z"/>
+    <path fill="#000000" fill-opacity="0.18" d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z"/>
+    <path fill="#000000" fill-opacity="0.36" d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z"/>
+    <path fill="#000000" fill-opacity="0.18" d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z"/>
+    <path fill="#000000" fill-opacity="0.36" d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z"/>
+    <path fill="#000000" fill-opacity="0.18" d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z"/>
+    <path fill="#000000" fill-opacity="0.36" d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z"/>
+  </g>
 </svg>

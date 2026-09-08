@@ -6,13 +6,11 @@ import { AppCrashBoundary } from "./components/app-crash-boundary";
 // Keep font stack in sync with apps/web/app/layout.tsx.
 // The italic axis ships as a separate file — without it the ~20 semantic italic
 // labels and every markdown <em>/blockquote render as synthesized oblique.
-import "@fontsource-variable/inter";
-import "@fontsource-variable/inter/wght-italic.css";
+import "@fontsource-variable/open-sans";
+import "@fontsource-variable/open-sans/wght-italic.css";
 // Editorial serif — matches web's next/font Source_Serif_4. Loaded app-wide so
 // onboarding headings and any future editorial surface can use `font-serif`
 // (see tokens.css @theme inline). Variable font = one file covers all weights.
-import "@fontsource-variable/source-serif-4";
-import "@fontsource-variable/source-serif-4/wght-italic.css";
 // Mono must be the variable cut, not discrete 400/700: web gets a variable Geist
 // Mono from next/font, so any weight desktop does not load silently snaps to the
 // nearest one it has and the same shared component renders at two different

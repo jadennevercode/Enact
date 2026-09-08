@@ -37,7 +37,7 @@ import {
 } from "@enact/core/issues/stores";
 import { issueDetailOptions, issueTimelineOptions } from "@enact/core/issues/queries";
 import { useWorkspaceId } from "@enact/core";
-import { useWorkspacePaths, WORKSPACE_PAGES } from "@enact/core/paths";
+import { useWorkspacePaths, WORKSPACE_PAGES, NAV_PAGE_KEYS } from "@enact/core/paths";
 import type { WorkspacePageKey, WorkspacePaths } from "@enact/core/paths";
 import { createShortcutChord } from "@enact/core/shortcuts";
 import { memberListOptions } from "@enact/core/workspace/queries";
@@ -68,8 +68,8 @@ import { matchesPinyin } from "../editor/extensions/pinyin-match";
 import { HighlightText } from "./highlight-text";
 import { useSearchStore } from "./search-store";
 
-// The palette's Pages group is generated from WORKSPACE_PAGES, the same
-// registry the sidebar nav and the desktop tab bar read. It used to be a
+// The palette's Pages group is generated from WORKSPACE_NAV, the same
+// ordered schema the sidebar renders. It used to be a
 // hand-written list, which silently went stale every time a page was added:
 // Chat, Autopilot, Squads and Analytics shipped in the sidebar but were
 // unreachable from the palette (ENA-6272). Deriving the list means a new
@@ -78,27 +78,79 @@ import { useSearchStore } from "./search-store";
 // Page keys double as WorkspacePaths method names, so `p[key]()` resolves the
 // destination against the current workspace slug at render time. Every
 // WorkspacePageKey must therefore stay a parameterless path builder.
+//
+// The palette lists what the sidebar offers, not every registered segment: a
+// page that leaves the nav keeps its tab icon but stops being a destination
+// the palette can send someone to.
 
 // Extra query aliases per page, on top of the localized label. Declared as a
 // total Record so adding a workspace page is a compile error until its
 // keywords are filled in.
 const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
+  home: ["home", "dashboard", "overview", "工作台", "首页"],
   inbox: ["inbox", "notifications", "收件箱", "通知"],
   chat: ["chat", "messages", "conversation", "聊天", "消息", "对话"],
   myIssues: ["my", "issues", "assigned", "mine", "我的", "任务"],
   issues: ["issues", "tasks", "bugs", "任务"],
   autopilots: ["autopilot", "autopilots", "automation", "schedule", "cron", "webhook", "自动化", "定时"],
-  agents: ["agents", "bots", "ai", "智能体"],
+  agents: [
+    "agents",
+    "bots",
+    "ai",
+    "squad",
+    "family",
+    "skill",
+    "mcp",
+    "ontology",
+    "智能体",
+    "小组",
+  ],
   squads: ["squads", "teams", "小队", "团队"],
+  members: [
+    "members",
+    "people",
+    "roster",
+    "team",
+    "invite",
+    "成员",
+    "成员管理",
+    "团队",
+    "邀请",
+    "人",
+  ],
+  connections: ["connection", "database", "api", "连接", "数据源"],
+  applications: ["application", "app", "site", "应用", "业务运行"],
+  resources: [
+    "resources",
+    "repositories",
+    "repos",
+    "directories",
+    "knowledge",
+    "资源",
+    "仓库",
+    "目录",
+    "知识库",
+  ],
   usage: ["usage", "analytics", "stats", "metrics", "统计", "分析", "用量"],
   runtimes: ["runtimes", "environments", "machines", "运行时"],
   ontologies: ["ontology", "ontologies", "caphub", "本体", "领域模型"],
   skills: ["skills", "library", "技能"],
-  marketplace: ["marketplace", "store", "catalog", "install", "publish", "市场", "商店", "安装", "发布"],
+  marketplace: [
+    "capability hub",
+    "caphub",
+    "能力中心",
+    "marketplace",
+    "store",
+    "catalog",
+    "install",
+    "publish",
+    "市场",
+    "商店",
+    "安装",
+    "发布",
+  ],
   settings: ["settings", "config", "preferences", "设置", "配置"],
 };
-
-const NAV_PAGE_KEYS = Object.keys(WORKSPACE_PAGES) as WorkspacePageKey[];
 
 // No `icon` field: like the sidebar nav, a page's icon is derived from its
 // destination path via routeIconForPath, so all navigation surfaces show the

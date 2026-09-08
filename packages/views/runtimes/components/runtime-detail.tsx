@@ -271,9 +271,9 @@ function HeroCard({
   const hasTechDetails = !!cliVersion || !!daemonShort;
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="enact-surface-panel">
       {/* Identity row — provider logo, name, status badge, last seen. */}
-      <div className="flex items-start gap-3 border-b p-4">
+      <div className="flex items-start gap-3 border-b border-border-soft p-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-card">
           <ProviderLogo provider={runtime.provider} className="h-5 w-5" />
         </div>
@@ -293,7 +293,7 @@ function HeroCard({
       {/* User-visible facts — Owner / Device / Runtime, each labelled.
           Replaces the older dense `·`-separated meta strip that mixed
           everything (including dev-only IDs) at the same visual weight. */}
-      <dl className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <dl className="grid grid-cols-1 divide-y divide-border-soft sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <Fact label={t(($) => $.detail.fact_owner)}>
           {ownerMember ? (
             <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -338,7 +338,7 @@ function HeroCard({
           Only useful when filing an issue or reading logs; folded by
           default so they don't compete with the user-visible facts above. */}
       {hasTechDetails && (
-        <div className="border-t">
+        <div className="border-t border-border-soft">
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
@@ -352,7 +352,7 @@ function HeroCard({
             {t(($) => $.detail.technical_details)}
           </button>
           {showDetails && (
-            <dl className="grid grid-cols-1 gap-y-2 border-t bg-muted/30 px-4 py-3 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-y-2 border-t border-border-soft bg-muted/30 px-4 py-3 sm:grid-cols-2">
               {cliVersion && (
                 <Fact label={t(($) => $.detail.fact_daemon_cli)} mono compact>
                   {cliVersion}
@@ -404,8 +404,8 @@ function ServingAgentsCard({
   const { t } = useT("runtimes");
   const { t: tAgents } = useT("agents");
   return (
-    <div className="rounded-lg border">
-      <div className="flex items-center justify-between border-b px-4 py-2.5">
+    <div className="enact-surface-panel">
+      <div className="flex items-center justify-between border-b border-border-soft px-4 py-2.5">
         <span className="text-caption font-semibold">{t(($) => $.detail.serving_title)}</span>
         <span className="text-caption text-muted-foreground">
           {t(($) => $.detail.serving_count, { count: agents.length })}
@@ -419,7 +419,7 @@ function ServingAgentsCard({
           </p>
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="divide-y divide-border-soft">
           {agents.map((agent) => {
             const detail = presenceMap.get(agent.id);
             const av = detail
@@ -491,8 +491,8 @@ function DiagnosticsCard({
 }) {
   const { t } = useT("runtimes");
   return (
-    <div className="rounded-lg border">
-      <div className="border-b px-4 py-2.5">
+    <div className="enact-surface-panel">
+      <div className="border-b border-border-soft px-4 py-2.5">
         <span className="text-caption font-semibold">{t(($) => $.detail.diagnostics_title)}</span>
       </div>
       <div className="space-y-3 p-4">
@@ -513,7 +513,7 @@ function DiagnosticsCard({
           // they had every permission to click but couldn't. The dialog
           // raises a self-heal banner so the user sees the trade-off
           // before confirming.
-          <div className="border-t pt-3">
+          <div className="border-t border-border-soft pt-3">
             <Button
               variant="ghost"
               size="sm"

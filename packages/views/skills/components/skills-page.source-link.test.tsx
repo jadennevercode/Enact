@@ -152,7 +152,7 @@ function makeAdapter(
 function renderPage(adapter: NavigationAdapter) {
   renderWithI18n(
     <NavigationProvider value={adapter}>
-      <SkillsPage />
+      <SkillsPage createOpen={false} onCreateOpenChange={() => {}} />
     </NavigationProvider>,
   );
 }

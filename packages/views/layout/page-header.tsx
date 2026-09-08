@@ -13,7 +13,7 @@ import { SidebarTrigger, useSidebarSafe } from "@enact/ui/components/ui/sidebar"
  * anywhere that edge matters instead of writing the class again; a page that
  * spells its own gutter is the bug coming back.
  */
-export const PAGE_GUTTER = "px-4";
+export const PAGE_GUTTER = "px-6";
 
 /**
  * The filter/actions row directly under a `PageHeader`: same height and
@@ -46,6 +46,8 @@ export function CollapsedNavTrigger() {
   if (!sidebar || sidebar.hasExternalTrigger) return null;
   return <SidebarTrigger className="enact-page-collapsed-trigger xl:hidden" />;
 }
+
+// Kept for the surfaces that still opt in explicitly through `leading`.
 
 interface PageHeaderProps {
   children: React.ReactNode;
@@ -84,12 +86,15 @@ export function PageHeader({ children, leading, className }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "enact-page-header flex h-12 shrink-0 items-center gap-2",
+        "enact-page-header flex min-h-14 shrink-0 items-center gap-2 py-3",
         className,
         PAGE_GUTTER,
       )}
     >
-      {leading ?? <CollapsedNavTrigger />}
+      {/* The top bar carries the nav trigger for the whole window now; a
+          header only draws a leading affordance when it has one of its own,
+          such as the back arrow a phone drill-in needs. */}
+      {leading}
       {children}
     </header>
   );

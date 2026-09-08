@@ -1,5 +1,5 @@
 {
-  "title": "마켓플레이스",
+  "title": "Capability Hub",
   "description": "이 배포의 워크스페이스들이 공개한 기능입니다. 사본을 내 워크스페이스에 설치하세요.",
   "kind": {
     "skill": "스킬",
@@ -14,14 +14,14 @@
     "mcp": "MCP 서버",
     "squad": "Agent Family"
   },
-  "search_placeholder": "마켓플레이스 검색",
+  "search_placeholder": "Capability Hub 검색",
   "all_kinds": "전체",
   "mine": "내 워크스페이스가 공개",
   "clear_filters": "필터 지우기",
   "empty": "아직 공개된 항목이 없습니다.",
   "empty_filtered": "이 필터와 일치하는 항목이 없습니다.",
   "empty_mine": "이 워크스페이스는 아직 아무것도 공개하지 않았습니다.",
-  "load_failed": "마켓플레이스를 불러오지 못했습니다.",
+  "load_failed": "Capability Hub를 불러오지 못했습니다.",
   "retry": "다시 시도",
   "by": "{{publisher}} 공개",
   "installs_other": "설치 {{count}}회",
@@ -41,7 +41,7 @@
     "workspace_hint": "이 워크스페이스에서만 볼 수 있습니다. 공개하기 전에 미리 점검할 때 사용하세요."
   },
   "detail": {
-    "back": "마켓플레이스",
+    "back": "Capability Hub",
     "unavailable": "이 항목은 사용할 수 없습니다.",
     "no_version": "이 항목에는 아직 공개된 버전이 없습니다.",
     "overview": "개요",
@@ -98,7 +98,7 @@
   },
   "publish": {
     "action": "공개",
-    "title": "마켓플레이스에 공개",
+    "title": "Capability Hub에 공개",
     "description": "서버가 지정한 항목을 읽고, 저장하기 전에 모든 자격 증명을 제거합니다.",
     "source_label": "공개할 대상",
     "source_placeholder": "{{kind}} 선택",

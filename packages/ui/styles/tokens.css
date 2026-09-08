@@ -1,4 +1,15 @@
-/* Enact design tokens — shared across Web + Desktop. */
+/* Enact design tokens — shared across Web + Desktop.
+ *
+ * The system is recorded in design-system/enact/MASTER.md; every literal below
+ * is a Deloitte palette value from design-system/enact/sources.md §1, or a
+ * documented mix of two of them. Derived tints belong in feature CSS as
+ * `color-mix()` of these tokens, never as a new literal.
+ *
+ * Light is the default scope. `:root` and `.light` share one block so the
+ * pre-hydration document and an explicit light choice resolve identically;
+ * `.enact-fixed-light` joins them so embedded/marketing subtrees get the same
+ * palette. `.dark` is the second value set under the same token names —
+ * components never branch on theme. */
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -6,6 +17,9 @@
   --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
   --color-app-shell: var(--app-shell);
+  --color-shell-foreground: var(--shell-foreground);
+  --color-shell-muted: var(--shell-muted);
+  --color-shell-group: var(--shell-group);
   --color-page-canvas: var(--page-canvas);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
@@ -14,6 +28,7 @@
   --color-surface-selected: var(--surface-selected);
   --color-surface-selected-foreground: var(--surface-selected-foreground);
   --color-surface-border: var(--surface-border);
+  --color-border-soft: var(--border-soft);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,6 +55,16 @@
   --color-info-foreground: var(--info-foreground);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-status-backlog: var(--status-backlog);
+  --color-status-todo: var(--status-todo);
+  --color-status-in-progress: var(--status-in-progress);
+  --color-status-in-review: var(--status-in-review);
+  --color-status-done: var(--status-done);
+  --color-status-blocked: var(--status-blocked);
+  --color-status-cancelled: var(--status-cancelled);
+  --color-identity-agent: var(--identity-agent);
+  --color-identity-squad: var(--identity-squad);
+  --color-identity-human: var(--identity-human);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-faint-foreground: var(--faint-foreground);
@@ -87,81 +112,156 @@
   --text-display--line-height: 40px;
 }
 
+/* An embedded light subtree, and everything inside it, renders light regardless
+   of the document scheme — form controls and scrollbars included. */
 .enact-fixed-light,
 .enact-fixed-light * {
   color-scheme: light;
 }
 
-/* The default operational workspace follows AIDevOps: a deep navy canvas,
-   layered panels, and Deloitte green for every brand/action affordance. */
+/* Light is the default operational surface: a near-white shell holding one
+   static green light, a white canvas, and depth carried by a ring plus a
+   two-part shadow rather than by a colour change. */
 :root,
-.dark {
-  color-scheme: dark;
-  --app-shell: hsl(228 24% 8%);
-  --page-canvas: hsl(228 20% 10%);
-  --surface: hsl(228 20% 10%);
-  --surface-foreground: hsl(220 20% 92%);
-  --surface-raised: hsl(228 16% 13%);
-  --surface-hover: hsl(228 16% 14%);
-  --surface-selected: hsl(147 36% 20%);
-  --surface-selected-foreground: hsl(220 20% 96%);
-  --surface-border: hsl(227 15% 18%);
+.light,
+.enact-fixed-light {
+  color-scheme: light;
+
+  /* L0 — shell. Sidebar, top bar, desktop tab bar. */
+  --app-shell: #f7f7f6; /* Light Gray ~32% over White */
+  --shell-foreground: #222222; /* Deloitte Dark Gray */
+  --shell-muted: #53565a; /* Cool Gray 11 */
+  --shell-group: #63666a; /* Cool Gray 10 */
+  --shell-hover: #eeeeed; /* Light Gray ~55% over White */
+  --shell-active: #ffffff;
+  --shell-active-shadow: 0 1px 2px rgb(34 34 34 / 8%), 0 0 0 1px rgb(34 34 34 / 5%);
+  --shell-light: rgb(134 188 37 / 22%); /* Deloitte Green */
+  --shell-light-2: rgb(196 214 0 / 16%); /* Green 2 */
+  --shell-edge: rgb(34 34 34 / 8%);
+
+  /* L1 canvas, L2 surface. */
+  --page-canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-foreground: #222222;
+  --surface-raised: #ffffff;
+  --surface-hover: #f3f3f2; /* Light Gray ~45% over White */
+  --surface-selected: #f1f6e4; /* Deloitte Pale Green */
+  --surface-selected-foreground: #222222;
+  --surface-border: #d0d0ce; /* Cool Gray 2 */
+  --border-soft: #e6e6e6; /* Light Gray */
+  --surface-ring: rgb(34 34 34 / 7%);
+  --surface-highlight: rgb(255 255 255 / 80%);
   --background: var(--page-canvas);
-  --foreground: hsl(220 20% 92%);
+  --foreground: #222222;
   --card: var(--surface);
   --card-foreground: var(--surface-foreground);
   --popover: var(--surface-raised);
   --popover-foreground: var(--surface-foreground);
-  --primary: hsl(147 87% 33%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(228 16% 13%);
-  --secondary-foreground: hsl(220 20% 92%);
-  --muted: hsl(228 15% 12%);
-  --muted-foreground: hsl(223 12% 68%);
-  --faint-foreground: hsl(223 10% 56%);
-  --accent: hsl(228 16% 14%);
-  --accent-foreground: hsl(220 20% 92%);
-  --destructive: hsl(358 76% 64%);
-  --destructive-foreground: hsl(228 24% 6%);
-  --success: hsl(149 55% 54%);
-  --success-foreground: hsl(228 24% 8%);
-  --warning: hsl(39 92% 62%);
-  --warning-foreground: hsl(228 24% 8%);
-  --info: hsl(214 88% 67%);
-  --info-foreground: hsl(228 24% 8%);
-  --border: hsl(227 15% 18%);
-  --input: hsl(227 15% 18%);
-  --ring: hsl(147 87% 33%);
-  --chart-1: hsl(147 87% 33%);
-  --chart-2: hsl(149 55% 54%);
-  --chart-3: hsl(214 88% 67%);
-  --chart-4: hsl(39 92% 62%);
-  --chart-5: hsl(164 62% 50%);
-  --sidebar: hsl(228 22% 9%);
-  --sidebar-foreground: hsl(220 20% 92%);
-  --sidebar-primary: hsl(147 87% 33%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(228 16% 13%);
-  --sidebar-accent-foreground: hsl(220 20% 96%);
-  --sidebar-border: hsl(227 15% 16%);
-  --sidebar-ring: hsl(147 87% 33%);
-  --brand: hsl(147 87% 33%);
-  --brand-foreground: hsl(0 0% 100%);
-  --scrollbar-thumb: hsl(220 20% 92% / 12%);
-  --scrollbar-thumb-hover: hsl(220 20% 92% / 24%);
+
+  /* Roles. */
+  --primary: #86bc25; /* Deloitte Green */
+  /* White on Deloitte Green is 2.27:1 — below AA. The product owner chose
+     it over the deck's black pairing (2026-09-07); the fill compensates with
+     a 600 weight and a dark text shadow (see .enact-brand-fill). */
+  --primary-foreground: #ffffff;
+  --brand: #86bc25;
+  --brand-foreground: #ffffff;
+  --secondary: #f3f3f2;
+  --secondary-foreground: #222222;
+  --muted: #f3f3f2;
+  --muted-foreground: #53565a; /* Cool Gray 11 — the floor for text */
+  --faint-foreground: #75787b; /* Cool Gray 9 — non-text marks only */
+  --accent: #f3f3f2;
+  --accent-foreground: #222222;
+  --link: #046a38; /* Deloitte Deep Green */
+  --destructive: #da291c; /* Red */
+  --destructive-foreground: #ffffff;
+  --success: #046a38; /* Deloitte Deep Green */
+  --success-foreground: #ffffff;
+  /* Deloitte Orange is 2.5:1 on white — it cannot carry text or a mark on a
+     light surface, so light mode darkens it: Orange 60% over Dark Gray. */
+  --warning: #9c610e;
+  --warning-foreground: #ffffff;
+  --info: #0076a8; /* Blue 4 */
+  --info-foreground: #ffffff;
+  --border: #d0d0ce;
+  --input: #75787b; /* Cool Gray 9 — control boundaries clear 3:1 */
+  --ring: #26890d; /* Deloitte Mid Green */
+
+  /* Deloitte suggested gradients (sources.md §1). Each sits on a solid
+     --brand fallback so forced colours and print keep the fill. */
+  --brand-gradient: linear-gradient(180deg, #86bc25 0%, #7bae1f 100%);
+  --run-gradient: linear-gradient(90deg, #86bc25 0%, #c4d600 100%);
+  --duo-gradient: linear-gradient(90deg, #86bc25 0%, #007cb0 100%);
+
+  /* Brand mark, colour variant (MASTER.md §10). One gradient per cube, top-left
+     to bottom-right across that cube's own box; faces are shaded by --mark-shade
+     at 0 / 18 / 36%. Identical in both themes — the mark never follows the theme. */
+  --mark-top-from: #c4d600; /* Green 2 */
+  --mark-top-to: #86bc25; /* Deloitte Green */
+  --mark-left-from: #86bc25;
+  --mark-left-to: #26890d; /* Mid Green */
+  --mark-right-from: #26890d;
+  --mark-right-to: #046a38; /* Deep Green */
+  --mark-shade: #000000;
+
+  /* Issue status. Shape carries the meaning; colour reinforces it. */
+  --status-backlog: #75787b; /* Cool Gray 9 — clears 3:1 as a mark */
+  --status-todo: #53565a;
+  --status-in-progress: #0076a8;
+  --status-in-review: #9c610e;
+  --status-done: #009a44; /* Green 5 */
+  --status-blocked: #da291c;
+  --status-cancelled: #75787b;
+
+  /* Assignee identity. Agents are orbs, people discs, squads stacked orbs. */
+  --identity-human: #d0d0ce;
+  --identity-human-foreground: #222222;
+  --identity-agent: #0d8390; /* Teal 8 */
+  --identity-agent-highlight: #6fc2b4; /* Teal 3 */
+  --identity-squad: #005587; /* Blue 5 */
+  --identity-squad-highlight: #62b5e5; /* Blue 2 */
+
+  --chart-1: #86bc25;
+  --chart-2: #0d8390;
+  --chart-3: #0076a8;
+  --chart-4: #ed8b00;
+  --chart-5: #6fc2b4;
+
+  --sidebar: var(--app-shell);
+  --sidebar-foreground: var(--shell-foreground);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: var(--shell-active);
+  --sidebar-accent-foreground: var(--shell-foreground);
+  --sidebar-border: var(--border-soft);
+  --sidebar-ring: var(--ring);
+
+  --scrollbar-thumb: rgb(34 34 34 / 12%);
+  --scrollbar-thumb-hover: rgb(34 34 34 / 22%);
   --scrollbar-track: transparent;
-  --find-match: hsl(39 92% 62%);
-  --find-match-active: hsl(30 96% 58%);
-  --find-match-foreground: hsl(228 24% 8%);
-  --shadow-2xs: 0 1px 2px hsl(228 40% 3% / 32%);
-  --shadow-xs: 0 2px 5px hsl(228 40% 3% / 34%);
-  --shadow-sm: 0 5px 14px hsl(228 40% 3% / 34%);
-  --shadow-md: 0 10px 24px hsl(228 40% 3% / 40%);
-  --shadow-lg: 0 16px 36px hsl(228 40% 3% / 46%);
-  --shadow-xl: 0 24px 52px hsl(228 40% 3% / 52%);
+  --find-match: #ffcd00; /* Yellow */
+  --find-match-active: #ed8b00;
+  --find-match-foreground: #222222;
+
+  /* Elevation. Each level pairs a contact shadow with an ambient one; the
+     ring and the top highlight are what make a white surface read as lifted
+     off a white canvas. A surface never wears more than its own level. */
+  --shadow-2xs: 0 1px 2px rgb(34 34 34 / 6%);
+  --shadow-xs: 0 1px 2px rgb(34 34 34 / 6%), 0 0 0 1px rgb(34 34 34 / 7%);
+  --shadow-sm: 0 1px 2px rgb(34 34 34 / 6%), 0 4px 12px rgb(34 34 34 / 8%);
+  --shadow-md: 0 2px 4px rgb(34 34 34 / 8%), 0 12px 32px rgb(34 34 34 / 16%);
+  --shadow-lg: 0 4px 8px rgb(34 34 34 / 10%), 0 20px 48px rgb(34 34 34 / 20%);
+  --shadow-xl: 0 4px 8px rgb(34 34 34 / 10%), 0 28px 64px rgb(34 34 34 / 24%);
   --surface-shadow: var(--shadow-sm);
   --menu-shadow: var(--shadow-md);
   --floating-shadow: var(--shadow-xl);
+
+  /* L3 glass. Floating layers only — never a scrolling container. */
+  --glass-background: rgb(255 255 255 / 78%);
+  --glass-border: rgb(34 34 34 / 10%);
+  --glass-blur: 12px;
+
   --radius: 0.5rem;
   --space-unit: 0.25rem;
   --border-width: 1px;
@@ -177,74 +277,124 @@
   --chat-launcher-clearance: calc(var(--chat-launcher-size) + var(--chat-launcher-inset) * 2);
 }
 
-/* Light mode is applied by next-themes as `.light` on the document element.
-   Fixed-light embeds reuse the exact same semantic palette. */
-.light,
-.enact-fixed-light {
-  color-scheme: light;
-  --app-shell: hsl(220 20% 96%);
-  --page-canvas: hsl(220 20% 98%);
-  --surface: hsl(0 0% 100%);
-  --surface-foreground: hsl(230 18% 14%);
-  --surface-raised: hsl(0 0% 100%);
-  --surface-hover: hsl(220 18% 94%);
-  --surface-selected: hsl(147 72% 90%);
-  --surface-selected-foreground: hsl(230 18% 14%);
-  --surface-border: hsl(220 18% 88%);
+/* Dark keeps the same structure and the same token names: the shell drops to
+   black, the canvas and surfaces climb by lightness, and the top highlight
+   becomes a hairline of white instead of a bloom. */
+.dark {
+  color-scheme: dark;
+
+  --app-shell: #000000;
+  --shell-foreground: #e6e6e6; /* Light Gray */
+  --shell-muted: #a7a8aa; /* Cool Gray 6 */
+  --shell-group: #75787b; /* Cool Gray 9 */
+  --shell-hover: #141414;
+  --shell-active: #1f1f1f;
+  --shell-active-shadow: 0 0 0 1px rgb(255 255 255 / 6%);
+  --shell-light: rgb(134 188 37 / 45%);
+  --shell-light-2: rgb(196 214 0 / 12%);
+  --shell-edge: rgb(255 255 255 / 6%);
+
+  --page-canvas: #111111; /* Deloitte Dark Gray 50% over Black */
+  --surface: #1a1a1a;
+  --surface-foreground: #e6e6e6;
+  --surface-raised: #222222; /* Deloitte Dark Gray */
+  --surface-hover: #262626;
+  --surface-selected: #29311c; /* Deloitte Green 14% over --surface */
+  --surface-selected-foreground: #ffffff;
+  --surface-border: #333333;
+  --border-soft: #2a2a2a;
+  --surface-ring: rgb(255 255 255 / 6%);
+  --surface-highlight: rgb(255 255 255 / 7%);
   --background: var(--page-canvas);
-  --foreground: hsl(230 18% 14%);
+  --foreground: #e6e6e6;
   --card: var(--surface);
   --card-foreground: var(--surface-foreground);
   --popover: var(--surface-raised);
   --popover-foreground: var(--surface-foreground);
-  --primary: hsl(147 87% 33%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(220 20% 94%);
-  --secondary-foreground: hsl(230 18% 18%);
-  --muted: hsl(220 16% 95%);
-  --muted-foreground: hsl(225 10% 42%);
-  --faint-foreground: hsl(225 9% 54%);
-  --accent: hsl(220 20% 93%);
-  --accent-foreground: hsl(230 18% 18%);
-  --destructive: hsl(358 72% 52%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --success: hsl(149 54% 30%);
-  --success-foreground: hsl(0 0% 100%);
-  --warning: hsl(39 88% 48%);
-  --warning-foreground: hsl(230 18% 10%);
-  --info: hsl(214 80% 56%);
-  --info-foreground: hsl(230 18% 10%);
-  --border: hsl(220 18% 88%);
-  --input: hsl(220 18% 86%);
-  --ring: hsl(147 87% 33%);
-  --chart-1: hsl(147 87% 33%);
-  --chart-2: hsl(149 54% 42%);
-  --chart-3: hsl(214 80% 56%);
-  --chart-4: hsl(39 88% 48%);
-  --chart-5: hsl(164 54% 38%);
-  --sidebar: hsl(220 20% 96%);
-  --sidebar-foreground: hsl(230 18% 18%);
-  --sidebar-primary: hsl(147 87% 33%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(220 18% 92%);
-  --sidebar-accent-foreground: hsl(230 18% 18%);
-  --sidebar-border: hsl(220 18% 86%);
-  --sidebar-ring: hsl(147 87% 33%);
-  --brand: hsl(147 87% 33%);
-  --brand-foreground: hsl(0 0% 100%);
-  --scrollbar-thumb: hsl(230 18% 14% / 12%);
-  --scrollbar-thumb-hover: hsl(230 18% 14% / 22%);
+
+  --primary: #86bc25;
+  --primary-foreground: #ffffff;
+  --brand: #86bc25;
+  --brand-foreground: #ffffff;
+  --secondary: #262626;
+  --secondary-foreground: #e6e6e6;
+  --muted: #1f1f1f;
+  --muted-foreground: #a7a8aa;
+  --faint-foreground: #75787b;
+  --accent: #262626;
+  --accent-foreground: #e6e6e6;
+  --link: #86bc25;
+  --destructive: #e4655c; /* Red 72% over White — Red itself cannot carry text here */
+  --destructive-foreground: #000000;
+  --success: #43b02a; /* Green 4 */
+  --success-foreground: #000000;
+  --warning: #ed8b00;
+  --warning-foreground: #000000;
+  --info: #00a3e0; /* Blue 3 */
+  --info-foreground: #000000;
+  --border: #333333;
+  --input: #75787b;
+  --ring: #86bc25;
+
+  /* Brand mark, colour variant (MASTER.md §10). One gradient per cube, top-left
+     to bottom-right across that cube's own box; faces are shaded by --mark-shade
+     at 0 / 18 / 36%. Identical in both themes — the mark never follows the theme. */
+  --mark-top-from: #c4d600; /* Green 2 */
+  --mark-top-to: #86bc25; /* Deloitte Green */
+  --mark-left-from: #86bc25;
+  --mark-left-to: #26890d; /* Mid Green */
+  --mark-right-from: #26890d;
+  --mark-right-to: #046a38; /* Deep Green */
+  --mark-shade: #000000;
+
+  --status-backlog: #75787b;
+  --status-todo: #a7a8aa;
+  --status-in-progress: #00a3e0;
+  --status-in-review: #ed8b00;
+  --status-done: #43b02a;
+  --status-blocked: #e4655c;
+  --status-cancelled: #75787b;
+
+  --identity-human: #53565a;
+  --identity-human-foreground: #e6e6e6;
+  --identity-agent: #00abab; /* Teal 4 */
+  --identity-agent-highlight: #9dd4cf; /* Teal 2 */
+  --identity-squad: #62b5e5; /* Blue 2 */
+  --identity-squad-highlight: #a0dcff; /* Blue 1 */
+
+  --chart-1: #86bc25;
+  --chart-2: #00abab;
+  --chart-3: #00a3e0;
+  --chart-4: #ed8b00;
+  --chart-5: #9dd4cf;
+
+  --sidebar: var(--app-shell);
+  --sidebar-foreground: var(--shell-foreground);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: var(--shell-active);
+  --sidebar-accent-foreground: var(--shell-foreground);
+  --sidebar-border: var(--shell-edge);
+  --sidebar-ring: var(--ring);
+
+  --scrollbar-thumb: rgb(230 230 230 / 12%);
+  --scrollbar-thumb-hover: rgb(230 230 230 / 24%);
   --scrollbar-track: transparent;
-  --find-match: hsl(39 88% 58%);
-  --find-match-active: hsl(30 94% 54%);
-  --find-match-foreground: hsl(230 18% 14%);
-  --shadow-2xs: 0 1px 2px hsl(228 30% 15% / 8%);
-  --shadow-xs: 0 2px 5px hsl(228 30% 15% / 9%);
-  --shadow-sm: 0 5px 14px hsl(228 30% 15% / 10%);
-  --shadow-md: 0 10px 24px hsl(228 30% 15% / 14%);
-  --shadow-lg: 0 16px 36px hsl(228 30% 15% / 17%);
-  --shadow-xl: 0 24px 52px hsl(228 30% 15% / 20%);
+  --find-match: #ffcd00;
+  --find-match-active: #ed8b00;
+  --find-match-foreground: #222222;
+
+  --shadow-2xs: 0 1px 2px rgb(0 0 0 / 50%);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 6%);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 50%), 0 6px 16px rgb(0 0 0 / 50%);
+  --shadow-md: 0 2px 4px rgb(0 0 0 / 60%), 0 16px 40px rgb(0 0 0 / 60%);
+  --shadow-lg: 0 4px 8px rgb(0 0 0 / 60%), 0 24px 56px rgb(0 0 0 / 65%);
+  --shadow-xl: 0 4px 8px rgb(0 0 0 / 60%), 0 32px 80px rgb(0 0 0 / 70%);
   --surface-shadow: var(--shadow-sm);
   --menu-shadow: var(--shadow-md);
   --floating-shadow: var(--shadow-xl);
+
+  --glass-background: rgb(26 26 26 / 72%);
+  --glass-border: rgb(255 255 255 / 12%);
+  --glass-blur: 12px;
 }

@@ -73,7 +73,7 @@
     "date_clear": "清除日期筛选",
     "members_group": "成员",
     "agents_group": "智能体",
-    "squads_group": "智能体小组",
+    "squads_group": "Agent Family",
     "issue_count_other": "{{count}} 个任务",
     "reset": "重置全部筛选",
     "chip_remove": "移除{{name}}筛选",
@@ -367,7 +367,9 @@
     "workdir_path_copy_failed": "复制本地 workdir 路径失败",
     "workdir_path_unavailable": "暂无本地 workdir — 这个任务还没被本地 agent 运行过",
     "unsubscribe_subtree_succeeded": "已取消订阅此任务及其子任务。",
-    "subscription_update_failed": "无法更新订阅状态，请重试。"
+    "subscription_update_failed": "无法更新订阅状态，请重试。",
+    "accept_tooltip": "验收通过",
+    "return_tooltip": "退回"
   },
   "timeline": {
     "loading": "加载中…"
@@ -388,7 +390,7 @@
     "description_updated": "更新了描述",
     "task_completed_other": "完成了 task（{{count}} 次）",
     "task_failed_other": "task 失败（{{count}} 次）",
-    "squad_leader_evaluated": "评估了智能体小组触发",
+    "squad_leader_evaluated": "评估了Agent Family触发",
     "squad_leader_action": "已评估并采取了操作",
     "squad_leader_action_reason": "已评估并采取了操作：{{reason}}",
     "squad_leader_no_action": "已评估：无需操作",
@@ -651,9 +653,9 @@
       "search_placeholder": "分配给...",
       "members_group": "成员",
       "agents_group": "智能体",
-      "squads_group": "智能体小组",
+      "squads_group": "Agent Family",
       "agent_runtime_required": "请先为该智能体绑定运行时，再分配工作",
-      "squad_runtime_required": "请先为该智能体小组的负责人绑定运行时，再分配工作"
+      "squad_runtime_required": "请先为该Agent Family的负责人绑定运行时，再分配工作"
     },
     "start_date": {
       "trigger_label": "开始日期",

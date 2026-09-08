@@ -7,19 +7,69 @@
     background-color: var(--app-shell);
   }
 
+  /* The shell carries the one ambient light in the product: a wide, static
+     green bloom in the top-left corner, met from below by a narrower Green 2
+     wash so the light reads as daylight rather than as a neon halo. Both are
+     painted once and never animate; every other glow in the product encodes
+     live state. Text always sits outside the bright core. */
   .enact-dashboard-shell {
-    background-image: radial-gradient(
-      circle at top left,
-      color-mix(in oklab, var(--primary) 10%, transparent),
-      transparent 30%
-    );
+    background-image:
+      radial-gradient(
+        720px 340px at 0% 0%,
+        var(--shell-light),
+        transparent 62%
+      ),
+      radial-gradient(
+        420px 260px at 30% 100%,
+        var(--shell-light-2),
+        transparent 70%
+      );
   }
 
+  /* The light lives on the shell, so nothing inside the shell may paint over
+     it. The sidebar's inner panel and the top bar both default to a solid
+     ground for the standalone case; within the dashboard they go transparent
+     and the shell's own colour plus its light show through. The sidebar's
+     right edge and the canvas's top edge are the same hairline token. */
+  .enact-dashboard-shell [data-slot="sidebar-inner"],
+  .enact-dashboard-shell .enact-topbar {
+    background-color: transparent;
+  }
+
+  /* The bar spans the window; the sidebar starts under it. The container is
+     positioned `fixed inset-y-0` for the standalone case, which is full window
+     height — inside the dashboard that put it over the bar's brand and search,
+     hidden only while the sidebar was opaque. */
+  .enact-dashboard-shell {
+    --enact-topbar-height: calc(var(--space-unit) * 11);
+  }
+
+  .enact-dashboard-shell [data-slot="sidebar-container"] {
+    top: var(--enact-topbar-height);
+    height: calc(100svh - var(--enact-topbar-height));
+    border-color: var(--shell-edge);
+  }
+
+  /* Group labels are the shell's quiet wayfinding: micro, uppercase, tracked,
+     in the shell's own tertiary tone rather than the canvas's muted text. */
+  .enact-dashboard-shell [data-slot="sidebar-group-label"],
+  .enact-desktop-shell [data-slot="sidebar-group-label"] {
+    color: var(--shell-group);
+    font-size: var(--text-micro);
+    line-height: var(--text-micro--line-height);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* One hairline is what separates the canvas from the shell in light mode,
+     where the two grounds are only a step apart. It is not decoration: without
+     it the sidebar stops reading as a layer behind the page. */
   .enact-dashboard-canvas {
     min-width: 0;
     min-height: 0;
     background-color: var(--page-canvas);
-    box-shadow: inset 0 var(--border-width) 0 var(--surface-border);
+    box-shadow: inset 0 var(--border-width) 0 var(--shell-edge);
   }
 
   .enact-dashboard-loading {
@@ -48,17 +98,35 @@
   }
 
   .enact-sidebar-nav-item {
-    color: var(--muted-foreground);
+    color: var(--shell-muted);
   }
 
-  .enact-sidebar-nav-item:hover:not([data-active="true"]) {
-    background-color: color-mix(in oklab, var(--sidebar-accent) 70%, transparent);
+  /* Hover moves the ground; the active state adds weight, a lift and a green
+     rule. They live on different dimensions on purpose, so hovering the
+     current page never visually demotes it to "just hovered".
+     
+     The attribute is matched by PRESENCE, not by the string "true": the shared
+     SidebarMenuButton renders `data-active` as a bare boolean attribute, so it
+     arrives in the DOM as `data-active=""`. `[data-active="true"]` silently
+     matched nothing there, which is how the green rule went missing from every
+     top-level entry while the pinned rows kept it. */
+  .enact-sidebar-nav-item:hover:not([data-active]) {
+    background-color: var(--shell-hover);
+    color: var(--shell-foreground);
   }
 
-  .enact-sidebar-nav-item[data-active="true"],
-  .enact-sidebar-nav-item[data-active="true"]:hover {
+  /* Light mode has no room to brighten a near-white shell, so the current item
+     is lifted off it instead: a white card with a contact shadow. Dark mode
+     resolves the same tokens to a brightened panel. Either way the 2px green
+     rule is what names it. */
+  .enact-sidebar-nav-item[data-active],
+  .enact-sidebar-nav-item[data-active]:hover {
     background-color: var(--sidebar-accent);
+    box-shadow:
+      inset calc(var(--border-width) * 2) 0 0 var(--brand),
+      var(--shell-active-shadow);
     color: var(--sidebar-accent-foreground);
+    font-weight: 600;
   }
 
   .enact-sidebar-pin-label,
@@ -179,7 +247,7 @@
   }
 
   .enact-page-header {
-    border-bottom: var(--border-width) solid var(--border);
+    border-bottom: var(--border-width) solid var(--border-soft);
   }
 
   .enact-collection-icon,
@@ -189,9 +257,11 @@
   }
 
   .enact-collection-title {
-    font-size: var(--text-body);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--text-body--line-height);
+    color: var(--foreground);
+    font-size: var(--text-title-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-title-lg--line-height);
+    letter-spacing: -0.01em;
   }
 
   .enact-collection-count,
@@ -617,6 +687,58 @@
 
     .enact-desktop-tab-button[data-tab-active="true"] {
       outline: var(--border-width) solid Highlight;
+    }
+  }
+}
+
+@layer utilities {
+  /* Top bar: session controls, spanning the window above sidebar and canvas.
+     It is shell, not a floating layer — nothing scrolls underneath it — so it
+     takes the shell ground and its hairline rather than the glass treatment
+     the popup surfaces get. */
+  .enact-topbar {
+    background-color: var(--app-shell);
+    color: var(--shell-foreground);
+    border-bottom: var(--border-width) solid var(--shell-edge);
+  }
+
+  .enact-topbar-action,
+  .enact-topbar-avatar {
+    color: var(--shell-muted);
+    transition:
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .enact-topbar-action:hover,
+  .enact-topbar-avatar:hover {
+    background-color: var(--shell-hover);
+    color: var(--shell-foreground);
+  }
+
+  .enact-topbar-action:focus-visible,
+  .enact-topbar-avatar:focus-visible,
+  .enact-topbar-bell-row:focus-visible,
+  .enact-topbar-bell-action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* Unread is a dot, not a number: the count is on the Home tab, and a
+     rolling digit in the corner of every screen reads as an alarm. */
+  .enact-topbar-bell-dot {
+    background-color: var(--brand);
+  }
+
+  .enact-topbar-bell-row:hover,
+  .enact-topbar-bell-action:hover {
+    background-color: var(--surface-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enact-topbar-action,
+    .enact-topbar-avatar {
+      transition: none;
     }
   }
 }

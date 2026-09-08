@@ -52,7 +52,7 @@ import { ActorAvatar } from "@enact/ui/components/common/actor-avatar";
 import { FILTER_ITEM_CLASS, HoverCheck } from "../../common/hover-check";
 import { availabilityConfig } from "../presence";
 import { useT } from "../../i18n";
-import type { AgentListRow } from "./agents-page";
+import type { AgentListRow } from "./agent-list-page";
 import { PAGE_GUTTER } from "../../layout/page-header";
 import { cn } from "@enact/ui/lib/utils";
 

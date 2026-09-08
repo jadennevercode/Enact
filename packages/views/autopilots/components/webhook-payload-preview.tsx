@@ -77,7 +77,7 @@ export function WebhookPayloadPreview({
   };
 
   return (
-    <div className="rounded-md border bg-background">
+    <div className="enact-surface-panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -102,7 +102,7 @@ export function WebhookPayloadPreview({
         )}
       </button>
       {open && (
-        <div className="border-t">
+        <div className="border-t border-border-soft">
           <div className="flex items-center justify-between px-3 py-1.5 text-micro text-muted-foreground">
             <span>
               {contentType

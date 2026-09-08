@@ -8,6 +8,7 @@
 @import "./base.css";
 @import "./primitives.css";
 @import "./features/shell.css";
+@import "./features/home.css";
 @import "./features/issues.css";
 @import "./features/chat-inbox.css";
 @import "./features/agents-runtimes.css";

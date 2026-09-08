@@ -1,0 +1,38 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "open sans",
+        "createdAt": "2026-09-07T16:40:29.308Z",
+        "reason": "user confirmed: brand direction requires the Deloitte web typeface; deloitte.com self-hosts Open Sans 300/400/600/700 (design-system/enact/sources.md §2)"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "createdAt": "2026-09-07T16:40:29.332Z",
+        "reason": "existing repo mono face (packages/ui tokens, apps/desktop fontsource); code and telemetry only, not the UI face"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "design-system/enact/index.html"
+        ],
+        "createdAt": "2026-09-07T16:40:29.353Z",
+        "reason": "type specimen: the uppercase string is the micro-label role being demonstrated, not body copy; product use is 1-2 word sidebar group labels (MASTER.md §5)"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "packages/ui/styles/tokens.css"
+        ],
+        "createdAt": "2026-09-07T19:18:25.920Z",
+        "reason": "user confirmed: white text on Deloitte Green #86BC25 for primary actions, chosen over the deck's black pairing on 2026-09-07"
+      }
+    ]
+  }
+}

@@ -1004,9 +1004,9 @@
   .enact-onboarding-backfill-title {
     margin-top: var(--space-unit);
     color: var(--foreground);
-    font-family: var(--font-serif);
     font-size: var(--text-display-sm);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-light);
+    letter-spacing: -0.01em;
     line-height: var(--text-display-sm--line-height);
     letter-spacing: -0.015em;
     text-wrap: balance;
@@ -1587,18 +1587,20 @@
   }
 
   .enact-onboarding-welcome-wordmark {
-    font-family: var(--font-serif);
     font-size: var(--text-title-lg);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-semibold);
     line-height: var(--text-title-lg--line-height);
     letter-spacing: -0.015em;
   }
 
+  /* One sans, no serif. Display type is Open Sans at 300 with the tracking
+     pulled in — a light weight at 36px needs it, and it is what the Deloitte
+     covers do with their own headline face. */
   .enact-onboarding-welcome-headline {
     color: var(--foreground);
-    font-family: var(--font-serif);
     font-size: var(--text-display);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-light);
+    letter-spacing: -0.015em;
     line-height: var(--text-display--line-height);
     letter-spacing: -0.025em;
     text-wrap: balance;
@@ -1653,7 +1655,6 @@
   .enact-onboarding-welcome-caption {
     max-width: calc(var(--space-unit) * 110);
     color: var(--muted-foreground);
-    font-family: var(--font-serif);
     font-size: var(--text-body-lg);
     font-style: italic;
     line-height: var(--text-body-lg--line-height);
@@ -2268,6 +2269,18 @@
     .enact-onboarding-welcome-copy-body {
       padding-inline: calc(var(--space-unit) * 24);
     }
+  }
+
+  /* Level 2 for this file's in-flow containers: the ring, contact shadow and
+     top highlight every lifted surface shares. Declared once here, after the
+     rules above, so a container that used to opt out of shadow now lifts. */
+  .enact-onboarding-option-card,
+  .enact-onboarding-runtime-card,
+  .enact-onboarding-workspace-card {
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
   }
 
   @media (prefers-reduced-motion: reduce) {

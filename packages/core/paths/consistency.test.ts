@@ -17,6 +17,7 @@ describe("paths.workspace() shape", () => {
     expect(new Set(parameterlessRoutes)).toEqual(
       new Set([
         "root",
+        "home",
         "usage",
         "issues",
         "autopilots",
@@ -33,6 +34,10 @@ describe("paths.workspace() shape", () => {
         "skills",
         "marketplace",
         "squads",
+        "members",
+        "resources",
+        "connections",
+        "applications",
         "settings",
         "settingsResources",
         "settingsWorkspace",
@@ -45,6 +50,7 @@ describe("paths.workspace() shape", () => {
     // Check that none of the parameterless paths embed a leaked literal and
     // that each method emits its explicitly registered workspace subpath.
     const expectedSegments: Array<[string, string]> = [
+      ["home", "home"],
       ["usage", "usage"],
       ["issues", "issues"],
       ["autopilots", "autopilots"],
@@ -58,6 +64,10 @@ describe("paths.workspace() shape", () => {
       ["myIssues", "my-issues"],
       ["runtimes", "runtimes"],
       ["ontologies", "ontologies"],
+      ["members", "members"],
+      ["resources", "resources"],
+      ["connections", "connections"],
+      ["applications", "applications"],
       ["skills", "skills"],
       ["marketplace", "marketplace"],
       ["squads", "squads"],

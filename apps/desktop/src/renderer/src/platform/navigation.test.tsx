@@ -79,31 +79,31 @@ describe("openInNewTab", () => {
     const getAdapter = renderProvider();
     const activeBefore = acmeGroup().activeTabId;
 
-    getAdapter().openInNewTab!("/acme/agents", "Agents");
+    getAdapter().openInNewTab!("/acme/runtimes", "Runtimes");
 
     const group = acmeGroup();
-    expect(group.tabs.map((t) => t.url)).toEqual(["/acme/issues", "/acme/agents"]);
+    expect(group.tabs.map((t) => t.url)).toEqual(["/acme/issues", "/acme/runtimes"]);
     expect(group.activeTabId).toBe(activeBefore);
   });
 
   it("activates the new tab when opts.activate is true (foreground)", () => {
     const getAdapter = renderProvider();
 
-    getAdapter().openInNewTab!("/acme/agents", "Agents", { activate: true });
+    getAdapter().openInNewTab!("/acme/runtimes", "Runtimes", { activate: true });
 
     const group = acmeGroup();
-    const agents = group.tabs.find((t) => t.url === "/acme/agents")!;
-    expect(group.activeTabId).toBe(agents.id);
+    const runtimes = group.tabs.find((t) => t.url === "/acme/runtimes")!;
+    expect(group.activeTabId).toBe(runtimes.id);
   });
 
   it("delegates to switchWorkspace for a cross-workspace path", () => {
     const getAdapter = renderProvider();
 
-    getAdapter().openInNewTab!("/butter/inbox");
+    getAdapter().openInNewTab!("/butter/chat");
 
     const s = useTabStore.getState();
     expect(s.activeWorkspaceSlug).toBe("butter");
-    expect(getActiveTab(s)?.url).toBe("/butter/inbox");
+    expect(getActiveTab(s)?.url).toBe("/butter/chat");
     // acme's group is untouched.
     expect(s.byWorkspace.acme.tabs).toHaveLength(1);
   });
@@ -135,11 +135,11 @@ describe("push", () => {
   it("switches workspace for a cross-workspace path", () => {
     const getAdapter = renderProvider();
 
-    getAdapter().push("/butter/inbox");
+    getAdapter().push("/butter/chat");
 
     const s = useTabStore.getState();
     expect(s.activeWorkspaceSlug).toBe("butter");
-    expect(getActiveTab(s)?.url).toBe("/butter/inbox");
+    expect(getActiveTab(s)?.url).toBe("/butter/chat");
   });
 
   it("logs out instead of navigating for /login", () => {
@@ -198,7 +198,7 @@ describe("push with pinned active tab", () => {
     pinActive();
     const getAdapter = renderProvider();
 
-    getAdapter().push("/butter/inbox");
+    getAdapter().push("/butter/chat");
 
     expect(useTabStore.getState().activeWorkspaceSlug).toBe("butter");
     // No extra tab was opened in acme by the pin interception.
@@ -251,7 +251,7 @@ describe("canGoBack", () => {
     const getAdapter = renderProvider();
     getAdapter().push("/acme/artifacts");
 
-    getAdapter().openInNewTab!("/acme/agents", "Agents", { activate: true });
+    getAdapter().openInNewTab!("/acme/runtimes", "Runtimes", { activate: true });
 
     expect(getAdapter().canGoBack!()).toBe(false);
   });

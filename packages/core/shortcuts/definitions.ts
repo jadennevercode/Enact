@@ -16,16 +16,18 @@ export type ShortcutActionId =
   | "send"
   | "goBack"
   | "goForward"
+  | "goHome"
   | "goInbox"
   | "goChat"
   | "goMyIssues"
   | "goIssues"
   | "goAutopilots"
   | "goAgents"
-  | "goSquads"
+  | "goMembers"
+  | "goResources"
   | "goUsage"
   | "goRuntimes"
-  | "goSkills"
+  | "goMarketplace"
   | "goSettings";
 
 export type ShortcutCategory = "general" | "navigation";
@@ -116,16 +118,18 @@ export const SHORTCUT_ACTIONS: readonly ShortcutActionDefinition[] = [
   // away from the page while the caret sits in an input, textarea, or editor.
   { id: "goBack", category: "navigation", defaultShortcut: primary("["), allowInEditable: false },
   { id: "goForward", category: "navigation", defaultShortcut: primary("]"), allowInEditable: false },
+  { id: "goHome", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goInbox", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goChat", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goMyIssues", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goIssues", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goAutopilots", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goAgents", category: "navigation", defaultShortcut: null, allowInEditable: false },
-  { id: "goSquads", category: "navigation", defaultShortcut: null, allowInEditable: false },
+  { id: "goMembers", category: "navigation", defaultShortcut: null, allowInEditable: false },
+  { id: "goResources", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goUsage", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goRuntimes", category: "navigation", defaultShortcut: null, allowInEditable: false },
-  { id: "goSkills", category: "navigation", defaultShortcut: null, allowInEditable: false },
+  { id: "goMarketplace", category: "navigation", defaultShortcut: null, allowInEditable: false },
   { id: "goSettings", category: "navigation", defaultShortcut: null, allowInEditable: false },
 ] as const;
 

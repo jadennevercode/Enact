@@ -85,8 +85,6 @@ import { ActorAvatar } from "../../common/actor-avatar";
 import { FILTER_ITEM_CLASS, HoverCheck } from "../../common/hover-check";
 import { useIntentNavigate, useRowLink } from "../../navigation";
 import {
-  CollectionPageHeader,
-  CollectionPageHeaderAction,
   CollectionPageState,
 } from "../../layout/collection-page";
 import { useT } from "../../i18n";
@@ -904,19 +902,6 @@ export function SquadsPage() {
 
   return (
     <div className="enact-management-page flex flex-1 min-h-0 flex-col">
-      <CollectionPageHeader
-        icon={Users}
-        title={t(($) => $.page.title)}
-        count={squads.length}
-        actions={
-          <CollectionPageHeaderAction
-            icon={Plus}
-            label={t(($) => $.page.new_button)}
-            onClick={() => useModalStore.getState().open("create-squad")}
-          />
-        }
-      />
-
       {isLoading ? (
         <LoadingSkeleton />
       ) : squads.length === 0 ? (

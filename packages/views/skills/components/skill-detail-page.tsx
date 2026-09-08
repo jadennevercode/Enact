@@ -423,7 +423,7 @@ function UsedByList({ agents }: { agents: Agent[] }) {
     );
   }
   return (
-    <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+    <ul className="enact-surface-panel divide-y divide-border-soft overflow-hidden">
       {agents.map((a) => (
         <li key={a.id} className="flex items-center gap-2.5 px-3 py-2.5">
           <ActorAvatar
@@ -549,7 +549,7 @@ function OverviewTab({
         {/* Everyone can read the history; only someone who may edit the skill
             sees the way back. A skill that changed under you is a thing you
             need to be able to look up either way. */}
-        <div className="mt-3 overflow-hidden rounded-lg border">
+        <div className="enact-surface-panel mt-3 overflow-hidden">
           <SkillVersionsPanel skillId={skill.id} canManage={canEdit} />
         </div>
       </section>
@@ -1032,7 +1032,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
     setDeleting(true);
     try {
       await api.deleteSkill(skill.id);
-      navigation.replace(paths.skills());
+      navigation.replace(paths.agentsTab("skills"));
       qc.removeQueries({
         queryKey: skillDetailOptions(wsId, skill.id).queryKey,
       });
@@ -1127,7 +1127,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
           <Button
             variant="ghost"
             size="xs"
-            render={<AppLink href={paths.skills()} />}
+            render={<AppLink href={paths.agentsTab("skills")} />}
             nativeButton={false}
           >
             {t(($) => $.detail.all_skills)}
@@ -1140,7 +1140,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
             {error instanceof Error ? error.message : t(($) => $.detail.not_found.fallback)}
           </p>
           <AppLink
-            href={paths.skills()}
+            href={paths.agentsTab("skills")}
             className={`${buttonVariants({ variant: "outline", size: "xs" })} mt-2`}
           >
             {t(($) => $.detail.not_found.back)}
@@ -1175,7 +1175,7 @@ export function SkillDetailPage({ skillId }: { skillId: string }) {
     // same rule as the skills list batch toolbar).
     <div className="relative flex flex-1 min-h-0 flex-col">
       <BreadcrumbHeader
-        segments={[{ href: paths.skills(), label: t(($) => $.page.title) }]}
+        segments={[{ href: paths.agentsTab("skills"), label: t(($) => $.page.title) }]}
         leaf={
           <span className="truncate font-mono text-caption text-foreground">
             {skill.name}

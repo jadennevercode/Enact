@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   User,
   SlidersHorizontal,
   Key,
   Settings,
-  Users,
   FlaskConical,
   Bell,
   Plug,
@@ -18,13 +17,12 @@ import {
   Zap,
   Blocks,
   CreditCard,
-  Server,
-  Boxes,
 } from "lucide-react";
 import { GitHubMark } from "./github-mark";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@enact/ui/components/ui/tabs";
 import { useIsMobile } from "@enact/ui/hooks/use-mobile";
-import { useCurrentWorkspace } from "@enact/core/paths";
+import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
+import type { WorkspacePaths } from "@enact/core/paths";
 import { useFeatureEnabled } from "@enact/core/config";
 import {
   BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
@@ -37,8 +35,6 @@ import { ChatTab } from "./chat-tab";
 import { IssueTab } from "./issue-tab";
 import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
-import { MembersTab } from "./members-tab";
-import { ResourcesTab } from "./resources-tab";
 import { GitHubTab } from "./github-tab";
 import { IntegrationsTab } from "./integrations-tab";
 import { LabsTab } from "./labs-tab";
@@ -49,7 +45,6 @@ import { PropertiesTab } from "./properties-tab";
 import { QuickActionsTab } from "./quick-actions-tab";
 import { KeyboardShortcutsTab } from "./keyboard-shortcuts-tab";
 import { PluginsTab } from "./plugins-tab";
-import { McpTab } from "./mcp-tab";
 import { BillingTab } from "./billing-tab";
 import { CollapsedNavTrigger } from "../../layout/page-header";
 import { useT } from "../../i18n";
@@ -67,47 +62,38 @@ const ACCOUNT_TAB_ICONS = {
 
 const WORKSPACE_TAB_KEYS = [
   "general",
-  "resources",
   "github",
   "integrations",
   "labs",
-  "members",
   "billing",
   "labels",
   "issue_statuses",
   "properties",
   "quick_actions",
-  "mcp",
   "plugins",
 ] as const;
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
-  resources: "resources",
   github: "github",
   integrations: "integrations",
   labs: "labs",
-  members: "members",
   billing: "billing",
   labels: "labels",
   issue_statuses: "issue-statuses",
   properties: "properties",
   quick_actions: "quick-actions",
-  mcp: "mcp",
   plugins: "plugins",
 } as const;
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
-  resources: Boxes,
   github: GitHubMark,
   integrations: Plug,
   labs: FlaskConical,
-  members: Users,
   billing: CreditCard,
   labels: Tags,
   issue_statuses: CircleDot,
   properties: SlidersHorizontal,
   quick_actions: Zap,
-  mcp: Server,
   plugins: Blocks,
 } as const;
 
@@ -123,7 +109,23 @@ const TAB_QUERY_KEY = "tab";
 // github_repo resources, and the GitHub App callback still returns here.
 const LEGACY_WORKSPACE_TAB_REDIRECTS: Record<string, string> = {
   lark: "integrations",
-  repositories: "resources",
+};
+
+// Tabs that left Settings for a page of their own. Settings administers the
+// workspace; the MCP library and the resources a workspace works on are
+// material a team builds with, so they sit with the rest of that material.
+// Old `?tab=` links still land where the surface went.
+const MOVED_TAB_DESTINATIONS: Record<
+  string,
+  (paths: WorkspacePaths) => string
+> = {
+  mcp: (paths) => paths.agentsTab("mcp"),
+  resources: (paths) => paths.resources(),
+  repositories: (paths) => paths.resources(),
+  // Who belongs to a workspace is not a setting. Inviting, changing a role and
+  // removing someone now sit on the Members page, beside the roster they act
+  // on. Old `?tab=members` links still land there.
+  members: (paths) => paths.members(),
 };
 
 const SETTINGS_TAB_TRIGGER_CLASS = "enact-settings-tab-trigger";
@@ -143,6 +145,7 @@ interface SettingsPageProps {
 export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
   const { t } = useT("settings");
   const workspaceName = useCurrentWorkspace()?.name;
+  const workspacePaths = useWorkspacePaths();
   const navigation = useNavigation();
   const isMobile = useIsMobile();
   const pluginsEnabled = useFeatureEnabled(PLUGINS_V1_FLAG, false);
@@ -175,6 +178,11 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
   );
 
   const tabFromUrl = navigation.searchParams.get(TAB_QUERY_KEY);
+  const movedTo = tabFromUrl ? MOVED_TAB_DESTINATIONS[tabFromUrl] : undefined;
+  useEffect(() => {
+    if (movedTo) navigation.replace(movedTo(workspacePaths));
+  }, [movedTo, navigation, workspacePaths]);
+
   const candidateTab = tabFromUrl
     ? tabFromUrl === "billing" && !billingEnabled
       ? "workspace"
@@ -289,11 +297,9 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
-          <TabsContent value="resources"><ResourcesTab /></TabsContent>
           <TabsContent value="github"><GitHubTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
-          <TabsContent value="members"><MembersTab /></TabsContent>
           {billingEnabled ? (
             <TabsContent value="billing"><BillingTab /></TabsContent>
           ) : null}
@@ -301,7 +307,6 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="issue-statuses"><IssueStatusesTab /></TabsContent>
           <TabsContent value="properties"><PropertiesTab /></TabsContent>
           <TabsContent value="quick-actions"><QuickActionsTab /></TabsContent>
-          <TabsContent value="mcp"><McpTab /></TabsContent>
           {pluginsEnabled ? <TabsContent value="plugins"><PluginsTab /></TabsContent> : null}
           {extraAccountTabs?.map((tab) => (
             <TabsContent key={tab.value} value={tab.value}>{tab.content}</TabsContent>

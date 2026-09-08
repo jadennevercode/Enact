@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@enact/core/i18n/react";
-import { WORKSPACE_PAGES } from "@enact/core/paths";
+import { WORKSPACE_PAGES, NAV_PAGE_KEYS } from "@enact/core/paths";
 import { SearchCommand } from "./search-command";
 import { useSearchStore } from "./search-store";
 import enCommon from "../locales/en/common.json";
@@ -167,31 +167,18 @@ vi.mock("@enact/core", () => ({
   useWorkspaceId: () => "ws-test",
 }));
 
-vi.mock("@enact/core/paths", async (importOriginal) => ({
-  // Spread the real module so pure helpers (resolveRouteIconName, used to
-  // derive each nav page's icon from its href) stay intact.
-  ...(await importOriginal<typeof import("@enact/core/paths")>()),
-  useWorkspacePaths: () => ({
-    inbox: () => "/ws-test/inbox",
-    chat: () => "/ws-test/chat",
-    myIssues: () => "/ws-test/my-issues",
-    issues: () => "/ws-test/issues",
-    artifacts: () => "/ws-test/artifacts",
-    autopilots: () => "/ws-test/autopilots",
-    agents: () => "/ws-test/agents",
-    squads: () => "/ws-test/squads",
-    usage: () => "/ws-test/usage",
-    runtimes: () => "/ws-test/runtimes",
-    ontologies: () => "/ws-test/ontologies",
-    skills: () => "/ws-test/skills",
-    marketplace: () => "/ws-test/marketplace",
-    settings: () => "/ws-test/settings",
-    issueDetail: (id: string) => `/ws-test/issues/${id}`,
-    memberDetail: (id: string) => `/ws-test/members/${id}`,
-    agentDetail: (id: string) => `/ws-test/agents/${id}`,
-    squadDetail: (id: string) => `/ws-test/squads/${id}`,
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    // Spread the real module so pure helpers (resolveRouteIconName, used to
+    // derive each nav page's icon from its href) stay intact.
+    ...actual,
+    // Built from the real path builders rather than a hand-written copy:
+    // this fixture gets iterated over every nav page, so a literal list
+    // goes stale the moment a page is added or absorbed.
+    useWorkspacePaths: () => actual.paths.workspace("ws-test"),
+  };
+});
 
 vi.mock("@enact/core/issues/queries", () => ({
   issueDetailOptions: (_wsId: string, id: string) => ({
@@ -353,12 +340,15 @@ describe("SearchCommand", () => {
     renderSearch();
     const input = screen.getByPlaceholderText("Type a command or search...");
 
-    // The Pages group is generated from WORKSPACE_PAGES — the same registry
-    // the sidebar and the desktop tab bar read — so searching a page by the
-    // exact name the sidebar shows must always reach it. The hand-written
-    // list this replaced had gone stale by four pages (ENA-6272).
-    for (const page of Object.values(WORKSPACE_PAGES)) {
-      const label = enLayout.nav[page.navKey];
+    // The Pages group is generated from WORKSPACE_NAV — the same ordered
+    // schema the sidebar renders — so searching a page by the exact name the
+    // sidebar shows must always reach it. The hand-written list this replaced
+    // had gone stale by four pages (ENA-6272). Registry entries that are not
+    // nav destinations (a segment kept only so a desktop tab keeps its icon)
+    // are deliberately absent: the palette sends people to places the sidebar
+    // offers.
+    for (const key of NAV_PAGE_KEYS) {
+      const label = enLayout.nav[WORKSPACE_PAGES[key].navKey];
       await user.clear(input);
       await user.type(input, label);
       expect(
@@ -391,12 +381,13 @@ describe("SearchCommand", () => {
     const user = userEvent.setup();
     renderSearch();
 
-    // Analytics lives at /usage: proof the row resolves its destination from
-    // the page key rather than from the words on screen.
+    // Insights is labelled one thing, routed at /usage, and reached here by
+    // typing its former name: proof the row resolves its destination from the
+    // page key rather than from either the words on screen or the query.
     const input = screen.getByPlaceholderText("Type a command or search...");
     await user.type(input, "analytics");
 
-    await user.click(await screen.findByText("Analytics"));
+    await user.click(await screen.findByText("Insights"));
 
     expect(mockPush).toHaveBeenCalledWith("/ws-test/usage");
     expect(useSearchStore.getState().open).toBe(false);

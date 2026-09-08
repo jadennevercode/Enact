@@ -172,7 +172,7 @@ export function SkillsTab({
             hint={t(($) => $.tab_body.skills.empty_hint)}
           />
         ) : (
-          <ul className="divide-y rounded-lg border bg-surface-raised/40">
+          <ul className="enact-surface-panel divide-y divide-border-soft">
             {assignedSkills.map((skill) => {
               const enabled = skill.enabled !== false;
               const busy = busyId === skill.id;
@@ -281,7 +281,7 @@ export function SkillsTab({
         ) : runtimeSkills.length === 0 ? (
           <RuntimeNotice text={t(($) => $.tab_body.skills.runtime_empty)} />
         ) : (
-          <ul className="divide-y rounded-lg border bg-surface-raised/40">
+          <ul className="enact-surface-panel divide-y divide-border-soft">
             {runtimeSkills.map((skill) => {
               const disabled = isRuntimeSkillDisabled(
                 agent.disabled_runtime_skills,
@@ -461,7 +461,7 @@ function SkillDetailDialog({
             {t(($) => $.tab_body.skills.detail_loading)}
           </div>
         ) : runtimeSkill ? (
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 rounded-lg border p-4 text-caption">
+          <dl className="enact-surface-panel grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 p-4 text-caption">
             <dt className="text-muted-foreground">{t(($) => $.tab_body.skills.detail_source)}</dt>
             <dd className="break-all">{runtimeSkill.source_path}</dd>
             <dt className="text-muted-foreground">{t(($) => $.tab_body.skills.detail_provider)}</dt>

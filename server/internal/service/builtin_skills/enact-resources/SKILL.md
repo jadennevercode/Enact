@@ -137,3 +137,9 @@ future tasks. Ask before changing a `local_directory` unless the user explicitly
 requested that exact local path.
 
 More source-backed details: `references/resources-source-map.md`.
+
+## Operational connections
+
+For a request to connect a database, a REST system or MCP tools for ontology-backed business work, use `enact-ontology-operating` and `/api/semantic/connections`. These are available from Resources → Connections. They store encrypted, scoped credentials and are bound to published ontology operations; they are not `knowledge_repo` or filesystem resources. Ordinary connection listings never expose credentials. A server-reachable endpoint and configured network allowlist are required.
+
+For a durable business application using those operations, use `enact-application-building` and the workspace Applications page. Preserve its pinned ontology release and source/build versions.

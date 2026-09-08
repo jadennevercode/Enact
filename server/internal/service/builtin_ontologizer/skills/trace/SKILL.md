@@ -1,73 +1,20 @@
 ---
 name: trace
-description: 回答关于本体对象的追溯问题：这个实体、关系、属性、事件从哪条证据来、基于哪条假设、对应哪个流程步骤、在哪一版被加进来或被改过、被哪些 Competency Question 依赖、属于哪个 Access Scope、检查项对它说了什么；也反着查：哪些对象根本没有依据、哪些定位符已经断了、哪些假设还没解决、改动某条证据会波及哪些对象。用于「这个对象为什么存在」「这条关系哪来的」「这个属性有没有出处」「哪些是我们自己编的」「哪些没依据」「这个假设影响了什么」「r0002 里谁动过 JournalEntry」「这条政策文件改了会动到哪些对象」「这个对象跨版本怎么变的」「重建一下追溯索引」这类请求。它只读，不改任何交付物；它回答「这东西从哪来」，不判断「这东西对不对」——对不对交给 review。
+description: Trace native concepts, rule results and actions back to actual evidence.
 ---
 
-# trace · 这个对象从哪来
+# Trace with native Ontologies
 
-**只读。** 这个 Skill 不写任何交付物，不改候选本体，不下"对不对"的结论。
-它的全部答案来自每一版里的追溯索引 `trace-index.yaml`——那份索引由脚本从交付物推导，
-不由人手写。它和交付物说的不一致时，**是索引错了**，重建即可。
+Inspect the saved native provenance and run Ontology Trace. Show IRIs, source snapshots and document anchors, rule premise/conclusion steps, bound data queries, approvals and readback receipts. Explain business consequences and missing evidence; do not invent model deliberation or treat documentation associations as executed actions.
 
-开工前读 `shared/traceability.md`。`<ws>` 是工作区目录。
+Use enact-ontology-authoring and its scoped scripts/semantic.py client. Read
+`shared/semantic-native.md` in this installed skill directory for exact API
+payloads, source-map locations and the adapted Semantica capability toolkit.
+The bundled shared/scripts/tools directories are supporting resources; native
+Enact construction does not require a local ontologizer.yaml, ONTOLOGIZER_HOME
+or state.py pipeline. The active Issue supplies the construction and source IDs.
 
-`<pkg>` 是包目录，判断标准是 `<pkg>/scripts/state.py` 存在。先试本 SKILL.md 所在目录（Enact Marketplace 安装后的布局），再试往上两级（Claude Code 插件布局）；都不是就在 skills 根目录下按 `*/scripts/state.py` 搜一遍，仍找不到停下报告，不要手写替代。`<pkg>/scripts/`、`<pkg>/shared/`、`<pkg>/tools/`、`<pkg>/knowledge/` 四个目录都在包里，下文相对路径以 `<pkg>` 为基准。
-
-## 七个模式
-
-| 模式 | 问题长什么样 | 答什么 |
-|---|---|---|
-| `why <对象>` | "这个实体为什么存在" | 完整的十二个字段，见 `references/trace-record.md` |
-| `unsupported` | "哪些没依据""哪些是我们编的" | 没有任何 support 的对象 |
-| `orphaned` | "上一版的意见指到哪去了" | 已经解析不到对象的定位符，以及它来自哪条变更请求 |
-| `assumptions` | "哪些假设还没解决" | 靠假设撑着的对象，逐条列它们各自影响了什么 |
-| `impact <证据\|假设>` | "改这份文件会动到什么" | 这条来源支撑的全部对象 |
-| `history <对象>` | "它跨版本怎么变的" | 各版本里的 created / added / changed / unchanged |
-| `rebuild` | "索引还准不准" | 重算并与磁盘比对；见下，封存的版本不许写 |
-
-每个模式的具体查法与可直接运行的命令在 `references/queries.md`。
-
-## 索引是推导的，不是写的
-
-```bash
-# 比对：重建结果与磁盘上的索引一致吗（只算不写）
-python3 <pkg>/scripts/validate.py <ws> --check trace_index_current --revision r0004
-```
-
-`trace_index_current` 这项检查存在的理由只有一条：**一份可以手工编辑的追溯记录，
-等于没有追溯记录。** 所以索引永远从交付物重算，任何"顺手改一下索引让它对上"
-都是在毁掉它唯一的价值。
-
-## rebuild 不许写进封存的版本
-
-写索引是封存那一步的事，对象是还在 running 的版本。已经封存的版本目录只读——
-往里面写一次索引，`revision_sealed_immutable` 就会报「封存后被改动」，
-而这条检查是有人改过历史的唯一信号，不能被自己人污染。
-
-所以 `rebuild` 在封存版本上只做一件事：跑上面那条比对，把差异报出来。
-真的对不上，说明这一版的交付物在封存后被动过——停下来，把情况交给 `orchestrator`，
-问清楚发生了什么，不要重建了事。
-
-## 和 review 的分界
-
-| 问题 | 谁答 |
-|---|---|
-| 这条关系哪来的 / 有没有出处 / 谁改的 | `trace` |
-| 这条关系方向对不对 / 该不该存在 / 命名合不合适 | `review` |
-| 这个对象没有依据 | `trace` 找出来，`review` 决定删掉、补证据还是挂成假设 |
-
-`trace` 报事实，`review` 下判断。这条线要守住：一个顺口说出"这个关系看着不太对"的
-追溯回答，会让人以为已经审过了，于是那一轮四层审阅就被跳过了。
-
-## 空结果也是结论
-
-`unsupported` 查出来是空的，就说"每个对象都解析到了依据"，并报出是在哪一版、
-查了多少个对象。不要说"未发现明显问题"——含糊的说法让人分不清是真的干净，
-还是你没查。
-
-## 这个 Skill 不做什么
-
-- 不改候选本体、不改证据登记、不改审阅记录、不改任何一版的内容。
-- 不判断语义对错，不决定删留——那是 `review` 与 `revise`。
-- 不记录人的决策，不推导项目阶段——那是 `orchestrator`。
-- 不发明依据。索引里没有的东西就是没有，不要从对象名字反推它"应该"来自哪。
+Record the actual deliverable with POST /api/semantic/constructions/{id}/events
+and communicate in the original Issue. Never record human acceptance using an
+agent token. After delegating a child Issue, yield the task slot. Native release
+is the primary artifact; Skill Package is an explicitly requested derivative.

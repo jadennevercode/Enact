@@ -452,7 +452,7 @@ function RecentWorkSkeleton() {
   const metaWidths = ["w-2/5", "w-1/3", "w-2/5", "w-1/4"];
   return (
     <div
-      className="overflow-hidden rounded-lg border divide-y"
+      className="enact-surface-panel overflow-hidden divide-y divide-border-soft"
       aria-hidden="true"
     >
       {Array.from({ length: RECENT_SKELETON_ROWS }).map((_, i) => (
@@ -483,7 +483,7 @@ function TaskList({
     <div
       className={
         timeMode === "completed"
-          ? "overflow-hidden rounded-lg border divide-y"
+          ? "enact-surface-panel overflow-hidden divide-y divide-border-soft"
           : "space-y-2"
       }
     >

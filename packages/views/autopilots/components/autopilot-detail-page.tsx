@@ -195,7 +195,7 @@ function RunHistoryList({
   const skippedRuns = runs.filter((run) => run.status === "skipped");
 
   return (
-    <div className="rounded-md border overflow-hidden">
+    <div className="enact-surface-panel overflow-hidden">
       {visibleRuns.map((run) => (
         <RunRow key={run.id} run={run} agentId={agentId} agentName={agentName} />
       ))}
@@ -221,7 +221,7 @@ function SkippedRunsGroup({
   const ToggleIcon = open ? ChevronDown : ChevronRight;
 
   return (
-    <div className="border-t bg-muted/20">
+    <div className="border-t border-border-soft bg-muted/20">
       <button
         type="button"
         className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-body hover:bg-accent/30 transition-colors"
@@ -243,7 +243,7 @@ function SkippedRunsGroup({
         )}
       </button>
       {open && (
-        <div className="border-t bg-background">
+        <div className="border-t border-border-soft bg-background">
           {runs.map((run) => (
             <RunRow key={run.id} run={run} agentId={agentId} agentName={agentName} />
           ))}
@@ -334,7 +334,7 @@ function TriggerRow({ trigger, autopilotId, canWrite }: { trigger: AutopilotTrig
   ) : null;
 
   return (
-    <div className="flex items-start gap-3 rounded-md border px-3 py-2">
+    <div className="enact-surface-panel flex items-start gap-3 px-3 py-2">
       <Icon className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">

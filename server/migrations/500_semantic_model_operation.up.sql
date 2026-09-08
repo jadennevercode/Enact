@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS semantic_model_operation (
+    id uuid PRIMARY KEY,
+    workspace_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    agent_id uuid NOT NULL,
+    principal_id uuid NOT NULL,
+    runtime_id uuid NOT NULL,
+    provider text NOT NULL,
+    model text NOT NULL DEFAULT '',
+    request_hash text NOT NULL,
+    prompt text NOT NULL,
+    response_schema jsonb NOT NULL,
+    timeout_seconds integer NOT NULL CHECK (timeout_seconds BETWEEN 10 AND 600),
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','completed','failed','cancelled')),
+    lease_token uuid,
+    result jsonb,
+    usage jsonb NOT NULL DEFAULT '{}',
+    error text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    started_at timestamptz,
+    completed_at timestamptz,
+    expires_at timestamptz NOT NULL
+);

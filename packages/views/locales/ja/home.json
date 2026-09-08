@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "ホーム",
+    "new_issue": "新しいタスク",
+    "hand_to_agent": "エージェントに任せる",
+    "new_chat": "新しいチャット"
+  },
+  "see_all": "すべて表示",
+  "awaiting": {
+    "title": "あなたの判断待ち",
+    "empty": "判断を待っているものはありません。"
+  },
+  "needs_me": {
+    "title": "対応が必要",
+    "empty": "止まっているものはありません。"
+  },
+  "in_progress": {
+    "title": "実行中",
+    "empty": "実行中のエージェントはありません。",
+    "running_other": "{{count}} 件のタスク"
+  },
+  "autopilots": {
+    "title": "オートパイロットの問題",
+    "empty": "すべて正常です。",
+    "last_run_failed": "前回の実行が失敗",
+    "runtime_required": "ランタイム待ち"
+  },
+  "setup": {
+    "title": "任せられるエージェントがまだありません",
+    "description": "ランタイムを接続してエージェントを作れば、このページは自動で埋まります。",
+    "create_agent": "エージェントを作成",
+    "connect_runtime": "ランタイムを接続"
+  },
+  "tabs": {
+    "overview": "概要",
+    "my_issues": "マイタスク",
+    "inbox": "インボックス"
+  },
+  "mine": {
+    "title": "あなたの担当",
+    "empty": "割り当てられたものはありません。"
+  }
+}

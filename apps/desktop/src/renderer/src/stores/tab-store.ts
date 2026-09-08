@@ -332,14 +332,34 @@ export function resourceKeyForUrl(url: string): string {
  *     was constructed without the workspace prefix. The router would
  *     interpret `issues` as a workspace slug → NoAccessPage.
  *
- * Normalizes: a bare `/{slug}` (no route segment) becomes `/{slug}/issues` —
- * the workspace's default surface. This replaces the old in-router
- * `<Navigate to="issues">` index redirect (ENA-4741 invariant 1: the router
- * never self-navigates; URLs are normalized before they become sessions).
+ * Normalizes:
+ *  - a bare `/{slug}` (no route segment) becomes `/{slug}/home` — the
+ *    workspace's default surface.
+ *  - the list routes the Team and Capabilities pages absorbed become the
+ *    matching tab. Persisted tabs and pinned tabs hold the old URLs, and the
+ *    desktop router cannot redirect them itself.
+ *
+ * Both replace what would otherwise be an in-router `<Navigate>` (ENA-4741
+ * invariant 1: the router never self-navigates; URLs are normalized before
+ * they become sessions).
  *
  * Returns null for rejects (caller decides how to recover — usually by
  * dropping the tab or substituting a default).
  */
+/**
+ * List routes a shell page absorbed, mapped to the destination that replaced
+ * them. Each entry is `[shell segment, tab]`.
+ */
+const ABSORBED_LIST_ROUTES: Record<string, readonly [string, string] | undefined> = {
+  squads: ["agents", "families"],
+  skills: ["agents", "skills"],
+  ontologies: ["agents", "ontologies"],
+  capabilities: ["agents", "skills"],
+  team: ["agents", "families"],
+  inbox: ["home", "inbox"],
+  "my-issues": ["home", "my-issues"],
+};
+
 export function sanitizeTabPath(path: string): string | null {
   const { pathname, suffix } = splitTabUrl(path);
   const segments = pathname.split("/").filter(Boolean);
@@ -358,7 +378,16 @@ export function sanitizeTabPath(path: string): string | null {
     return null;
   }
   if (segments.length === 1) {
-    return `/${firstSegment}/issues${suffix}`;
+    return `/${firstSegment}/home${suffix}`;
+  }
+  // Only the bare list routes move; `/agents/new`, `/agents/:id`,
+  // `/squads/:id` and `/skills/:id` are still their own pages.
+  if (segments.length === 2) {
+    const absorbed = ABSORBED_LIST_ROUTES[segments[1] ?? ""];
+    if (absorbed) {
+      const [shell, tab] = absorbed;
+      return `/${firstSegment}/${shell}?tab=${tab}`;
+    }
   }
   return path;
 }

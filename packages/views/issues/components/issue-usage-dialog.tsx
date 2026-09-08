@@ -124,7 +124,7 @@ export function IssueUsageDialog({
              by-agent bars, footnotes) stretches with it and paints outside
              the box. */
           <div className="flex min-w-0 flex-col gap-5">
-            <div className="grid grid-cols-3 divide-x rounded-lg border bg-card">
+            <div className="grid grid-cols-3 divide-x divide-border-soft enact-surface-panel">
               <KpiCard
                 label={t(($) => $.usage_detail.kpi_cost)}
                 value={formatUsd(total.cost)}

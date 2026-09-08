@@ -106,9 +106,9 @@ export function OntologyTab({ installedFilter = null }: OntologyTabProps) {
           <li key={ontology.name} className="min-w-0">
             <button
               type="button"
-              onClick={() => push(paths.ontologies())}
+              onClick={() => push(paths.agentsTab("ontologies"))}
               className={cn(
-                "group flex h-full w-full flex-col gap-3 rounded-lg border border-surface-border bg-surface-raised/40 p-4 text-left outline-none",
+                "enact-surface-card group flex h-full w-full flex-col gap-3 p-4 text-left outline-none",
                 "transition-colors hover:border-foreground/20 hover:bg-surface-hover",
                 "focus-visible:ring-2 focus-visible:ring-ring",
               )}

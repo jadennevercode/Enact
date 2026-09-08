@@ -1,18 +1,18 @@
 {
   "page": {
-    "title": "エージェントファミリー",
-    "new_button": "新規エージェントファミリー",
-    "empty_no_squads": "エージェントファミリーはまだありません。作成して始めましょう。",
-    "empty_no_match": "フィルターに一致するエージェントファミリーはありません。",
+    "title": "Agent Family",
+    "new_button": "新規Agent Family",
+    "empty_no_squads": "Agent Familyはまだありません。作成して始めましょう。",
+    "empty_no_match": "フィルターに一致するAgent Familyはありません。",
     "table": {
-      "name": "エージェントファミリー",
+      "name": "Agent Family",
       "leader": "リーダー",
       "members": "メンバー",
       "creator": "作成者",
       "created": "作成日時"
     },
-    "no_matches": "該当するエージェントファミリーはありません",
-    "row_menu": "エージェントファミリーの操作",
+    "no_matches": "該当するAgent Familyはありません",
+    "row_menu": "Agent Familyの操作",
     "archive_action": "アーカイブ"
   },
   "inspector": {
@@ -20,19 +20,19 @@
     "archive_button": "アーカイブ"
   },
   "archive_dialog": {
-    "title": "このエージェントファミリーをアーカイブしますか？",
-    "description": "\"{{name}}\" がアーカイブされます。現在このエージェントファミリーに割り当てられているタスクはリーダーに引き継がれます。この操作は取り消せません。ルーティングを元に戻すには、新しいエージェントファミリーを作成してください。",
+    "title": "このAgent Familyをアーカイブしますか？",
+    "description": "\"{{name}}\" がアーカイブされます。現在このAgent Familyに割り当てられているタスクはリーダーに引き継がれます。この操作は取り消せません。ルーティングを元に戻すには、新しいAgent Familyを作成してください。",
     "cancel": "キャンセル",
     "confirm": "アーカイブ",
     "archiving": "アーカイブ中…",
-    "success": "エージェントファミリーをアーカイブしました"
+    "success": "Agent Familyをアーカイブしました"
   },
   "name_editor": {
     "cancel": "キャンセル"
   },
   "add_member_dialog": {
     "title": "メンバーを追加",
-    "description": "ワークスペースのメンバーまたはエージェントをこのエージェントファミリーに追加します。",
+    "description": "ワークスペースのメンバーまたはエージェントをこのAgent Familyに追加します。",
     "label_member": "メンバー",
     "label_role": "役割",
     "label_optional": "（任意）",
@@ -52,13 +52,13 @@
   },
   "members_tab": {
     "section_title": "メンバー",
-    "section_count_other": "このエージェントファミリーのメンバー {{count}}名",
+    "section_count_other": "このAgent Familyのメンバー {{count}}名",
     "add_member_button": "メンバーを追加",
     "create_agent_button": "エージェントを作成",
     "leader_chip": "リーダー",
     "view_agent_tooltip": "エージェントの詳細を開く",
-    "make_leader_tooltip": "エージェントファミリーリーダーに指定",
-    "remove_member_tooltip": "エージェントファミリーから削除",
+    "make_leader_tooltip": "Agent Familyリーダーに指定",
+    "remove_member_tooltip": "Agent Familyから削除",
     "status_working": "作業中",
     "status_idle": "アイドル",
     "status_offline": "オフライン",
@@ -69,7 +69,7 @@
     "status_archived": "アーカイブ済み"
   },
   "profile_card": {
-    "unavailable": "エージェントファミリーを利用できません",
+    "unavailable": "Agent Familyを利用できません",
     "detail_link": "詳細 →",
     "archived": "アーカイブ済み",
     "member_count_other": "メンバー {{count}}名",
@@ -77,7 +77,7 @@
     "more_members_other": "他 {{count}}名"
   },
   "instructions_tab": {
-    "description": "エージェントファミリーの指示は、リーダーエージェントがこのエージェントファミリーに割り当てられたタスクに取り組むたびに、そのプロンプトに挿入されます。エージェントファミリー全体の方針、進め方の取り決め、リーダーがすべての作業で従うべきコンテキストを伝えるために使用します。",
+    "description": "Agent Familyの指示は、リーダーエージェントがこのAgent Familyに割り当てられたタスクに取り組むたびに、そのプロンプトに挿入されます。Agent Family全体の方針、進め方の取り決め、リーダーがすべての作業で従うべきコンテキストを伝えるために使用します。",
     "unsaved_changes": "保存していない変更",
     "save_button": "保存"
   },
@@ -91,7 +91,7 @@
     "direction_asc": "昇順",
     "direction_desc": "降順",
     "section_columns": "列",
-    "result_count_title": "該当エージェントファミリー / すべてのエージェントファミリー",
+    "result_count_title": "該当Agent Family / すべてのAgent Family",
     "filter_label": "フィルター",
     "filter_active_count_other": "{{count}} 件のフィルター",
     "clear_filters": "フィルターをクリア"

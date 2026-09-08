@@ -23,13 +23,28 @@
     color: var(--surface-foreground);
   }
 
+  /* Level 2 for the everyday panel: the same ring, contact shadow and top
+     highlight the card gets, at the smaller radius. This is the class the
+     views reach for, so it is where the elevation scale actually meets the
+     product — a panel that is only a hairline is a panel nobody can see lift. */
   .enact-surface-panel {
     border-radius: var(--radius-lg);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-xs);
   }
 
+  /* Level 2. A white card on a white canvas cannot be told apart by colour, so
+     it is told apart by light: a hairline ring, a contact shadow under the
+     edge, and a highlight along the top where the light would catch it. The
+     inset highlight is drawn first so the ring and shadow sit outside it. */
   .enact-surface-card {
     border-radius: var(--radius-xl);
-    box-shadow: var(--surface-shadow);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--surface-shadow);
   }
 
   .enact-surface-raised,
@@ -44,11 +59,124 @@
 
   .enact-surface-raised,
   .enact-popup-surface {
-    box-shadow: var(--menu-shadow);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      var(--menu-shadow);
   }
 
   .enact-overlay-surface {
-    box-shadow: var(--floating-shadow);
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      var(--floating-shadow);
+  }
+
+  /* Level 3 is the only place glass is allowed: a layer that content scrolls
+     underneath. Scrolling containers, board columns and the editor never get
+     it — `backdrop-filter` repaints the region behind the element on every
+     frame, which a long list cannot afford. The border and the shadow do the
+     separating; the blur only says "there is something behind this". */
+  .enact-popup-surface,
+  .enact-overlay-surface,
+  .enact-surface-raised {
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    background-color: var(--glass-background);
+    border-color: var(--glass-border);
+  }
+
+  /* Anywhere the blur cannot be honoured — an engine without support, a viewer
+     who asked for less transparency, or forced colours — the layer falls back
+     to the solid surface it was standing in for, not to a washed-out panel. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .enact-popup-surface,
+    .enact-overlay-surface,
+    .enact-surface-raised {
+      background-color: var(--popover);
+      border-color: var(--surface-border);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .enact-popup-surface,
+    .enact-overlay-surface,
+    .enact-surface-raised {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: var(--popover);
+      border-color: var(--surface-border);
+    }
+  }
+
+  /* A running agent wears the run gradient as a ring, which is the same colour
+     pair the progress bar uses. It is the only looping animation left in the
+     product, and it is describing a fact: something is executing right now. */
+  .enact-actor-avatar[data-running="true"] {
+    position: relative;
+  }
+
+  .enact-actor-avatar[data-running="true"]::after {
+    content: "";
+    position: absolute;
+    inset: calc(var(--border-width) * -2);
+    border-radius: inherit;
+    background-image: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--brand) 200deg,
+      color-mix(in oklab, var(--brand) 50%, white) 340deg,
+      transparent 360deg
+    );
+    mask-image: radial-gradient(
+      closest-side,
+      transparent calc(100% - var(--border-width) * 2),
+      black calc(100% - var(--border-width) * 2)
+    );
+    -webkit-mask-image: radial-gradient(
+      closest-side,
+      transparent calc(100% - var(--border-width) * 2),
+      black calc(100% - var(--border-width) * 2)
+    );
+    animation: enact-run-ring 1.4s linear infinite;
+  }
+
+  @keyframes enact-run-ring {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* A control that stands on the surface: the same ring, contact shadow and
+     top highlight as a panel, without claiming a ground of its own so the
+     variant's own background (and its dark-mode fill) still wins. */
+  .enact-raised {
+    box-shadow:
+      inset 0 var(--border-width) 0 var(--surface-highlight),
+      0 0 0 var(--border-width) var(--surface-ring),
+      var(--shadow-2xs);
+  }
+
+  /* The one place the brand becomes a filled surface. The gradient is
+     Deloitte's own suggested pairing (Green into Mid Green) laid over a solid
+     --brand, so forced colours, print and any engine that drops the image
+     still get the flat brand fill underneath. The inset line along the top is
+     a highlight, not a palette colour: it is the same light the elevation
+     scale uses, which is why it is white rather than a token. */
+  .enact-brand-fill {
+    background-color: var(--brand);
+    background-image: var(--brand-gradient);
+    box-shadow: inset 0 var(--border-width) 0
+      color-mix(in oklab, white 35%, transparent);
+    color: var(--brand-foreground);
+    /* White on this green is the product owner's call, not a palette pairing;
+       the weight and the shadow are what keep the label readable on it. */
+    font-weight: var(--font-weight-semibold);
+    text-shadow: 0 var(--border-width) var(--border-width)
+      color-mix(in oklab, black 28%, transparent);
+  }
+
+  .enact-brand-fill:hover {
+    background-image: none;
+    background-color: color-mix(in oklab, var(--brand) 88%, black);
   }
 
   .enact-control {
@@ -366,6 +494,10 @@
     .enact-feedback[aria-busy="true"] .enact-feedback-icon {
       animation: none;
     }
+    .enact-actor-avatar[data-running="true"]::after {
+      animation: none;
+    }
+
   }
 
   @media (forced-colors: active) {
@@ -385,5 +517,13 @@
       border-color: Highlight;
       outline: var(--border-width) solid Highlight;
     }
+    .enact-popup-surface,
+    .enact-overlay-surface,
+    .enact-surface-raised {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: Canvas;
+    }
+
   }
 }

@@ -42,6 +42,12 @@ interface ActorAvatarProps {
   size?: AvatarSize;
   className?: string;
   /**
+   * The actor is executing something right now. Surfaces that already know
+   * this (a chat thread with a pending task, a run row) pass it so the avatar
+   * itself carries the state instead of a separate spinner.
+   */
+  isRunning?: boolean;
+  /**
    * Wrap the avatar in a hover-card preview on dwell. Use for "who is this?"
    * surfaces — comment authors, list rows, subscriber chips. Independent of
    * `showStatusDot`: a surface can have one, both, or neither.
@@ -75,6 +81,7 @@ const PROFILE_LINK_CONTROL_SELECTOR =
 
 export function ActorAvatar({
   actorType,
+  isRunning,
   actorId,
   size,
   className,
@@ -90,6 +97,7 @@ export function ActorAvatar({
       name={getActorName(actorType, actorId)}
       initials={getActorInitials(actorType, actorId)}
       avatarUrl={getActorAvatarUrl(actorType, actorId)}
+      isRunning={isRunning}
       isAgent={actorType === "agent"}
       isSystem={actorType === "system"}
       isSquad={actorType === "squad"}

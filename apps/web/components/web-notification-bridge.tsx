@@ -33,7 +33,7 @@ export function WebNotificationBridge() {
     registerSystemNotificationClickHandler(
       ({ slug, issueKey }: SystemNotificationPayload) => {
         if (!slug) return;
-        const inboxPath = `${paths.workspace(slug).inbox()}?issue=${encodeURIComponent(issueKey)}`;
+        const inboxPath = `${paths.workspace(slug).homeTab("inbox")}&issue=${encodeURIComponent(issueKey)}`;
         pushRef.current(inboxPath);
       },
     );

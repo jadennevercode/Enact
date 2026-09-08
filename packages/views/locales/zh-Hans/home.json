@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "工作台",
+    "new_issue": "新建任务",
+    "hand_to_agent": "交给智能体",
+    "new_chat": "新对话"
+  },
+  "see_all": "查看全部",
+  "awaiting": {
+    "title": "等你拍板",
+    "empty": "没有需要你拍板的事。"
+  },
+  "needs_me": {
+    "title": "需要你处理",
+    "empty": "没有卡住的事。"
+  },
+  "in_progress": {
+    "title": "正在进行",
+    "empty": "没有智能体在运行。",
+    "running_other": "{{count}} 个任务"
+  },
+  "autopilots": {
+    "title": "自动化异常",
+    "empty": "所有自动化都正常。",
+    "last_run_failed": "上次运行失败",
+    "runtime_required": "等待运行时"
+  },
+  "setup": {
+    "title": "还没有可以派活的智能体",
+    "description": "接一台运行时、建一个智能体，这个页面就会自己长出内容。",
+    "create_agent": "创建智能体",
+    "connect_runtime": "连接运行时"
+  },
+  "tabs": {
+    "overview": "概览",
+    "my_issues": "我的任务",
+    "inbox": "收件箱"
+  },
+  "mine": {
+    "title": "我正在做",
+    "empty": "没有指派给你的任务。"
+  }
+}

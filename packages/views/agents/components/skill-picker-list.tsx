@@ -77,9 +77,9 @@ export function SkillPickerList({
     noMatchMessage ?? t(($) => $.create_dialog.skills_section.list_no_match);
 
   return (
-    <div className={cn("w-full overflow-hidden rounded-lg border bg-card", className)}>
+    <div className={cn("enact-surface-panel w-full overflow-hidden", className)}>
       {searchable && skills.length > 0 && (
-        <div className="border-b p-2">
+        <div className="border-b border-border-soft p-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input

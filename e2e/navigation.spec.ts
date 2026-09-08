@@ -18,10 +18,10 @@ test.describe("Navigation", () => {
       timeout: ROUTE_CHANGE_TIMEOUT,
     });
 
-    await page.getByRole("link", { name: "Agents" }).click({ force: true });
-    await expect(page).toHaveURL(/\/agents/, { timeout: ROUTE_CHANGE_TIMEOUT });
-    await waitForPageText(page, "Agents");
-    await expect(page).toHaveTitle("Agents | Enact", {
+    await page.getByRole("link", { name: "Team", exact: true }).click({ force: true });
+    await expect(page).toHaveURL(/\/team/, { timeout: ROUTE_CHANGE_TIMEOUT });
+    await waitForPageText(page, "Team");
+    await expect(page).toHaveTitle("Team | Enact", {
       timeout: ROUTE_CHANGE_TIMEOUT,
     });
 
@@ -46,12 +46,23 @@ test.describe("Navigation", () => {
     await expect(page.getByRole("tab", { name: "Members" })).toBeVisible();
   });
 
-  test("agents page shows agent list", async ({ page }) => {
-    await page.getByRole("link", { name: "Agents" }).click({ force: true });
-    await expect(page).toHaveURL(/\/agents/, { timeout: ROUTE_CHANGE_TIMEOUT });
-    await waitForPageText(page, "Agents");
+  test("the agents list is a tab of Team", async ({ page }) => {
+    await page.getByRole("link", { name: "Team", exact: true }).click({ force: true });
+    await expect(page).toHaveURL(/\/team/, { timeout: ROUTE_CHANGE_TIMEOUT });
+    await waitForPageText(page, "Team");
 
-    // Should show "Agents" heading
-    await expect(page.locator("text=Agents").first()).toBeVisible();
+    await page.getByRole("tab", { name: "Agents" }).click();
+    await expect(page).toHaveURL(/\/team\?tab=agents/, {
+      timeout: ROUTE_CHANGE_TIMEOUT,
+    });
+  });
+
+  test("the old agents route still lands somewhere useful", async ({ page }) => {
+    const url = page.url();
+    const slug = new URL(url).pathname.split("/").filter(Boolean)[0];
+    await page.goto(`/${slug}/agents`);
+    await expect(page).toHaveURL(/\/team\?tab=agents/, {
+      timeout: ROUTE_CHANGE_TIMEOUT,
+    });
   });
 });

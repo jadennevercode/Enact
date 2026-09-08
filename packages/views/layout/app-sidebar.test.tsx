@@ -44,6 +44,12 @@ vi.mock("@dnd-kit/sortable", () => ({
   verticalListSortingStrategy: vi.fn(),
 }));
 vi.mock("@dnd-kit/utilities", () => ({ CSS: { Transform: { toString: () => undefined } } }));
+// The switcher heads this column but answers for itself in
+// workspace-switcher.test.tsx. Stubbing it keeps this suite on the nav rows,
+// the pins and the counters, which is what it is about.
+vi.mock("./workspace-switcher", () => ({
+  WorkspaceSwitcher: () => <div data-testid="workspace-switcher" />,
+}));
 vi.mock("@enact/ui/components/ui/sidebar", () => ({
   Sidebar: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SidebarContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -113,31 +119,24 @@ vi.mock("@enact/core/chat", () => ({
     { getState: () => chatStore.current },
   ),
 }));
-vi.mock("@enact/core/paths", async (importOriginal) => ({
-  // Spread the real module so pure helpers (resolveRouteIconName, used by the
-  // nav to derive each item's icon from its href) stay intact; only the
-  // workspace/context hooks below are stubbed to control routes in tests.
-  ...(await importOriginal<typeof import("@enact/core/paths")>()),
-  paths: { workspace: (slug: string) => ({ issues: () => `/${slug}/issues` }) },
-  useCurrentWorkspace: () => ({ id: "ws-1", name: "Acme", slug: "acme" }),
-  useWorkspacePaths: () => ({
-    inbox: () => "/acme/inbox",
-    chat: () => "/acme/chat",
-    myIssues: () => "/acme/my-issues",
-    issues: () => "/acme/issues",
-    artifacts: () => "/acme/artifacts",
-    autopilots: () => "/acme/autopilots",
-    agents: () => "/acme/agents",
-    squads: () => "/acme/squads",
-    usage: () => "/acme/usage",
-    runtimes: () => "/acme/runtimes",
-    ontologies: () => "/acme/ontologies",
-    skills: () => "/acme/skills",
-    marketplace: () => "/acme/marketplace",
-    settings: () => "/acme/settings",
-    issueDetail: (id: string) => `/acme/issues/${id}`,
-  }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  return {
+    // Spread the real module so pure helpers (resolveRouteIconName, used by the
+    // nav to derive each item's icon from its href) stay intact; only the
+    // workspace/context hooks below are stubbed to control routes in tests.
+    ...actual,
+    // Real builders here too: the switcher rows and the invitation flow both
+    // resolve a workspace's landing surface, and a stub of one method breaks
+    // the moment that surface moves.
+    paths: actual.paths,
+    useCurrentWorkspace: () => ({ id: "ws-1", name: "Acme", slug: "acme" }),
+    // Built from the real path builders rather than a hand-written copy:
+    // this fixture gets iterated over every nav page, so a literal list
+    // goes stale the moment a page is added or absorbed.
+    useWorkspacePaths: () => actual.paths.workspace("acme"),
+  };
+});
 vi.mock("@enact/core/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@enact/core/api")>();
   return {
@@ -265,73 +264,6 @@ describe("mobile sheet dismissal", () => {
   });
 });
 
-describe("workspace-switcher unread dot", () => {
-  beforeEach(() => {
-    summary.current = [];
-    workspaces.current = [];
-  });
-
-  // The aggregate switcher dot is the only `.ring-sidebar` span in the tree
-  // (DraftDot is null when there's no draft, and there are no invitations).
-  const dot = (container: HTMLElement) => container.querySelector("span.bg-brand.ring-sidebar");
-
-  it("shows a dot when another workspace has unread inbox items", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).not.toBeNull();
-  });
-
-  it("does not show a dot when only the active workspace has unread", () => {
-    // Active workspace is ws-1 (see useCurrentWorkspace mock).
-    summary.current = [{ workspace_id: "ws-1", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).toBeNull();
-  });
-
-  it("does not show a dot when no workspace has unread", () => {
-    summary.current = [];
-    const { container } = render(<AppSidebar />);
-    expect(dot(container)).toBeNull();
-  });
-});
-
-describe("workspace-switcher dropdown per-workspace dot", () => {
-  beforeEach(() => {
-    summary.current = [];
-    // Active workspace is ws-1 (see useCurrentWorkspace mock); "Other" is ws-2.
-    workspaces.current = [
-      { id: "ws-1", name: "Active WS", slug: "active", avatar_url: null },
-      { id: "ws-2", name: "Other WS", slug: "other", avatar_url: null },
-    ];
-  });
-
-  // Row dots are brand dots WITHOUT the aggregate avatar dot's `ring-sidebar`.
-  const rowDots = (container: HTMLElement) =>
-    container.querySelectorAll("span.bg-brand:not(.ring-sidebar)");
-
-  it("dots the specific other workspace that has unread", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 3 }];
-    const { container } = render(<AppSidebar />);
-    // Exactly one row dot, sitting right after the "Other WS" name; the active
-    // row shows the check, not a dot.
-    expect(rowDots(container)).toHaveLength(1);
-    expect(screen.getByText("Other WS").nextElementSibling?.className).toContain("bg-brand");
-    expect(screen.getByText("Active WS").nextElementSibling?.className ?? "").not.toContain("bg-brand");
-  });
-
-  it("does not dot a workspace whose unread count is zero", () => {
-    summary.current = [{ workspace_id: "ws-2", count: 0 }];
-    const { container } = render(<AppSidebar />);
-    expect(rowDots(container)).toHaveLength(0);
-  });
-
-  it("never dots the active workspace even when it has unread", () => {
-    summary.current = [{ workspace_id: "ws-1", count: 5 }];
-    const { container } = render(<AppSidebar />);
-    expect(rowDots(container)).toHaveLength(0);
-  });
-});
-
 describe("personal nav — Chat", () => {
   beforeEach(() => {
     chatSessions.current = [];
@@ -348,16 +280,14 @@ describe("personal nav — Chat", () => {
   const chatBadge = (container: HTMLElement) =>
     chatNav(container)?.querySelector("number-flow-react") ?? null;
 
-  it("keeps persistent Inbox and Chat counters static", () => {
-    inboxItems.current = [{ id: "inbox-1", read: false }];
+  // The inbox counter left the sidebar with the inbox itself; it is the top
+  // bar's bell now. Chat is the one persistent counter still here, and it
+  // must not animate: a number that rolls on every poll reads as activity.
+  it("keeps the persistent Chat counter static", () => {
     chatSessions.current = [{ id: "chat-1", unread_count: 2 }];
     const { container } = render(<AppSidebar />);
-    const inboxBadge = container
-      .querySelector<HTMLElement>('button[data-href="/acme/inbox"]')
-      ?.querySelector("number-flow-react") as (HTMLElement & { animated?: boolean }) | null;
     const currentChatBadge = chatBadge(container) as (HTMLElement & { animated?: boolean }) | null;
 
-    expect(inboxBadge?.animated).toBe(false);
     expect(currentChatBadge?.animated).toBe(false);
   });
 
@@ -429,52 +359,65 @@ describe("personal nav — Chat", () => {
   });
 });
 
-describe("configure navigation", () => {
-  it("places Ontology between Runtimes and Skills with its route icon", () => {
-    const { container } = render(<AppSidebar />);
-    const links = Array.from(
+describe("nav grouping", () => {
+  // Pins render among the nav rows and are also data-href buttons. Every nav
+  // destination is `/{slug}/{segment}`; a pin always addresses a resource
+  // below one, so segment depth separates them without relying on class
+  // names the primitive stubs in this file do not forward.
+  function navHrefs(container: HTMLElement): string[] {
+    return Array.from(
       container.querySelectorAll<HTMLElement>("button[data-href]"),
-    );
-    const hrefs = links.map((link) => link.dataset.href);
+    )
+      .map((link) => link.dataset.href ?? "")
+      .filter((href) => href.split("/").filter(Boolean).length === 2);
+  }
 
-    expect(hrefs.indexOf("/acme/ontologies")).toBe(
-      hrefs.indexOf("/acme/runtimes") + 1,
-    );
-    expect(hrefs.indexOf("/acme/skills")).toBe(
-      hrefs.indexOf("/acme/ontologies") + 1,
-    );
+  // The order is the product's work model, not the old owner-based grouping:
+  // what is mine, the work and the people it is shared with, what the
+  // workspace can do, where it runs.
+  it("orders the nav by the work model", () => {
+    const { container } = render(<AppSidebar />);
+    const hrefs = navHrefs(container);
+
+    expect(hrefs).toEqual([
+      "/acme/home",
+      "/acme/chat",
+      "/acme/issues",
+      "/acme/autopilots",
+      "/acme/applications",
+      "/acme/members",
+      "/acme/agents",
+      "/acme/marketplace",
+      "/acme/runtimes",
+      "/acme/resources",
+      "/acme/usage",
+      "/acme/settings",
+    ]);
     expect(
-      container.querySelector('button[data-href="/acme/ontologies"] svg'),
+      container.querySelector('button[data-href="/acme/agents"] svg'),
     ).not.toBeNull();
   });
-});
 
-describe("product identity", () => {
-  beforeEach(() => {
-    workspaces.current = [];
-  });
+  // Skills and Ontology are tabs of Capabilities, and Agents and Agent
+  // Families are tabs of Team. Their segments stay in the icon registry so a
+  // desktop tab keeps its icon, which is exactly why the sidebar has to be
+  // checked separately: a registry entry is no longer a nav entry.
+  it("drops the list pages the shells absorbed", () => {
+    const { container } = render(<AppSidebar />);
+    const hrefs = navHrefs(container);
 
-  it("shows the Enact brand in the sidebar header", () => {
-    render(<AppSidebar />);
-    expect(screen.getByText("Enact")).toBeInTheDocument();
-  });
-
-  // The brand is a label, not a control: the workspace switcher sits directly
-  // beneath it, and a second interactive row in the same corner reads as one
-  // control with a broken hit target.
-  it("does not make the brand interactive", () => {
-    render(<AppSidebar />);
-    const brand = screen.getByText("Enact");
-    expect(brand.closest("a, button")).toBeNull();
-  });
-
-  // The switcher falls back to the product name only when no workspace has
-  // loaded, so an unnamed workspace must not produce two "Enact" rows.
-  it("keeps the brand distinct from the workspace switcher label", () => {
-    workspaces.current = [
-      { id: "ws-1", name: "Acme", slug: "acme", avatar_url: null },
-    ];
-    render(<AppSidebar />);
-    expect(screen.getAllByText("Enact")).toHaveLength(1);
+    for (const absorbed of [
+      "/acme/skills",
+      "/acme/ontologies",
+      "/acme/squads",
+      "/acme/team",
+      "/acme/capabilities",
+      // The viewer's own surfaces are tabs of Home now, not entries.
+      "/acme/inbox",
+      "/acme/my-issues",
+    ]) {
+      expect(hrefs).not.toContain(absorbed);
+    }
+    expect(hrefs).toContain("/acme/agents");
   });
 });

@@ -57,8 +57,6 @@ import {
   useRowLink,
 } from "../../navigation";
 import {
-  CollectionPageHeader,
-  CollectionPageHeaderAction,
   CollectionPageState,
 } from "../../layout/collection-page";
 import { canEditSkill } from "../hooks/use-can-edit-skill";
@@ -167,45 +165,6 @@ export interface SkillRow {
 // Page header bar — uses shared PageHeader so the mobile sidebar trigger and
 // h-12 chrome stay consistent with every other dashboard list page.
 // ---------------------------------------------------------------------------
-
-function PageHeaderBar({
-  totalCount,
-  onCreate,
-}: {
-  totalCount: number;
-  onCreate: () => void;
-}) {
-  const { t } = useT("skills");
-  const { t: tMarketplace } = useT("marketplace");
-  const paths = useWorkspacePaths();
-  const { push } = useNavigation();
-  return (
-    <CollectionPageHeader
-      icon={SkillIcon}
-      title={t(($) => $.page.title)}
-      count={totalCount}
-      description={t(($) => $.page.tagline)}
-      learnMore={{
-        href: "https://enact.ai/docs/skills",
-        label: t(($) => $.page.learn_more),
-      }}
-      actions={
-        <>
-          <CollectionPageHeaderAction
-            icon={Store}
-            label={tMarketplace(($) => $.title)}
-            onClick={() => push(paths.marketplace())}
-          />
-          <CollectionPageHeaderAction
-            icon={Plus}
-            label={t(($) => $.page.new_skill)}
-            onClick={onCreate}
-          />
-        </>
-      }
-    />
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Cells
@@ -599,7 +558,16 @@ function LoadingSkeleton() {
 // Page
 // ---------------------------------------------------------------------------
 
-export default function SkillsPage() {
+export interface SkillsPageProps {
+  /** Create dialog, driven by the Capability Hub header's New menu. */
+  createOpen: boolean;
+  onCreateOpenChange: (open: boolean) => void;
+}
+
+export default function SkillsPage({
+  createOpen,
+  onCreateOpenChange,
+}: SkillsPageProps) {
   const { t } = useT("skills");
   const wsId = useWorkspaceId();
   const paths = useWorkspacePaths();
@@ -624,7 +592,6 @@ export default function SkillsPage() {
     runtimeListOptions(wsId),
   );
 
-  const [createOpen, setCreateOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
     new Set(),
   );
@@ -790,7 +757,6 @@ export default function SkillsPage() {
   if (listError) {
     return (
       <div className="flex flex-1 min-h-0 flex-col">
-        <PageHeaderBar totalCount={0} onCreate={() => setCreateOpen(true)} />
         <CollectionPageState
           role="alert"
           tone="destructive"
@@ -837,11 +803,6 @@ export default function SkillsPage() {
     // relative: positioning anchor for the batch toolbar (page-centered,
     // not viewport-centered).
     <div className="enact-management-page relative flex flex-1 min-h-0 flex-col">
-      <PageHeaderBar
-        totalCount={totalCount}
-        onCreate={() => setCreateOpen(true)}
-      />
-
       {supportingQueryDown && (
         <div
           role="status"
@@ -858,7 +819,7 @@ export default function SkillsPage() {
         </div>
       ) : showEmpty ? (
         <div className="flex flex-1 items-center justify-center">
-          <EmptyState onCreate={() => setCreateOpen(true)} />
+          <EmptyState onCreate={() => onCreateOpenChange(true)} />
         </div>
       ) : (
         <>
@@ -970,7 +931,7 @@ export default function SkillsPage() {
 
       {createOpen && (
         <CreateSkillDialog
-          onClose={() => setCreateOpen(false)}
+          onClose={() => onCreateOpenChange(false)}
           onCreated={handleCreated}
         />
       )}

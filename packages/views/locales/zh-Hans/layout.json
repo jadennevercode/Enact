@@ -1,26 +1,33 @@
 {
   "nav": {
+    "home": "工作台",
     "inbox": "收件箱",
     "chat": "聊天",
     "my_issues": "我的任务",
     "issues": "任务",
-    "artifacts": "产物",
     "autopilots": "自动化",
-    "agents": "智能体",
-    "squads": "智能体小组",
-    "usage": "统计",
+    "agents": "智能中心",
+    "members": "成员管理",
+    "marketplace": "能力中心",
     "runtimes": "运行时",
+    "resources": "来源",
+    "usage": "观测",
+    "settings": "设置",
+    "artifacts": "产物",
+    "squads": "Agent Family",
+    "team": "团队",
+    "capabilities": "能力库",
     "ontologies": "Ontology",
     "skills": "Skills",
-    "marketplace": "市场",
-    "settings": "设置"
+    "connections": "数据与系统连接",
+    "applications": "应用"
   },
   "tab": {
     "issue": "任务",
     "autopilot": "自动化",
     "agent": "智能体",
     "member": "成员",
-    "squad": "智能体小组",
+    "squad": "Agent Family",
     "skill": "Skill",
     "machine": "机器",
     "runtime": "运行时",
@@ -53,12 +60,17 @@
     "new_issue": "新建任务",
     "new_issue_shortcut": "C",
     "pinned_label": "固定",
-    "workspace_group": "工作区",
-    "configure_group": "配置",
+    "collaboration_group": "协作",
+    "intelligence_group": "智能中心",
+    "execution_group": "运行",
     "unread_overflow": "99+",
     "discord_card": {
       "title": "加入 Discord",
       "dismiss": "关闭"
     }
+  },
+  "topbar": {
+    "account": "账号",
+    "search": "搜索"
   }
 }

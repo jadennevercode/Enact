@@ -142,7 +142,7 @@ export function CustomPricingDialog({ open, onOpenChange, unmappedModels }: Prop
               const draft = drafts[key] ?? EMPTY_DRAFT;
               const hasOverride = Boolean(pricings[key]);
               return (
-                <div key={key} className="space-y-2 rounded-md border p-3">
+                <div key={key} className="enact-surface-panel space-y-2 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <code className="truncate font-mono text-caption">{key}</code>
                     {hasOverride && (

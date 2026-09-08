@@ -66,10 +66,16 @@ vi.mock("@enact/core/auth", () => {
 });
 // Partial: `WORKSPACE_PAGES` also comes from here and backs the shared
 // SkillIcon, so the real module has to stay reachable.
-vi.mock("@enact/core/paths", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@enact/core/paths")>()),
-  useWorkspacePaths: () => ({ skills: () => "/acme/skills" }),
-}));
+vi.mock("@enact/core/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@enact/core/paths")>();
+  const actualPaths = actual.paths;
+  return {
+    ...actual,
+    // Built from the real path builders: the page resolves several
+    // destinations, and a hand-written subset breaks whenever one moves.
+    useWorkspacePaths: () => actualPaths.workspace("acme"),
+  };
+});
 vi.mock("@enact/core/permissions", () => ({
   useSkillPermissions: () => ({ canEdit: { allowed: true, reason: null } }),
 }));

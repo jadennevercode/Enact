@@ -1,0 +1,27 @@
+# Optional native semantic engine for the self-hosted Enact stack.
+# Usage: docker compose -f docker-compose.selfhost.yml -f docker-compose.semantic.yml up -d
+services:
+  semantic:
+    build:
+      context: ${SEMANTICA_SOURCE_DIR:-../semantica}
+      dockerfile: semantica/semantic_service/Dockerfile
+    image: enact-semantica-native:local
+    environment:
+      SEMANTIC_SERVICE_API_KEY: ${ENACT_SEMANTIC_SERVICE_KEY:?Set an internal semantic service key}
+      SEMANTIC_SERVICE_STORAGE_ROOT: /data
+      SEMANTIC_ENACT_ORIGIN: http://backend:8080
+    volumes:
+      - semantic_state:/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+
+  backend:
+    environment:
+      ENACT_SEMANTIC_SERVICE_URL: http://semantic:8766
+      ENACT_SEMANTIC_MODEL_API_URL: http://backend:8080
+    depends_on:
+      - semantic
+
+volumes:
+  semantic_state:

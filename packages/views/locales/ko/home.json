@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "홈",
+    "new_issue": "새 태스크",
+    "hand_to_agent": "에이전트에 맡기기",
+    "new_chat": "새 채팅"
+  },
+  "see_all": "전체 보기",
+  "awaiting": {
+    "title": "당신의 결정 대기",
+    "empty": "결정을 기다리는 항목이 없습니다."
+  },
+  "needs_me": {
+    "title": "처리가 필요함",
+    "empty": "막힌 항목이 없습니다."
+  },
+  "in_progress": {
+    "title": "진행 중",
+    "empty": "실행 중인 에이전트가 없습니다.",
+    "running_other": "태스크 {{count}}개"
+  },
+  "autopilots": {
+    "title": "오토파일럿 문제",
+    "empty": "모든 오토파일럿이 정상입니다.",
+    "last_run_failed": "마지막 실행 실패",
+    "runtime_required": "런타임 대기 중"
+  },
+  "setup": {
+    "title": "아직 일을 맡길 에이전트가 없습니다",
+    "description": "런타임을 연결하고 에이전트를 만들면 이 페이지가 채워집니다.",
+    "create_agent": "에이전트 만들기",
+    "connect_runtime": "런타임 연결"
+  },
+  "tabs": {
+    "overview": "개요",
+    "my_issues": "내 태스크",
+    "inbox": "인박스"
+  },
+  "mine": {
+    "title": "내가 맡은 일",
+    "empty": "할당된 항목이 없습니다."
+  }
+}
