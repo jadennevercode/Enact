@@ -70,9 +70,7 @@ export function AgentsPage() {
     );
   };
 
-  // The New menu leads with whatever the open tab is about. Ontology is
-  // absent on purpose: it is published capability, not something a workspace
-  // authors here.
+  // The ontology workbench owns its draft creation and Family workflow.
   const newItems = [
     {
       key: "family",

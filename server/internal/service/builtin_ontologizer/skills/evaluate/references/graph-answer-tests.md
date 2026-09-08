@@ -1,7 +1,8 @@
 # Graph-answer test
 
-先说结论：**V1 没有图运行时。** 这个包生成 openCypher 并做静态检查
-（`tools/cypher/`），但不连任何图库。
+本包保留 openCypher 生成与静态检查；Enact 可选运行时位于
+`tools/semantic/adapter.py`，直接编译完整候选四层工件为 RDF，再运行查询与规则。
+它通过 Enact 的工作区草稿 API，不需要智能体拿到内部服务密钥。
 
 所以 `test_type` 为 `graph_answer_test` 或 `both` 的题目，在没有适配器的机器上：
 
@@ -48,15 +49,20 @@
 
 ## 有适配器的时候
 
-`tools/cypher/adapters/` 是预留位置。接上之后这类题的流程是：
+Enact 适配器的配置与命令见 `shared/semantic-runtime.md`。配置后这类题的流程是：
 
-1. 从 `candidate.cypher` 建一个临时图；
-2. 用题目的 `required_*` 生成查询（**查询由脚本生成，不写进 CQ**——
-   CQ 用业务语言，不嵌 Cypher，见 `knowledge/cq-writing-rules.md`）；
+1. 从完整 `candidate.yaml`、process/evidence/alignment 保存选定 revision 的 Enact 草稿，
+   预览返回独立的 RDF 图与 source digest。不要用只有标签关系的投影替代完整候选；
+2. 将题目的 `required_*` 解析到发布物的 stable-ID map，单独保存只读 SPARQL
+   查询文件和测试数据来源；CQ 正文本身保持业务语言，不嵌查询代码；
 3. 跑，拿结果；
 4. **拿结果的形状和 `expected_answer_shape` 比对**，这一步不能省。
    返回 200 行不代表答对了：可能正好把两个不该合并的概念合并了。
 5. `execution_evidence` 记：适配器与版本、图的构建来源 digest、查询、返回行数与前几行样例。
+
+实例验证还需检查实际 SHACL target coverage。空 target 没有证明任何业务案例。
+合成数据上的通过是测试证据，真实业务数据必须由正式 semantic run 的绑定查询取得。
+草稿规则评估返回的 ActionIntent 只证明规则产生了建议，不会执行系统操作。
 
 第 4 步是 passed 与 "查询跑通了" 之间的全部区别。
 

@@ -94,7 +94,7 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 	if opts.Cwd != "" {
 		cmd.Dir = opts.Cwd
 	}
-	cmd.Env = buildEnv(b.cfg.Env)
+	cmd.Env = b.cfg.executionEnv()
 	if err := claudeRootSudoPreflight(args, cmd.Env); err != nil {
 		cancel()
 		return nil, err
@@ -252,6 +252,9 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 			case "result":
 				sawResult = true
 				finalResultText = msg.ResultText
+				if opts.ModelOperation && len(msg.StructuredOutput) > 0 {
+					finalResultText = string(msg.StructuredOutput)
+				}
 				resultIsError = msg.IsError
 				terminalReasonError = claudeTerminalReasonFailure(msg.TerminalReason, msg.ResultText)
 				sessionID = msg.SessionID
@@ -547,8 +550,9 @@ type claudeSDKMessage struct {
 	Model     string          `json:"model,omitempty"`
 
 	// result fields
-	ResultText string `json:"result,omitempty"`
-	IsError    bool   `json:"is_error,omitempty"`
+	ResultText       string          `json:"result,omitempty"`
+	StructuredOutput json.RawMessage `json:"structured_output,omitempty"`
+	IsError          bool            `json:"is_error,omitempty"`
 	// TerminalReason is Claude Code's structured statement of why the turn
 	// ended. Read separately from IsError because the CLI computes the two
 	// independently — see claudeTerminalReasonFailure.
@@ -715,6 +719,16 @@ var claudeBlockedArgs = map[string]blockedArgMode{
 }
 
 func buildClaudeArgs(opts ExecOptions, logger *slog.Logger) []string {
+	if opts.ModelOperation {
+		args := []string{"-p", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--tools", "", "--safe-mode", "--disable-slash-commands", "--strict-mcp-config", "--no-session-persistence", "--system-prompt", structuredModelInstructions}
+		if opts.Model != "" {
+			args = append(args, "--model", opts.Model)
+		}
+		if len(opts.ResponseSchema) > 0 {
+			args = append(args, "--json-schema", string(opts.ResponseSchema))
+		}
+		return args
+	}
 	args := []string{
 		"-p",
 		"--output-format", "stream-json",

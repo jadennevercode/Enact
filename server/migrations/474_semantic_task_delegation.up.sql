@@ -1,0 +1,9 @@
+ALTER TABLE semantic_run ADD COLUMN IF NOT EXISTS actor_id UUID;
+ALTER TABLE semantic_run ADD COLUMN IF NOT EXISTS task_id UUID;
+ALTER TABLE semantic_run ADD COLUMN IF NOT EXISTS delegated_at TIMESTAMPTZ;
+ALTER TABLE semantic_step ADD COLUMN IF NOT EXISTS actor_id UUID;
+ALTER TABLE semantic_step ADD COLUMN IF NOT EXISTS task_id UUID;
+ALTER TABLE semantic_approval ADD COLUMN IF NOT EXISTS actor_id UUID;
+ALTER TABLE semantic_approval ADD COLUMN IF NOT EXISTS task_id UUID;
+ALTER TABLE semantic_receipt ADD COLUMN IF NOT EXISTS actor_id UUID;
+ALTER TABLE semantic_receipt ADD COLUMN IF NOT EXISTS task_id UUID;

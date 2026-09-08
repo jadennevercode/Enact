@@ -1,11 +1,15 @@
 # 图运行时适配器
 
-V1 不带适配器。`tools/cypher` 只做两件事：把 candidate 投影成 openCypher，
+`tools/cypher` 仍只做两件事：把 candidate 投影成 openCypher，
 以及对生成的脚本做静态检查（括号、引号、语句、标签合法性、引用的 id 是否在 candidate 里）。
 
 流程 §5.2 的 `managed graph import & conformance` 在这里只完成了能在笔记本上验证的那一半。
 这是一个明确的边界，不是一个待办：**没有适配器时，`evaluate` 的 graph-answer test
 记为 `unsupported`，不是记为失败。**
+
+Enact 的 RDF 适配器已提供在 `tools/semantic/adapter.py`，使用完整 candidate 四层工件
+与工作区草稿 API；见 `shared/semantic-runtime.md`。它不执行 Cypher，也不改变
+现有 Cypher 检查含义。以下接口仅针对将来需要的 Cypher 数据库接入。
 
 ## 要加一个适配器，需要实现什么
 

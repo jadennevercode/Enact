@@ -947,7 +947,7 @@
     "clear_selection": "選択を解除"
   },
   "hub": {
-    "title": "エージェント",
+    "title": "Intelligence Center",
     "tagline": "Agent Family とエージェント、そしてそれらを構成する Skill、MCP、Ontology。",
     "new": "新規作成",
     "new_family": "新規 Agent Family",

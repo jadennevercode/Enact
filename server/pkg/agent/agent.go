@@ -24,8 +24,12 @@ type Backend interface {
 
 // ExecOptions configures a single execution.
 type ExecOptions struct {
-	Cwd   string
-	Model string
+	// ModelOperation runs a bounded, stateless model sub-operation. It must not
+	// inherit task skills, MCP tools, resume state, or custom launch arguments.
+	ModelOperation bool
+	ResponseSchema json.RawMessage
+	Cwd            string
+	Model          string
 	// SystemPrompt carries the Enact runtime brief for the few providers
 	// that cannot pick it up from disk. The daemon leaves it empty for every
 	// other provider (see daemon.providerNeedsInlineSystemPrompt), because the
@@ -243,6 +247,9 @@ type Result struct {
 
 // Config configures a Backend instance.
 type Config struct {
+	// IsolatedEnv prevents inheriting the daemon's process environment. Used
+	// for model sub-operations that receive only explicit provider auth.
+	IsolatedEnv    bool
 	ExecutablePath string            // path to CLI binary (claude, codebuddy, codex, copilot, opencode, openclaw, hermes, pi, cursor, kimi, reasonix, dsh, kiro-cli, agy, qodercli, qoderclicn, traecli, grok, qwen, qwenpaw, mcode, dim)
 	CLIVersion     string            // detected version paired with ExecutablePath; observation only, never used to choose behavior
 	Env            map[string]string // extra environment variables

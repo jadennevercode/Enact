@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY semantic_application_deployment_identity ON semantic_application_deployment(workspace_id, id);

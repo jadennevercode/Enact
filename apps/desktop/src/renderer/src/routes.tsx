@@ -1,3 +1,4 @@
+import { ApplicationsPage, ConnectionsPage } from "@enact/views/semantic";
 import { useEffect } from "react";
 import { createMemoryRouter, Outlet, useMatches } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
@@ -187,6 +188,16 @@ export const appRoutes: RouteObject[] = [
           },
           { path: "agents", element: <AgentsPage />, handle: { title: "Agents" } },
           { path: "members", element: <MembersPage />, handle: { title: "Members" } },
+          {
+            path: "applications",
+            element: <ApplicationsPage />,
+            handle: { title: "Applications" },
+          },
+          {
+            path: "connections",
+            element: <ConnectionsPage />,
+            handle: { title: "Connections" },
+          },
           {
             path: "resources",
             element: <ResourcesPage />,

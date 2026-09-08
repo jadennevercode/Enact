@@ -77,18 +77,10 @@ func TestManifestShape(t *testing.T) {
 		if spec.MaxConcurrentTasks < 1 {
 			t.Errorf("%s concurrency %d must be at least 1", spec.Name, spec.MaxConcurrentTasks)
 		}
-		// Every role shells out to the checkout's scripts, so every role needs
-		// to be told where the checkout is.
-		if !spec.NeedsRuntimeEnv {
-			t.Errorf("%s must receive the runtime env — its instructions spell $%s", spec.Name, HomeEnvVar)
+		if spec.NeedsRuntimeEnv {
+			t.Errorf("%s must run without a local Ontologizer checkout", spec.Name)
 		}
-		if !strings.Contains(spec.Instructions, HomeEnvVar) {
-			t.Errorf("%s instructions never mention $%s, so it cannot find the scripts", spec.Name, HomeEnvVar)
-		}
-		// The shared rules carry the four things that hold regardless of stage.
-		if !strings.Contains(spec.Instructions, "八个决策点不代拍") {
-			t.Errorf("%s instructions are missing the shared rules block", spec.Name)
-		}
+
 	}
 }
 
@@ -140,14 +132,14 @@ func TestSquadRoutesAndNamesEveryDecisionPoint(t *testing.T) {
 	for _, point := range []string{
 		"scope_and_boundary", "evidence_sufficiency", "semantic_review",
 		"competency_questions", "candidate_selection", "access_scope_review",
-		"patch_or_version", "create_pull_request",
+		"patch_or_version", "release_authorization",
 	} {
 		if !strings.Contains(squad.Instructions, point) {
 			t.Errorf("family instructions never mention decision point %s", point)
 		}
 	}
 	// Routing is by derived stage, not by the words in the request.
-	if !strings.Contains(squad.Instructions, "state.py status") {
+	if !strings.Contains(squad.Instructions, "/api/semantic/constructions/{id}") {
 		t.Error("family instructions must route from the derived stage")
 	}
 	for _, spec := range manifest.Agents {

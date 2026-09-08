@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS semantic_model_operation_active_task_idx;

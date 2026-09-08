@@ -5,7 +5,8 @@ package service
 // The bundle is the mirror image of the SDLC one, with two differences that
 // come from where its content is authored.
 //
-// The skills are written in the Ontologizer repository, which owns them along
+// Native SKILL.md adapters and role prompts are maintained in Enact. The
+// supporting standalone export resources are written in the Ontologizer repository, which owns them along
 // with the validators and the knowledge base, and are vendored in here by
 // scripts/sync-ontologizer-skills.sh. A published listing has to ship the bytes
 // it installs, so the catalog needs a copy of them; a runtime still loads them

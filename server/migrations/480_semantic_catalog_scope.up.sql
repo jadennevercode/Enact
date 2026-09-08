@@ -1,0 +1,1 @@
+CREATE INDEX CONCURRENTLY IF NOT EXISTS semantic_catalog_revision_scope ON semantic_catalog_revision(workspace_id,connection_id,principal_id,created_at DESC);

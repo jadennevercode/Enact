@@ -6,11 +6,11 @@
     "my_issues": "My Issues",
     "issues": "Issues",
     "autopilots": "Autopilot",
-    "agents": "Agents",
+    "agents": "Intelligence Center",
     "members": "Members",
     "marketplace": "Capability Hub",
     "runtimes": "Runtimes",
-    "resources": "Resources",
+    "resources": "Sources",
     "usage": "Insights",
     "settings": "Settings",
     "artifacts": "Artifacts",
@@ -18,7 +18,9 @@
     "team": "Team",
     "capabilities": "Capabilities",
     "ontologies": "Ontology",
-    "skills": "Skills"
+    "skills": "Skills",
+    "connections": "Connections",
+    "applications": "Applications"
   },
   "tab": {
     "issue": "Issue",

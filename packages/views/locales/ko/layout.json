@@ -6,11 +6,11 @@
     "my_issues": "내 태스크",
     "issues": "태스크",
     "autopilots": "오토파일럿",
-    "agents": "에이전트",
+    "agents": "Intelligence Center",
     "members": "멤버",
     "marketplace": "Capability Hub",
     "runtimes": "런타임",
-    "resources": "리소스",
+    "resources": "Sources",
     "usage": "인사이트",
     "settings": "설정",
     "artifacts": "산출물",
@@ -18,7 +18,9 @@
     "team": "팀",
     "capabilities": "역량",
     "ontologies": "온톨로지",
-    "skills": "스킬"
+    "skills": "스킬",
+    "connections": "연결",
+    "applications": "애플리케이션"
   },
   "tab": {
     "issue": "태스크",

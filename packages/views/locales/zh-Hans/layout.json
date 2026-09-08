@@ -6,11 +6,11 @@
     "my_issues": "我的任务",
     "issues": "任务",
     "autopilots": "自动化",
-    "agents": "智能体小组",
+    "agents": "智能中心",
     "members": "成员管理",
     "marketplace": "能力中心",
     "runtimes": "运行时",
-    "resources": "资源",
+    "resources": "来源",
     "usage": "观测",
     "settings": "设置",
     "artifacts": "产物",
@@ -18,7 +18,9 @@
     "team": "团队",
     "capabilities": "能力库",
     "ontologies": "Ontology",
-    "skills": "Skills"
+    "skills": "Skills",
+    "connections": "数据与系统连接",
+    "applications": "应用"
   },
   "tab": {
     "issue": "任务",

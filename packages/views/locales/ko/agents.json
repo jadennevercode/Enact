@@ -947,7 +947,7 @@
     "clear_selection": "선택 해제"
   },
   "hub": {
-    "title": "에이전트",
+    "title": "Intelligence Center",
     "tagline": "Agent Family와 에이전트, 그리고 이들을 구성하는 Skill, MCP, Ontology.",
     "new": "새로 만들기",
     "new_family": "새 Agent Family",

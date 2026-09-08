@@ -70,6 +70,10 @@ function workspaceScoped(slug: string) {
     // Repositories, local directories and knowledge bases: what an agent
     // works ON, next to the machines it runs on.
     resources: () => `${ws}/resources`,
+    connections: () => `${ws}/connections`,
+    applications: () => `${ws}/applications`,
+    applicationDetail: (id: string) => `${ws}/applications?app=${encode(id)}`,
+    semanticRun: (id: string) => `${ws}/applications?run=${encode(id)}`,
     runtimeDetail: (id: string) => `${ws}/runtimes/${encode(id)}`,
     runtimeSettings: (machineId: string, runtimeId: string) =>
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,

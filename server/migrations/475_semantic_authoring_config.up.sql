@@ -1,0 +1,2 @@
+ALTER TABLE semantic_ontology ADD COLUMN IF NOT EXISTS binding_config JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE semantic_ontology ADD COLUMN IF NOT EXISTS test_data JSONB NOT NULL DEFAULT '{}';

@@ -19,11 +19,28 @@ const (
 // teardown. Adding a table requires an explicit ownership decision here; the
 // handler deletion graph must then implement that decision before CI passes.
 var workspaceDeletionManifest = map[string]workspaceDeleteAction{
-	"activity_log":            workspaceDelete,
-	"agent":                   workspaceDelete,
-	"agent_builder_draft":     workspaceDelete,
-	"agent_invocation_target": workspaceDelete,
-	"agent_runtime":           workspaceDelete,
+	"semantic_run_presentation":       workspaceDelete,
+	"semantic_model_operation":        workspaceDelete,
+	"semantic_construction_event":     workspaceDelete,
+	"semantic_construction":           workspaceDelete,
+	"semantic_catalog_revision":       workspaceDelete,
+	"semantic_source_snapshot":        workspaceDelete,
+	"semantic_ontology_revision":      workspaceDelete,
+	"semantic_connection":             workspaceDelete,
+	"semantic_ontology":               workspaceDelete,
+	"semantic_release":                workspaceDelete,
+	"semantic_run":                    workspaceDelete,
+	"semantic_step":                   workspaceDelete,
+	"semantic_approval":               workspaceDelete,
+	"semantic_receipt":                workspaceDelete,
+	"semantic_application":            workspaceDelete,
+	"semantic_application_build":      workspaceDelete,
+	"semantic_application_deployment": workspaceDelete,
+	"activity_log":                    workspaceDelete,
+	"agent":                           workspaceDelete,
+	"agent_builder_draft":             workspaceDelete,
+	"agent_invocation_target":         workspaceDelete,
+	"agent_runtime":                   workspaceDelete,
 	// A machine is a person's computer, not a workspace's asset — it has no
 	// workspace_id and outlives any one workspace it was registered in.
 	// Teardown sweeps only machines left with no projections at all, which is

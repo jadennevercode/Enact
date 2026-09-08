@@ -1,0 +1,20 @@
+{
+  "sha256": "22600d1ab4f2d072f8d432d3645225d7bdb68c59a1bc16415531bb51d2a4deb5",
+  "parts": [
+    {
+      "name": "demo.enc.part-001",
+      "bytes": 41943040,
+      "sha256": "9504ff6f3ea66ace4a1c1be2ae8b8dfb9697f58f0dbbb034786bd91214b125fc"
+    },
+    {
+      "name": "demo.enc.part-002",
+      "bytes": 41943040,
+      "sha256": "d87a33410e9d9a481a2b526896d06ce2272fea894e4e36e159553d57d9fbfcf9"
+    },
+    {
+      "name": "demo.enc.part-003",
+      "bytes": 389426,
+      "sha256": "58d7bb292ad676bf5582cb0be1fe735e0051923dfa2723236bd61004845611fa"
+    }
+  ]
+}

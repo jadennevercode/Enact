@@ -775,6 +775,14 @@ export class ApiClient {
     return res.json() as Promise<T>;
   }
 
+  /** Transport for workspace semantic services; callers validate with domain schemas. */
+  async semanticRequest(path: string, init?: RequestInit): Promise<unknown> {
+    if (!path.startsWith("/") || path.includes("..") || path.includes("?")) {
+      throw new Error("Invalid semantic API path");
+    }
+    return this.fetch<unknown>(`/api/semantic${path}`, init);
+  }
+
   // Auth
   async emailLogin(email: string, password: string): Promise<LoginResponse> {
     const raw = await this.fetch<unknown>("/auth/email-login", {

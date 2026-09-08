@@ -51,10 +51,16 @@ func TestMain(m *testing.M) {
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		fmt.Printf("Skipping tests: could not connect to database: %v\n", err)
+		if os.Getenv("ENACT_QUALITY_E2E") == "1" {
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 	if err := pool.Ping(ctx); err != nil {
 		fmt.Printf("Skipping tests: database not reachable: %v\n", err)
+		if os.Getenv("ENACT_QUALITY_E2E") == "1" {
+			os.Exit(1)
+		}
 		pool.Close()
 		os.Exit(0)
 	}

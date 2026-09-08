@@ -1,5 +1,6 @@
 "use client";
 
+import { IssueOntologyTrace } from "../../semantic/ontology-trace";
 import {
   issueBehavesAs,
   issueBehavesAsAny,
@@ -3174,6 +3175,8 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
             </div>
             {descDragOver && <FileDropOverlay />}
           </div>
+
+          <IssueOntologyTrace issueId={issue.id} />
 
           {/* Sub-issues — Linear-style */}
           {childIssues.length === 0 && (

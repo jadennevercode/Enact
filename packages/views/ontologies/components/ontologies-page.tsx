@@ -1,5 +1,7 @@
 "use client";
 
+import { OntologyWorkbench } from "../../semantic/ontology-workbench";
+import { useSemanticText } from "../../semantic/shared";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -46,6 +48,11 @@ function localized(
 }
 
 export function OntologiesPage() {
+  const t = useSemanticText();
+  return <Tabs defaultValue="workspace" className="flex min-h-0 flex-1 flex-col"><TabsList className="mx-6 mt-3"><TabsTrigger value="workspace">{t("studio")}</TabsTrigger><TabsTrigger value="catalog">{t("capHub")}</TabsTrigger></TabsList><TabsContent value="workspace" className="flex min-h-0 flex-1 flex-col"><OntologyWorkbench /></TabsContent><TabsContent value="catalog" className="flex min-h-0 flex-1 flex-col"><OntologyCatalogPage /></TabsContent></Tabs>;
+}
+
+function OntologyCatalogPage() {
   const { t } = useT("settings");
   const locale = useLocale();
   const wsId = useWorkspaceId();

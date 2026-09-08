@@ -81,6 +81,7 @@ import {
   LocalDirectoryModeDialog,
   type WorktreeUnavailableReason,
 } from "../../common/local-directory";
+import { useWorkspacePaths } from "@enact/core/paths";
 import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
 import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
@@ -148,6 +149,7 @@ export function ResourcesPage() {
   const { t } = useT("resources");
   const wsId = useWorkspaceId();
   const navigation = useNavigation();
+  const paths = useWorkspacePaths();
   const daemonStatus = useLocalDaemonStatus();
   const [addOpen, setAddOpen] = useState(false);
   const [addKnowledgeOpen, setAddKnowledgeOpen] = useState(false);
@@ -633,7 +635,7 @@ export function ResourcesPage() {
     // description, which explains what a resource is rather than repeating
     // the title.
     <div className="enact-management-page flex flex-1 min-h-0 flex-col">
-      <CollectionPageHeader icon={FolderOpen} title={t(($) => $.tab_title)} />
+      <CollectionPageHeader icon={FolderOpen} title={t(($) => $.tab_title)} actions={<Button variant="outline" onClick={() => navigation.push(paths.connections())}>{t($ => $.semantic.connections)}</Button>} />
       <div className="flex-1 overflow-y-auto">
         {/* The body shares the header's gutter and caps its column: three
             list panels reading edge to edge at 1440px is a spreadsheet, not a

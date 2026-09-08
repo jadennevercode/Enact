@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS semantic_construction_ontology_idx;

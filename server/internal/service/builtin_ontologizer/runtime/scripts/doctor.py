@@ -57,7 +57,8 @@ def main() -> int:
     else:
         print(f"  submit                                            checkout_clean 只能读记录，不能实地检查 —— 这是明确阻塞")
         core_ok = False
-    print(f"  evaluate                                          rule check 可运行；graph-answer test 需要图库适配器（V1 未提供）")
+    print(f"  evaluate                                          rule check 可运行；Enact graph-answer adapter 需要注入的工作区 URL/token")
+    print("  python3 tools/semantic/adapter.py available         检查 Enact 语义运行时（不输出凭证）")
 
     print("\n自检")
     print("  python3 scripts/selftest.py     对门机制的对抗性断言")

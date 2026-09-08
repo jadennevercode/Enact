@@ -60,19 +60,20 @@ is_noise() {
   esac
 }
 
-echo "==> Syncing skills from $src/skills"
-rm -rf "$dest_skills"
+echo "==> Syncing compatibility resources from $src/skills (Enact native skill entrypoints are preserved)"
 mkdir -p "$dest_skills"
 (cd "$src/skills" && find . -type f \( -name 'SKILL.md' -o -path './*/references/*' -o -path './*/templates/*' \) -print0) |
   while IFS= read -r -d '' rel; do
     rel="${rel#./}"
     is_noise "$rel" && continue
+    # SKILL.md is the Enact-native adapter, maintained in this repository.
+    # Upstream package instructions must not replace its release contract.
+    [[ "$rel" == */SKILL.md ]] && continue
     mkdir -p "$dest_skills/$(dirname "$rel")"
     cp "$src/skills/$rel" "$dest_skills/$rel"
   done
 
 echo "==> Syncing runtime from $src/{scripts,shared,tools,knowledge}"
-rm -rf "$dest_runtime"
 mkdir -p "$dest_runtime"
 for tree in scripts shared tools knowledge; do
   if [ ! -d "$src/$tree" ]; then
@@ -82,6 +83,9 @@ for tree in scripts shared tools knowledge; do
   (cd "$src" && find "$tree" -type f -print0) |
     while IFS= read -r -d '' rel; do
       is_noise "$rel" && continue
+      # These documents define the Enact/native boundary and are not upstream
+      # standalone-package resources.
+      case "$rel" in shared/semantic-native.md|shared/conventions.md|shared/manifests/stages.yaml) continue ;; esac
       mkdir -p "$dest_runtime/$(dirname "$rel")"
       cp "$src/$rel" "$dest_runtime/$rel"
     done

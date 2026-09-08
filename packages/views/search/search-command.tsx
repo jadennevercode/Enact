@@ -118,6 +118,8 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
     "邀请",
     "人",
   ],
+  connections: ["connection", "database", "api", "连接", "数据源"],
+  applications: ["application", "app", "site", "应用", "业务运行"],
   resources: [
     "resources",
     "repositories",

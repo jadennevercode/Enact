@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enact — 三菱形品牌标识</title>
+  <style>
+    @font-face{font-family:Open Sans;src:url(fonts/open-sans-latin.woff2) format('woff2');font-weight:300 800;font-display:swap}
+    :root{--green:#86bc25;--ink:#000;--muted:#53565a;--line:#d0d0ce;--paper:#fff;--soft:#f4f4f3}
+    *{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--soft);font-family:'Open Sans','PingFang SC','Microsoft YaHei',sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-underline-offset:4px}button,a{touch-action:manipulation}a:focus-visible,button:focus-visible{outline:3px solid #046a38;outline-offset:5px}
+    .page{max-width:1600px;margin:auto;background:var(--paper)}
+    .board{display:grid;grid-template-columns:64% 36%;grid-template-rows:610px 370px}
+    .hero{padding:48px 58px;position:relative;display:flex;flex-direction:column;justify-content:space-between}
+    .meta{display:flex;justify-content:space-between;gap:24px;align-items:center;font-size:11px;letter-spacing:1.8px;font-weight:600}
+    .meta span:last-child{color:var(--muted);letter-spacing:1px}
+    .hero-content{padding-bottom:11px}.hero-logo{display:block;width:82%;max-width:700px;height:auto;margin:0 0 35px -14px}
+    .hero h1{font-weight:300;font-size:30px;letter-spacing:1px;margin:0 0 14px}.hero p{font-size:14px;color:var(--muted);margin:0;letter-spacing:.3px}
+    .keyline{width:62px;height:4px;background:var(--green);margin-bottom:28px}.hero-bottom{font-size:11px;color:var(--muted);letter-spacing:1px;display:flex;justify-content:space-between}
+    .symbol{background:var(--green);display:flex;flex-direction:column;justify-content:space-between;padding:48px;overflow:hidden}
+    .symbol .meta span:last-child{color:#000}.symbol img{width:100%;max-width:380px;align-self:center}.symbol-bottom{display:flex;justify-content:space-between;font-size:11px;letter-spacing:1.1px}
+    .inverse{background:#000;color:white;display:flex;flex-direction:column;justify-content:space-between;padding:42px 58px}
+    .eyebrow{font-size:10px;letter-spacing:1.7px;font-weight:600;margin:0}.inverse .eyebrow{color:#a7a8aa}.inverse img{width:46%;max-width:350px;height:auto;margin-left:-7px}.inverse-bottom{display:flex;align-items:end;justify-content:space-between;gap:20px}.inverse h2{font-size:26px;font-weight:300;margin:0}.inverse small{font-size:10px;color:#a7a8aa;letter-spacing:.5px}
+    .applications{background:var(--soft);padding:42px 48px;display:flex;flex-direction:column;justify-content:space-between}.app-row{display:flex;align-items:center;gap:30px}.app-tile{width:100px;height:100px;border-radius:22px;box-shadow:0 8px 22px #00000014}.app-label h3{margin:0 0 5px;font-weight:600;font-size:17px}.app-label p{margin:0;color:var(--muted);font-size:12px;line-height:1.8}.micro{display:flex;align-items:end;gap:24px}.micro figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:9px}.micro figcaption{font-size:10px;color:var(--muted)}.micro img{display:block}.palette-line{display:flex;gap:6px;height:5px}.palette-line i{display:block}.palette-line i:nth-child(1){width:50%;background:#000}.palette-line i:nth-child(2){width:35%;background:#86bc25}.palette-line i:nth-child(3){width:15%;background:#d0d0ce}
+    .details{padding:88px 58px 64px}.section-head{display:flex;align-items:start;justify-content:space-between;gap:30px;margin-bottom:46px}.section-head .eyebrow{color:#046a38;margin-bottom:15px}.section-head h2{font-size:34px;font-weight:300;letter-spacing:-1px;margin:0 0 24px}.section-head p{max-width:440px;margin:20px 0 0;font-size:14px;line-height:1.9;color:var(--muted)}
+    .ideas{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;padding-bottom:64px}.idea{border-top:1px solid var(--line);padding-top:20px}.number{font-size:11px;color:var(--muted);letter-spacing:1px}.idea h3{font-size:20px;font-weight:600;margin:18px 0 14px}.idea p{font-size:14px;line-height:1.9;color:var(--muted);margin:0}
+    .playground{background:var(--soft);padding:32px;display:grid;grid-template-columns:1fr 280px;gap:32px}.stage{background:#fff;min-height:260px;display:flex;align-items:center;justify-content:center;transition:background .18s}.stage img{width:70%;max-width:490px;height:auto}.controls h3{font-size:15px;margin:0 0 20px}.theme-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.theme-buttons button{font:inherit;font-size:12px;min-height:44px;border:1px solid #75787b;background:white;cursor:pointer}.theme-buttons button[aria-pressed=true]{box-shadow:inset 0 -3px #86bc25;font-weight:700;border-color:#000}.controls p{font-size:12px;line-height:1.9;color:var(--muted);margin:22px 0}.download{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #a7a8aa;min-height:44px;text-decoration:none;font-size:12px}.download:hover{color:#046a38}
+    .specs{margin-top:60px;display:grid;grid-template-columns:1fr 1fr;gap:64px}.specs h3{font-size:15px;margin:0 0 24px}.swatches{display:flex;gap:16px}.swatch{flex:1}.chip{height:65px;margin-bottom:12px;border:1px solid #0000000c}.swatch p{margin:0;font-size:11px;line-height:1.7}.swatch span{display:block;color:var(--muted)}.rules{list-style:none;margin:0;padding:0}.rules li{padding:10px 0;border-bottom:1px solid #e6e6e6;display:flex;gap:24px;justify-content:space-between;font-size:12px}.rules span{color:var(--muted);text-align:right}
+    footer{border-top:1px solid var(--line);margin:0 58px;padding:24px 0 32px;font-size:10px;color:var(--muted);display:flex;justify-content:space-between;gap:24px;line-height:1.8}footer a{white-space:nowrap}
+    @media(min-width:1500px){.board{grid-template-rows:650px 390px}.hero-content{padding-bottom:32px}.hero-logo{margin-bottom:40px}.symbol img{max-width:405px}}
+    @media(max-width:1000px){.board{grid-template-rows:530px 340px}.hero{padding:32px}.symbol,.applications{padding:32px}.inverse{padding:32px}.hero h1{font-size:24px}.app-row{gap:18px}.app-tile{width:76px;height:76px;border-radius:17px}.inverse img{width:58%}.inverse h2{font-size:21px}.inverse-bottom{align-items:start;flex-direction:column;gap:14px}.details{padding:64px 32px}.ideas{gap:28px}.playground{grid-template-columns:1fr 220px}.specs{gap:32px}footer{margin:0 32px}}
+    @media(max-width:700px){.board{display:flex;flex-direction:column}.hero{min-height:470px;padding:28px 24px}.meta{font-size:9px;letter-spacing:1px}.hero-logo{width:100%;margin-left:-8px}.hero h1{font-size:24px}.hero p{font-size:12px}.hero-bottom{font-size:9px}.symbol{height:360px;padding:28px 24px}.symbol img{width:220px}.inverse{min-height:300px;padding:30px 24px}.inverse img{width:70%}.inverse-bottom{flex-direction:row;align-items:end}.inverse h2{font-size:22px}.applications{min-height:330px;padding:30px 24px}.app-row{gap:24px}.app-tile{width:88px;height:88px;border-radius:19px}.micro{gap:30px}.details{padding:54px 24px 40px}.section-head{flex-direction:column;gap:0;margin-bottom:32px}.section-head h2{font-size:29px}.section-head p{margin:0}.ideas{grid-template-columns:1fr;gap:28px;padding-bottom:40px}.idea h3{margin-top:12px}.playground{grid-template-columns:1fr;padding:16px;gap:24px}.stage{min-height:190px}.controls{padding:8px}.specs{grid-template-columns:1fr;gap:38px;margin-top:40px}footer{margin:0 24px;flex-direction:column;gap:12px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    @media print{body{background:white}.page{max-width:none}.controls{display:none}.playground{grid-template-columns:1fr}.board{break-inside:avoid}a{color:inherit}footer{break-inside:avoid}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <section class="board" aria-label="Enact 品牌标识总览">
+    <div class="hero">
+      <div class="meta"><span>ENACT / BRAND IDENTITY</span><span>DESIGN CONCEPT · 02</span></div>
+      <div class="hero-content">
+        <img class="hero-logo" src="assets/enact-lockup-light.svg" alt="Enact：三枚横向菱形上下排列，中间一枚为德勤绿" width="500" height="120">
+        <div class="keyline"></div>
+        <h1>让协作成为行动。</h1>
+        <p>人与智能体，共同推动有价值的成果。</p>
+      </div>
+      <div class="hero-bottom"><span>INTELLIGENCE, ENACTED.</span><span>SEPTEMBER 2026</span></div>
+    </div>
+    <div class="symbol">
+      <div class="meta"><span>THREE DIAMONDS</span><span>01 / SYMBOL</span></div>
+      <img src="assets/enact-mark-black.svg" alt="三菱形图形的纯黑单色版本" width="380" height="380">
+      <div class="symbol-bottom"><span>ONE TEAM. SHARED IMPACT.</span><span>#86BC25</span></div>
+    </div>
+    <div class="inverse">
+      <p class="eyebrow">02 / REVERSE SIGNATURE</p>
+      <img src="assets/enact-lockup-dark.svg" alt="深色背景使用的白色与绿色 Enact 字标" width="350" height="84">
+      <div class="inverse-bottom"><h2>Turn intent into impact.</h2><small>HUMANS + AGENTS</small></div>
+    </div>
+    <div class="applications">
+      <p class="eyebrow">03 / BUILT FOR EVERY SCALE</p>
+      <div class="app-row"><img class="app-tile" src="assets/enact-app-dark.svg" alt="Enact 应用图标预览" width="100" height="100"><div class="app-label"><h3>Enact</h3><p>人与智能体的工作空间<br>Application identity</p></div></div>
+      <div class="micro" aria-label="16 至 48 像素的标识对比">
+        <figure><img src="assets/enact-mark-light.svg" width="16" height="16" alt="16 像素标识"><figcaption>16 px</figcaption></figure>
+        <figure><img src="assets/enact-mark-light.svg" width="24" height="24" alt="24 像素标识"><figcaption>24 px</figcaption></figure>
+        <figure><img src="assets/enact-mark-light.svg" width="32" height="32" alt="32 像素标识"><figcaption>32 px</figcaption></figure>
+        <figure><img src="assets/enact-mark-light.svg" width="48" height="48" alt="48 像素标识"><figcaption>48 px</figcaption></figure>
+      </div>
+      <div class="palette-line" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+  <section class="details" aria-labelledby="concept-title">
+    <div class="section-head"><div><p class="eyebrow">THE IDEA BEHIND THE MARK</p><h2 id="concept-title">协同向前，价值落地。</h2><div class="keyline"></div></div><p>将 E 的三条横向笔画抽象为三枚扁菱形，等宽、等距、上下排列。中央整枚使用德勤绿，形成清晰的视觉核心。</p></div>
+    <div class="ideas">
+      <article class="idea"><span class="number">01 / ALIGN</span><h3>三层，同一方向</h3><p>三枚独立菱形沿同一条中轴排列，以一致的几何语言表达人与智能体共同工作、协同推进。</p></article>
+      <article class="idea"><span class="number">02 / ACT</span><h3>横向舒展的菱形</h3><p>每枚菱形采用 4:1 的宽高比。对称的尖角与充足的层间留白，让标识简洁、稳定且容易识别。</p></article>
+      <article class="idea"><span class="number">03 / IMPACT</span><h3>德勤绿，居于核心</h3><p>中间菱形完整使用 #86BC25，上下两枚在浅底上为黑色、深底上为白色。用一处鲜明的品牌色建立记忆点。</p></article>
+    </div>
+    <div class="playground">
+      <div class="stage" id="stage"><img id="stage-logo" src="assets/enact-lockup-light.svg" alt="浅色背景 Enact 标识预览" width="490" height="118"></div>
+      <div class="controls"><h3>查看不同应用版本</h3><div class="theme-buttons" role="group" aria-label="预览背景">
+        <button type="button" data-theme="light" aria-pressed="true">浅色背景</button><button type="button" data-theme="dark" aria-pressed="false">深色背景</button><button type="button" data-theme="green" aria-pressed="false">品牌绿背景</button><button type="button" data-theme="mono" aria-pressed="false">单色印刷</button>
+      </div><p>字标已转曲，SVG 可无损缩放。<br>完整资产包含浅色、深色和单色版本。</p><a class="download" id="download-current" href="assets/enact-lockup-light.svg" download>下载当前 SVG <span aria-hidden="true">↓</span></a><a class="download" href="enact-assets.zip" download>下载标识资产包 <span aria-hidden="true">↓</span></a></div>
+    </div>
+    <div class="specs">
+      <div><h3>品牌色彩</h3><div class="swatches"><div class="swatch"><div class="chip" style="background:#000"></div><p>Black<span>#000000</span></p></div><div class="swatch"><div class="chip" style="background:#86bc25"></div><p>Deloitte Green<span>#86BC25</span></p></div><div class="swatch"><div class="chip" style="background:#fff"></div><p>White<span>#FFFFFF</span></p></div><div class="swatch"><div class="chip" style="background:#53565a"></div><p>Cool Grey<span>#53565A</span></p></div></div></div>
+      <div><h3>使用建议</h3><ul class="rules"><li>保护空间<span>图形可见边缘外至少 1 个菱形高度</span></li><li>最小数字尺寸<span>独立图形 16 px / 完整组合 120 px 宽</span></li><li>字体搭配<span>Open Sans / 中文使用系统无衬线</span></li><li>形态原则<span>三枚等宽等距，中间一枚使用德勤绿</span></li></ul></div>
+    </div>
+  </section>
+  <footer><span>ENACT / 三菱形品牌标识提案 · 2026<br>Information Classification: Confidential</span><span>设计理念参考：<a href="https://www.deloitte.com/global/en/about/story/purpose-values.html">Deloitte Purpose &amp; Values</a><br><a href="https://www.deloitte.com/southeast-asia/en/about/governance/network-brand-alliances/becoming-the-green-dot.html">The Green Dot</a> · 色彩与字体参考本地 Deloitte 设计规范</span></footer>
+</main>
+<script>
+  const variants={light:{background:'#ffffff',asset:'light',label:'浅色背景'},dark:{background:'#000000',asset:'dark',label:'深色背景'},green:{background:'#86bc25',asset:'black',label:'品牌绿背景'},mono:{background:'#ffffff',asset:'black',label:'单色印刷'}};
+  for(const button of document.querySelectorAll('[data-theme]')){
+    button.addEventListener('click',()=>{
+      const variant=variants[button.dataset.theme];
+      document.getElementById('stage').style.background=variant.background;
+      const logo=document.getElementById('stage-logo');
+      logo.src=`assets/enact-lockup-${variant.asset}.svg`;
+      logo.alt=`${variant.label} Enact 标识预览`;
+      document.getElementById('download-current').href=logo.getAttribute('src');
+      for(const peer of document.querySelectorAll('[data-theme]'))peer.setAttribute('aria-pressed',String(peer===button));
+    });
+  }
+</script>
+</body>
+</html>

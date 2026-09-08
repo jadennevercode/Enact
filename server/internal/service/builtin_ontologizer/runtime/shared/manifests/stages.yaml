@@ -6,6 +6,15 @@
 
 version: 1
 
+# Enact-native construction is driven by durable construction/Issue records.
+# The legacy pipeline below applies only to an explicit standalone export.
+enact_native:
+  stages: [scope, evidence, model, review, release]
+  primary_artifact: native_release
+  state_api: /api/semantic/constructions/{id}
+  authoring_api: /api/semantic/ontologies/{id}/native
+  compatibility_export: optional_skill_package
+
 pipeline: [initiate, evidence, interview, generate, review, revise, evaluate, submit, package]
 
 gates:

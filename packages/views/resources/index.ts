@@ -1,1 +1,1 @@
-export { ResourcesPage } from "./components/resources-page";
+export { SourcesPage as ResourcesPage } from "../semantic/sources-page";

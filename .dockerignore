@@ -45,7 +45,20 @@ coverage
 /apps/*
 !/apps/web/
 
+# Keep generated workspace files excluded after re-including the web app.
+# Docker evaluates the last matching rule, including parent directory rules.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/*.tsbuildinfo
+
 # Repository-only tooling
 /.github/
 /deploy/
 /scripts/
+
+# The optional account importer needs only its program, never the data or key.
+!/scripts/account-bundle.mjs
+!/deploy/demo/Dockerfile
+/data/

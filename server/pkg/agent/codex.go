@@ -833,6 +833,11 @@ func isCodexBareTomlKey(s string) bool {
 }
 
 func (b *codexBackend) Execute(ctx context.Context, prompt string, opts ExecOptions) (*Session, error) {
+	if opts.ModelOperation {
+		// A submitted structured operation must never be automatically retried:
+		// a lost terminal event leaves its execution outcome uncertain.
+		return b.executeOnce(ctx, prompt, opts, 1)
+	}
 	firstSession, err := b.executeOnce(ctx, prompt, opts, 1)
 	if err != nil {
 		return nil, err
@@ -1045,7 +1050,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 	if opts.Cwd != "" {
 		cmd.Dir = opts.Cwd
 	}
-	cmd.Env = buildEnv(b.cfg.Env)
+	cmd.Env = b.cfg.executionEnv()
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1462,6 +1467,9 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 			"threadId": threadID,
 			"input":    codexTurnInput(prompt, opts.ResumeExpected, resumed, opts.ResumeContinuityNotice),
 		}
+		if opts.ModelOperation {
+			turnParams["outputSchema"] = opts.ResponseSchema
+		}
 		// Per-turn reasoning override. Mirrors the per-thread injection in
 		// startOrResumeThread; keeping both in sync is enforced by the
 		// shared `codexReasoningInjection` fixture in codex_test.go (see
@@ -1850,6 +1858,15 @@ func (c *codexClient) startOrResumeThread(ctx context.Context, opts ExecOptions,
 		"persistExtendedHistory": true,
 	}
 	applyCodexReasoningEffort(startParams, opts.ThinkingLevel)
+	if opts.ModelOperation {
+		startParams["ephemeral"] = true
+		startParams["approvalPolicy"] = "never"
+		startParams["sandbox"] = "read-only"
+		startParams["baseInstructions"] = structuredModelInstructions
+		startParams["developerInstructions"] = "Return only the requested structured output. Do not invoke tools."
+		startParams["includeApplyPatchTool"] = false
+		startParams["config"] = structuredCodexConfig()
+	}
 	applyCodexServiceTier(startParams, opts.ServiceTier)
 	c.threadStartSent = true
 	c.threadStartStarted = time.Now()
