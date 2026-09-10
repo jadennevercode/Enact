@@ -1,0 +1,284 @@
+{
+  "format": 1,
+  "encryption": "AES-256-GCM / ENACTB01",
+  "startedAt": "2026-09-10T03:19:11.521517+00:00",
+  "finishedAt": "2026-09-10T03:20:40.430918+00:00",
+  "sourceCodeBase": "06c48478",
+  "databases": {
+    "enact": {
+      "archive": "enact.dump.enc",
+      "workspaces": 242,
+      "tables": 134,
+      "rows": 81374,
+      "issues": 161,
+      "attachments": 112
+    },
+    "enact_backfill": {
+      "archive": "enact_backfill.dump.enc",
+      "workspaces": 2
+    },
+    "enact_enact_knowledge_base_273": {
+      "archive": "enact_enact_knowledge_base_273.dump.enc",
+      "workspaces": 31
+    },
+    "enact_feat_retrospect_agent_467": {
+      "archive": "enact_feat_retrospect_agent_467.dump.enc",
+      "workspaces": 7
+    },
+    "enact_feat_workspace_onboarding_376": {
+      "archive": "enact_feat_workspace_onboarding_376.dump.enc",
+      "workspaces": 31
+    },
+    "enact_migcheck": {
+      "archive": "enact_migcheck.dump.enc",
+      "workspaces": 28
+    },
+    "enact_semantic_integration": {
+      "archive": "enact_semantic_integration.dump.enc",
+      "workspaces": 2
+    },
+    "quality_reference_integration": {
+      "archive": "quality_reference_integration.dump.enc",
+      "workspaces": null
+    }
+  },
+  "consistency": "Backend and semantic containers paused during main database and persistent-volume capture. Other databases have individual pg_dump transaction snapshots. Local daemon files are a live filesystem capture.",
+  "verification": {
+    "databases": {
+      "enact": {
+        "restored": true,
+        "workspaces": 242
+      },
+      "enact_backfill": {
+        "restored": true,
+        "workspaces": 2
+      },
+      "enact_enact_knowledge_base_273": {
+        "restored": true,
+        "workspaces": 31
+      },
+      "enact_feat_retrospect_agent_467": {
+        "restored": true,
+        "workspaces": 7
+      },
+      "enact_feat_workspace_onboarding_376": {
+        "restored": true,
+        "workspaces": 31
+      },
+      "enact_migcheck": {
+        "restored": true,
+        "workspaces": 28
+      },
+      "enact_semantic_integration": {
+        "restored": true,
+        "workspaces": 2
+      },
+      "quality_reference_integration": {
+        "restored": true,
+        "workspaces": null
+      }
+    },
+    "archives": {
+      "daemon-profile.tar.enc": {
+        "files": 201,
+        "bytes": 6726677,
+        "authenticated": true
+      },
+      "daemon-workspaces.tar.enc": {
+        "files": 6478,
+        "bytes": 708293448,
+        "authenticated": true
+      },
+      "local-uploads.tar.enc": {
+        "files": 52,
+        "bytes": 220762,
+        "authenticated": true
+      },
+      "quality-source.tar.enc": {
+        "files": 644,
+        "bytes": 5391016,
+        "authenticated": true
+      },
+      "semantic-runtime-source.tar.enc": {
+        "files": 1720,
+        "bytes": 79230258,
+        "authenticated": true
+      },
+      "semantic-state.tar.enc": {
+        "files": 688,
+        "bytes": 674161581,
+        "authenticated": true
+      },
+      "server-local-uploads.tar.enc": {
+        "files": 28,
+        "bytes": 981,
+        "authenticated": true
+      },
+      "uploads.tar.enc": {
+        "files": 205,
+        "bytes": 17334779,
+        "authenticated": true
+      }
+    },
+    "mainDatabaseTablesVerified": 134,
+    "attachmentRecords": 112,
+    "missingLocalAttachments": 0,
+    "externalAttachmentReferences": 0,
+    "allComponentsAuthenticated": true
+  },
+  "files": {
+    "semantic-runtime-source.tar.enc.part-001": {
+      "bytes": 41943040,
+      "sha256": "7b03e09f2052930d5e83c5703958050e07f5fb523132d2b1fe2f9d13238eaf32"
+    },
+    "enact.dump.enc.part-005": {
+      "bytes": 30495858,
+      "sha256": "09fc8dbe4f9b8a71642c570ec5e6c7b385940ece58df75185773713f19fca0a7"
+    },
+    "enact.dump.enc.part-002": {
+      "bytes": 41943040,
+      "sha256": "cb203e190e1ea9ff66362cce65bc3b3ad44efe4f39457be4e68dca355696b4dd"
+    },
+    "enact.dump.enc.parts.json": {
+      "bytes": 925,
+      "sha256": "8ca9fccb2a6bd7f101ccef5779a73c223f6f7ececdc0e9a9627acc59bf83e41a"
+    },
+    "enact.dump.enc.part-003": {
+      "bytes": 41943040,
+      "sha256": "7ed20b03288ec3172f8dafbf8fc53336ed27f135f5e89da43d30b38fd072247d"
+    },
+    "enact.dump.enc.part-004": {
+      "bytes": 41943040,
+      "sha256": "b00f84527c76a355dc9ce207f277314e58ef85caf4a88f274951a04a24d76242"
+    },
+    "server-local-uploads.tar.enc": {
+      "bytes": 2530,
+      "sha256": "4bf3926e45bd5cfe0e6403b3ec9bfc96c88246c837c527837dd1521399312478"
+    },
+    "previous-demo-bundle.key.enc": {
+      "bytes": 101,
+      "sha256": "bb38cb26d2df5cc46f8837d53665e3387a770009e69d8a63e534c42f45f14d18"
+    },
+    "daemon-workspaces.tar.enc.part-002": {
+      "bytes": 41943040,
+      "sha256": "ed765e9edeb9c04b9821d6fc793928fe13491a6b0825f79470a015f5484584d6"
+    },
+    "daemon-workspaces.tar.enc.part-004": {
+      "bytes": 13419233,
+      "sha256": "d7204be127b199aa020de29989d600166fbf28254108b0de52b1092e68eb8a6e"
+    },
+    "daemon-workspaces.tar.enc.part-003": {
+      "bytes": 41943040,
+      "sha256": "72c7cea606e184389f77744dddc5e4343cbb521558cea21eef92500d72b858d8"
+    },
+    "quality_reference_integration.dump.enc": {
+      "bytes": 7379,
+      "sha256": "46ddeb275cbfc7fca1e834496d7e523947fde9c8973d25b5e77115d64257b0a2"
+    },
+    "workspaces.json.enc": {
+      "bytes": 8333,
+      "sha256": "4f4475eb5ed4dff32525fdaad1ed439acb6f35d4f407a00bb8352afd5c00a109"
+    },
+    "enact_feat_retrospect_agent_467.dump.enc": {
+      "bytes": 7677708,
+      "sha256": "414ec95c7093d2eec4d24dc644486819b349da440433ff1ff07442edb6751119"
+    },
+    "source.env.enc": {
+      "bytes": 14103,
+      "sha256": "b805276cbbcdf1c14b8b78c26dae2cf1ec7e02c22c520cea61b8a83b51f0f267"
+    },
+    "semantic-state.tar.enc.parts.json": {
+      "bytes": 625,
+      "sha256": "ef5b62c9acc55c97dafb3b55561efcb7e73b013d83626c81481189cc1187c472"
+    },
+    "semantic-state.tar.enc.part-002": {
+      "bytes": 41943040,
+      "sha256": "35dd025d29add30c7779ed27d8bc1ffabdea21d917035f36f90027174c61c80f"
+    },
+    "daemon-workspaces.tar.enc.parts.json": {
+      "bytes": 807,
+      "sha256": "7666e0793688d0b207d1c5df3d47a322c21664909664664d0d35349654908f9f"
+    },
+    "semantic-state.tar.enc.part-003": {
+      "bytes": 15755266,
+      "sha256": "6e774b8b9d05b0efce1067f32f7a1b9f6d3c2458db9736aa84b646cecb3be69a"
+    },
+    "inventory.json.enc": {
+      "bytes": 1889,
+      "sha256": "f4dd8d4d746a141003ea34d5cbc7026d6f1c724feb77c2ee3d73ce3a31116851"
+    },
+    "enact.dump.enc.part-001": {
+      "bytes": 41943040,
+      "sha256": "66d65e03d00133019c97aa9eebd959b6b2a6a6c7ee1edbf0312649926743e6eb"
+    },
+    "semantic-runtime-source.tar.enc.part-002": {
+      "bytes": 16058396,
+      "sha256": "a955a17d8729900620ee97f00df4f358a5e0c6a41cfc6bfaf5100d37357bbb70"
+    },
+    "table-counts.json.enc": {
+      "bytes": 1187,
+      "sha256": "5912bf0085556e69df4fb5e4f9bd898b989d28dfbb3025854befe3c5a2d68952"
+    },
+    "quality-source.tar.enc": {
+      "bytes": 2364336,
+      "sha256": "e35b3ee284c98c2bfa3a191bd5a0ebe0a1ede6824e566d1b1942b2b3f7d2345a"
+    },
+    "daemon-workspaces.tar.enc.part-001": {
+      "bytes": 41943040,
+      "sha256": "f458cf373fa9d839db43d98bbed4889fbe243480c750b72b6244908781e2ad83"
+    },
+    "container-configuration.json.enc": {
+      "bytes": 8505,
+      "sha256": "832a763741e494acef648c712a00e8b0d54f4588e4632859220c98554d6256e8"
+    },
+    "compose-local.json.enc": {
+      "bytes": 232,
+      "sha256": "e44059b666c87d94b90642e15517e887775341eb31e8323c39dd613e8772d87f"
+    },
+    "semantic-runtime-source.tar.enc.parts.json": {
+      "bytes": 473,
+      "sha256": "48338daba7f6fdf4a3f54d37c43f4d4a7f6a67af89d5b444500ccd042ad4fc0d"
+    },
+    "uploads.tar.enc": {
+      "bytes": 10879076,
+      "sha256": "b8469b081d783622ba4d6973e9a8918b2e24e0efdec2965e3680f5a220832670"
+    },
+    "enact_migcheck.dump.enc": {
+      "bytes": 9072181,
+      "sha256": "d7bdb0e2107256ce6d19446f5d33a07312f9b57e5bb46f0d786c22099c4df1fd"
+    },
+    "enact_feat_workspace_onboarding_376.dump.enc": {
+      "bytes": 34441198,
+      "sha256": "199389c9bd75d2c732fb75cd5b17660e974dd13a28bec33d12899cb89786be62"
+    },
+    "daemon-profile.tar.enc": {
+      "bytes": 4318993,
+      "sha256": "9d3c3d9ff826c88b69cba8eae4afab00a935eee401376e0ab5bad8546406265a"
+    },
+    "enact_enact_knowledge_base_273.dump.enc": {
+      "bytes": 5165698,
+      "sha256": "a0a364009f113697aad6bd29501f855e28935434d573979919e80d145403a63f"
+    },
+    "attachments.json.enc": {
+      "bytes": 2853,
+      "sha256": "99d2ec0c2ae92a96e31ceb0a21544e5731e6825e53aa54c8ce374dee8def39f9"
+    },
+    "semantic-state.tar.enc.part-001": {
+      "bytes": 41943040,
+      "sha256": "19681907c6d75bd6c0bcaea720e2c42e15c286dd4aa800868bee24ae4b4d05e3"
+    },
+    "enact_backfill.dump.enc": {
+      "bytes": 50023,
+      "sha256": "fef0b331e5cbfe1d79ddd3946746bf5bf149d9c09f993084707833d37de529a3"
+    },
+    "enact_semantic_integration.dump.enc": {
+      "bytes": 13803356,
+      "sha256": "96a12e7400349fc61130171a67cd3321d4ae016277bff20d81148fde07718db7"
+    },
+    "local-uploads.tar.enc": {
+      "bytes": 55413,
+      "sha256": "bf2774fd6e27c12608635edd8b8426f89a0aa8b2ef7a0e29c47f09c62c98f29c"
+    }
+  },
+  "sourceCodeCommit": "e835d2c611b3424c87859a13ac89d8b0633f3b09"
+}

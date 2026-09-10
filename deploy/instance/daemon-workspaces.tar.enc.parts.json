@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "sha256": "a0edf74aea170d2c821fe13efedebe69e5d4dda04c652c419eaed60ab4772663",
+  "parts": [
+    {
+      "name": "daemon-workspaces.tar.enc.part-001",
+      "bytes": 41943040,
+      "sha256": "f458cf373fa9d839db43d98bbed4889fbe243480c750b72b6244908781e2ad83"
+    },
+    {
+      "name": "daemon-workspaces.tar.enc.part-002",
+      "bytes": 41943040,
+      "sha256": "ed765e9edeb9c04b9821d6fc793928fe13491a6b0825f79470a015f5484584d6"
+    },
+    {
+      "name": "daemon-workspaces.tar.enc.part-003",
+      "bytes": 41943040,
+      "sha256": "72c7cea606e184389f77744dddc5e4343cbb521558cea21eef92500d72b858d8"
+    },
+    {
+      "name": "daemon-workspaces.tar.enc.part-004",
+      "bytes": 13419233,
+      "sha256": "d7204be127b199aa020de29989d600166fbf28254108b0de52b1092e68eb8a6e"
+    }
+  ]
+}

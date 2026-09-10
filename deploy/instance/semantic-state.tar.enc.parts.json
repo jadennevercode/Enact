@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "sha256": "c667829d2a0e169a9bc743181071d1a2998d400952a8519715109510ae9b6b77",
+  "parts": [
+    {
+      "name": "semantic-state.tar.enc.part-001",
+      "bytes": 41943040,
+      "sha256": "19681907c6d75bd6c0bcaea720e2c42e15c286dd4aa800868bee24ae4b4d05e3"
+    },
+    {
+      "name": "semantic-state.tar.enc.part-002",
+      "bytes": 41943040,
+      "sha256": "35dd025d29add30c7779ed27d8bc1ffabdea21d917035f36f90027174c61c80f"
+    },
+    {
+      "name": "semantic-state.tar.enc.part-003",
+      "bytes": 15755266,
+      "sha256": "6e774b8b9d05b0efce1067f32f7a1b9f6d3c2458db9736aa84b646cecb3be69a"
+    }
+  ]
+}

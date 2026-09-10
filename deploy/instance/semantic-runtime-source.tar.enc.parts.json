@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "sha256": "ed67ca4cb10e8366adc59cf14778e18e391ebdbd46873b9fc5dcb02546a87739",
+  "parts": [
+    {
+      "name": "semantic-runtime-source.tar.enc.part-001",
+      "bytes": 41943040,
+      "sha256": "7b03e09f2052930d5e83c5703958050e07f5fb523132d2b1fe2f9d13238eaf32"
+    },
+    {
+      "name": "semantic-runtime-source.tar.enc.part-002",
+      "bytes": 16058396,
+      "sha256": "a955a17d8729900620ee97f00df4f358a5e0c6a41cfc6bfaf5100d37357bbb70"
+    }
+  ]
+}
