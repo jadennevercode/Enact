@@ -79,6 +79,7 @@ export const semanticApi = {
     semanticRequest("/runs", runSchema, { method: "POST", body }),
   createApplication: (body: unknown) =>
     semanticRequest("/apps", applicationSchema, { method: "POST", body }),
+  exportReport: (runId: string, format: "html" | "jsonl") => api.semanticReportExport(runId, format),
   command: (path: string, body?: unknown, idempotencyKey?: string) =>
     semanticRequest(path, z.unknown(), {
       method: "POST",

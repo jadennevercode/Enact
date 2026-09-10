@@ -1,20 +1,32 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Network, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Network,
+  ArrowLeft,
+  ArrowUpRight,
+  Box,
+  Braces,
+  GitBranch,
+  Play,
+  ShieldCheck,
+} from "lucide-react";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
 import {
   semanticApi,
   semanticOptions,
   releaseOptions,
-  graphOptions,
   catalogApi,
   revisionOptions,
   useSemanticMutation,
   parseSemanticSource,
   type Ontology,
-  type SemanticGraphNode,
+  constructionOptions,
+  readOntologyDefinition,
+  recordValue,
+  recordList,
 } from "@enact/core/semantic";
 import { Button } from "@enact/ui/components/ui/button";
 import {
@@ -29,23 +41,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@enact/ui/components/ui/dialog";
-import { SemanticExplorer } from "./semantic-explorer";
 import { FamilyConstruction } from "./family-construction";
-import { NativeEntityEditor } from "./native-entity-editor";
 import { NativeValidationReport } from "./native-validation-report";
+import { PolicyTestReport } from "./policy-test-report";
 import { NativeSourceManifest } from "./native-source-manifest";
+import {
+  OntologyModel,
+  LegacyOntologySummary,
+  TechnicalDetails,
+} from "./ontology-model";
+import { OntologyBindings } from "./ontology-bindings";
 import { CollectionPageHeader } from "../layout/collection-page";
 import { useNavigation } from "../navigation";
 import { BindingEditor } from "./binding-editor";
 
-import {
-  TextField,
-  TextArea,
-  Failure,
-  RecordView,
-  Empty,
-  useSemanticText,
-} from "./shared";
+import { TextField, TextArea, Failure, Empty, useSemanticText } from "./shared";
 
 export function OntologyWorkbench() {
   const t = useSemanticText(),
@@ -53,16 +63,34 @@ export function OntologyWorkbench() {
     list = useQuery(semanticOptions(wsId).ontologies),
     nav = useNavigation();
   const selected = nav.searchParams.get("ontology") || undefined;
-  function setSelected(id?: string) { const params = new URLSearchParams(nav.searchParams); if (id) params.set("ontology", id); else params.delete("ontology"); nav.replace(`${nav.pathname}?${params}`); }
-  const
-    [open, setOpen] = useState(false),
+  function setSelected(id?: string) {
+    const params = new URLSearchParams(nav.searchParams);
+    if (id) params.set("ontology", id);
+    else params.delete("ontology");
+    nav.replace(`${nav.pathname}?${params}`);
+  }
+  const [open, setOpen] = useState(false),
     [name, setName] = useState(""),
     [description, setDescription] = useState("");
   const create = useSemanticMutation(wsId, async () => {
     const o = await semanticApi.createOntology({
       name,
       description,
-      bundle: { native_ontology: { uri: `urn:enact:ontology:${crypto.randomUUID()}`, name, version: "0.1.0", classes: [], properties: [] } },
+      bundle: {
+        definition: {
+          schema_version: 2,
+          id: crypto.randomUUID(),
+          label: name.trim(),
+          description: description.trim() || t("constructionUnclarified"),
+          entities: [],
+          attributes: [],
+          relationships: [],
+          actions: [],
+          policies: [],
+          data_bindings: [],
+          action_bindings: [],
+        },
+      },
     });
     setSelected(o.id);
     setOpen(false);
@@ -132,12 +160,12 @@ export function OntologyWorkbench() {
               required
             />
             <TextArea
-              label={t("description")}
+              label={t("constructionOptionalBackground")}
               value={description}
               onChange={setDescription}
             />
             <Failure error={create.error} />
-            <Button type="submit" disabled={create.isPending}>
+            <Button type="submit" disabled={create.isPending || !name.trim()}>
               {t("createOntology")}
             </Button>
           </form>
@@ -157,32 +185,37 @@ function OntologyEditor({
     wsId = useWorkspaceId(),
     paths = useWorkspacePaths(),
     nav = useNavigation();
-  const releases = useQuery(releaseOptions(wsId, ontology.id));
-  const graph = useQuery({
-    ...graphOptions(wsId, ontology.id, ontology.updatedAt),
-    enabled: Boolean(ontology.bundle.native_artifact || ontology.bundle.id),
-  });
-  const revisions = useQuery(revisionOptions(wsId, ontology.id));
-  const [selectedNode, setSelectedNode] = useState<SemanticGraphNode>();
-  const [baseRevision, setBaseRevision] = useState(ontology.updatedAt);
-  const stale = baseRevision !== ontology.updatedAt;
-  const [source, setSource] = useState(
-      JSON.stringify(ontology.bundle, null, 2),
+  const releases = useQuery(releaseOptions(wsId, ontology.id)),
+    revisions = useQuery(revisionOptions(wsId, ontology.id)),
+    constructions = useQuery(constructionOptions(wsId, ontology.id));
+  const [tab, setTab] = useState(
+      nav.searchParams.get("entry") ? "bindings" : "overview",
     ),
+    [showConstruction, setShowConstruction] = useState(false),
+    [inspectedReleaseId, setInspectedReleaseId] = useState("");
+  const [baseRevision, setBaseRevision] = useState(ontology.updatedAt),
+    [source, setSource] = useState(JSON.stringify(ontology.bundle, null, 2)),
     [bindings, setBindings] = useState(
-      JSON.stringify(
-        Object.keys(ontology.bindingConfig).length
-          ? ontology.bindingConfig
-          : { data_bindings: [], action_bindings: [] },
-        null,
-        2,
-      ),
+      JSON.stringify(ontology.bindingConfig, null, 2),
     ),
-    [version, setVersion] = useState("0.1.0"),
-    [testData, setTestData] = useState(String(ontology.testData.content ?? "")),
-    [validation, setValidation] = useState<unknown>(),
+    [testData, setTestData] = useState(String(ontology.testData.content || ""));
+  const [version, setVersion] = useState("0.1.0"),
     [retirementReason, setRetirementReason] = useState(""),
-    [error, setError] = useState<unknown>();
+    [validation, setValidation] = useState<unknown>();
+  const stale = baseRevision !== ontology.updatedAt;
+  const inspectedRelease = releases.data?.find(
+    (r) => r.id === inspectedReleaseId,
+  );
+  const native = recordValue(
+    inspectedRelease
+      ? inspectedRelease.artifact.native_artifact || inspectedRelease.artifact
+      : ontology.bundle.native_artifact || ontology.bundle,
+  );
+  const definition = readOntologyDefinition(native),
+    bindingConfig = inspectedRelease?.bindingConfig || ontology.bindingConfig;
+  const latestConstruction = constructions.data?.[0];
+  const questions = recordList(native.competency_questions),
+    sourceManifest = recordList(native.source_manifest);
   const save = useSemanticMutation(wsId, async () => {
     if (stale) throw new Error(t("draftChanged"));
     const saved = await semanticApi.updateOntology(ontology.id, {
@@ -191,55 +224,61 @@ function OntologyEditor({
       bundle: parseSemanticSource(source),
       binding_config: parseSemanticSource(bindings),
       test_data: { content: testData, format: "turtle" },
-      expected_updated_at: baseRevision || undefined,
+      expected_updated_at: baseRevision,
     });
-    if (saved.bundle.native_artifact) {
-      const rebuilt = await catalogApi.native(ontology.id, {});
-      setBaseRevision(rebuilt.ontology.updatedAt);
-      setSource(JSON.stringify(rebuilt.ontology.bundle, null, 2));
-      return rebuilt.ontology;
-    }
-    setBaseRevision(saved.updatedAt);
-    return saved;
+    const rebuilt = saved.bundle.native_artifact
+      ? (await catalogApi.native(ontology.id, {})).ontology
+      : saved;
+    setBaseRevision(rebuilt.updatedAt);
+    setSource(JSON.stringify(rebuilt.bundle, null, 2));
+    return rebuilt;
   });
-  function reloadDraft() {
-    setSource(JSON.stringify(ontology.bundle, null, 2));
-    setBindings(JSON.stringify(ontology.bindingConfig, null, 2));
-    setTestData(String(ontology.testData.content ?? ""));
-    setBaseRevision(ontology.updatedAt);
-    setValidation(undefined);
-  }
-  const publish = useSemanticMutation(wsId, async () => {
-    await save.mutateAsync();
-    return semanticApi.publishOntology(ontology.id, { version });
-  });
+  // Publishing must not rebuild or mutate the candidate that the person reviewed.
+  const publish = useSemanticMutation(wsId, () =>
+    semanticApi.publishOntology(ontology.id, { version }),
+  );
   const preview = useSemanticMutation(wsId, async () => {
-    await save.mutateAsync();
-    const report = await semanticApi.command(
+    const result = await semanticApi.command(
       `/ontologies/${ontology.id}/preview`,
       testData.trim()
         ? { test_data: { content: testData, format: "turtle" } }
         : {},
     );
-    setValidation(report);
-    return report;
+    setValidation(result);
+    return result;
   });
   const retire = useSemanticMutation(wsId, (id: string) =>
     semanticApi.command(`/releases/${id}/retire`, { reason: retirementReason }),
   );
-  const run = useSemanticMutation(wsId, async (releaseId: string) => {
-    const r = await semanticApi.createRun({ release_id: releaseId });
-    nav.push(paths.semanticRun(r.id));
-    return r;
-  });
-  const native = (ontology.bundle.native_artifact || {}) as Record<string, unknown>;
-  async function attempt(fn: () => Promise<unknown>) {
-    try {
-      setError(undefined);
-      await fn();
-    } catch (e) {
-      setError(e);
-    }
+  const counts = [
+    { key: "entityAttributes", value: definition?.entities.length, icon: Box },
+    {
+      key: "attributesTitle",
+      value: definition?.attributes.length,
+      icon: Braces,
+    },
+    {
+      key: "relationshipModels",
+      value: definition?.relationships.length,
+      icon: GitBranch,
+    },
+    { key: "actionModels", value: definition?.actions.length, icon: Play },
+    {
+      key: "policyModels",
+      value: definition?.policies.length,
+      icon: ShieldCheck,
+    },
+  ] as const;
+  function continueModeling() {
+    if (latestConstruction)
+      nav.push(paths.issueDetail(latestConstruction.issueId));
+    else setShowConstruction(true);
+  }
+  function reload() {
+    setBaseRevision(ontology.updatedAt);
+    setSource(JSON.stringify(ontology.bundle, null, 2));
+    setBindings(JSON.stringify(ontology.bindingConfig, null, 2));
+    setTestData(String(ontology.testData.content || ""));
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -248,159 +287,408 @@ function OntologyEditor({
         title={ontology.name}
         description={ontology.description}
         actions={
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft className="size-4" />
-            {t("back")}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={continueModeling}>
+              {t(latestConstruction ? "overviewContinue" : "overviewStart")}
+              <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Button>
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              {t("back")}
+            </Button>
+          </div>
         }
       />
-      <div className="overflow-auto p-6">
+      <div className="space-y-5 overflow-auto p-4 sm:p-6">
         <Failure
-          error={
-            error ||
-            save.error ||
-            publish.error ||
-            run.error ||
-            preview.error ||
-            retire.error
-          }
+          error={save.error || publish.error || preview.error || retire.error}
         />
-        {stale && (
-          <div className="space-y-2 rounded-lg border border-warning/40 p-4">
+        {stale && !inspectedRelease && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 p-4">
             <p className="text-body">{t("draftChanged")}</p>
-            <Button variant="outline" onClick={reloadDraft}>
+            <Button variant="outline" onClick={reload}>
               {t("loadLatest")}
             </Button>
           </div>
         )}
-        <Tabs defaultValue={nav.searchParams.get("entry") ? "bindings" : Object.keys(native).length ? "model" : "authoring"} onValueChange={() => setSelectedNode(undefined)}>
-          <TabsList>
+        {inspectedRelease && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <p className="text-body font-medium">
+              {t("versionPublished")} · {inspectedRelease.version}
+            </p>
+            <Button variant="outline" onClick={() => setInspectedReleaseId("")}>
+              {t("workingDraft")}
+            </Button>
+          </div>
+        )}
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="!h-11 max-w-full justify-start overflow-x-auto">
             {(
-              ["model", "bindings", "tests", "versions", "authoring"] as const
+              ["overview", "model", "bindings", "tests", "versions"] as const
             ).map((key) => (
-              <TabsTrigger key={key} value={key}>
+              <TabsTrigger key={key} value={key} className="min-h-11">
                 {t(key)}
               </TabsTrigger>
             ))}
           </TabsList>
-          <TabsContent value="model" className="space-y-5">
-            <Failure error={graph.error} retry={() => void graph.refetch()} />
-            <SemanticExplorer graph={graph.data} onSelectNode={setSelectedNode} />
-            {selectedNode && <NativeEntityEditor key={`${selectedNode.id}:${ontology.updatedAt}`} ontologyId={ontology.id} native={native} node={selectedNode} onSaved={saved => { setBaseRevision(saved.updatedAt); setSource(JSON.stringify(saved.bundle, null, 2)); void graph.refetch(); }} />}
-            {Object.keys(native).length > 0 && <div className="space-y-3 rounded-xl border border-border-soft p-5"><h3 className="text-body font-semibold">{t("nativeArtifacts")}</h3>{([['ontologyDocument', native.ontology_turtle], ['shaclShapes', native.shapes_turtle], ['sourceManifest', native.source_manifest], ['ruleLayer', native.native_rules || native.nativerules]] as const).map(([label, value]) => value ? <details key={label}><summary className="cursor-pointer text-body">{t(label)}</summary><div className="mt-3 max-h-96 overflow-auto rounded-lg bg-muted/30 p-4">{typeof value === "string" ? <pre className="whitespace-pre-wrap font-mono text-caption">{value}</pre> : label === "sourceManifest" ? <NativeSourceManifest value={value} /> : <RecordView value={value} />}</div></details> : null)}</div>}
-            <details>
-              <summary className="cursor-pointer text-body">
-                {t("source")}
-              </summary>
-              <div className="mt-3 space-y-3">
-                <TextArea
-                  label={t("source")}
-                  value={source}
-                  onChange={setSource}
-                  rows={14}
-                />
-                <Button
-                  disabled={save.isPending}
-                  onClick={() => void attempt(() => save.mutateAsync())}
+          <TabsContent value="overview" className="mt-5 space-y-6">
+            <section className="rounded-2xl border border-primary/15 bg-primary/5 p-6 sm:p-8">
+              <p className="text-caption font-semibold uppercase tracking-wider text-primary">
+                {t("studio")}
+              </p>
+              <h2 className="mt-3 text-display-sm font-semibold">
+                {t("overviewReady")}
+              </h2>
+              <p className="mt-3 max-w-3xl text-body leading-relaxed text-muted-foreground">
+                {t("overviewGuide")}
+              </p>
+              <Button className="mt-5" onClick={() => setTab("model")}>
+                {t("overviewModel")}
+                <ArrowRightIcon />
+              </Button>
+            </section>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+              {counts.map(({ key, value, icon: Icon }) => (
+                <button
+                  key={key}
+                  className="rounded-xl border border-border-soft p-4 text-left hover:bg-muted/30 focus-visible:outline-ring"
+                  onClick={() => setTab("model")}
                 >
-                  {t("save")}
+                  <Icon
+                    className="mb-3 size-5 text-primary"
+                    aria-hidden="true"
+                  />
+                  <strong className="block text-display-sm font-semibold tabular-nums">
+                    {value ?? "—"}
+                  </strong>
+                  <span className="mt-1 block text-caption text-muted-foreground">
+                    {t(key)}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="grid items-start gap-5 xl:grid-cols-2">
+              <section className="space-y-4 rounded-2xl border border-border-soft p-5">
+                <h3 className="text-title font-semibold">
+                  {t("overviewQuestions")}
+                </h3>
+                {questions.length ? (
+                  <ul className="space-y-3">
+                    {questions.map((q, i) => (
+                      <li
+                        key={String(q.id || i)}
+                        className="flex gap-3 text-body leading-relaxed"
+                      >
+                        <span className="font-semibold tabular-nums text-primary">
+                          {i + 1}.
+                        </span>
+                        {String(
+                          q.question ||
+                            q.label ||
+                            q.description ||
+                            t("definitionMissing"),
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-body text-muted-foreground">
+                    {t("overviewNoQuestions")}
+                  </p>
+                )}
+              </section>
+              <section className="space-y-4 rounded-2xl border border-border-soft p-5">
+                <h3 className="text-title font-semibold">
+                  {t("overviewScope")}
+                </h3>
+                <p className="text-body leading-relaxed text-muted-foreground">
+                  {ontology.description || t("definitionUnavailable")}
+                </p>
+                <div className="flex flex-wrap gap-5 text-caption">
+                  <span>
+                    {sourceManifest.length} {t("documents")}
+                  </span>
+                  <span>
+                    {releases.data?.length || 0} {t("overviewReleases")}
+                  </span>
+                </div>
+                <p className="text-caption leading-relaxed text-muted-foreground">
+                  {t("overviewReviewHelp")}
+                </p>
+                <Button variant="outline" onClick={continueModeling}>
+                  {t(latestConstruction ? "overviewContinue" : "overviewStart")}
+                  <ArrowUpRight className="size-4" />
                 </Button>
+              </section>
+            </div>
+          </TabsContent>
+          <TabsContent value="model" className="mt-5 space-y-6">
+            {definition ? (
+              <OntologyModel
+                definition={definition}
+                artifact={native}
+                bindingConfig={bindingConfig}
+              />
+            ) : (
+              <LegacyOntologySummary artifact={native} />
+            )}
+            <details className="rounded-xl border border-border-soft p-4">
+              <summary className="cursor-pointer text-body font-medium">
+                {t("developerDetails")}
+              </summary>
+              <div className="mt-4 space-y-4">
+                <TechnicalDetails
+                  value={native.ontology_turtle}
+                  label={t("ontologyDocument")}
+                />
+                <TechnicalDetails
+                  value={native.shapes_turtle}
+                  label={t("shaclShapes")}
+                />
+                <TechnicalDetails
+                  value={native.native_rules}
+                  label={t("ruleLayer")}
+                />
+                <details>
+                  <summary className="cursor-pointer text-caption text-muted-foreground">
+                    {t("sourceReview")}
+                  </summary>
+                  <NativeSourceManifest value={native.source_manifest} />
+                </details>
+                {!inspectedRelease && (
+                  <>
+                    <TextArea
+                      label={t("source")}
+                      value={source}
+                      onChange={setSource}
+                      rows={14}
+                    />
+                    <Button
+                      disabled={save.isPending || stale}
+                      onClick={() => save.mutate()}
+                    >
+                      {t("save")}
+                    </Button>
+                  </>
+                )}
               </div>
             </details>
           </TabsContent>
-          <TabsContent value="bindings" className="space-y-4">
-            <BindingEditor value={bindings} onChange={setBindings} ontologyNodes={graph.data?.nodes} />
-            <Button disabled={save.isPending} onClick={() => save.mutate()}>
-              {t("save")}
-            </Button>
-          </TabsContent>
-          <TabsContent value="tests" className="space-y-4">
-            {Object.keys(native).length > 0 && <NativeValidationReport artifact={native} />}
-            <details open={!Object.keys(native).length} className="rounded-xl border border-border-soft p-4">
-              <summary className="cursor-pointer text-body font-medium">{t("testData")}</summary>
-              <div className="mt-3"><TextArea
-              label={t("testData")}
-              value={testData}
-              onChange={setTestData}
-              rows={16}
-            /></div></details>
-            <div className="flex gap-3">
-              <Button
-                disabled={preview.isPending}
-                onClick={() => preview.mutate()}
-              >
-                {t("validate")}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={save.isPending}
-                onClick={() => save.mutate()}
-              >
-                {t("save")}
-              </Button>
-            </div>
-            {validation !== undefined && <RecordView value={validation} />}
-          </TabsContent>
-          <TabsContent value="versions" className="space-y-4">
-            <Failure error={revisions.error} />
-            {!!revisions.data?.length && <details className="rounded-xl border border-border-soft p-4"><summary className="cursor-pointer text-body font-semibold">{t("workingDraft")} · {revisions.data.length}</summary><div className="mt-4 space-y-3">{revisions.data.map((revision, i) => <details key={String(revision.id || i)} className="rounded-lg border border-border-soft p-3"><summary className="cursor-pointer text-body">{String(revision.created_at || revision.id)} · {String(revision.source || revision.kind || revision.revision || i + 1)}</summary><RecordView value={revision} /></details>)}</div></details>}
-            <div className="flex flex-wrap items-end gap-3">
-              <TextField
-                label={t("version")}
-                value={version}
-                onChange={setVersion}
-              />
-              <Button
-                disabled={publish.isPending}
-                onClick={() => void attempt(() => publish.mutateAsync())}
-              >
-                {t("publish")}
-              </Button>
-            </div>
-            <Failure error={releases.error} />
-            <TextArea
-              label={t("retirementReason")}
-              value={retirementReason}
-              onChange={setRetirementReason}
-              rows={2}
+          <TabsContent value="bindings" className="mt-5 space-y-5">
+            <OntologyBindings
+              definition={definition}
+              artifact={native}
+              bindingConfig={bindingConfig}
             />
-            {releases.data?.map((r) => (
-              <article key={r.id} className="space-y-3 rounded-xl border p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{r.version}</h3>
+            {!inspectedRelease && (
+              <details className="rounded-xl border border-border-soft p-4">
+                <summary className="cursor-pointer text-body font-medium">
+                  {t("bindingEdit")}
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <BindingEditor value={bindings} onChange={setBindings} />
                   <Button
-                    variant="outline"
-                    disabled={run.isPending || !!r.retiredAt}
-                    onClick={() => run.mutate(r.id)}
+                    disabled={save.isPending || stale}
+                    onClick={() => save.mutate()}
                   >
-                    {t("start")}
+                    {t("save")}
                   </Button>
                 </div>
-                <p className="break-all font-mono text-caption text-muted-foreground">
-                  {r.digest}
-                </p>
-                <RecordView value={r.bindingConfig} />
-                {r.retiredAt ? (
-                  <p className="text-caption">
-                    {t("retired")}: {r.retirementReason}
-                  </p>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    disabled={retire.isPending || !retirementReason.trim()}
-                    onClick={() => retire.mutate(r.id)}
-                  >
-                    {t("retire")}
-                  </Button>
-                )}
-              </article>
-            ))}
+              </details>
+            )}
           </TabsContent>
-          <TabsContent value="authoring" className="space-y-4">
-            <FamilyConstruction ontologyId={ontology.id} name={ontology.name} />
+          <TabsContent value="tests" className="mt-5 space-y-5">
+            <NativeValidationReport artifact={native} />
+            <PolicyTestReport ontologyId={ontology.id} artifactDigest={String(recordValue(native.manifest).artifact_digest || "")} isRelease={!!inspectedRelease} />
+            {!inspectedRelease && (
+              <section className="space-y-4 rounded-2xl border border-border-soft p-5">
+                <div>
+                  <h3 className="text-title font-semibold">
+                    {t("qualityRunShacl")}
+                  </h3>
+                  <p className="mt-2 text-body leading-relaxed text-muted-foreground">
+                    {t("qualityPreviewHelp")}
+                  </p>
+                </div>
+                <Button
+                  disabled={preview.isPending || stale}
+                  onClick={() => preview.mutate()}
+                >
+                  {t("qualityRunShacl")}
+                </Button>
+                {validation !== undefined && !stale && (
+                  <NativeValidationReport
+                    artifact={{
+                      validation_report: {
+                        shacl: recordValue(validation).validation,
+                      },
+                    }}
+                  />
+                )}
+              </section>
+            )}
+            {!inspectedRelease && (
+              <details className="rounded-xl border border-border-soft p-4">
+                <summary className="cursor-pointer text-body font-medium">
+                  {t("developerDetails")}
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <TextArea
+                    label={t("testData")}
+                    value={testData}
+                    onChange={setTestData}
+                    rows={12}
+                  />
+                  <Button
+                    disabled={preview.isPending}
+                    onClick={() => preview.mutate()}
+                  >
+                    {t("validate")}
+                  </Button>
+                  {validation !== undefined && (
+                    <TechnicalDetails value={validation} />
+                  )}
+                </div>
+              </details>
+            )}
+          </TabsContent>
+          <TabsContent value="versions" className="mt-5 space-y-5">
+            <p className="text-body leading-relaxed text-muted-foreground">
+              {t("versionsHelp")}
+            </p>
+            <Failure error={releases.error || revisions.error} />
+            <section className="space-y-4 rounded-2xl border border-border-soft p-5">
+              <h3 className="text-title font-semibold">{t("publish")}</h3>
+              <p className="text-body leading-relaxed text-muted-foreground">
+                {t("publishReviewHint")}
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <TextField
+                  label={t("version")}
+                  value={version}
+                  onChange={setVersion}
+                />
+                <Button
+                  disabled={publish.isPending || stale || !!inspectedRelease}
+                  onClick={() => publish.mutate()}
+                >
+                  {t("publish")}
+                </Button>
+              </div>
+            </section>
+            <div className="space-y-3">
+              {releases.data?.map((release) => (
+                <article
+                  key={release.id}
+                  className="space-y-4 rounded-2xl border border-border-soft p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-title font-semibold">
+                        {release.version}
+                      </h3>
+                      <p className="mt-1 text-caption text-muted-foreground">
+                        {t(release.retiredAt ? "retired" : "versionPublished")}{" "}
+                        · {new Date(release.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setInspectedReleaseId(release.id);
+                        setTab("model");
+                      }}
+                    >
+                      {t("overviewModel")}
+                    </Button>
+                  </div>
+                  <p className="text-body leading-relaxed text-muted-foreground">
+                    {String(
+                      release.artifact.change_summary ||
+                        release.artifact.summary ||
+                        t("versionNoSummary"),
+                    )}
+                  </p>
+                  <TechnicalDetails
+                    value={{
+                      digest: release.digest,
+                      binding_config: release.bindingConfig,
+                    }}
+                    label={t("versionTechnical")}
+                  />
+                  {release.retiredAt ? (
+                    <p className="text-caption text-muted-foreground">
+                      {release.retirementReason}
+                    </p>
+                  ) : (
+                    <details>
+                      <summary className="cursor-pointer text-caption text-muted-foreground">
+                        {t("retire")}
+                      </summary>
+                      <div className="mt-3 space-y-3">
+                        <TextArea
+                          label={t("retirementReason")}
+                          value={retirementReason}
+                          onChange={setRetirementReason}
+                          rows={2}
+                        />
+                        <Button
+                          variant="outline"
+                          disabled={
+                            retire.isPending || !retirementReason.trim()
+                          }
+                          onClick={() => retire.mutate(release.id)}
+                        >
+                          {t("retire")}
+                        </Button>
+                      </div>
+                    </details>
+                  )}
+                </article>
+              ))}
+            </div>
+            {!!revisions.data?.length && (
+              <section className="space-y-3">
+                <h3 className="text-body font-semibold">
+                  {t("versionDraftChanges")}
+                </h3>
+                {revisions.data.map((revision, i) => (
+                  <article
+                    key={String(revision.id || i)}
+                    className="space-y-3 rounded-xl border border-border-soft p-4"
+                  >
+                    <p className="text-body font-medium">
+                      {String(
+                        revision.summary ||
+                          revision.change_summary ||
+                          revision.description ||
+                          t("versionNoSummary"),
+                      )}
+                    </p>
+                    <p className="text-caption text-muted-foreground">
+                      {revision.created_at
+                        ? new Date(String(revision.created_at)).toLocaleString()
+                        : ""}
+                    </p>
+                    <TechnicalDetails value={revision} />
+                  </article>
+                ))}
+              </section>
+            )}
           </TabsContent>
         </Tabs>
       </div>
+      <Dialog open={showConstruction} onOpenChange={setShowConstruction}>
+        <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("overviewStart")}</DialogTitle>
+          </DialogHeader>
+          <FamilyConstruction ontologyId={ontology.id} name={ontology.name} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+function ArrowRightIcon() {
+  return <ArrowUpRight className="size-4" aria-hidden="true" />;
 }

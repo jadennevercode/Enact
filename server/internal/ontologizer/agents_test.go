@@ -127,19 +127,15 @@ func TestSquadRoutesAndNamesEveryDecisionPoint(t *testing.T) {
 		}
 	}
 
-	// The leader reads these instructions on every turn; a decision point it
-	// cannot name is one it will quietly decide by itself.
-	for _, point := range []string{
-		"scope_and_boundary", "evidence_sufficiency", "semantic_review",
-		"competency_questions", "candidate_selection", "access_scope_review",
-		"patch_or_version", "release_authorization",
-	} {
+	// The leader reads these instructions on every turn; a gate it cannot name
+	// is one it may quietly cross by itself.
+	for _, point := range []string{"scope", "model", "operations", "release"} {
 		if !strings.Contains(squad.Instructions, point) {
-			t.Errorf("family instructions never mention decision point %s", point)
+			t.Errorf("family instructions never mention review gate %s", point)
 		}
 	}
-	// Routing is by derived stage, not by the words in the request.
-	if !strings.Contains(squad.Instructions, "/api/semantic/constructions/{id}") {
+	// Routing begins from the real Issue tree, not IDs copied into visible text.
+	if !strings.Contains(squad.Instructions, "/api/semantic/constructions/for-issue/{issueID}") {
 		t.Error("family instructions must route from the derived stage")
 	}
 	for _, spec := range manifest.Agents {

@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS semantic_draft_policy_test_result (
+ id UUID NOT NULL DEFAULT gen_random_uuid(),
+ workspace_id UUID NOT NULL,
+ ontology_id UUID NOT NULL,
+ artifact_digest TEXT NOT NULL,
+ action_id TEXT NOT NULL,
+ action_label TEXT NOT NULL,
+ case_name TEXT NOT NULL DEFAULT '',
+ expected_decision TEXT,
+ actual_decision TEXT NOT NULL,
+ passed BOOLEAN,
+ engine TEXT NOT NULL,
+ fixture BOOLEAN NOT NULL DEFAULT true,
+ request_digest TEXT NOT NULL,
+ result JSONB NOT NULL DEFAULT '{}',
+ created_by_user_id UUID NOT NULL,
+ created_by_actor_type TEXT NOT NULL,
+ created_by_actor_id UUID NOT NULL,
+ created_by_task_id UUID,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

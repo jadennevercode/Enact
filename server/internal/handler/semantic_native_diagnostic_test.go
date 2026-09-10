@@ -15,13 +15,19 @@ import (
 func TestSemanticNativeDiagnosticsUseOnlyStaticCatalog(t *testing.T) {
 	const secret = "hostile-secret-token-do-not-echo"
 	for _, tc := range []struct{ message, code, stage string }{
+		{"Each attributes declaration requires description " + secret, "native_invalid_business_definition", "model"},
+		{"Attribute requires a supported data_type " + secret, "native_invalid_business_definition", "model"},
+		{"Unknown entities reference: " + secret, "native_invalid_business_definition", "model"},
+		{"Relationship cardinalities must be nonnegative integers " + secret, "native_invalid_business_definition", "model"},
 		{"Native pipeline failed: [Entity property '" + secret + "' needs an explicit ontology property term]", "native_undeclared_entity_property", "export"},
 		{"Datatype property '" + secret + "' has an invalid lexical value", "native_invalid_property_value", "export"},
 		{"Extraction quote does not match its source offsets " + secret, "native_extraction_source_mismatch", "semantic_extract"},
 		{"Source hash does not match immutable source content " + secret, "native_source_snapshot_mismatch", "parse"},
 		{"Native rules fail the reviewed rule/intent contract " + secret, "native_rule_contract", "reasoning"},
+		{"Definition bindings and execution bindings must match; rebuild from one definition " + secret, "native_binding_definition_mismatch", "operations"},
 		{"Enact model operation is still running; resume using its operation ID " + secret, "native_model_operation_pending", "semantic_extract"},
 		{"Replay requires exactly one authorized completed operation matching the native prompt and schema " + secret, "native_replay_mismatch", "semantic_extract"},
+		{"Runtime extraction needs 348 model operations for 174 chunks; select source_ids/chunk_ids or explicitly increase max_model_operations (currently 20) " + secret, "native_extraction_work_limit", "semantic_extract"},
 		{"Bearer " + secret + " https://user:password@example.test", "native_build_failed", "pipeline"},
 	} {
 		err := errors.New("semantic service rejected the request: " + string(semanticMarshal(map[string]any{"error": map[string]any{"code": "invalid_semantic_request", "message": tc.message}})))
@@ -38,8 +44,44 @@ func TestSemanticNativeDiagnosticsUseOnlyStaticCatalog(t *testing.T) {
 			t.Fatal("unrecognized or oversized response did not remain private")
 		}
 	}
-	if !strings.Contains(semanticNativeDiagnostics["native_undeclared_entity_property"].Message, "ontology.properties") {
-		t.Fatal("undeclared property diagnostic omitted the schema repair")
+	if !strings.Contains(semanticNativeDiagnostics["native_undeclared_entity_property"].Message, "definition.attributes") || strings.Contains(semanticNativeDiagnostics["native_undeclared_entity_property"].Message, "ontology.properties") {
+		t.Fatal("undeclared property diagnostic did not point version 2 to the authoritative definition")
+	}
+}
+
+func TestSemanticNativeDefinitionBindingsPreserveCanonicalDocument(t *testing.T) {
+	definition := map[string]any{
+		"data_bindings": []any{map[string]any{
+			"id": "read-stock", "connection_id": "source", "entity_id": "Stock",
+			"required_parameters": []any{},
+			"extension":           map[string]any{"empty": []any{}, "source": "catalog"},
+		}},
+		"action_bindings": []any{map[string]any{
+			"id": "freeze-stock", "connection_id": "source", "action_id": "FreezeStock",
+			"authorization": map[string]any{"mode": "confirm"},
+		}},
+	}
+	bindings, err := semanticNativeDefinitionBindings(definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bindings) != 2 || bindings[0]["kind"] != "data" || bindings[1]["kind"] != "action" {
+		t.Fatalf("definition bindings lost their order or Native kind: %#v", bindings)
+	}
+	if _, ok := bindings[0]["required_parameters"]; !ok {
+		t.Fatal("an explicit empty array was lost from the canonical binding")
+	}
+	extension := bindings[0]["extension"].(map[string]any)
+	if _, ok := extension["empty"]; !ok {
+		t.Fatal("an extension field was lost from the canonical binding")
+	}
+	if _, changed := definition["data_bindings"].([]any)[0].(map[string]any)["kind"]; changed {
+		t.Fatal("Native binding projection mutated the authoritative definition")
+	}
+	extension["source"] = "changed"
+	originalExtension := definition["data_bindings"].([]any)[0].(map[string]any)["extension"].(map[string]any)
+	if originalExtension["source"] != "catalog" {
+		t.Fatal("Native binding projection did not deep-copy nested fields")
 	}
 }
 

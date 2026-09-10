@@ -194,16 +194,13 @@
   --run-gradient: linear-gradient(90deg, #86bc25 0%, #c4d600 100%);
   --duo-gradient: linear-gradient(90deg, #86bc25 0%, #007cb0 100%);
 
-  /* Brand mark, colour variant (MASTER.md §10). One gradient per cube, top-left
-     to bottom-right across that cube's own box; faces are shaded by --mark-shade
-     at 0 / 18 / 36%. Identical in both themes — the mark never follows the theme. */
-  --mark-top-from: #c4d600; /* Green 2 */
-  --mark-top-to: #86bc25; /* Deloitte Green */
-  --mark-left-from: #86bc25;
-  --mark-left-to: #26890d; /* Mid Green */
-  --mark-right-from: #26890d;
-  --mark-right-to: #046a38; /* Deep Green */
-  --mark-shade: #000000;
+  /* Brand mark, colour variant (MASTER.md §10). One vertical gradient across
+     the mark's full height. The ends sit on the palette; the midpoint is sampled
+     from design-system/enact/mark-source.svg so the ramp keeps its easing.
+     Identical in both themes — the mark never follows the theme. */
+  --mark-from: #066b38; /* Deep Green, brand source */
+  --mark-mid: #61a533; /* brand source midpoint */
+  --mark-to: #86bc25; /* Deloitte Green */
 
   /* Issue status. Shape carries the meaning; colour reinforces it. */
   --status-backlog: #75787b; /* Cool Gray 9 — clears 3:1 as a mark */
@@ -336,16 +333,13 @@
   --input: #75787b;
   --ring: #86bc25;
 
-  /* Brand mark, colour variant (MASTER.md §10). One gradient per cube, top-left
-     to bottom-right across that cube's own box; faces are shaded by --mark-shade
-     at 0 / 18 / 36%. Identical in both themes — the mark never follows the theme. */
-  --mark-top-from: #c4d600; /* Green 2 */
-  --mark-top-to: #86bc25; /* Deloitte Green */
-  --mark-left-from: #86bc25;
-  --mark-left-to: #26890d; /* Mid Green */
-  --mark-right-from: #26890d;
-  --mark-right-to: #046a38; /* Deep Green */
-  --mark-shade: #000000;
+  /* Brand mark, colour variant (MASTER.md §10). One vertical gradient across
+     the mark's full height. The ends sit on the palette; the midpoint is sampled
+     from design-system/enact/mark-source.svg so the ramp keeps its easing.
+     Identical in both themes — the mark never follows the theme. */
+  --mark-from: #066b38; /* Deep Green, brand source */
+  --mark-mid: #61a533; /* brand source midpoint */
+  --mark-to: #86bc25; /* Deloitte Green */
 
   --status-backlog: #75787b;
   --status-todo: #a7a8aa;

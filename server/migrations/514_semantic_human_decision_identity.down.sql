@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS semantic_human_decision_identity_idx;

@@ -91,8 +91,9 @@ stylesheets.
 
 ## 3. Repository facts used
 
-- `packages/ui/components/common/enact-icon.tsx`: the isometric three-cube mark, nine
-  faces, depth by `fill-opacity` 1 / 0.62 / 0.38 on `currentColor`.
+- `design-system/enact/mark-source.svg`: the brand mark as supplied, a green ring cut
+  twice on the diagonal holding three slanted bars; `scripts/generate-brand-mark.mjs`
+  fans it out to `packages/ui/components/common/enact-icon.tsx` and every other copy.
 - `packages/ui/components/ui/dot-sphere.tsx`: canvas dot-sphere field, honours
   `prefers-reduced-motion`; used by onboarding.
 - `packages/ui/styles/tokens.css`: current token names, `--text-*` role scale, motion and

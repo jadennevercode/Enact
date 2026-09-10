@@ -1248,7 +1248,7 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		{
 			name: "delete semantic workspace data",
 			run: func() error {
-				for _, table := range []string{"semantic_model_operation", "semantic_construction_event", "semantic_construction", "semantic_catalog_revision", "semantic_source_snapshot", "semantic_ontology_revision", "semantic_run_presentation", "semantic_application_deployment", "semantic_application_build", "semantic_application", "semantic_receipt", "semantic_approval", "semantic_step", "semantic_run", "semantic_release", "semantic_ontology", "semantic_connection"} {
+				for _, table := range []string{"semantic_human_decision", "semantic_review_packet", "semantic_agent_ontology", "semantic_model_operation", "semantic_construction_event", "semantic_construction", "semantic_catalog_revision", "semantic_source_snapshot", "semantic_ontology_revision", "semantic_draft_policy_test_result", "semantic_run_presentation", "semantic_application_deployment", "semantic_application_build", "semantic_application", "semantic_receipt", "semantic_approval", "semantic_step", "semantic_run", "semantic_release_installation", "semantic_release", "semantic_ontology", "semantic_connection"} {
 					if _, err := tx.Exec(ctx, "DELETE FROM "+table+" WHERE workspace_id=$1", requester.WorkspaceID); err != nil {
 						return err
 					}

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS semantic_draft_policy_test_result_scope;

@@ -25,8 +25,8 @@ import (
 	"github.com/enact-ai/enact/server/internal/middleware"
 	"github.com/enact-ai/enact/server/internal/runtimeapps"
 	"github.com/enact-ai/enact/server/internal/service"
-	"github.com/enact-ai/enact/server/internal/workspaceprofile"
 	"github.com/enact-ai/enact/server/internal/util"
+	"github.com/enact-ai/enact/server/internal/workspaceprofile"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
@@ -2156,6 +2156,8 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 	if instructions, ok := service.ComposeSystemAgentInstructions(agent.SystemKey.String, agent.Name, agent.Instructions); ok {
 		resp.Agent.Instructions = instructions
 	}
+	resp.Agent.Instructions += h.semanticAgentInstructions(r.Context(), uuidToString(agent.WorkspaceID), uuidToString(agent.ID))
+	resp.Agent.Instructions += h.semanticActionTaskInstructions(r.Context(), uuidToString(agent.WorkspaceID), task)
 	if useSkillRefs {
 		_, skillRefs := h.TaskService.LoadAgentSkillBundles(r.Context(), task.AgentID)
 		agentSkillCount = len(skillRefs)
@@ -3671,6 +3673,11 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 	// by the existing per-(issue, agent) dedup, and terminating because the
 	// triggering comment always predates the follow-up run's started_at.
 	h.reconcileCommentsOnCompletion(r.Context(), task)
+	if err := h.semanticReconcileConstructionHandoff(r.Context(), task); err != nil {
+		slog.Warn("ontology specialist handoff continuation failed", "task_id", taskID, "error", err)
+		writeError(w, http.StatusServiceUnavailable, "task completed; ontology handoff needs retry")
+		return
+	}
 	// The terminal transaction and completion reconciliation are committed.
 	// Wake the owning runtime now so queued work that was blocked by this
 	// task's agent capacity or serialization key is re-claimed immediately.

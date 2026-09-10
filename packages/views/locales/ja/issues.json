@@ -466,7 +466,10 @@
       "bar_authors_more_other": "{{names}} 他 {{count}} 名",
       "resolve_failed": "スレッドを解決できませんでした",
       "unresolve_failed": "スレッドの解決を取り消せませんでした"
-    }
+    },
+    "application_draft_ready": "アプリの質問を下書きに追加しました。内容を確認してから送信してください。",
+    "application_draft_failed": "質問は保存されましたが、エディターに追加できませんでした。再試行してください。",
+    "application_draft_retry": "エディターに追加"
   },
   "reply": {
     "placeholder": "返信を残す..."

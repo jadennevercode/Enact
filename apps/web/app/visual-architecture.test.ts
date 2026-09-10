@@ -264,6 +264,13 @@ type RawVisualRule = {
 const dynamicStyleAllowlist: Partial<
   Record<GovernedComponentPath, readonly DynamicStyleRule[]>
 > = {
+  "packages/views/semantic/native-validation-report.tsx": [
+    {
+      description: "quality metric percentage bar width",
+      expectedMatches: 1,
+      pattern: /style=\{\{ width: `\$\{d\.percent \?\? 0\}%` \}\}/g,
+    },
+  ],
   "packages/ui/components/common/actor-avatar.tsx": [
     {
       description: "prop-driven avatar box and fallback type geometry",

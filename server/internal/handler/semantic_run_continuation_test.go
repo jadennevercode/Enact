@@ -11,6 +11,10 @@ func TestSemanticRunContinuesOnTheAssignedIssueAfterConfirmation(t *testing.T) {
 	_, releaseID, _ := semanticFixture(t, "https://quality.example.test", "confirm")
 	runtimeID := dbfx.Runtime(t, "quality consumer runtime")
 	agentID := dbfx.Agent(t, "quality consumer", runtimeID)
+	var ontologyID string
+	dbfx.QueryRow(t, "SELECT ontology_id::text FROM semantic_release WHERE id=$1", releaseID).Scan(&ontologyID)
+	dbfx.Cleanup(t, "DELETE FROM semantic_agent_ontology WHERE agent_id=$1", agentID)
+	testutil.Call(t, testHandler.semanticAssignAgentOntologies, testutil.WithURLParams(newRequest("PUT", "/api/semantic/agents/ontologies", map[string]any{"assignments": []any{map[string]any{"ontology_id": ontologyID, "release_id": releaseID, "enabled": true}}}), "agentID", agentID)).Want(200)
 	issueID := dbfx.Issue(t, "quality investigation")
 	otherIssueID := dbfx.Issue(t, "other investigation")
 	newTask := func(issue string) string {

@@ -132,7 +132,7 @@ export function HomeOverview() {
     <div className="enact-home-overview flex flex-1 min-h-0 flex-col">
 
       <div className="flex-1 overflow-y-auto">
-        <div className={`mx-auto w-full max-w-5xl pb-8 ${PAGE_GUTTER}`}>
+        <div className={`mx-auto w-full max-w-5xl pt-4 pb-8 ${PAGE_GUTTER}`}>
           {agentAvailability === "none" && <SetUpFirstAgent />}
 
           {/* The four numbers first, each the count its block below carries:

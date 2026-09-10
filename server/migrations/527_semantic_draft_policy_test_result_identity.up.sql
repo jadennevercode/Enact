@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS semantic_draft_policy_test_result_identity ON semantic_draft_policy_test_result(id);

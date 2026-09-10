@@ -63,6 +63,8 @@ func (h *Handler) semanticPrepareAction(w http.ResponseWriter, r *http.Request) 
 		Parameters       map[string]any `json:"parameters"`
 		EvaluationStepID *string        `json:"evaluation_step_id"`
 		IntentID         string         `json:"intent_id"`
+		CreateAnother    bool           `json:"create_another"`
+		RepeatReason     string         `json:"repeat_reason"`
 	}
 	if !semanticDecode(w, r, &input) {
 		return
@@ -79,7 +81,7 @@ func (h *Handler) semanticPrepareAction(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		var raw json.RawMessage
-		if err := h.DB.QueryRow(r.Context(), "SELECT output FROM semantic_step WHERE workspace_id=$1 AND run_id=$2 AND id=$3 AND kind='rule_evaluation' AND status='succeeded'", actor.WorkspaceID, runID, *input.EvaluationStepID).Scan(&raw); err != nil {
+		if err := h.DB.QueryRow(r.Context(), "SELECT output FROM semantic_step WHERE workspace_id=$1 AND run_id=$2 AND id=$3 AND kind IN ('rule_evaluation','policy_evaluation') AND status='succeeded'", actor.WorkspaceID, runID, *input.EvaluationStepID).Scan(&raw); err != nil {
 			writeError(w, 400, "evaluation step is not successful in this run")
 			return
 		}
@@ -116,6 +118,10 @@ func (h *Handler) semanticPrepareAction(w http.ResponseWriter, r *http.Request) 
 		writeError(w, 400, err.Error())
 		return
 	}
+	if err = h.semanticCheckActionPolicy(r, actor, runID, release, binding, input.Parameters, input.EvaluationStepID); err != nil {
+		writeError(w, 409, err.Error())
+		return
+	}
 	if err = binding.CheckParameters(input.Parameters); err != nil {
 		writeError(w, 400, err.Error())
 		return
@@ -127,7 +133,7 @@ func (h *Handler) semanticPrepareAction(w http.ResponseWriter, r *http.Request) 
 	}
 	status := "pending"
 	var approvedBy *string
-	if binding.Authorization.Mode == "allow" {
+	if binding.Authorization.Mode == "allow" && !semanticHasDefinition(release) {
 		status = "approved"
 		approvedBy = &actor.UserID
 	}
@@ -138,32 +144,34 @@ func (h *Handler) semanticPrepareAction(w http.ResponseWriter, r *http.Request) 
 		input.Parameters = map[string]any{}
 	}
 	digest := semanticActionDigest(release, binding, input.Parameters, c, s)
-	h.semanticRow(w, r, 201, "INSERT INTO semantic_approval(workspace_id,run_id,binding_id,parameters,digest,status,requested_by,approved_by,expires_at,actor_id,task_id,evaluation_step_id,intent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING to_jsonb(semantic_approval)", actor.WorkspaceID, runID, input.BindingID, semanticMarshal(input.Parameters), digest, status, actor.UserID, approvedBy, time.Now().Add(15*time.Minute), actor.ActorID, actor.TaskID, input.EvaluationStepID, input.IntentID)
+	h.semanticPersistPreparedAction(w, r, actor, runID, release, binding, input.Parameters, digest, status, approvedBy, input.EvaluationStepID, input.IntentID, input.CreateAnother, input.RepeatReason)
 }
 
 type semanticApproval struct {
-	ID          string
-	RunID       string
-	BindingID   string
-	Parameters  map[string]any
-	Digest      string
-	Status      string
-	RequestedBy string
-	ApprovedBy  *string
-	ExpiresAt   time.Time
+	ID                   string
+	RunID                string
+	BindingID            string
+	Parameters           map[string]any
+	Digest               string
+	Status               string
+	RequestedBy          string
+	ApprovedBy           *string
+	ExpiresAt            time.Time
+	SupersedesApprovalID *string
+	SupersededBy         *string
 }
 
 func scanSemanticApproval(row pgx.Row) (semanticApproval, error) {
 	var a semanticApproval
 	var params json.RawMessage
-	err := row.Scan(&a.ID, &a.RunID, &a.BindingID, &params, &a.Digest, &a.Status, &a.RequestedBy, &a.ApprovedBy, &a.ExpiresAt)
+	err := row.Scan(&a.ID, &a.RunID, &a.BindingID, &params, &a.Digest, &a.Status, &a.RequestedBy, &a.ApprovedBy, &a.ExpiresAt, &a.SupersedesApprovalID, &a.SupersededBy)
 	if err == nil {
 		err = json.Unmarshal(params, &a.Parameters)
 	}
 	return a, err
 }
 
-const semanticApprovalColumns = "id::text,run_id::text,binding_id,parameters,digest,status,requested_by::text,approved_by::text,expires_at"
+const semanticApprovalColumns = "id::text,run_id::text,binding_id,parameters,digest,status,requested_by::text,approved_by::text,expires_at,supersedes_approval_id::text,superseded_by::text"
 
 func (h *Handler) semanticDecide(w http.ResponseWriter, r *http.Request) {
 	actor, ok := h.semanticScope(w, r, false)
@@ -192,6 +200,10 @@ func (h *Handler) semanticDecide(w http.ResponseWriter, r *http.Request) {
 	a, err := scanSemanticApproval(h.DB.QueryRow(r.Context(), "SELECT "+semanticApprovalColumns+" FROM semantic_approval WHERE workspace_id=$1 AND id=$2", actor.WorkspaceID, id))
 	if err != nil {
 		writeError(w, 404, "approval not found")
+		return
+	}
+	if a.SupersededBy != nil {
+		writeJSON(w, 409, map[string]any{"error": "action review was superseded by refreshed evidence", "superseded_by": *a.SupersededBy})
 		return
 	}
 	release, err := h.semanticRunRelease(r, actor.WorkspaceID, a.RunID)
@@ -225,7 +237,64 @@ func (h *Handler) semanticDecide(w http.ResponseWriter, r *http.Request) {
 	if *input.Approve {
 		status = "approved"
 	}
-	h.semanticRow(w, r, 200, "UPDATE semantic_approval SET status=$3,approved_by=$4,reason=$5,decided_at=now() WHERE workspace_id=$1 AND id=$2 AND status='pending' AND expires_at>now() RETURNING to_jsonb(semantic_approval)", actor.WorkspaceID, id, status, actor.UserID, input.Reason)
+	reason := strings.TrimSpace(input.Reason)
+	resumeMessage := semanticActionContinuationMessage(status, reason, semanticActionDisplayLabel(release, binding))
+	tx, err := h.TxStarter.Begin(r.Context())
+	if err != nil {
+		writeError(w, 500, "failed to start action decision")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	if err = semanticLockWorkspace(r.Context(), tx, actor.WorkspaceID); err != nil {
+		writeError(w, 404, "workspace not found")
+		return
+	}
+	var currentStatus, currentReason string
+	var currentApprovedBy, currentSupersededBy *string
+	var expiresAt time.Time
+	err = tx.QueryRow(r.Context(), "SELECT status,reason,expires_at,approved_by::text,superseded_by::text FROM semantic_approval WHERE workspace_id=$1 AND id=$2 FOR UPDATE", actor.WorkspaceID, id).Scan(&currentStatus, &currentReason, &expiresAt, &currentApprovedBy, &currentSupersededBy)
+	if err != nil {
+		writeError(w, 404, "approval not found")
+		return
+	}
+	if currentSupersededBy != nil {
+		writeJSON(w, 409, map[string]any{"error": "action review was superseded by refreshed evidence", "superseded_by": *currentSupersededBy})
+		return
+	}
+	var saved json.RawMessage
+	if currentStatus == "pending" {
+		if time.Now().After(expiresAt) {
+			writeError(w, 409, "action review expired; prepare a current action")
+			return
+		}
+		initialResume := map[string]any{"status": "pending", "message": "决定已保存，正在恢复行动协调者。", "continuation_message": resumeMessage}
+		err = tx.QueryRow(r.Context(), "UPDATE semantic_approval SET status=$3,approved_by=$4,reason=$5,decided_at=now(),continuation=$6 WHERE workspace_id=$1 AND id=$2 RETURNING to_jsonb(semantic_approval)", actor.WorkspaceID, id, status, actor.UserID, reason, semanticMarshal(initialResume)).Scan(&saved)
+	} else {
+		sameDecision := currentStatus == status || (*input.Approve && currentStatus == "executed")
+		if !sameDecision || currentReason != reason {
+			writeError(w, 409, "action review was already decided differently")
+			return
+		}
+		if currentApprovedBy == nil || *currentApprovedBy != actor.UserID {
+			writeError(w, 403, "only the member who recorded this decision may retry its continuation")
+			return
+		}
+		err = tx.QueryRow(r.Context(), "SELECT to_jsonb(a) FROM semantic_approval a WHERE workspace_id=$1 AND id=$2", actor.WorkspaceID, id).Scan(&saved)
+	}
+	if err == nil {
+		err = tx.Commit(r.Context())
+	}
+	if err != nil {
+		writeError(w, 500, "failed to save action decision")
+		return
+	}
+	resume := h.semanticResumeActionCoordinator(r, actor.WorkspaceID, id)
+	var response map[string]any
+	if json.Unmarshal(saved, &response) != nil {
+		response = map[string]any{"id": id, "run_id": a.RunID, "status": status, "reason": reason}
+	}
+	response["coordinator_resume"] = resume
+	writeJSON(w, 200, response)
 }
 
 func (h *Handler) semanticExecute(w http.ResponseWriter, r *http.Request) {
@@ -274,6 +343,10 @@ func (h *Handler) semanticExecute(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 500, "failed to load action receipt")
 		return
 	}
+	if a.SupersededBy != nil {
+		writeJSON(w, 409, map[string]any{"error": "action review was superseded by refreshed evidence", "superseded_by": *a.SupersededBy})
+		return
+	}
 	if a.Status != "approved" || time.Now().After(a.ExpiresAt) {
 		writeError(w, 409, "action is not approved or its approval expired")
 		return
@@ -296,6 +369,17 @@ func (h *Handler) semanticExecute(w http.ResponseWriter, r *http.Request) {
 	if semanticActionDigest(release, binding, a.Parameters, c, s) != a.Digest {
 		writeError(w, 409, "action configuration or credential changed; prepare and authorize again")
 		return
+	}
+	if semanticHasDefinition(release) {
+		var policyStepID *string
+		if err = tx.QueryRow(r.Context(), "SELECT evaluation_step_id::text FROM semantic_approval WHERE workspace_id=$1 AND id=$2", actor.WorkspaceID, id).Scan(&policyStepID); err != nil {
+			writeError(w, 409, "Policy review is unavailable")
+			return
+		}
+		if err = h.semanticCheckActionPolicy(r, actor, a.RunID, release, binding, a.Parameters, policyStepID); err != nil {
+			writeError(w, 409, err.Error())
+			return
+		}
 	}
 	receiptID := uuid.NewString()
 	_, err = tx.Exec(r.Context(), "INSERT INTO semantic_receipt(id,workspace_id,run_id,approval_id,binding_id,idempotency_key,request_digest,status,executed_by,actor_id,task_id) VALUES($1,$2,$3,$4,$5,$6,$7,'executing',$8,$9,$10)", receiptID, actor.WorkspaceID, a.RunID, id, a.BindingID, key, a.Digest, actor.UserID, actor.ActorID, actor.TaskID)

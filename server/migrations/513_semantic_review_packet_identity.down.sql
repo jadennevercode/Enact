@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS semantic_review_packet_identity_idx;

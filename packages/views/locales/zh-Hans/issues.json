@@ -466,7 +466,10 @@
       "bar_authors_more_other": "{{names}} 等 {{count}} 人",
       "resolve_failed": "标记已解决失败",
       "unresolve_failed": "重新打开失败"
-    }
+    },
+    "application_draft_ready": "已带入应用中的追问草稿；检查后再点击发送。",
+    "application_draft_failed": "追问已保存，但暂未加入编辑器。请重试。",
+    "application_draft_retry": "加入编辑器"
   },
   "reply": {
     "placeholder": "回复..."

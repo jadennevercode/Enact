@@ -776,6 +776,13 @@ export class ApiClient {
   }
 
   /** Transport for workspace semantic services; callers validate with domain schemas. */
+  async semanticReportExport(runId: string, format: "html" | "jsonl"): Promise<Blob> {
+    const response = await this.fetchRaw(`/api/semantic/runs/${encodeURIComponent(runId)}/report?format=${format}`);
+    const expected = format === "html" ? "text/html" : "application/x-ndjson";
+    if (!response.headers.get("content-type")?.startsWith(expected)) throw new Error("The report export has an unsupported format");
+    return response.blob();
+  }
+
   async semanticRequest(path: string, init?: RequestInit): Promise<unknown> {
     if (!path.startsWith("/") || path.includes("..") || path.includes("?")) {
       throw new Error("Invalid semantic API path");
