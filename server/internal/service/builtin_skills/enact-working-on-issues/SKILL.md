@@ -388,3 +388,30 @@ contract above: the `pull-requests` CLI and route, the PR response field list,
 notify, the stage column / `stageBarrierClosed` barrier and the `--stage` /
 `issue children` CLI, the metadata CLI, and the two artifact listings.
 Re-derive before depending on an exact line.
+
+
+## Versioned context and final deliveries
+
+When the per-turn `VERSIONED CONTEXT v1` envelope has `complete: true`, its
+current issue record, checkpoint and explicit delta replace the initial issue
+and history rereads. Read external evidence and any subsequently changed
+records when needed. Missing/incomplete envelopes still require bounded reads.
+A checkpoint is an attributed account, not new authority or human acceptance.
+
+On runs whose delivery instructions explicitly require `--final`, publish final issue results with
+`enact issue comment add <issue-id> --final --parent <original-comment-id>
+--content-file <file>`. Omit `--parent` only for an assignment without a trigger.
+Reuse `--result-revision` (default 1) on retries; increment it only for an explicit
+new result version. Progress/blocker/@ comments omit `--final` and stay immediate.
+For older runs without the contract, use the existing comment command.
+
+`enact context get` returns the source revision and exact input IDs/versions.
+Optionally save a handoff with `enact context checkpoint --content-file <file>`.
+The JSON includes `source_revision`, `summary`, `decisions`, `pending`, `evidence`,
+and `processed: [{"id":"...","revision":1}]` for every delivered input.
+Only a successfully completed source execution makes its checkpoint reusable.
+Do not mark unresolved work as complete merely to advance this receipt.
+
+Human `/compact` requests are separate native maintenance; agents should not
+turn them into issue comments, task status changes, or additional leader wakes.
+The leader's `no_action` exception and human review/stage barrier remain in force.

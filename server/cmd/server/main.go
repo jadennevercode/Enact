@@ -633,6 +633,8 @@ func main() {
 		go h.ChannelSupervisor.Run(sweepCtx)
 	}
 
+	go h.RunFinalDeliveryOutbox(sweepCtx)
+
 	// Media intent-ledger reconciler (PR #5580): settles uploaded-but-unbound
 	// channel media objects. An independent worker so object-storage latency
 	// spikes cannot starve any other sweeper's cadence.

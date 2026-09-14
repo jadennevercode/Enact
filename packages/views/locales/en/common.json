@@ -123,5 +123,34 @@
   },
   "navigation": {
     "open_in_new_tab": "Open in new tab"
+  },
+  "context": {
+    "title": "Context",
+    "unknown": "Unknown",
+    "select": "Select an agent session",
+    "compact": "Compact context",
+    "cancel": "Cancel queued compaction",
+    "reading": "Last recorded window",
+    "last_record": "Recorded at",
+    "basis": "Uses the native effective window, independently of cumulative billed tokens.",
+    "queued": "Waiting for the current run",
+    "running": "Compacting",
+    "succeeded": "Native compaction completed",
+    "skipped": "Nothing to compact",
+    "cancelled": "Cancelled",
+    "failed": "Compaction unavailable or failed",
+    "unknown_result": "Result needs verification",
+    "awaiting_reading": "Waiting for a new context reading",
+    "unsupported": "This runtime does not report native compaction support",
+    "accepted": "Compaction request accepted",
+    "request_failed": "Request failed. Your draft is preserved.",
+    "handoffs": "Handoff records",
+    "source": "Source execution",
+    "decisions": "Decisions",
+    "pending": "Pending human decisions / work",
+    "evidence": "Evidence",
+    "activity": "Maintenance activity",
+    "tokens": "tokens",
+    "revision": "Revision"
   }
 }

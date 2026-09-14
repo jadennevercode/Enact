@@ -1,3 +1,4 @@
+vi.mock("../../context/use-context-controls", () => ({ useContextControls: () => ({panel:null,handleCommand:async()=>null}) }));
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@enact/core/i18n/react";
