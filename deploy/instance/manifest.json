@@ -7,11 +7,12 @@
   "databases": {
     "enact": {
       "archive": "enact.dump.enc",
-      "workspaces": 242,
+      "workspaces": 17,
       "tables": 134,
-      "rows": 81374,
-      "issues": 161,
-      "attachments": 112
+      "rows": 53984,
+      "issues": 142,
+      "attachments": 112,
+      "capturedAt": "2026-09-14T18:30:06.065Z"
     },
     "enact_backfill": {
       "archive": "enact_backfill.dump.enc",
@@ -42,12 +43,13 @@
       "workspaces": null
     }
   },
-  "consistency": "Backend and semantic containers paused during main database and persistent-volume capture. Other databases have individual pg_dump transaction snapshots. Local daemon files are a live filesystem capture.",
+  "consistency": "2026-09-14 main database uses one pg_dump transaction snapshot; upload archive captured immediately afterward and every restored attachment reference checked. Other components retain their original 2026-09-10 capture and verification.",
   "verification": {
     "databases": {
       "enact": {
         "restored": true,
-        "workspaces": 242
+        "workspaces": 17,
+        "verifiedAt": "2026-09-14T18:30:06.065Z"
       },
       "enact_backfill": {
         "restored": true,
@@ -115,9 +117,10 @@
         "authenticated": true
       },
       "uploads.tar.enc": {
-        "files": 205,
-        "bytes": 17334779,
-        "authenticated": true
+        "files": 201,
+        "bytes": 17577472,
+        "authenticated": true,
+        "verifiedAt": "2026-09-14T18:30:06.065Z"
       }
     },
     "mainDatabaseTablesVerified": 134,
@@ -130,26 +133,6 @@
     "semantic-runtime-source.tar.enc.part-001": {
       "bytes": 41943040,
       "sha256": "7b03e09f2052930d5e83c5703958050e07f5fb523132d2b1fe2f9d13238eaf32"
-    },
-    "enact.dump.enc.part-005": {
-      "bytes": 30495858,
-      "sha256": "09fc8dbe4f9b8a71642c570ec5e6c7b385940ece58df75185773713f19fca0a7"
-    },
-    "enact.dump.enc.part-002": {
-      "bytes": 41943040,
-      "sha256": "cb203e190e1ea9ff66362cce65bc3b3ad44efe4f39457be4e68dca355696b4dd"
-    },
-    "enact.dump.enc.parts.json": {
-      "bytes": 925,
-      "sha256": "8ca9fccb2a6bd7f101ccef5779a73c223f6f7ececdc0e9a9627acc59bf83e41a"
-    },
-    "enact.dump.enc.part-003": {
-      "bytes": 41943040,
-      "sha256": "7ed20b03288ec3172f8dafbf8fc53336ed27f135f5e89da43d30b38fd072247d"
-    },
-    "enact.dump.enc.part-004": {
-      "bytes": 41943040,
-      "sha256": "b00f84527c76a355dc9ce207f277314e58ef85caf4a88f274951a04a24d76242"
     },
     "server-local-uploads.tar.enc": {
       "bytes": 2530,
@@ -174,10 +157,6 @@
     "quality_reference_integration.dump.enc": {
       "bytes": 7379,
       "sha256": "46ddeb275cbfc7fca1e834496d7e523947fde9c8973d25b5e77115d64257b0a2"
-    },
-    "workspaces.json.enc": {
-      "bytes": 8333,
-      "sha256": "4f4475eb5ed4dff32525fdaad1ed439acb6f35d4f407a00bb8352afd5c00a109"
     },
     "enact_feat_retrospect_agent_467.dump.enc": {
       "bytes": 7677708,
@@ -207,17 +186,9 @@
       "bytes": 1889,
       "sha256": "f4dd8d4d746a141003ea34d5cbc7026d6f1c724feb77c2ee3d73ce3a31116851"
     },
-    "enact.dump.enc.part-001": {
-      "bytes": 41943040,
-      "sha256": "66d65e03d00133019c97aa9eebd959b6b2a6a6c7ee1edbf0312649926743e6eb"
-    },
     "semantic-runtime-source.tar.enc.part-002": {
       "bytes": 16058396,
       "sha256": "a955a17d8729900620ee97f00df4f358a5e0c6a41cfc6bfaf5100d37357bbb70"
-    },
-    "table-counts.json.enc": {
-      "bytes": 1187,
-      "sha256": "5912bf0085556e69df4fb5e4f9bd898b989d28dfbb3025854befe3c5a2d68952"
     },
     "quality-source.tar.enc": {
       "bytes": 2364336,
@@ -239,10 +210,6 @@
       "bytes": 473,
       "sha256": "48338daba7f6fdf4a3f54d37c43f4d4a7f6a67af89d5b444500ccd042ad4fc0d"
     },
-    "uploads.tar.enc": {
-      "bytes": 10879076,
-      "sha256": "b8469b081d783622ba4d6973e9a8918b2e24e0efdec2965e3680f5a220832670"
-    },
     "enact_migcheck.dump.enc": {
       "bytes": 9072181,
       "sha256": "d7bdb0e2107256ce6d19446f5d33a07312f9b57e5bb46f0d786c22099c4df1fd"
@@ -259,10 +226,6 @@
       "bytes": 5165698,
       "sha256": "a0a364009f113697aad6bd29501f855e28935434d573979919e80d145403a63f"
     },
-    "attachments.json.enc": {
-      "bytes": 2853,
-      "sha256": "99d2ec0c2ae92a96e31ceb0a21544e5731e6825e53aa54c8ce374dee8def39f9"
-    },
     "semantic-state.tar.enc.part-001": {
       "bytes": 41943040,
       "sha256": "19681907c6d75bd6c0bcaea720e2c42e15c286dd4aa800868bee24ae4b4d05e3"
@@ -278,7 +241,89 @@
     "local-uploads.tar.enc": {
       "bytes": 55413,
       "sha256": "bf2774fd6e27c12608635edd8b8426f89a0aa8b2ef7a0e29c47f09c62c98f29c"
+    },
+    "enact.dump.enc.part-001": {
+      "bytes": 41943040,
+      "sha256": "cf1a6270efacec0e344ee0ced809ce0fc0f5cff6eab59645938fac0460cfa0e6"
+    },
+    "enact.dump.enc.part-002": {
+      "bytes": 29355671,
+      "sha256": "4a634ff206749b8f41ea44f23e8b1734f7e10ae509b76129295ac01a48830ecb"
+    },
+    "enact.dump.enc.parts.json": {
+      "bytes": 424,
+      "sha256": "ceb864ca672e49011380e4fc113c62d45e3118f6b2b24617f05a3aa863858d85"
+    },
+    "uploads.tar.enc": {
+      "bytes": 10911056,
+      "sha256": "b627dbc8598f05e09d2914efb916863f9ae88f1c564e2ec4c5664e95ffb8fe10"
+    },
+    "workspaces.json.enc": {
+      "bytes": 1545,
+      "sha256": "0b9483ca976cd20393b694940de4fc6a16b34b2bd9c0af6f3e635d9abd79b897"
+    },
+    "table-counts.json.enc": {
+      "bytes": 1153,
+      "sha256": "e0ee666a45bf043b42b3c7f147e7f8a5f21172ac1c09a4e122ce83e2c958c524"
+    },
+    "attachments.json.enc": {
+      "bytes": 7041,
+      "sha256": "8fe9eccaec856c12826d02268deaeda26e659ede05209b5b73844b7e4bd0eac6"
     }
   },
-  "sourceCodeCommit": "e835d2c611b3424c87859a13ac89d8b0633f3b09"
+  "sourceCodeCommit": "e835d2c611b3424c87859a13ac89d8b0633f3b09",
+  "componentCapturedAt": {
+    "semantic-runtime-source.tar.enc.part-001": "2026-09-10T03:20:40.430918+00:00",
+    "server-local-uploads.tar.enc": "2026-09-10T03:20:40.430918+00:00",
+    "previous-demo-bundle.key.enc": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-workspaces.tar.enc.part-002": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-workspaces.tar.enc.part-004": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-workspaces.tar.enc.part-003": "2026-09-10T03:20:40.430918+00:00",
+    "quality_reference_integration.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "enact_feat_retrospect_agent_467.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "source.env.enc": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-state.tar.enc.parts.json": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-state.tar.enc.part-002": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-workspaces.tar.enc.parts.json": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-state.tar.enc.part-003": "2026-09-10T03:20:40.430918+00:00",
+    "inventory.json.enc": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-runtime-source.tar.enc.part-002": "2026-09-10T03:20:40.430918+00:00",
+    "quality-source.tar.enc": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-workspaces.tar.enc.part-001": "2026-09-10T03:20:40.430918+00:00",
+    "container-configuration.json.enc": "2026-09-10T03:20:40.430918+00:00",
+    "compose-local.json.enc": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-runtime-source.tar.enc.parts.json": "2026-09-10T03:20:40.430918+00:00",
+    "enact_migcheck.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "enact_feat_workspace_onboarding_376.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "daemon-profile.tar.enc": "2026-09-10T03:20:40.430918+00:00",
+    "enact_enact_knowledge_base_273.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "semantic-state.tar.enc.part-001": "2026-09-10T03:20:40.430918+00:00",
+    "enact_backfill.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "enact_semantic_integration.dump.enc": "2026-09-10T03:20:40.430918+00:00",
+    "local-uploads.tar.enc": "2026-09-10T03:20:40.430918+00:00",
+    "enact.dump.enc.part-001": "2026-09-14T18:30:06.065Z",
+    "enact.dump.enc.part-002": "2026-09-14T18:30:06.065Z",
+    "enact.dump.enc.parts.json": "2026-09-14T18:30:06.065Z",
+    "uploads.tar.enc": "2026-09-14T18:30:06.065Z",
+    "workspaces.json.enc": "2026-09-14T18:30:06.065Z",
+    "table-counts.json.enc": "2026-09-14T18:30:06.065Z",
+    "attachments.json.enc": "2026-09-14T18:30:06.065Z"
+  },
+  "lastUpdatedAt": "2026-09-14T18:30:06.065Z",
+  "latestUpdate": {
+    "reason": "Remove 225 verified automation-test workspaces from the main snapshot",
+    "startedAt": "2026-09-14T18:29:42.355Z",
+    "finishedAt": "2026-09-14T18:30:06.065Z",
+    "refreshedComponents": [
+      "enact.dump.enc",
+      "uploads.tar.enc",
+      "workspaces.json.enc",
+      "table-counts.json.enc",
+      "attachments.json.enc"
+    ],
+    "retainedComponents": "All other components retain their original 2026-09-10 capture. Additional development databases are historical and were not cleaned.",
+    "mainWorkspaces": 17,
+    "demoWorkspaces": 5,
+    "deletedTestWorkspaces": 225
+  }
 }
