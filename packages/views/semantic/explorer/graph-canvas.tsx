@@ -422,7 +422,8 @@ export function GraphCanvas(props: Props) {
       )}
       <div
         ref={host}
-        className={`size-full cursor-grab ${ready && !settling ? "opacity-100" : "opacity-0"}`}
+        className="size-full cursor-grab"
+        style={{ opacity: ready && !settling ? 1 : 0 }}
         aria-busy={!ready || settling}
         role="img"
         aria-label={props.label}

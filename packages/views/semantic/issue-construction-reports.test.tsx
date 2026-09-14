@@ -42,14 +42,7 @@ function show(issueId: string, packets = reports) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
   client.setQueryData(issueConstructionOptions("workspace", issueId).queryKey, { constructionId: "construction" });
   client.setQueryData(constructionDetailOptions("workspace", "construction").queryKey, {
-    construction: {
-      id: "construction", ontology_id: "ontology", ontologyId: "ontology",
-      issue_id: "root", issueId: "root", status: "completed", stage: "release",
-      source_snapshot_ids: [], sourceSnapshotIds: [], created_at: "", createdAt: "",
-    },
-    issue: { id: "root" },
-    tasks: tasks.map(task => ({ ...task, issue_id: task.issueId })),
-    events: [], model_operations: [], modelOperations: [],
+    construction: { issueId: "root", status: "completed", stage: "release" }, tasks,
   });
   client.setQueryData(reviewPacketOptions("workspace", "construction").queryKey, packets);
   client.setQueryData(authoringOptions("workspace", "construction").queryKey, authoringSchema.parse({

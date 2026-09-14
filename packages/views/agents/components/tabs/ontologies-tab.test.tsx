@@ -1,23 +1,59 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Agent } from "@enact/core/types";
+import type { Agent, OntologySummary } from "@enact/core/types";
 import { I18nProvider } from "@enact/core/i18n/react";
+import { workspaceKeys } from "@enact/core/workspace/queries";
 import enCommon from "../../../locales/en/common.json";
 import enAgents from "../../../locales/en/agents.json";
 import enSettings from "../../../locales/en/settings.json";
 
-const mockSemanticRequest = vi.hoisted(() => vi.fn());
-vi.mock("@enact/core/hooks", () => ({ useWorkspaceId: () => "ws-1" }));
-vi.mock("@enact/core/api", () => ({ api: { semanticRequest: mockSemanticRequest } }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
+const mockListOntologies = vi.hoisted(() => vi.fn());
+const mockAttachAgentOntology = vi.hoisted(() => vi.fn());
+const mockGetAgent = vi.hoisted(() => vi.fn());
+const mockSetAgentOntologyEnabled = vi.hoisted(() => vi.fn());
+const mockRemoveAgentOntology = vi.hoisted(() => vi.fn());
+
+vi.mock("@enact/core/hooks", () => ({
+  useWorkspaceId: () => "ws-1",
+}));
+
+vi.mock("@enact/core/api", () => ({
+  api: {
+    listOntologies: (...args: unknown[]) => mockListOntologies(...args),
+    attachAgentOntology: (...args: unknown[]) =>
+      mockAttachAgentOntology(...args),
+    getAgent: (...args: unknown[]) => mockGetAgent(...args),
+    setAgentOntologyEnabled: (...args: unknown[]) =>
+      mockSetAgentOntologyEnabled(...args),
+    removeAgentOntology: (...args: unknown[]) =>
+      mockRemoveAgentOntology(...args),
+  },
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn() },
+}));
 
 import { OntologiesTab } from "./ontologies-tab";
-import { agentOntologyOptions } from "@enact/core/semantic";
-import enResources from "../../../locales/en/resources.json";
+
+const catalogOntology: OntologySummary = {
+  name: "marketing_media_mix",
+  nameZh: "营销媒体组合",
+  version: "1.0.0",
+  description: "Marketing campaign operating model",
+  descriptionZh: "营销活动运营模型",
+  entityCount: 23,
+  actionCount: 33,
+  policyCount: 34,
+  capabilityCount: 33,
+  isLayered: true,
+  capHubUrl: "http://127.0.0.1:13000/domains/marketing_media_mix",
+  attached: false,
+};
 
 const agent: Agent = {
   id: "agent-1",
@@ -44,49 +80,65 @@ const agent: Agent = {
   archived_by: null,
 };
 
+const updatedAgent: Agent = {
+  ...agent,
+  skills: [
+    {
+      id: "ontology-skill-1",
+      name: "ontology-marketing-media-mix",
+      description: catalogOntology.description,
+      enabled: true,
+      kind: "ontology",
+      ontology_domain: catalogOntology.name,
+    },
+  ],
+};
+
 describe("OntologiesTab", () => {
-  it("pins a published release and refreshes the authoritative assignments", async () => {
-    const assignment = {
-      ontology_id: "ontology-1", release_id: "release-1", enabled: true,
-      ontology_name: "Quality model", version: "1.0.0", status: "published",
-    };
-    let assignments: typeof assignment[] = [];
-    mockSemanticRequest.mockReset();
-    mockSemanticRequest.mockImplementation(async (path: string, options: { method: string; body?: string }) => {
-      if (path === "/agents/agent-1/ontologies") {
-        if (options.method === "PUT") assignments = [assignment];
-        return { assignments };
-      }
-      if (path === "/ontologies") return [{ id: "ontology-1", name: "Quality model" }];
-      if (path === "/ontologies/ontology-1/releases") return [
-        { id: "release-1", ontology_id: "ontology-1", version: "1.0.0" },
-        { id: "retired", ontology_id: "ontology-1", version: "0.9.0", retired_at: "2026-09-01" },
-      ];
-      throw new Error(`Unexpected path: ${path}`);
-    });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockListOntologies.mockResolvedValue([catalogOntology]);
+    mockAttachAgentOntology.mockResolvedValue(undefined);
+    mockGetAgent.mockResolvedValue(updatedAgent);
+    mockSetAgentOntologyEnabled.mockResolvedValue(undefined);
+    mockRemoveAgentOntology.mockResolvedValue(undefined);
+  });
+
+  it("reloads the authoritative agent after attaching an ontology", async () => {
     const user = userEvent.setup();
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(workspaceKeys.agents("ws-1"), [agent]);
+
     render(
-      <I18nProvider locale="en" resources={{ en: { common: enCommon, agents: enAgents, settings: enSettings, resources: enResources } }}>
-        <QueryClientProvider client={queryClient}><OntologiesTab agent={agent} /></QueryClientProvider>
+      <I18nProvider
+        locale="en"
+        resources={{
+          en: { common: enCommon, agents: enAgents, settings: enSettings },
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <OntologiesTab agent={agent} />
+        </QueryClientProvider>
       </I18nProvider>,
     );
-    const text = enResources.semantic;
-    const add = screen.getByRole("button", { name: text.agentOntologyAdd });
-    await waitFor(() => expect(add).toBeEnabled());
-    await user.click(add);
-    await user.selectOptions(screen.getByRole("combobox", { name: text.agentOntologySelect }), "ontology-1");
-    await screen.findByRole("option", { name: /1.0.0/ });
-    expect(screen.queryByRole("option", { name: /0.9.0/ })).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByRole("combobox", { name: text.agentOntologyVersion }), "release-1");
-    await user.click(screen.getByRole("button", { name: text.agentOntologySave }));
+
+    await user.click(screen.getByRole("button", { name: "Add ontology" }));
+    await user.click(
+      await screen.findByRole("button", { name: /marketing_media_mix/i }),
+    );
+
     await waitFor(() => {
-      expect(mockSemanticRequest).toHaveBeenCalledWith("/agents/agent-1/ontologies", expect.objectContaining({
-        method: "PUT", body: JSON.stringify({ assignments: [{ ontology_id: "ontology-1", release_id: "release-1", enabled: true }] }),
-      }));
-      expect(queryClient.getQueryData(agentOntologyOptions("ws-1", "agent-1").queryKey)?.assignments).toEqual([
-        { ontologyId: "ontology-1", releaseId: "release-1", enabled: true, ontologyName: "Quality model", version: "1.0.0", status: "published" },
-      ]);
+      expect(mockAttachAgentOntology).toHaveBeenCalledWith(
+        "agent-1",
+        "marketing_media_mix",
+      );
+      expect(mockGetAgent).toHaveBeenCalledWith("agent-1");
+      expect(
+        queryClient.getQueryData<Agent[]>(workspaceKeys.agents("ws-1"))?.[0]
+          ?.skills,
+      ).toEqual(updatedAgent.skills);
     });
   });
 });
