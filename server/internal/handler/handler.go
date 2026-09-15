@@ -17,6 +17,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/cloudruntime"
+	"github.com/enact-ai/enact/server/internal/codegraph"
 	"github.com/enact-ai/enact/server/internal/daemonws"
 	"github.com/enact-ai/enact/server/internal/entitlement"
 	"github.com/enact-ai/enact/server/internal/events"
@@ -229,7 +230,11 @@ type Handler struct {
 	WebhookAbsoluteIPRateLimiter WebhookRateLimiter
 	InvitationRateLimiters       InvitationRateLimiters
 	WebhookDeliveryWorker        *WebhookDeliveryWorker
-	CloudRuntime                 cloudRuntimeProxy
+	// CodeGraph is the client for the codegraph container. A client whose
+	// URL is unset is disabled and every route reports the feature off.
+	CodeGraph       *codegraph.Client
+	CodeGraphWorker *CodeGraphBuildWorker
+	CloudRuntime    cloudRuntimeProxy
 	// Lark integration. All three are nil when the Lark master key
 	// (ENACT_LARK_SECRET_KEY) is unset; the corresponding HTTP
 	// handlers return 503 in that case so a misconfigured self-host
@@ -469,6 +474,11 @@ func New(queries *db.Queries, txStarter txStarter, hub *realtime.Hub, bus *event
 		cfg: cfg,
 	}
 	h.WebhookDeliveryWorker = NewWebhookDeliveryWorker(h)
+	// Code graph: built unconditionally but inert when
+	// ENACT_CODEGRAPH_SERVICE_URL is unset, so a deployment without the
+	// container degrades to "the feature is off" rather than to errors.
+	h.CodeGraph = codegraph.NewFromEnv()
+	h.CodeGraphWorker = NewCodeGraphBuildWorker(h)
 
 	// GitHub API snapshot pipeline for PR cards (ENA-5265). Built
 	// unconditionally but inert (every trigger no-ops) when the App private key

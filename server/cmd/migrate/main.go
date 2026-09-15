@@ -315,6 +315,8 @@ var concurrentIndexCleanups = map[string]string{
 	"502_semantic_model_operation_runtime":          "semantic_model_operation_runtime_idx",
 	"504_semantic_construction_ontology":            "semantic_construction_ontology_idx",
 	"505_semantic_construction_event":               "semantic_construction_event_idx",
+	"541_code_graph_build_resource_index":           "idx_code_graph_build_resource",
+	"542_code_graph_build_queue_index":              "idx_code_graph_build_queue",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

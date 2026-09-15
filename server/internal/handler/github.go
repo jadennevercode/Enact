@@ -20,14 +20,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/middleware"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // githubAPIBase is the base URL for GitHub's REST API. Mutable so tests can
@@ -1080,6 +1080,10 @@ func (h *Handler) HandleGitHubWebhook(w http.ResponseWriter, r *http.Request) {
 		h.handleInstallationEvent(ctx, body)
 	case "pull_request":
 		h.handlePullRequestEvent(ctx, body)
+	case "push":
+		// The only consumer is the code graph: a default-branch push means
+		// the repository's structure moved and its graph should be rebuilt.
+		h.handlePushEvent(ctx, body)
 	case "check_suite", "check_run", "status":
 		// CI events are pure triggers under Plan C (ENA-5265): their payload is
 		// never read for display. Each just asks the API pipeline to re-fetch

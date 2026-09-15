@@ -615,6 +615,11 @@ func main() {
 	if h.WebhookDeliveryWorker != nil {
 		go h.WebhookDeliveryWorker.Run(sweepCtx)
 	}
+	// Code graph build queue. Returns immediately when no codegraph
+	// container is configured.
+	if h.CodeGraphWorker != nil {
+		go h.CodeGraphWorker.Run(sweepCtx)
+	}
 	if h.TelegramOutbound != nil {
 		h.TelegramOutbound.Start(sweepCtx)
 	}
@@ -725,6 +730,9 @@ func main() {
 	heartbeatScheduler.Stop()
 	if h.WebhookDeliveryWorker != nil && !h.WebhookDeliveryWorker.WaitWithTimeout(5*time.Second) {
 		slog.Warn("webhook delivery worker did not exit within shutdown timeout")
+	}
+	if h.CodeGraphWorker != nil && !h.CodeGraphWorker.WaitWithTimeout(5*time.Second) {
+		slog.Warn("code graph build worker did not exit within shutdown timeout")
 	}
 	if h.TelegramOutbound != nil && !h.TelegramOutbound.WaitWithTimeout(5*time.Second) {
 		slog.Warn("telegram outbound workers did not exit within shutdown timeout")
