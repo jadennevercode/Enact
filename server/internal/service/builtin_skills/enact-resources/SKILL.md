@@ -32,7 +32,9 @@ list per workspace, and every task in that workspace sees all of it.
 Resource types:
 
 - `github_repo` — durable GitHub repo context, with `resource_ref.url`, optional
-  checkout `ref`, and optional prompt-only `default_branch_hint`;
+  checkout `ref`, optional prompt-only `default_branch_hint`, and optional
+  `code_graph` (a server-built structure map of the repository — see
+  `enact-code-graph` for reading one);
 - `local_directory` — daemon-local path context, with `resource_ref.local_path`,
   `daemon_id`, optional label, and optional `execution_mode` (`in_place`, the
   default, or `worktree`);
@@ -116,6 +118,11 @@ nothing.
 
 Resources are durable and affect future tasks. `enact repo checkout` is
 task-local checkout state; it does not change the resource list.
+
+`resource_ref.code_graph` on a `github_repo` opts that repository into a
+server-built code graph. It is refused on `local_directory` and
+`knowledge_repo` — the builder clones over the network, and a knowledge base
+is documents rather than code. Turning it off deletes the build history.
 
 ## Debugging wrong context
 

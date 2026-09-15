@@ -426,6 +426,11 @@ func writeRepositories(b *strings.Builder, ctx TaskContextForEnv) {
 			fmt.Fprintf(b, "- %s\n", repo.URL)
 		}
 	}
+	// Fixed text, never a per-run status. The brief is the prompt-cache
+	// prefix and must be byte-identical across the runs of one resumed
+	// session, so what a repository's graph currently IS cannot be rendered
+	// here; the agent asks at the point it would start reading files.
+	b.WriteString("\nAfter checking one out, `enact graph status` says whether it has a code graph — a structure map of its subsystems, symbols and calls worth consulting before you grep.\n")
 	b.WriteString("\n")
 }
 

@@ -388,3 +388,10 @@ contract above: the `pull-requests` CLI and route, the PR response field list,
 notify, the stage column / `stageBarrierClosed` barrier and the `--stage` /
 `issue children` CLI, the metadata CLI, and the two artifact listings.
 Re-derive before depending on an exact line.
+
+## Finding the code before changing it
+
+In a repository with a code graph (`enact graph status` says `ready`), start
+with `enact graph report` and `enact graph query "<the task>"` to find the
+subsystem, then open those files. See `enact-code-graph`. Without one, work as
+usual — never wait for a build.

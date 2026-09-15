@@ -244,3 +244,5 @@ grep -n 'func notifyParentOfChildDone'       internal/handler/issue_child_done.g
 - `?limit=` is clamped by `artifactLimit` (default 500, max 2000) and the response's `truncated` flag reports that the cap was hit. Both listings share `writeArtifacts` in the same file.
 - Deletion has no artifact endpoint of its own: it reuses `DELETE /api/attachments/{id}` (`server/internal/handler/file.go`), which allows the uploader or a workspace owner/admin and publishes `issue_attachments:changed`.
 - The client side derives folders and version chains in `packages/core/artifacts/artifact-tree.ts` (`buildArtifactScope`); nothing about grouping lives on the server.
+
+- Locating code in a repository that has a code graph goes through `enact graph` (`server/cmd/enact/cmd_graph.go`); the `enact-code-graph` skill's source map covers the server and build path.
