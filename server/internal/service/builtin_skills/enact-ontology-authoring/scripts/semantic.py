@@ -21,6 +21,27 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
+REVIEW_GATES = frozenset(("scope", "model", "operations", "release"))
+
+
+def allowed_semantic_path(method, path):
+    if not path.startswith("/api/semantic/") or ".." in path or "#" in path:
+        return False
+    if "?" not in path:
+        return True
+    parsed = urlsplit(path)
+    parts = parsed.path.split("/")
+    return (
+        method == "GET"
+        and len(parts) == 6
+        and parts[:4] == ["", "api", "semantic", "constructions"]
+        and bool(parts[4])
+        and parts[5] == "review-subject"
+        and parsed.query in {"gate=" + gate for gate in REVIEW_GATES}
+        and not parsed.fragment
+    )
+
+
 def redact(value, token=""):
     sensitive = {"authorization", "token", "password", "api_key", "client_secret", "secret"}
     if isinstance(value, dict):
@@ -100,7 +121,7 @@ class Client:
         self.opener = build_opener(NoRedirect())
 
     def request(self, method, path, payload=None, *, idempotency_key=None):
-        if not path.startswith("/api/semantic/") or ".." in path or "?" in path or "#" in path:
+        if not allowed_semantic_path(method, path):
             raise SemanticClientError("Only Enact semantic API paths are accepted")
         body = None if payload is None else json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
         headers = dict(self.headers)

@@ -121,9 +121,12 @@ func (h *Handler) semanticStartConstruction(w http.ResponseWriter, r *http.Reque
 	constructionID := uuid.NewString()
 	title := strings.TrimSpace(in.Title)
 	if title == "" {
-		title = "Construct Ontology: " + ontologyName
+		title = "制作" + ontologyName + "本体"
 	}
-	prompt := fmt.Sprintf("Construct and review a Semantica-native Ontology through the five-role Ontologizer Family.\n\nConstruction ID: %s\nOntology ID: %s\nSource snapshot IDs: %s\nCompetency questions: %s\n\n%s\n\nRead enact-ontology-authoring and ontologizer:orchestrator. Record scoped construction events, delegate through actual child Issues and the Family roster, and use POST /api/semantic/ontologies/%s/native with source_snapshot_ids. Native RDF/OWL, SHACL, graph, provenance, rules, bindings and validation are the primary delivery. Skill Package is only an explicitly requested compatibility export. Present scope, semantic review and release decisions in the Issue; do not invent human approvals. Never wait synchronously for other Family tasks while occupying a runtime slot: dispatch and yield.", constructionID, ontologyID, semanticMarshal(in.SourceSnapshotIDs), in.CompetencyQuestions, in.Prompt, ontologyID)
+	prompt := strings.TrimSpace(in.Prompt)
+	if prompt == "" {
+		prompt = fmt.Sprintf("请基于连接的知识和绑定的数据系统帮我制作%s本体。", ontologyName)
+	}
 	var construction json.RawMessage
 	res, err := h.IssueService.Create(r.Context(), service.IssueCreateParams{WorkspaceID: parseUUID(a.WorkspaceID), Title: title, Description: pgtype.Text{String: prompt, Valid: true}, Status: "todo", Priority: "medium", AssigneeType: assigneeType, AssigneeID: assigneeID, CreatorType: a.ActorType, CreatorID: parseUUID(a.ActorID), AllowDuplicate: true}, service.IssueCreateOpts{ActorID: a.ActorID, Platform: "web", PersistRelated: func(ctx context.Context, tx pgx.Tx, issue db.Issue) error {
 		err := tx.QueryRow(ctx, `INSERT INTO semantic_construction(id,workspace_id,ontology_id,issue_id,squad_id,created_by,source_snapshot_ids,competency_questions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING to_jsonb(semantic_construction)`, constructionID, a.WorkspaceID, ontologyID, issue.ID, squadID, a.UserID, semanticMarshal(in.SourceSnapshotIDs), in.CompetencyQuestions).Scan(&construction)
@@ -263,8 +266,8 @@ func (h *Handler) semanticReviseConstruction(w http.ResponseWriter, r *http.Requ
 		writeError(w, 400, "message is required")
 		return
 	}
-	if in.Decision != "" && in.Decision != "accept" && in.Decision != "revise" {
-		writeError(w, 400, "decision must be accept or revise")
+	if in.Decision != "" && in.Decision != "revise" && in.Decision != "request_changes" {
+		writeError(w, 400, "review approval must use the exact ReviewPacket decision endpoint")
 		return
 	}
 	if !semanticConstructionStage(in.Stage) && in.Stage != "" {
@@ -293,7 +296,7 @@ func (h *Handler) semanticReviseConstruction(w http.ResponseWriter, r *http.Requ
 	}
 	var comment map[string]any
 	_ = json.Unmarshal(capture.body.Bytes(), &comment)
-	_, err := h.DB.Exec(r.Context(), `INSERT INTO semantic_construction_event(id,workspace_id,construction_id,actor_type,actor_id,stage,kind,message,data) VALUES($1,$2,$3,$4,$5,$6,'human_decision',$7,$8)`, uuid.NewString(), a.WorkspaceID, id, a.ActorType, a.ActorID, in.Stage, in.Message, semanticMarshal(map[string]any{"decision": in.Decision, "comment_id": comment["id"]}))
+	_, err := h.DB.Exec(r.Context(), `INSERT INTO semantic_construction_event(id,workspace_id,construction_id,actor_type,actor_id,stage,kind,message,data) VALUES($1,$2,$3,$4,$5,$6,'human_feedback',$7,$8)`, uuid.NewString(), a.WorkspaceID, id, a.ActorType, a.ActorID, in.Stage, in.Message, semanticMarshal(map[string]any{"request": in.Decision, "comment_id": comment["id"]}))
 	if err != nil {
 		writeError(w, 500, "comment posted but decision event could not be recorded")
 		return
@@ -308,7 +311,7 @@ func (h *Handler) semanticReviseConstruction(w http.ResponseWriter, r *http.Requ
 
 func semanticConstructionStage(stage string) bool {
 	switch stage {
-	case "scope", "evidence", "model", "review", "release":
+	case "scope", "model", "operations", "release":
 		return true
 	}
 	return false
@@ -336,7 +339,7 @@ func (h *Handler) semanticConstructionEvent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	switch in.Kind {
-	case "artifact", "handoff", "review_requested", "validation", "finding":
+	case "artifact", "handoff", "validation", "finding":
 	default:
 		writeError(w, 400, "invalid construction event kind")
 		return
@@ -354,10 +357,21 @@ func (h *Handler) semanticConstructionEvent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer tx.Rollback(r.Context())
+	var currentStage string
+	if err = tx.QueryRow(r.Context(), `SELECT stage FROM semantic_construction WHERE id=$1 AND workspace_id=$2 FOR UPDATE`, id, a.WorkspaceID).Scan(&currentStage); err != nil {
+		writeError(w, 404, "construction not found")
+		return
+	}
+	if in.Stage != currentStage {
+		writeError(w, 409, "Family events cannot cross the construction's current review gate")
+		return
+	}
 	var event json.RawMessage
 	err = tx.QueryRow(r.Context(), `INSERT INTO semantic_construction_event(id,workspace_id,construction_id,task_id,actor_type,actor_id,stage,kind,message,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING to_jsonb(semantic_construction_event)`, uuid.NewString(), a.WorkspaceID, id, *a.TaskID, a.ActorType, a.ActorID, in.Stage, in.Kind, in.Message, in.Data).Scan(&event)
 	if err == nil {
-		_, err = tx.Exec(r.Context(), `UPDATE semantic_construction SET stage=$3,status=CASE WHEN $4='review_requested' THEN 'awaiting_review' ELSE 'active' END,updated_at=now() WHERE id=$1 AND workspace_id=$2 AND status<>'completed'`, id, a.WorkspaceID, in.Stage, in.Kind)
+		_, err = tx.Exec(r.Context(), `UPDATE semantic_construction SET status=CASE
+			WHEN status='awaiting_review' AND EXISTS(SELECT 1 FROM semantic_review_packet p WHERE p.workspace_id=semantic_construction.workspace_id AND p.construction_id=semantic_construction.id AND p.gate=semantic_construction.stage AND p.status='pending') THEN status
+			ELSE 'active' END,updated_at=now() WHERE id=$1 AND workspace_id=$2 AND status<>'completed'`, id, a.WorkspaceID)
 	}
 	if err == nil {
 		err = tx.Commit(r.Context())

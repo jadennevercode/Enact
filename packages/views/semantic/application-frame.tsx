@@ -2,22 +2,34 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   semanticApi,
+  applicationError,
+  applicationIssueTargetSchema,
+  applicationIssueOpenInputSchema,
   applicationBridgeRequestSchema,
   type ApplicationBridgeRequest,
   type ApplicationBuild,
 } from "@enact/core/semantic";
+import { useCommentDraftStore } from "@enact/core/issues/stores";
+import { getCurrentSlug } from "@enact/core/platform";
+import { useWorkspacePaths } from "@enact/core/paths";
+import { useNavigation } from "../navigation";
 import { Button } from "@enact/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@enact/ui/components/ui/dialog";
 import { buildApplicationEnvelope } from "./application-document";
-import { Failure, RecordView, useSemanticText } from "./shared";
+import { ActionReview, canDecideApproval } from "./action-review";
+import { Failure, useSemanticText } from "./shared";
 interface Decision {
   request: ApplicationBridgeRequest;
   approval: unknown;
+  preview?: unknown;
+  loadingRelated?: boolean;
+  relatedError?: unknown;
   respond: (approved: boolean) => void;
 }
 export function ApplicationFrame({
@@ -29,11 +41,15 @@ export function ApplicationFrame({
   build: ApplicationBuild;
   initialRunId?: string;
 }) {
+  const navigation = useNavigation(),
+    paths = useWorkspacePaths();
   const t = useSemanticText(),
     frame = useRef<HTMLIFrameElement>(null);
   const [error, setError] = useState<unknown>(),
     [decision, setDecision] = useState<Decision | null>(null);
   const pending = useRef(false);
+  const currentNavigation = useRef({ navigation, paths });
+  currentNavigation.current = { navigation, paths };
   const document = useMemo(() => {
     try {
       return { html: buildApplicationEnvelope(build) };
@@ -62,7 +78,10 @@ export function ApplicationFrame({
           semanticApi.command(`/apps/${encodeURIComponent(appId)}/invoke`, {
             build_id: build.id,
             operation,
-            input: operation === "context" && initialRunId ? { ...input, requested_run_id: initialRunId } : input,
+            input:
+              operation === "context" && initialRunId
+                ? { ...input, requested_run_id: initialRunId }
+                : input,
           });
         const reply = (ok: boolean, value: unknown) => {
           if (!closed)
@@ -74,14 +93,33 @@ export function ApplicationFrame({
         };
         const perform = async () => {
           try {
-            reply(true, await invoke(request.operation, request.input));
+            const issueInput = request.operation === "issue.open"
+              ? applicationIssueOpenInputSchema.parse(request.input) : null;
+            const workspaceSlug = getCurrentSlug();
+            if (issueInput?.draft_message && !workspaceSlug)
+              throw new Error("Select a workspace before bringing a question to a task");
+            // Keep question text local. The server only resolves the authorized task.
+            const result = await invoke(request.operation, issueInput ? { run_id: issueInput.run_id } : request.input);
+            if (closed) return;
+            if (issueInput) {
+              const target = applicationIssueTargetSchema.safeParse(result);
+              if (!target.success || target.data.runId !== issueInput.run_id)
+                throw new Error("Investigation Issue is unavailable");
+              if (workspaceSlug !== getCurrentSlug())
+                throw new Error("Workspace changed. Return to the investigation and try again");
+              if (issueInput.draft_message && workspaceSlug) {
+                useCommentDraftStore.getState().queuePrefill(`new:${target.data.issueId}`, {
+                  id: crypto.randomUUID(), content: issueInput.draft_message, workspaceSlug,
+                });
+              }
+              reply(true, { ...target.data, ...(issueInput.draft_message ? { draft_status: "saved" } : {}) });
+              const current = currentNavigation.current;
+              current.navigation.push(
+                current.paths.issueDetail(target.data.issueId),
+              );
+            } else reply(true, result);
           } catch (error) {
-            reply(
-              false,
-              error instanceof Error
-                ? error.message
-                : "Application request failed",
-            );
+            reply(false, applicationError(error));
           }
         };
         if (request.operation === "approval.decide") {
@@ -101,16 +139,19 @@ export function ApplicationFrame({
               respond: (approved) => {
                 setDecision(null);
                 pending.current = false;
-                if (approved) void perform();
-                else reply(false, "Decision cancelled by the user");
+                if (approved && canDecideApproval(approval)) void perform();
+                else
+                  reply(
+                    false,
+                    approved
+                      ? "This approval is no longer available for a decision"
+                      : "Decision cancelled by the user",
+                  );
               },
             });
           } catch (error) {
             pending.current = false;
-            reply(
-              false,
-              error instanceof Error ? error.message : "Cannot load approval",
-            );
+            reply(false, applicationError(error));
           }
         } else await perform();
       };
@@ -129,11 +170,42 @@ export function ApplicationFrame({
       channel?.port1.close();
     };
   }, [appId, build.id, initialRunId]);
+  async function viewRelatedApproval(approvalId: string) {
+    if (!decision) return;
+    const originalRequest = decision.request;
+    setDecision((current) =>
+      current?.request === originalRequest
+        ? { ...current, loadingRelated: true, relatedError: undefined }
+        : current,
+    );
+    try {
+      const preview = await semanticApi.command(
+        `/apps/${encodeURIComponent(appId)}/invoke`,
+        {
+          build_id: build.id,
+          operation: "approval.get",
+          input: { approval_id: approvalId },
+        },
+      );
+      setDecision((current) =>
+        current?.request === originalRequest
+          ? { ...current, preview, loadingRelated: false }
+          : current,
+      );
+    } catch (relatedError) {
+      setDecision((current) =>
+        current?.request === originalRequest
+          ? { ...current, relatedError, loadingRelated: false }
+          : current,
+      );
+    }
+  }
   if (document.error) return <Failure error={document.error} />;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Failure error={error} />
       <iframe
+        key={`${appId}:${build.id}:${initialRunId || ""}`}
         ref={frame}
         title="Business application"
         sandbox="allow-scripts"
@@ -148,24 +220,72 @@ export function ApplicationFrame({
           if (!open) decision?.respond(false);
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-auto">
+        <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {decision?.request.input.approve === true
-                ? t("approve")
-                : t("reject")}
+              {decision?.preview !== undefined
+                ? t("actionReviewRelatedTitle")
+                : decision?.request.input.approve === true
+                  ? t("actionReviewApproveTitle")
+                  : t("actionReviewRejectTitle")}
             </DialogTitle>
+            <DialogDescription>{t("actionReviewSummary")}</DialogDescription>
           </DialogHeader>
-          <RecordView value={decision?.approval} />
-          <p className="text-body">
-            {String(decision?.request.input.reason ?? "")}
-          </p>
-          <div className="flex gap-3">
-            <Button onClick={() => decision?.respond(true)}>
-              {decision?.request.input.approve === true
-                ? t("approve")
-                : t("reject")}
-            </Button>
+          {decision?.preview !== undefined && (
+            <p className="text-body leading-relaxed text-muted-foreground">
+              {t("actionReviewRelatedReadOnly")}
+            </p>
+          )}
+          <Failure error={decision?.relatedError} />
+          {decision?.loadingRelated && (
+            <p role="status" className="text-caption text-muted-foreground">
+              {t("loading")}
+            </p>
+          )}
+          <ActionReview
+            approval={decision?.preview ?? decision?.approval}
+            reviewReason={
+              decision?.preview === undefined
+                ? String(decision?.request.input.reason ?? "")
+                : undefined
+            }
+            onViewRelated={
+              decision?.loadingRelated
+                ? undefined
+                : (id) => void viewRelatedApproval(id)
+            }
+          />
+          <div className="flex flex-wrap gap-3">
+            {decision?.preview !== undefined ? (
+              <Button
+                variant="outline"
+                disabled={decision?.loadingRelated}
+                onClick={() =>
+                  setDecision((current) =>
+                    current
+                      ? {
+                          ...current,
+                          preview: undefined,
+                          relatedError: undefined,
+                        }
+                      : current,
+                  )
+                }
+              >
+                {t("actionReviewReturnOriginal")}
+              </Button>
+            ) : (
+              canDecideApproval(decision?.approval) && (
+                <Button
+                  disabled={decision?.loadingRelated}
+                  onClick={() => decision?.respond(true)}
+                >
+                  {decision?.request.input.approve === true
+                    ? t("approve")
+                    : t("reject")}
+                </Button>
+              )
+            )}
             <Button variant="outline" onClick={() => decision?.respond(false)}>
               {t("cancel")}
             </Button>

@@ -1,12 +1,13 @@
 "use client";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, ChevronDown, Database, GitBranch, Network, ShieldCheck, Zap } from "lucide-react";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
-import { semanticOptions, traceOptions } from "@enact/core/semantic";
+import { semanticApi, semanticOptions, traceOptions } from "@enact/core/semantic";
 import { Button } from "@enact/ui/components/ui/button";
 import { useNavigation } from "../navigation";
+import { BusinessJourney } from "./business-journey";
 import { SemanticExplorer } from "./semantic-explorer";
 import { readableFact, readableTrace, traceRecord, traceStepId } from "./trace-presentation";
 import { Failure, RecordView, StateBadge, useSemanticText } from "./shared";
@@ -14,19 +15,28 @@ import { Failure, RecordView, StateBadge, useSemanticText } from "./shared";
 export function OntologyTrace({ runId, compact = false }: { runId: string; compact?: boolean }) {
   const t = useSemanticText(), wsId = useWorkspaceId(), query = useQuery(traceOptions(wsId, runId));
   const [selected, setSelected] = useState("");
+  const [showTechnical, setShowTechnical] = useState(false);
   const graph = useMemo(() => query.data ? readableTrace(query.data) : undefined, [query.data]);
   const steps = query.data?.steps || [];
+  const download = useMutation({ mutationFn: async (format: "html" | "jsonl") => {
+    const blob = await semanticApi.exportReport(runId, format), url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.href = url; link.download = `ontology-report.${format}`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } });
   const current = steps.find(s => String(s.id) === selected) || [...steps].reverse().find(s => s.kind === "rule_evaluation") || steps[0];
   const output = traceRecord(current?.output), input = traceRecord(current?.input);
   const derivations = Array.isArray(output.derivations) ? output.derivations.map(traceRecord) : [];
   const sourceIDs = Array.isArray(input.source_step_ids) ? input.source_step_ids : [];
   const label = (step: Record<string, unknown>) => {
     const kind = String(step.kind || step.type || "");
-    const names = {data_query: "query", ontology_query: "ontologyQuery", rule_evaluation: "evaluate", action: "prepare", execute: "execute", readback: "readback"} as const;
+    const names = {business_plan: "journeyPlan", business_report: "journeyFindings", ontology_context: "journeyObjects", policy_evaluation: "journeyPolicies", data_query: "query", ontology_query: "ontologyQuery", rule_evaluation: "evaluate", action: "prepare", execute: "execute", readback: "readback"} as const;
     return String(step.title || (kind in names ? t(names[kind as keyof typeof names]) : kind));
   };
   return <div className="space-y-4">
-    <Failure error={query.error} retry={() => void query.refetch()} />
+    <Failure error={query.error || download.error} retry={() => void query.refetch()} />
+    {steps.some(step => step.kind === "business_report" && step.status === "succeeded") && <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={download.isPending} onClick={() => download.mutate("html")}>{t("journeyDownloadHTML")}</Button><Button variant="outline" disabled={download.isPending} onClick={() => download.mutate("jsonl")}>{t("journeyDownloadLog")}</Button></div>}
+    <BusinessJourney steps={steps} onEvidence={id => { setSelected(id); setShowTechnical(true); }} />
+    <details open={showTechnical} onToggle={e => setShowTechnical(e.currentTarget.open)}><summary className="cursor-pointer py-2 text-body font-medium text-muted-foreground">{t("journeyTechnical")}</summary>
     <SemanticExplorer graph={graph} compact={compact} onSelectNode={node => { if (node) { const id = traceStepId(node, steps); if (id) setSelected(id); } }} />
     {steps.length > 0 && <section className="overflow-hidden rounded-xl border border-border-soft">
       <div className="border-b border-border-soft bg-muted/20 px-4 py-3"><h3 className="text-body font-semibold">{t("executionEvidence")}</h3></div>
@@ -51,12 +61,13 @@ export function OntologyTrace({ runId, compact = false }: { runId: string; compa
             <p className="break-words text-body">{readableFact(derivation.conclusion, output.term_registry)}</p>
             <details><summary className="cursor-pointer text-caption font-medium">{t("recordedPremises")}</summary><ul className="mt-2 space-y-2">{(Array.isArray(derivation.premises) ? derivation.premises : []).map((premise, i) => <li className="break-words border-l-2 border-primary/30 pl-3 text-caption" key={i}>{readableFact(premise, output.term_registry)}</li>)}</ul></details>
           </article>)}
-          {!derivations.length && <RecordView value={current.output || current.result || current.metadata} />}
+          {!derivations.length && <details><summary className="cursor-pointer text-caption text-muted-foreground">{t("raw")}</summary><RecordView value={current.output || current.result || current.metadata} /></details>}
           {derivations.length > 0 && <details><summary className="cursor-pointer text-caption text-muted-foreground">{t("raw")}</summary><RecordView value={current.output} /></details>}
           <details><summary className="cursor-pointer text-caption text-muted-foreground">{t("parameters")}</summary><div className="mt-2"><RecordView value={current.input} /></div></details>
         </> : <p className="text-body text-muted-foreground">{t("traceHelp")}</p>}</div>
       </div>
     </section>}
+    </details>
   </div>;
 }
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/ontologizer"
 	"github.com/enact-ai/enact/server/internal/semantic"
 	"github.com/enact-ai/enact/server/internal/testutil"
 	"github.com/google/uuid"
@@ -45,6 +46,22 @@ func publicationConstruction(t *testing.T, ws, ontology, issue, squad, creator s
 	return id
 }
 
+// This helper drives explicit member decisions in isolated test fixtures; it
+// must never be used to fabricate business acceptance in a live workspace.
+func approvePublicationFixture(t *testing.T, construction, ontology, agent, runtime, issue string) {
+	t.Helper()
+	task := dbfx.Task(t, agent, testutil.Cols{"runtime_id": runtime, "issue_id": issue, "status": "running", "originator_user_id": testUserID, "accountable_user_id": testUserID})
+	dbfx.Exec(t, "UPDATE semantic_construction SET stage='scope',status='active' WHERE id=$1", construction)
+	fixture := semanticReviewFixture{ConstructionID: construction, OntologyID: ontology, AgentID: agent, TaskID: task}
+	dbfx.Cleanup(t, "DELETE FROM semantic_review_packet WHERE construction_id=$1", construction)
+	dbfx.Cleanup(t, "DELETE FROM semantic_human_decision WHERE construction_id=$1", construction)
+	for _, gate := range []ontologizer.ReviewGate{ontologizer.ReviewGateScope, ontologizer.ReviewGateModel, ontologizer.ReviewGateOperations, ontologizer.ReviewGateRelease} {
+		var packet map[string]any
+		testutil.Call(t, testHandler.semanticCreateReviewPacket, fixture.agentRequest("POST", construction, reviewPacketBody(t, construction, gate))).Want(201).JSON(&packet)
+		decideReviewPacket(t, packet, "approve").Want(200)
+	}
+}
+
 func TestSemanticPublicationCompletesOnlyLatestConstructionAndPreservesIssue(t *testing.T) {
 	ontology := publicationOntology(t, nil)
 	runtime := dbfx.Runtime(t, "publication runtime", testutil.Cols{"provider": "codex"})
@@ -56,6 +73,7 @@ func TestSemanticPublicationCompletesOnlyLatestConstructionAndPreservesIssue(t *
 	older := publicationConstruction(t, testWorkspaceID, ontology, issue, squad, creator, time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))
 	latest := publicationConstruction(t, testWorkspaceID, ontology, issue, squad, creator, time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
 	unrelated := publicationConstruction(t, otherWS, ontology, issue, squad, creator, time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC))
+	approvePublicationFixture(t, latest, ontology, agent, runtime, issue)
 	var release map[string]any
 	testutil.Call(t, testHandler.semanticPublishRelease, semanticRequest("POST", ontology, map[string]any{"version": "v1"})).Want(201).JSON(&release)
 	var stage, status string
@@ -66,7 +84,7 @@ func TestSemanticPublicationCompletesOnlyLatestConstructionAndPreservesIssue(t *
 	var actorType, actorID, kind string
 	var taskID *string
 	var data json.RawMessage
-	dbfx.QueryRow(t, `SELECT actor_type,actor_id::text,task_id::text,kind,stage,data FROM semantic_construction_event WHERE construction_id=$1`, latest).Scan(&actorType, &actorID, &taskID, &kind, &stage, &data)
+	dbfx.QueryRow(t, `SELECT actor_type,actor_id::text,task_id::text,kind,stage,data FROM semantic_construction_event WHERE construction_id=$1 AND kind='published'`, latest).Scan(&actorType, &actorID, &taskID, &kind, &stage, &data)
 	var recorded map[string]any
 	if err := json.Unmarshal(data, &recorded); err != nil {
 		t.Fatal(err)
@@ -83,14 +101,16 @@ func TestSemanticPublicationCompletesOnlyLatestConstructionAndPreservesIssue(t *
 		}
 	}
 	task := dbfx.Task(t, agent, testutil.Cols{"runtime_id": runtime, "issue_id": issue, "status": "running", "originator_user_id": testUserID, "accountable_user_id": testUserID})
-	for _, kind := range []string{"handoff", "review_requested"} {
-		request := testutil.WithHeaders(semanticRequest("POST", latest, map[string]any{"stage": "review", "kind": kind, "message": "late Family progress"}), "X-Actor-Source", "task_token", "X-Agent-ID", agent, "X-Task-ID", task)
-		testutil.Call(t, testHandler.semanticConstructionEvent, request).Want(201)
+	var beforeLateEvents int
+	dbfx.QueryRow(t, "SELECT count(*) FROM semantic_construction_event WHERE construction_id=$1", latest).Scan(&beforeLateEvents)
+	for _, kind := range []string{"handoff", "validation"} {
+		request := testutil.WithHeaders(semanticRequest("POST", latest, map[string]any{"stage": "model", "kind": kind, "message": "late Family progress"}), "X-Actor-Source", "task_token", "X-Agent-ID", agent, "X-Task-ID", task)
+		testutil.Call(t, testHandler.semanticConstructionEvent, request).Want(409)
 	}
 	var events int
 	dbfx.QueryRow(t, `SELECT stage,status,(SELECT count(*) FROM semantic_construction_event WHERE construction_id=c.id) FROM semantic_construction c WHERE id=$1`, latest).Scan(&stage, &status, &events)
-	if stage != "release" || status != "completed" || events != 3 {
-		t.Fatal("late Family events reopened a published construction or disappeared")
+	if stage != "release" || status != "completed" || events != beforeLateEvents {
+		t.Fatal("late Family events reopened a published construction or changed its history")
 	}
 	dbfx.QueryRow(t, `SELECT status FROM issue WHERE id=$1`, issue).Scan(&status)
 	if status != "in_progress" {
@@ -135,9 +155,9 @@ func TestSemanticPublicationFailureLeavesConstructionAndEventsUnchanged(t *testi
 	}
 }
 
-func TestSemanticPublicationWithoutConstructionRemainsSupported(t *testing.T) {
+func TestSemanticPublicationWithoutConstructionRequiresHumanReview(t *testing.T) {
 	ontology := publicationOntology(t, nil)
-	testutil.Call(t, testHandler.semanticPublishRelease, semanticRequest("POST", ontology, map[string]any{"version": "v1"})).Want(201)
+	testutil.Call(t, testHandler.semanticPublishRelease, semanticRequest("POST", ontology, map[string]any{"version": "v1"})).Want(409)
 	var events int
 	dbfx.QueryRow(t, `SELECT count(*) FROM semantic_construction_event e JOIN semantic_construction c ON c.id=e.construction_id WHERE c.ontology_id=$1`, ontology).Scan(&events)
 	if events != 0 {

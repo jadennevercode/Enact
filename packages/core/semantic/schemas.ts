@@ -21,7 +21,13 @@ export const connectionSchema = z
     endpoint: v.endpoint,
     config: v.config,
     enabled: v.enabled,
-    capabilities: v.capabilities.length ? v.capabilities : Array.isArray(v.config.capabilities) ? v.config.capabilities.filter((x): x is string => typeof x === "string") : [],
+    capabilities: v.capabilities.length
+      ? v.capabilities
+      : Array.isArray(v.config.capabilities)
+        ? v.config.capabilities.filter(
+            (x): x is string => typeof x === "string",
+          )
+        : [],
     createdAt: v.created_at,
   }));
 export const ontologySchema = z
@@ -86,6 +92,8 @@ export const approvalSchema = z
     id: z.string(),
     run_id: z.string().catch(""),
     binding_id: z.string().catch(""),
+    supersedes_approval_id: z.string().uuid().nullable().optional(),
+    superseded_by: z.string().uuid().nullable().optional(),
     status: z.string().catch("pending"),
     parameters: object.catch({}),
     reason: z.string().catch(""),
@@ -232,6 +240,10 @@ export const applicationBridgeRequestSchema = z.object({
     "run.get",
     "run.attach",
     "run.trace",
+    "run.context",
+    "run.report",
+    "policies",
+    "issue.open",
     "query",
     "evaluate",
     "action.prepare",
@@ -246,3 +258,13 @@ export const applicationBridgeRequestSchema = z.object({
 export type ApplicationBridgeRequest = z.infer<
   typeof applicationBridgeRequestSchema
 >;
+
+/** Draft text stays in the host's workspace-scoped store; only run_id reaches the API. */
+export const applicationIssueOpenInputSchema = z.object({
+  run_id: z.string().uuid(),
+  draft_message: z.string().trim().min(1).max(8000).optional(),
+});
+
+export const applicationIssueTargetSchema = z
+  .object({ issue_id: z.string().uuid(), run_id: z.string().uuid() })
+  .transform((v) => ({ issueId: v.issue_id, runId: v.run_id }));

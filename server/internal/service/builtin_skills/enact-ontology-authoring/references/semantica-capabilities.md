@@ -7,7 +7,7 @@ Adapted from Semantica's maintained `plugins/skills/*/SKILL.md` sources. The pro
 | ingest | Selected source snapshots preserve document IDs, paths, commit and content hashes. Read scoped connection snapshots; do not bypass Connection permissions. |
 | extract | Native extraction returns entities, relations, events and validation; request extraction.mode=runtime to use the controlled model callback under the active task. |
 | deduplicate | Review native normalization/deduplication candidates and preserve entity IDs and conflicting evidence. Never merge solely because labels resemble one another. |
-| ontology | Inspect actual RDF classes, restrictions, domain/range and SHACL. Domain/range is not property cardinality. Native RDF remains canonical. |
+| ontology | Inspect compiled RDF classes, restrictions, domain/range and SHACL. Domain/range is not property cardinality. The saved version-2 business definition remains editable authority; RDF and SHACL are Semantica's technical compilation. |
 | query | SPARQL uses predicates/IRIs actually in the selected native release. Documentation graphs are specifications; cases, lots and quantities require data bindings. |
 | reason | Invoke recorded evaluation from successful source_step_ids; retain rule IDs, derivations and unknowns. A described business rule is not an executable rule. |
 | validate | Native schema, graph, SHACL and competency checks retain target-instance coverage, errors and warnings. Zero targeted instances is not business validation. |

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY semantic_agent_ontology_unique ON semantic_agent_ontology(workspace_id,agent_id,ontology_id);

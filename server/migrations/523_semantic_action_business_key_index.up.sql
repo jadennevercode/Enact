@@ -1,0 +1,1 @@
+CREATE INDEX CONCURRENTLY semantic_action_business_key_index ON semantic_approval(workspace_id,requested_by,business_key);

@@ -1,0 +1,1 @@
+CREATE INDEX CONCURRENTLY IF NOT EXISTS semantic_draft_policy_test_result_scope ON semantic_draft_policy_test_result(workspace_id,ontology_id,created_at DESC);

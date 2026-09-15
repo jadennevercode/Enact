@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS semantic_release_installation_identity_idx ON semantic_release_installation (workspace_id, source_workspace_id, source_release_id, source_release_digest, preview_digest);

@@ -17,7 +17,9 @@ type semanticNativeDiagnostic struct {
 // Only static catalog entries cross this boundary. Downstream exception text
 // can contain extracted source data, property names, callback tokens or URLs.
 var semanticNativeDiagnostics = map[string]semanticNativeDiagnostic{
-	"native_undeclared_entity_property":       {"native_undeclared_entity_property", "export", "An extracted entity property is absent from ontology.properties. Declare its property name/IRI and datatype or object range, or move extraction-only annotations into metadata. Preserve source anchors and replay completed model operations after repairing the schema."},
+	"native_invalid_business_definition":      {"native_invalid_business_definition", "model", "The version-2 business definition is structurally invalid. The definition and every Entity, Attribute, Relationship, Action and Policy need nonempty id, label and description fields. Attributes also need a supported data_type and an existing entity_id; relationships need existing source/target entity IDs and nonnegative min/max cardinalities. Repair references and required fields in definition before rebuilding."},
+	"native_binding_definition_mismatch":      {"native_binding_definition_mismatch", "operations", "Execution bindings differ from the bindings in the authoritative version-2 definition. Build both views from the same definition without dropping explicit empty fields or connector metadata; no ontology revision was saved."},
+	"native_undeclared_entity_property":       {"native_undeclared_entity_property", "export", "An extracted entity property is absent from the version-2 business definition. Declare a scalar field in definition.attributes or an object link in definition.relationships, or move extraction-only annotations into metadata. Preserve source anchors and replay completed model operations after repairing the definition."},
 	"native_invalid_property_value":           {"native_invalid_property_value", "export", "An entity property value does not match its declared datatype or object range. Use a scalar or typed literal for datatype properties and a stable entity ID or IRI for object properties; then replay completed extraction results."},
 	"native_source_snapshot_mismatch":         {"native_source_snapshot_mismatch", "parse", "Source IDs and hashes must match the selected immutable snapshots. Reload the scoped snapshot documents and preserve their original content, IDs and hashes."},
 	"native_extraction_source_mismatch":       {"native_extraction_source_mismatch", "semantic_extract", "Extraction evidence does not match the selected source text. Use an existing source ID and exact quote/start/end offsets; resolve ambiguous mentions without inventing source text. Replay completed model results when available."},
@@ -27,6 +29,7 @@ var semanticNativeDiagnostics = map[string]semanticNativeDiagnostic{
 	"native_model_operation_pending":          {"native_model_operation_pending", "semantic_extract", "A model operation is still running. Inspect its existing operation ID in the construction record; wait for completion and replay the completed result instead of submitting another model call."},
 	"native_model_operation_failed":           {"native_model_operation_failed", "semantic_extract", "The assigned model operation did not complete successfully. Inspect its recorded status and repair the runtime or extraction request before retrying; reuse any completed operations."},
 	"native_replay_mismatch":                  {"native_replay_mismatch", "semantic_extract", "Replay must use authorized completed operation IDs with the original source selection, extraction prompt and schema. Omit supplied extractions and keep the selected document/chunk scope unchanged."},
+	"native_extraction_work_limit":            {"native_extraction_work_limit", "semantic_extract", "Runtime extraction exceeds its explicit model-operation budget. Select only relevant exact source_ids or chunk_ids, or set max_model_operations within the allowed limit after estimating two operations per selected chunk. If the reviewed definition only needs technical compilation, omit runtime extraction and retain schema-only coverage; do not silently increase the budget or claim unprocessed sources were extracted."},
 	"native_service_unavailable":              {"native_service_unavailable", "pipeline", "The native semantic service is unavailable or unconfigured. Restore the configured service before retrying and check existing model operations before starting new extraction."},
 	"native_build_failed":                     {"native_build_failed", "pipeline", "The native build failed without a recognized safe diagnostic. Inspect the construction findings and completed model operations. Repair the request before retrying; no ontology revision was saved."},
 }
@@ -63,6 +66,10 @@ func semanticClassifyNativeFailure(err error) semanticNativeDiagnostic {
 		return false
 	}
 	switch {
+	case contains("A business definition requires schema_version 2", "Business declaration IDs must be unique across all five types", "Aliases must be an array of strings", "Declaration status must be draft, active or disabled", "Attribute requires a supported data_type", "Relationship cardinality must contain min and max bounds", "Relationship cardinality declarations disagree", "Relationship cardinalities must be nonnegative integers", "Relationship minimum exceeds its maximum cardinality", "Action identity_parameters must name at most twenty input fields", "Action target identity must reference declared input parameters", "Policy requires permission, prohibition, obligation or constraint", "Policy priority must be an integer", "Bindings must be an array of at most 1000 declarations", "Bindings require distinct nonempty IDs", "Data binding requires a business target"):
+		code = "native_invalid_business_definition"
+	case strings.HasPrefix(message, "Definition requires ") || strings.HasPrefix(message, "Each ") && strings.Contains(message, " declaration requires ") || strings.HasPrefix(message, "Unknown ") && strings.Contains(message, " reference: ") || strings.HasPrefix(message, "Action ") && strings.Contains(message, " is not a valid JSON Schema") || strings.HasPrefix(message, "Policy effective"):
+		code = "native_invalid_business_definition"
 	case contains("Entity property ") && contains("needs an explicit ontology property term"):
 		code = "native_undeclared_entity_property"
 	case contains("requires an entity identifier or IRI", "requires a scalar or explicit typed literal", "contains an unsupported value", "has an invalid lexical value"):
@@ -77,12 +84,18 @@ func semanticClassifyNativeFailure(err error) semanticNativeDiagnostic {
 		code = "native_extraction_relationship_endpoint"
 	case contains("Native rules fail the reviewed rule/intent contract", "Native rules require safe predicate atoms", "Native rule conditions and conclusion require safe predicate atoms", "Native rule IDs must be non-empty and unique", "Conclusion references variables absent from native rule premises", "Native rule action requires an existing action binding", "Native action parameters must be an object using only bound proof variables"):
 		code = "native_rule_contract"
+	case contains("Definition bindings and execution bindings must match; rebuild from one definition"):
+		code = "native_binding_definition_mismatch"
 	case contains("Enact model operation is still running"):
 		code = "native_model_operation_pending"
 	case contains("Enact model operation did not complete successfully"):
 		code = "native_model_operation_failed"
 	case contains("Replay requires exactly one authorized completed operation", "Replay requires server-resolved completed model operation records", "Replay model operation IDs must be unique", "Replay contains unused operations outside the selected extraction"):
 		code = "native_replay_mismatch"
+	case contains("Runtime extraction needs ") && contains("model operations for ", "select source_ids/chunk_ids or explicitly increase max_model_operations"):
+		code = "native_extraction_work_limit"
+	case contains("Runtime max_model_operations must be an integer from 2 to 200"):
+		code = "native_extraction_work_limit"
 	}
 	return semanticNativeDiagnostics[code]
 }

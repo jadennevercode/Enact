@@ -78,6 +78,10 @@ type Readback struct {
 }
 
 type Binding struct {
+	EntityID             string           `json:"entity_id,omitempty"`
+	AttributeID          string           `json:"attribute_id,omitempty"`
+	RelationshipID       string           `json:"relationship_id,omitempty"`
+	ActionID             string           `json:"action_id,omitempty"`
 	ID                   string           `json:"id"`
 	Kind                 string           `json:"kind,omitempty"`
 	ConnectionID         string           `json:"connection_id"`

@@ -31,14 +31,40 @@ func semanticPresentationRun(ctx context.Context, run map[string]any) map[string
 		switch step["kind"] {
 		case "data_query":
 			allow = applicationAllows(manifest.Queries, binding)
-		case "ontology_query":
+		case "ontology_query", "ontology_context":
 			allow = applicationAllows(manifest.Queries, "@ontology")
-		case "rule_evaluation":
+		case "rule_evaluation", "policy_evaluation", "business_report":
 			ids, _ := input["source_step_ids"].([]any)
 			allow = len(ids) > 0
 			for _, id := range ids {
 				key, _ := id.(string)
 				if !visible[key] {
+					allow = false
+				}
+			}
+		case "business_plan":
+			allow = applicationAllows(manifest.Queries, "@ontology")
+			plans, _ := input["steps"].([]any)
+			for _, rawPlan := range plans {
+				plan, _ := rawPlan.(map[string]any)
+				bindings, _ := plan["binding_ids"].([]any)
+				for _, rawBinding := range bindings {
+					b, _ := rawBinding.(string)
+					if !applicationAllows(manifest.Queries, b) && !applicationAllows(manifest.Actions, b) {
+						allow = false
+					}
+				}
+			}
+		}
+		if step["kind"] == "policy_evaluation" && allow {
+			// A Site may only inspect policy outcomes whose concrete intents
+			// stay inside its action capability list.
+			output, _ := step["output"].(map[string]any)
+			intents, _ := output["action_intents"].([]any)
+			for _, rawIntent := range intents {
+				intent, _ := rawIntent.(map[string]any)
+				b, _ := intent["binding_id"].(string)
+				if !applicationAllows(manifest.Actions, b) {
 					allow = false
 				}
 			}

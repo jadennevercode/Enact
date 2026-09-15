@@ -22,6 +22,7 @@ func (h *Handler) semanticNativeOntology(w http.ResponseWriter, r *http.Request)
 	}
 	var input struct {
 		SourceSnapshotIDs   []string         `json:"source_snapshot_ids"`
+		Definition          map[string]any   `json:"definition"`
 		Ontology            map[string]any   `json:"ontology"`
 		Extractions         map[string]any   `json:"extractions"`
 		Rules               []map[string]any `json:"rules"`
@@ -41,18 +42,30 @@ func (h *Handler) semanticNativeOntology(w http.ResponseWriter, r *http.Request)
 	var prior struct {
 		SourceSnapshotIDs []string `json:"source_snapshot_ids"`
 		Artifact          struct {
-			Ontology  map[string]any   `json:"native_ontology"`
-			Graph     map[string]any   `json:"knowledge_graph"`
-			Rules     []map[string]any `json:"native_rules"`
-			Questions []map[string]any `json:"competency_questions"`
+			Definition map[string]any   `json:"definition"`
+			Ontology   map[string]any   `json:"native_ontology"`
+			Graph      map[string]any   `json:"knowledge_graph"`
+			Rules      []map[string]any `json:"native_rules"`
+			Questions  []map[string]any `json:"competency_questions"`
 		} `json:"native_artifact"`
 	}
 	_ = json.Unmarshal(before, &prior)
 	if input.SourceSnapshotIDs == nil {
 		input.SourceSnapshotIDs = prior.SourceSnapshotIDs
 	}
-	if input.Ontology == nil {
-		input.Ontology = prior.Artifact.Ontology
+	if input.Definition != nil && input.Ontology != nil {
+		writeError(w, 400, "definition is the authoritative model; omit compiled ontology")
+		return
+	}
+	if input.Definition == nil && input.Ontology == nil {
+		input.Definition = prior.Artifact.Definition
+		if input.Definition == nil {
+			input.Ontology = prior.Artifact.Ontology
+		}
+	}
+	if prior.Artifact.Definition != nil && input.Definition == nil {
+		writeError(w, 400, "edit the business definition, not its compiled OWL projection")
+		return
 	}
 	usesModelResults := input.Extraction["mode"] == "runtime" || input.Extraction["mode"] == "replay"
 	if usesModelResults && input.Extractions != nil {
@@ -152,10 +165,33 @@ func (h *Handler) semanticNativeOntology(w http.ResponseWriter, r *http.Request)
 		writeError(w, 400, "saved bindings are invalid")
 		return
 	}
-	allBindings := semanticNativeBindings(bindings)
+	if input.Definition != nil {
+		if json.Unmarshal(semanticMarshal(input.Definition), &bindings) != nil {
+			writeError(w, 400, "definition bindings are invalid")
+			return
+		}
+		if err := bindings.Validate(); err != nil {
+			writeError(w, 400, err.Error())
+			return
+		}
+	}
+	allBindings := any(semanticNativeBindings(bindings))
+	if input.Definition != nil {
+		// The version-2 definition is the canonical binding document. Keep the
+		// typed decode above for Enact's execution-safety validation, but do not
+		// reserialize it for Native: that would drop extension fields and empty
+		// arrays through Go's typed/omitempty projection, making two views of the
+		// same definition appear to conflict.
+		definitionBindings, err := semanticNativeDefinitionBindings(input.Definition)
+		if err != nil {
+			writeError(w, 400, "definition bindings are invalid")
+			return
+		}
+		allBindings = definitionBindings
+	}
 	payload := map[string]any{
 		"scope":   map[string]string{"workspace_id": actor.WorkspaceID, "ontology_id": id, "release_id": "draft:" + id},
-		"sources": documents, "ontology": input.Ontology, "extractions": input.Extractions,
+		"sources": documents, "ontology": input.Ontology, "definition": input.Definition, "extractions": input.Extractions,
 		"rules": input.Rules, "competency_questions": input.CompetencyQuestions, "review_decisions": input.ReviewDecisions,
 		"extraction": input.Extraction, "bindings": allBindings,
 	}
@@ -169,6 +205,9 @@ func (h *Handler) semanticNativeOntology(w http.ResponseWriter, r *http.Request)
 	}
 	if input.Ontology == nil {
 		delete(payload, "ontology")
+	}
+	if input.Definition == nil {
+		delete(payload, "definition")
 	}
 	if input.Extractions == nil {
 		delete(payload, "extractions")
@@ -223,9 +262,12 @@ func (h *Handler) semanticNativeOntology(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var saved json.RawMessage
-	err = tx.QueryRow(r.Context(), `UPDATE semantic_ontology SET bundle=$3,updated_at=now() WHERE workspace_id=$1 AND id=$2 RETURNING to_jsonb(semantic_ontology)`, actor.WorkspaceID, id, bundle).Scan(&saved)
+	err = tx.QueryRow(r.Context(), `UPDATE semantic_ontology SET bundle=$3,binding_config=$4,updated_at=now() WHERE workspace_id=$1 AND id=$2 RETURNING to_jsonb(semantic_ontology)`, actor.WorkspaceID, id, bundle, semanticMarshal(bindings)).Scan(&saved)
 	if err == nil {
 		_, err = tx.Exec(r.Context(), `INSERT INTO semantic_ontology_revision(workspace_id,ontology_id,digest,artifact,stages,findings,source_snapshot_ids,review_required,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, actor.WorkspaceID, id, semantic.Digest(output.Artifact), semanticMarshal(output.Artifact), output.Stages, output.Findings, semanticMarshal(input.SourceSnapshotIDs), output.ReviewRequired, actor.UserID)
+	}
+	if err == nil {
+		err = h.semanticInvalidateOntologyReviews(r.Context(), tx, actor.WorkspaceID, id)
 	}
 	if err == nil {
 		err = tx.Commit(r.Context())
@@ -281,6 +323,28 @@ func semanticNativeBindings(bindings semantic.Bindings) []semantic.Binding {
 		all = append(all, binding)
 	}
 	return all
+}
+
+func semanticNativeDefinitionBindings(definition map[string]any) ([]map[string]any, error) {
+	var raw struct {
+		Data    []map[string]any `json:"data_bindings"`
+		Actions []map[string]any `json:"action_bindings"`
+	}
+	// Marshal/unmarshal provides an independent deep copy so adding the Native
+	// discriminator cannot mutate the caller's authoritative definition.
+	if err := json.Unmarshal(semanticMarshal(definition), &raw); err != nil {
+		return nil, err
+	}
+	all := make([]map[string]any, 0, len(raw.Data)+len(raw.Actions))
+	for _, binding := range raw.Data {
+		binding["kind"] = "data"
+		all = append(all, binding)
+	}
+	for _, binding := range raw.Actions {
+		binding["kind"] = "action"
+		all = append(all, binding)
+	}
+	return all, nil
 }
 
 func (h *Handler) semanticOntologyRevisions(w http.ResponseWriter, r *http.Request) {

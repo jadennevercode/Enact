@@ -16,6 +16,7 @@ import { CollectionPageHeader } from "../layout/collection-page";
 import { useNavigation } from "../navigation";
 import { AgentWork } from "./agent-work";
 import { OntologyTrace } from "./ontology-trace";
+import { ApprovalVersionNotice, canDecideApproval } from "./action-review";
 import {
   TextArea,
   Field,
@@ -121,9 +122,7 @@ export function BusinessRunPage({ runId }: { runId: string }) {
               )}
             </div>
           )}
-          {run?.steps.length ? (
-            <OntologyTrace runId={runId} compact />
-          ) : null}
+          {run?.steps.length ? <OntologyTrace runId={runId} compact /> : null}
           {run?.steps.length ? (
             run.steps.map((step, index) => (
               <article key={step.id} className="rounded-xl border p-5">
@@ -160,13 +159,25 @@ export function BusinessRunPage({ runId }: { runId: string }) {
             <Empty />
           )}
           {run?.approvals.map((a) => (
-            <article key={a.id} className="space-y-3 rounded-xl border p-5">
+            <article
+              key={a.id}
+              id={`approval-${a.id}`}
+              className="space-y-3 rounded-xl border p-5"
+            >
               <div className="flex flex-wrap justify-between gap-3">
                 <h2 className="font-medium">{a.bindingId}</h2>
                 <StateBadge state={a.status} />
               </div>
+              <ApprovalVersionNotice
+                approval={a}
+                relatedHref={(id) =>
+                  run.approvals.some((item) => item.id === id)
+                    ? `#approval-${id}`
+                    : undefined
+                }
+              />
               <RecordView value={a.parameters} />
-              {a.status === "pending" && (
+              {canDecideApproval(a) && (
                 <>
                   <TextArea
                     label={t("reason")}
@@ -201,7 +212,7 @@ export function BusinessRunPage({ runId }: { runId: string }) {
                   </div>
                 </>
               )}
-              {a.status === "approved" && (
+              {a.status === "approved" && !a.superseded_by && (
                 <Button
                   disabled={command.isPending}
                   onClick={() =>
