@@ -35,13 +35,14 @@ import (
 )
 
 type TaskService struct {
-	Queries   *db.Queries
-	TxStarter TxStarter
-	Hub       *realtime.Hub
-	Bus       *events.Bus
-	Analytics analytics.Client
-	Metrics   *obsmetrics.BusinessMetrics
-	Wakeup    TaskWakeupNotifier
+	PlanFinalDelivery func(context.Context, *db.Queries, db.Comment) error
+	Queries           *db.Queries
+	TxStarter         TxStarter
+	Hub               *realtime.Hub
+	Bus               *events.Bus
+	Analytics         analytics.Client
+	Metrics           *obsmetrics.BusinessMetrics
+	Wakeup            TaskWakeupNotifier
 	// FeatureFlags is the server-side toggle router. Nil is valid and returns
 	// each call site's default.
 	FeatureFlags *featureflag.Service
@@ -2503,6 +2504,9 @@ func (s *TaskService) CancelTaskWithResult(ctx context.Context, taskID pgtype.UU
 				return err
 			}
 			task = cancelled
+			if err = qtx.CancelQueuedContextForTask(ctx, taskID); err != nil {
+				return err
+			}
 			if !cancelled.ChatSessionID.Valid {
 				return nil
 			}
@@ -3851,6 +3855,8 @@ func startsWithAbsolutePath(s string) bool {
 // populated only after the daemon confirms a disposable worktree is gone.
 func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, result []byte, sessionID, workDir, branchName string, sessionRolloutMissing bool, retiredSessionID, durableWorkDir string) (*db.AgentTaskQueue, error) {
 	var task db.AgentTaskQueue
+	var finalContract bool
+	var finalComments []db.Comment
 	// chatAssistantMsg is the single assistant outcome row written for a chat
 	// task inside the completion transaction below. It is broadcast (chat:done)
 	// only after the transaction commits.
@@ -3873,6 +3879,31 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, resu
 			return err
 		}
 		task = t
+		finalContract, err = qtx.UsesFinalDelivery(ctx, t.ID)
+		if err != nil {
+			return err
+		}
+		if finalContract && t.IssueID.Valid {
+			var payload protocol.TaskCompletedPayload
+			if err = json.Unmarshal(result, &payload); err != nil {
+				return err
+			}
+			content := truncateFallbackCommentBody(redact.Text(util.UnescapeBackslashEscapes(payload.Output)), maxSynthesizedFallbackCommentRunes)
+			if err = PersistFinalFallback(ctx, qtx, t, content, func(ctx context.Context, q *db.Queries, c db.Comment) error {
+				if s.PlanFinalDelivery != nil {
+					if err := s.PlanFinalDelivery(ctx, q, c); err != nil {
+						return err
+					}
+				}
+				finalComments = append(finalComments, c)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		if err = qtx.MarkContextProcessed(ctx, t.ID); err != nil {
+			return err
+		}
 
 		if t.ChatSessionID.Valid {
 			// Pin the chat_session's runtime_id alongside the session_id so the
@@ -3956,6 +3987,17 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, resu
 
 	slog.Info("task completed", "task_id", util.UUIDToString(task.ID), "issue_id", util.UUIDToString(task.IssueID))
 	s.captureTaskCompleted(ctx, task)
+	for _, c := range finalComments {
+		if issue, err := s.Queries.GetIssue(ctx, c.IssueID); err == nil {
+			var root *db.Comment
+			if c.ParentID.Valid {
+				if r, err := s.Queries.GetThreadRoot(ctx, db.GetThreadRootParams{CommentID: c.ParentID, WorkspaceID: c.WorkspaceID}); err == nil {
+					root = &r
+				}
+			}
+			s.publishAgentComment(ctx, issue, c, issue.Revision, root)
+		}
+	}
 
 	// Invariant: every completed issue task must have at least one agent
 	// comment on the issue, so the user always sees something when a run
@@ -3965,7 +4007,7 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID pgtype.UUID, resu
 	// tasks, TriggerCommentID threads the fallback under the original comment;
 	// for assignment-triggered tasks it is NULL and the fallback is top-level.
 	// Chat tasks have no IssueID and are handled separately below.
-	if task.IssueID.Valid {
+	if task.IssueID.Valid && !finalContract {
 		suppressNoActionComment, err := HasSquadLeaderNoActionEvaluationForTask(ctx, s.Queries, task)
 		if err != nil {
 			slog.Warn("checking squad leader no_action evaluation failed",
@@ -6392,12 +6434,16 @@ func (s *TaskService) createAgentComment(ctx context.Context, issueID, agentID p
 		return
 	}
 	comment := created.Comment()
-	s.CancelDeferredEscalationsForIssueAgent(ctx, issueID, agentID)
+	s.publishAgentComment(ctx, issue, comment, created.IssueRevision, rootComment)
+}
+
+func (s *TaskService) publishAgentComment(ctx context.Context, issue db.Issue, comment db.Comment, issueRevision int64, rootComment *db.Comment) {
+	s.CancelDeferredEscalationsForIssueAgent(ctx, comment.IssueID, comment.AuthorID)
 	s.Bus.Publish(events.Event{
 		Type:        protocol.EventCommentCreated,
 		WorkspaceID: util.UUIDToString(issue.WorkspaceID),
 		ActorType:   "agent",
-		ActorID:     util.UUIDToString(agentID),
+		ActorID:     util.UUIDToString(comment.AuthorID),
 		Payload: map[string]any{
 			"comment": map[string]any{
 				"id":             util.UUIDToString(comment.ID),
@@ -6413,10 +6459,10 @@ func (s *TaskService) createAgentComment(ctx context.Context, issueID, agentID p
 			},
 			"issue_title":    issue.Title,
 			"issue_status":   issue.Status,
-			"issue_revision": created.IssueRevision,
+			"issue_revision": issueRevision,
 		},
 	})
-	s.AutoUnresolveThreadOnReply(ctx, rootComment, util.UUIDToString(issue.WorkspaceID), "agent", util.UUIDToString(agentID))
+	s.AutoUnresolveThreadOnReply(ctx, rootComment, util.UUIDToString(issue.WorkspaceID), "agent", util.UUIDToString(comment.AuthorID))
 }
 
 // AutoUnresolveThreadOnReply clears resolved_at on the thread root when a

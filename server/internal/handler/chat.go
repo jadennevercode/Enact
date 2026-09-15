@@ -643,6 +643,10 @@ func (h *Handler) DeleteChatSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := qtx.DeleteContextScope(r.Context(), db.DeleteContextScopeParams{WorkspaceID: session.WorkspaceID, ScopeType: "chat", ScopeID: session.ID}); err != nil {
+		contextError(w, err)
+		return
+	}
 	if err := qtx.DeleteChatSession(r.Context(), db.DeleteChatSessionParams{
 		ID:          session.ID,
 		WorkspaceID: session.WorkspaceID,

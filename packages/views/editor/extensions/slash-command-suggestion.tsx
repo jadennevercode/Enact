@@ -31,7 +31,7 @@ import { isTriggerArmedAt } from "./suggestion-trigger-arming";
 const MAX_ITEMS = 20;
 
 /** Known built-in command ids — the keys under editor `slash_command.commands`. */
-export type BuiltinCommandKey = "note";
+export type BuiltinCommandKey = "note" | "compact";
 
 export interface SlashCommandItem {
   id: string;
@@ -130,7 +130,7 @@ export const SlashCommandList = forwardRef<
   const describe = (item: SlashCommandItem): string | undefined =>
     item.descriptionKey === "note"
       ? t(($) => $.slash_command.commands.note)
-      : item.description;
+      : item.descriptionKey === "compact" ? t(($) => $.slash_command.commands.compact) : item.description;
 
   return (
     // Height budget clamps to min(design max, viewport-aware
@@ -232,8 +232,9 @@ export function createSlashCommandSuggestion(qc: QueryClient): Omit<
     // Only open over a `/` the user actually typed, so a pasted path
     // (`/usr/local/bin`) never opens the skill picker (ENA-5429).
     shouldShow: ({ editor, range }) => isTriggerArmedAt(editor, range.from),
-    items: ({ query }) => buildItems(qc, query),
+    items: ({ query }) => [...(useChatStore.getState().activeSessionId && "compact".startsWith(query.toLowerCase()) ? [{id:"compact",label:"compact",descriptionKey:"compact" as const}] : []), ...buildItems(qc, query)].slice(0, MAX_ITEMS),
     command: ({ editor, range, props }) => {
+      if (props.descriptionKey === "compact") { editor.chain().focus().insertContentAt(range,"/compact ").run(); return; }
       const nodeAfter = editor.view.state.selection.$to.nodeAfter;
       const overrideSpace = nodeAfter?.text?.startsWith(" ");
       if (overrideSpace) {
@@ -284,6 +285,7 @@ export function createSlashCommandSuggestion(qc: QueryClient): Omit<
  */
 export const BUILTIN_COMMANDS: SlashCommandItem[] = [
   { id: "note", label: "note", descriptionKey: "note" },
+  { id: "compact", label: "compact", descriptionKey: "compact" },
 ];
 
 /** Marks a menu entry as a configured quick action rather than a built-in. */

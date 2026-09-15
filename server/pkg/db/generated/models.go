@@ -61,6 +61,109 @@ type AgentBuilderDraft struct {
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
+type AgentContextCheckpoint struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	AgentID        pgtype.UUID        `json:"agent_id"`
+	ScopeType      string             `json:"scope_type"`
+	ScopeID        pgtype.UUID        `json:"scope_id"`
+	SourceTaskID   pgtype.UUID        `json:"source_task_id"`
+	Revision       int64              `json:"revision"`
+	SourceRevision string             `json:"source_revision"`
+	Body           []byte             `json:"body"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type AgentContextOperation struct {
+	ID             pgtype.UUID        `json:"id"`
+	SessionID      pgtype.UUID        `json:"session_id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	Generation     int64              `json:"generation"`
+	ActorID        pgtype.UUID        `json:"actor_id"`
+	IdempotencyKey string             `json:"idempotency_key"`
+	Status         string             `json:"status"`
+	Reason         string             `json:"reason"`
+	BeforeSnapshot []byte             `json:"before_snapshot"`
+	AfterSnapshot  []byte             `json:"after_snapshot"`
+	Usage          []byte             `json:"usage"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	StartedAt      pgtype.Timestamptz `json:"started_at"`
+	FinishedAt     pgtype.Timestamptz `json:"finished_at"`
+	DurationMs     pgtype.Int8        `json:"duration_ms"`
+}
+
+type AgentContextRequest struct {
+	WorkspaceID    pgtype.UUID `json:"workspace_id"`
+	ActorID        pgtype.UUID `json:"actor_id"`
+	IdempotencyKey string      `json:"idempotency_key"`
+	SessionID      pgtype.UUID `json:"session_id"`
+	OperationID    pgtype.UUID `json:"operation_id"`
+}
+
+type AgentContextSession struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	AgentID        pgtype.UUID        `json:"agent_id"`
+	ScopeType      string             `json:"scope_type"`
+	ScopeID        pgtype.UUID        `json:"scope_id"`
+	RuntimeID      pgtype.UUID        `json:"runtime_id"`
+	Provider       string             `json:"provider"`
+	NativeID       string             `json:"native_id"`
+	Generation     int64              `json:"generation"`
+	Epoch          int64              `json:"epoch"`
+	EventSeq       int64              `json:"event_seq"`
+	TaskID         pgtype.UUID        `json:"task_id"`
+	Capabilities   []byte             `json:"capabilities"`
+	Snapshot       []byte             `json:"snapshot"`
+	PeakTokens     int64              `json:"peak_tokens"`
+	LeaseToken     pgtype.UUID        `json:"lease_token"`
+	LeaseKind      pgtype.Text        `json:"lease_kind"`
+	LeaseOwner     pgtype.UUID        `json:"lease_owner"`
+	LeaseExpiresAt pgtype.Timestamptz `json:"lease_expires_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ProducerID     string             `json:"producer_id"`
+}
+
+type AgentContextTurn struct {
+	TaskID            pgtype.UUID        `json:"task_id"`
+	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
+	AgentID           pgtype.UUID        `json:"agent_id"`
+	ScopeType         string             `json:"scope_type"`
+	ScopeID           pgtype.UUID        `json:"scope_id"`
+	SourceRevision    string             `json:"source_revision"`
+	Envelope          []byte             `json:"envelope"`
+	Processed         bool               `json:"processed"`
+	FinalDelivery     bool               `json:"final_delivery"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	FirstSnapshot     []byte             `json:"first_snapshot"`
+	LastSnapshot      []byte             `json:"last_snapshot"`
+	PeakTokens        int64              `json:"peak_tokens"`
+	DeliveredEnvelope []byte             `json:"delivered_envelope"`
+}
+
+type AgentDeliveryOutbox struct {
+	CommentID       pgtype.UUID        `json:"comment_id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	IssueID         pgtype.UUID        `json:"issue_id"`
+	CommentRevision int64              `json:"comment_revision"`
+	TargetID        pgtype.UUID        `json:"target_id"`
+	Route           []byte             `json:"route"`
+	Status          string             `json:"status"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AgentFinalDelivery struct {
+	TaskID      pgtype.UUID        `json:"task_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	IssueID     pgtype.UUID        `json:"issue_id"`
+	ParentKey   string             `json:"parent_key"`
+	Revision    int64              `json:"revision"`
+	CommentID   pgtype.UUID        `json:"comment_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 // Allow-list of who may invoke a public_to agent (ENA-3963). One row per (agent, target_type, target); targets stack and canInvokeAgent OR-matches. workspace rows store the agent workspace_id in target_id; member rows store the user id; team rows are reserved and inert in V1. Rows only matter when agent.permission_mode = public_to. No DB foreign keys: agent_id / created_by / member target_id relationships are maintained in the application layer (see migration comment).
 type AgentInvocationTarget struct {
 	ID         pgtype.UUID        `json:"id"`
@@ -438,6 +541,7 @@ type ChatMessage struct {
 	ChannelMediaPendingUntil pgtype.Timestamptz `json:"channel_media_pending_until"`
 	ChannelIngested          bool               `json:"channel_ingested"`
 	QuickActions             []byte             `json:"quick_actions"`
+	ContextRevision          int64              `json:"context_revision"`
 }
 
 type ChatPinnedAgent struct {

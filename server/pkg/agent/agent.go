@@ -24,6 +24,10 @@ type Backend interface {
 
 // ExecOptions configures a single execution.
 type ExecOptions struct {
+	// NativeCompaction requires the daemon's exclusive session lease.
+	NativeCompaction bool
+	// ProcessStarted persists native process ownership before protocol input.
+	ProcessStarted func(int) error `json:"-"`
 	// ModelOperation runs a bounded, stateless model sub-operation. It must not
 	// inherit task skills, MCP tools, resume state, or custom launch arguments.
 	ModelOperation bool
@@ -161,6 +165,7 @@ const (
 
 // Message is a unified event emitted by an agent during execution.
 type Message struct {
+	Context   *ContextSnapshot
 	Type      MessageType
 	Content   string         // text content (Text, Error, Log)
 	Tool      string         // tool name (ToolUse, ToolResult)
@@ -197,12 +202,15 @@ const CostUSDTicksPerUSD = 10_000_000_000
 
 // Result is the final outcome after an agent session completes.
 type Result struct {
-	Status     string // "completed", "failed", "aborted", "timeout", "cancelled"
-	Output     string // final user-facing output selected by the backend
-	Error      string // error message if failed
-	DurationMs int64
-	SessionID  string
-	Usage      map[string]TokenUsage // keyed by model name
+	CleanupConfirmed  bool
+	MaintenanceStatus string
+	Context           *ContextSnapshot
+	Status            string // "completed", "failed", "aborted", "timeout", "cancelled"
+	Output            string // final user-facing output selected by the backend
+	Error             string // error message if failed
+	DurationMs        int64
+	SessionID         string
+	Usage             map[string]TokenUsage // keyed by model name
 	// ResumeRejected is positive evidence that this run's requested resume
 	// was itself refused — the transcript is gone, the session belongs to
 	// another provider account, OR the session still exists but its history

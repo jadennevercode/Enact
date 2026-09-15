@@ -1,5 +1,7 @@
 "use client";
 
+import { contextKeys } from "../context";
+
 import { useEffect, useRef } from "react";
 import { useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import type { WSClient } from "../api/ws-client";
@@ -983,6 +985,10 @@ export function useRealtimeSync(
     ]);
 
     const unsubAny = ws.onAny((msg) => {
+      if (msg.type === "context_session:updated") {
+        void qc.invalidateQueries({queryKey:contextKeys.all(getCurrentWsId() ?? "")});
+        return;
+      }
       if (specificEvents.has(msg.type)) return;
       const prefix = msg.type.split(":")[0] ?? "";
       const refresh = refreshMap[prefix];

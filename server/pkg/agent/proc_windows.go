@@ -285,3 +285,6 @@ func waitProcessGroupGone(cmd *exec.Cmd, timeout time.Duration) bool {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// A recovered Windows PID cannot prove descendant ownership without its job.
+func NativeProcessGroupGone(pid int) bool { return false }

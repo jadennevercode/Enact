@@ -355,11 +355,13 @@ type repoCacheBackend interface {
 
 // Daemon is the local agent runtime that polls for and executes tasks.
 type Daemon struct {
-	cfg        Config
-	client     *Client
-	repoCache  repoCacheBackend
-	skillCache *SkillBundleCache
-	logger     *slog.Logger
+	contextRuns        sync.Map
+	contextMaintenance sync.Map
+	cfg                Config
+	client             *Client
+	repoCache          repoCacheBackend
+	skillCache         *SkillBundleCache
+	logger             *slog.Logger
 
 	mu           sync.Mutex
 	workspaces   map[string]*workspaceState
@@ -3924,6 +3926,7 @@ func (d *Daemon) runHeartbeatTick(ctx context.Context, rid string) bool {
 // Each action is dispatched in its own goroutine so a slow handler cannot
 // block subsequent heartbeats.
 func (d *Daemon) handleHeartbeatActions(ctx context.Context, runtimeID string, resp *HeartbeatResponse) {
+	d.wakeContextMaintenance(ctx, runtimeID)
 	if resp == nil {
 		return
 	}
@@ -5013,6 +5016,16 @@ func (d *Daemon) handleTask(ctx context.Context, task Task, slot int) {
 		return
 	}
 	provider := rt.Provider
+	contextRun, contextErr := d.beginContextRun(ctx, task, rt)
+	if contextErr != nil {
+		_ = d.reportTerminalTask(ctx, terminalTaskReport{kind: terminalTaskReportFail, taskID: task.ID, errorMessage: "context coordination failed: " + contextErr.Error(), failureReason: "runtime_offline"})
+		return
+	}
+	if contextRun != nil {
+		task.ContextEnvelope = contextRun.session.Envelope
+		task.FinalDeliveryContract = contextRun.session.FinalDelivery
+		defer d.finishContextRun(task.ID, contextRun)
+	}
 
 	// Task-scoped logger with short ID for readable concurrent logs.
 	taskLog := d.logger.With("task", shortID(task.ID))
@@ -7355,7 +7368,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// families go through New. This is the single production boundary — the
 	// daemon never calls agent.New or agent.NewRuntime directly, so the two
 	// factories stay meaning exactly one thing each.
-	backend, err := agent.ResolveBackend(provider, agent.Config{
+	backendConfig := agent.Config{
 		ExecutablePath: entry.Path,
 		LaunchPrefix:   profileFixedArgs,
 		CLIVersion:     resolvedVersion,
@@ -7366,7 +7379,8 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		DaemonVersion:  d.cfg.CLIVersion,
 		CodexVersion:   codexVersion,
 		BuiltinRuntime: !usesCustomProfileCommand,
-	})
+	}
+	backend, err := agent.ResolveBackend(provider, backendConfig)
 	if err != nil {
 		return TaskResult{}, fmt.Errorf("create agent backend: %w", err)
 	}
@@ -7493,6 +7507,9 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	if providerNeedsInlineSystemPrompt(provider) {
 		execOpts.SystemPrompt = runtimeBrief
 	}
+
+	d.saveContextLaunch(task.ID, provider, env.RootDir, backendConfig, execOpts)
+	execOpts.ProcessStarted = d.contextProcessStarted(task.ID)
 
 	// A quick-actions refresh task from a server that predates server-side
 	// generation (ENA-5573). This daemon no longer has a suggestion pass to run
@@ -8195,6 +8212,7 @@ func (d *Daemon) executeAndDrain(ctx context.Context, backend agent.Backend, pro
 				lastActivityAt.Store(time.Now().UnixNano())
 				switch msg.Type {
 				case agent.MessageStatus:
+					d.observeContext(taskID, msg.SessionID, msg.Context)
 					// Persist the session/work_dir as soon as the backend
 					// reveals them. Without this, a daemon crash mid-run
 					// loses the resume pointer and the auto-retry fires
@@ -8352,6 +8370,7 @@ func (d *Daemon) executeAndDrain(ctx context.Context, backend agent.Backend, pro
 	select {
 	case result := <-session.Result:
 		waitForDrain()
+		d.observeContext(taskID, result.SessionID, result.Context)
 		if idleWatchdogFired.Load() {
 			// The backend's wait goroutine (e.g. claude.go) translates the
 			// SIGKILL we delivered via agentCancel into Status="aborted".

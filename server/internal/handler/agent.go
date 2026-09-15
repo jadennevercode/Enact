@@ -352,6 +352,7 @@ type TaskIssueStatusData struct {
 }
 
 type AgentTaskResponse struct {
+	ContextProtocol      string                 `json:"context_protocol,omitempty"`
 	ID                   string                 `json:"id"`
 	AgentID              string                 `json:"agent_id"`
 	RuntimeID            string                 `json:"runtime_id"`
@@ -787,6 +788,7 @@ func taskToResponse(t db.AgentTaskQueue, workspaceID string) AgentTaskResponse {
 		branchName = t.BranchName.String
 	}
 	return AgentTaskResponse{
+		ContextProtocol:        "v1",
 		ID:                     uuidToString(t.ID),
 		AgentID:                uuidToString(t.AgentID),
 		RuntimeID:              uuidToString(t.RuntimeID),

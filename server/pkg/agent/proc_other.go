@@ -67,3 +67,9 @@ func waitProcessGroupGone(cmd *exec.Cmd, timeout time.Duration) bool {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// NativeProcessGroupGone is conservative after daemon recovery: a reused PID
+// can delay maintenance, but is never signalled or mistaken for a safe session.
+func NativeProcessGroupGone(pid int) bool {
+	return pid > 0 && errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH)
+}

@@ -1,3 +1,4 @@
+import { parseContextSessions, parseContextOperation, parseContextCheckpoints, type ContextScope } from "../context/schema";
 import type {
   Issue,
   IssuePriority,
@@ -2368,6 +2369,26 @@ export class ApiClient {
   // Powers the front-end's "active wins, else latest terminal" presence
   // derivation; one fetch backs every per-agent presence read in the app.
   // Workspace is resolved server-side from the X-Workspace-Slug header.
+  async listContextCheckpoints(scope:ContextScope) {
+    const key=scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextCheckpoints(await this.fetch<unknown>(`/api/context-checkpoints?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async listContextSessions(scope: ContextScope) {
+    const key = scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextSessions(await this.fetch<unknown>(`/api/context-sessions?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async compactContext(id: string, generation: number, key: string) {
+    const raw = await this.fetch<unknown>(`/api/context-sessions/${encodeURIComponent(id)}/compactions`, {method:"POST",body:JSON.stringify({expected_generation:generation,idempotency_key:key})});
+    const result = parseContextOperation(raw);
+    if (!result) throw new Error("Invalid context operation response");
+    return result;
+  }
+  async cancelContextCompaction(id: string) {
+    const result = parseContextOperation(await this.fetch<unknown>(`/api/context-operations/${encodeURIComponent(id)}/cancel`, {method:"POST"}));
+ if (!result) throw new Error("Invalid context operation response");
+ return result;
+  }
+
   async getAgentTaskSnapshot(): Promise<AgentTask[]> {
     return this.fetch(`/api/agent-task-snapshot`);
   }

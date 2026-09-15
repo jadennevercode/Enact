@@ -25,6 +25,8 @@ import { createLogger } from "@enact/core/logger";
 import { formatShortcut, useShortcut } from "@enact/core/shortcuts";
 import type { MentionItem } from "../../editor/extensions/mention-suggestion";
 import type { Attachment } from "@enact/core/types";
+import { isCompactCommand } from "@enact/core/context";
+import { useContextControls } from "../../context/use-context-controls";
 import { useT } from "../../i18n";
 
 const logger = createLogger("chat.ui");
@@ -150,6 +152,7 @@ export function ChatInput({
   const editorRef = useRef<ContentEditorRef>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const contextControls = useContextControls({type:"chat",id:draftKeyOverride ? "" : activeSessionId ?? ""});
   // Two keys with deliberately different concerns:
   //
   // `draftKey` — zustand storage key. Scopes the in-progress draft per session
@@ -425,7 +428,7 @@ export function ChatInput({
       editorScrubbedRef.current = false;
       // These states disable the SubmitButton, but Mod+Enter bypasses it — so a
       // read-only or busy composer must still refuse the keyboard path.
-      if (disabled || noAgent || (isRunning && !allowSubmitWhileRunning)) {
+      if (disabled || noAgent || (isRunning && !allowSubmitWhileRunning && !isCompactCommand(content))) {
         logger.debug("input.send skipped", {
           disabled,
           noAgent,
@@ -507,6 +510,7 @@ export function ChatInput({
         draftKey: keyAtSend,
         attachmentCount: uniqueActiveIds.length,
       });
+      if (isCompactCommand(content)) { const maintenance = await contextControls.handleCommand(content); if (maintenance) commitInput(); return maintenance === true; }
       const accepted = await onSend(
         content,
         uniqueActiveIds.length > 0 ? uniqueActiveIds : undefined,
@@ -563,6 +567,7 @@ export function ChatInput({
         noAgent && "cursor-not-allowed",
       )}
     >
+      {contextControls.panel}
       <div
         data-slot="chat-input-surface"
         {...(uploadEnabled ? dropZoneProps : {})}

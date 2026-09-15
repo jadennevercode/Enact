@@ -369,6 +369,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	h.FeatureFlags = opts.FeatureFlags
 	h.TaskService.FeatureFlags = opts.FeatureFlags
 	h.TaskService.Metrics = opts.BusinessMetrics
+	h.EnableFinalDeliveryOutbox()
 	h.IssueService.Metrics = opts.BusinessMetrics
 	entitlementClient, entitlementErr := entitlement.New(entitlement.Config{
 		Enabled:      envBool("ENACT_ENTITLEMENT_POLICY_ENABLED", false),
@@ -1341,6 +1342,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Post("/tasks/{taskId}/complete", h.CompleteTask)
 		r.Post("/tasks/{taskId}/fail", h.FailTask)
 		r.Post("/tasks/{taskId}/usage", h.ReportTaskUsage)
+		r.Post("/tasks/{taskId}/context", h.BeginTaskContext)
+		r.Post("/context-sessions/{id}", h.UpdateContextSession)
+		r.Post("/runtimes/{runtimeId}/context-maintenance/claim", h.ClaimContextMaintenance)
 		r.Post("/tasks/{taskId}/messages", h.ReportTaskMessages)
 		r.Get("/tasks/{taskId}/messages", h.ListTaskMessages)
 		r.Post("/tasks/{taskId}/cancel-ack", h.AckTaskCancelled)
@@ -1821,6 +1825,13 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 
 			// Task messages (user-facing, not daemon auth)
 			r.Get("/api/tasks/{taskId}/messages", h.ListTaskMessagesByUser)
+			r.Get("/api/context-sessions", h.ListContextSessions)
+			r.Get("/api/context-checkpoints", h.ListContextCheckpoints)
+			r.Get("/api/context/current", h.GetTaskContext)
+			r.Post("/api/context/checkpoint", h.SaveTaskCheckpoint)
+			r.Post("/api/context-sessions/{id}/compactions", h.CreateContextCompaction)
+			r.Get("/api/context-operations/{id}", h.GetContextOperation)
+			r.Post("/api/context-operations/{id}/cancel", h.CancelContextOperation)
 
 			// Issue quick actions (definitions; running one lives under
 			// /api/issues/{id}/quick-actions/{quickActionId}/run)
