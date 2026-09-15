@@ -190,6 +190,9 @@ func (w *CodeGraphBuildWorker) complete(ctx context.Context, build db.CodeGraphB
 	if result.Commit != "" {
 		params.Commit = pgtype.Text{String: result.Commit, Valid: true}
 	}
+	if result.Ref != "" {
+		params.Ref = pgtype.Text{String: result.Ref, Valid: true}
+	}
 	if result.SkippedReason != "" {
 		params.SkippedReason = pgtype.Text{String: result.SkippedReason, Valid: true}
 	}

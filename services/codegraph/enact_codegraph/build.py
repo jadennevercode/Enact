@@ -39,9 +39,11 @@ class BuildRequest:
         clone_url = str(body.get("clone_url") or "").strip()
         if not clone_url:
             raise ApiError(400, "invalid_request", "clone_url is required")
+        # An omitted ref means the remote's default branch. A repository nobody
+        # pinned to a branch has no ref to send, and the server can only look
+        # one up for some providers, so resolving it at the remote — which this
+        # service is talking to anyway — is the one path that always works.
         ref = str(body.get("ref") or "").strip()
-        if not ref:
-            raise ApiError(400, "invalid_request", "ref is required")
         token = body.get("token")
         if token is not None and not isinstance(token, str):
             raise ApiError(400, "invalid_request", "token must be a string")
@@ -149,11 +151,15 @@ def _run_worker(paths: ProjectPaths, commit: str, force: bool, timeout_s: int, t
     return result
 
 
-def _response(state: str, commit: str | None, *, stats: dict | None = None, diff: dict | None = None,
-              report_md: str = "", skipped_reason: str | None = None, error: str | None = None) -> dict:
+def _response(state: str, commit: str | None, *, ref: str = "", stats: dict | None = None,
+              diff: dict | None = None, report_md: str = "", skipped_reason: str | None = None,
+              error: str | None = None) -> dict:
     return {
         "state": state,
         "commit": commit,
+        # The branch actually built. It differs from the request whenever the
+        # caller sent none, so the caller learns what its default resolved to.
+        "ref": ref,
         "skipped_reason": skipped_reason,
         "error": error,
         "stats": stats,
@@ -173,17 +179,17 @@ def run_build(settings: Settings, paths: ProjectPaths, req: BuildRequest, lock: 
         started = time.monotonic()
         paths.root.mkdir(parents=True, exist_ok=True)
         try:
-            commit = sync_checkout(paths.src, req.clone_url, req.ref, req.token, req.timeout_s)
+            commit, ref = sync_checkout(paths.src, req.clone_url, req.ref, req.token, req.timeout_s)
         except BuildFailure as exc:
-            return _response("failed", None, error=str(exc))
+            return _response("failed", None, ref=req.ref, error=str(exc))
 
         try:
             files = count_code_files(paths.src)
         except Exception as exc:  # noqa: BLE001
-            return _response("failed", commit, error=scrub(f"scan failed: {exc}", req.token))
+            return _response("failed", commit, ref=ref, error=scrub(f"scan failed: {exc}", req.token))
         if files > req.max_files:
             return _response(
-                "skipped", commit, skipped_reason="too_large",
+                "skipped", commit, ref=ref, skipped_reason="too_large",
                 stats={"files": files, "nodes": 0, "edges": 0, "communities": 0, "duration_ms": 0,
                        "graphify_version": graphify_version, "incremental": False},
             )
@@ -194,9 +200,9 @@ def run_build(settings: Settings, paths: ProjectPaths, req: BuildRequest, lock: 
         try:
             _run_worker(paths, commit, first_build, req.timeout_s, req.token)
         except BuildFailure as exc:
-            return _response("failed", commit, error=str(exc))
+            return _response("failed", commit, ref=ref, error=str(exc))
         if not paths.is_built():
-            return _response("failed", commit, error="graphify produced no graph.json")
+            return _response("failed", commit, ref=ref, error="graphify produced no graph.json")
 
         nodes, edges, communities = graph_counts(paths.graph_json)
         stats = {
@@ -219,7 +225,7 @@ def run_build(settings: Settings, paths: ProjectPaths, req: BuildRequest, lock: 
                 on_built(paths)
             except Exception as exc:  # noqa: BLE001 - warming is best effort
                 log.warning("post-build warm failed: %s", exc)
-        return _response("ready", commit, stats=stats, diff=diff, report_md=report_md)
+        return _response("ready", commit, ref=ref, stats=stats, diff=diff, report_md=report_md)
 
 
 def delete_project(paths: ProjectPaths) -> None:

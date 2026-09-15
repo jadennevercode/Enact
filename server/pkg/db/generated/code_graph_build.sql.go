@@ -64,12 +64,15 @@ const completeCodeGraphBuild = `-- name: CompleteCodeGraphBuild :one
 UPDATE code_graph_build
 SET state = $2,
     commit = $3,
-    skipped_reason = $4,
-    error = $5,
-    stats = $6,
-    diff = $7,
-    report_md = $8,
-    graphify_version = $9,
+    -- The container resolves an unpinned repository to its default branch, so
+    -- the branch that was actually built is only known once it answers.
+    ref = COALESCE($4, ref),
+    skipped_reason = $5,
+    error = $6,
+    stats = $7,
+    diff = $8,
+    report_md = $9,
+    graphify_version = $10,
     lease_until = NULL,
     finished_at = now()
 WHERE id = $1 AND state = 'building'
@@ -80,6 +83,7 @@ type CompleteCodeGraphBuildParams struct {
 	ID              pgtype.UUID `json:"id"`
 	State           string      `json:"state"`
 	Commit          pgtype.Text `json:"commit"`
+	Ref             pgtype.Text `json:"ref"`
 	SkippedReason   pgtype.Text `json:"skipped_reason"`
 	Error           pgtype.Text `json:"error"`
 	Stats           []byte      `json:"stats"`
@@ -96,6 +100,7 @@ func (q *Queries) CompleteCodeGraphBuild(ctx context.Context, arg CompleteCodeGr
 		arg.ID,
 		arg.State,
 		arg.Commit,
+		arg.Ref,
 		arg.SkippedReason,
 		arg.Error,
 		arg.Stats,

@@ -45,7 +45,7 @@ Every route requires `X-Codegraph-Service-Key`. JSON in, JSON out. Errors are
 ```json
 {"clone_url": "https://github.com/acme/backend.git", "ref": "main", "token": "ghs_…", "max_files": 20000, "timeout_s": 900}
 ```
-`token` is optional and is used exactly once in the git subprocess URL; it is never logged or persisted.
+`token` is optional and is used exactly once in the git subprocess URL; it is never logged or persisted. `ref` is optional too: omit it for a repository nobody pinned to a branch and the container resolves the remote's default branch, reporting it back as `ref` in the response.
 Synchronous; the caller uses a 15‑minute HTTP timeout. Only one build runs per container
 (`CODEGRAPH_CONCURRENCY=1`); a concurrent call returns `409 busy`.
 
@@ -54,6 +54,7 @@ Response `200`:
 {
   "state": "ready" | "skipped" | "failed",
   "commit": "a1b2c3d4…40 hex",
+  "ref": "main",
   "skipped_reason": "too_large" | null,
   "error": null | "clone_failed: …",
   "stats": {"files": 1284, "nodes": 6902, "edges": 15310, "communities": 11,

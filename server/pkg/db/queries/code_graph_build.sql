@@ -41,6 +41,9 @@ RETURNING b.*;
 UPDATE code_graph_build
 SET state = $2,
     commit = sqlc.narg('commit'),
+    -- The container resolves an unpinned repository to its default branch, so
+    -- the branch that was actually built is only known once it answers.
+    ref = COALESCE(sqlc.narg('ref'), ref),
     skipped_reason = sqlc.narg('skipped_reason'),
     error = sqlc.narg('error'),
     stats = sqlc.narg('stats'),

@@ -95,16 +95,34 @@ def _run_git(args: list[str], cwd: Path, token: str | None, timeout: int) -> str
     return proc.stdout
 
 
-def sync_checkout(src: Path, clone_url: str, ref: str, token: str | None, timeout: int) -> str:
-    """Bring `src` to `ref` of `clone_url` and return the commit SHA.
+def default_remote_branch(clone_url: str, token: str | None, timeout: int) -> str:
+    """Return the branch the remote's HEAD points at.
+
+    `git ls-remote --symref` asks the server directly, so it needs no checkout
+    and works on every provider. Callers use it when nobody pinned a ref.
+    """
+    out = _run_git(["ls-remote", "--symref", auth_url(clone_url, token), "HEAD"], Path.cwd(), token, timeout)
+    for line in out.splitlines():
+        if line.startswith("ref:"):
+            parts = line.split()
+            if len(parts) >= 2 and parts[1].startswith("refs/heads/"):
+                return parts[1][len("refs/heads/") :]
+    raise BuildFailure("remote has no default branch")
+
+
+def sync_checkout(src: Path, clone_url: str, ref: str, token: str | None, timeout: int) -> tuple[str, str]:
+    """Bring `src` to `ref` of `clone_url` and return the commit SHA and the ref used.
 
     Works for branches, tags and full SHAs alike: init (once), fetch the ref with
-    depth 1, hard-reset to FETCH_HEAD, drop untracked files.
+    depth 1, hard-reset to FETCH_HEAD, drop untracked files. An empty `ref`
+    resolves to the remote's default branch first.
     """
-    if not ref or ref.startswith("-"):
+    if ref.startswith("-"):
         raise ApiError(400, "invalid_ref", "ref must be a branch, tag or commit")
     src.mkdir(parents=True, exist_ok=True)
     git_timeout = min(GIT_TIMEOUT_S, max(30, timeout))
+    if not ref:
+        ref = default_remote_branch(clone_url, token, git_timeout)
     remote = auth_url(clone_url, token)
     try:
         if not (src / ".git").is_dir():
@@ -128,4 +146,4 @@ def sync_checkout(src: Path, clone_url: str, ref: str, token: str | None, timeou
         raise BuildFailure(scrub(f"checkout failed: {exc}", token)) from exc
     if len(sha) != SHA_LEN:
         raise BuildFailure("could not resolve HEAD after fetch")
-    return sha
+    return sha, ref

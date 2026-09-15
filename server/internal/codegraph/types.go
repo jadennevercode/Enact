@@ -35,8 +35,11 @@ type Stats struct {
 
 // BuildResult is the response of POST /v1/projects/{key}/build.
 type BuildResult struct {
-	State         string          `json:"state"`
-	Commit        string          `json:"commit"`
+	State  string `json:"state"`
+	Commit string `json:"commit"`
+	// Ref is the branch the container actually built. It is the request's ref
+	// when one was pinned, and the remote's default branch otherwise.
+	Ref           string          `json:"ref"`
 	SkippedReason string          `json:"skipped_reason"`
 	Error         string          `json:"error"`
 	Stats         json.RawMessage `json:"stats"`
