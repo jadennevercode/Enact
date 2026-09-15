@@ -167,12 +167,10 @@ func (s *Setup) resolveRuntime(ctx context.Context, cfg Config, opts SetupOption
 		return dir, ref, nil
 	}
 
-	// Vendored copies (e.g. the mmm-runtime/ directory bundled inside a
-	// shared Enact checkout) have no .git — they are updated by updating
-	// the bundle itself, so skip the pull instead of reporting a scary
-	// git failure.
+	// Source archives have no .git and are updated by replacing the archive,
+	// so use them as-is instead of attempting a pull.
 	if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
-		s.record("runtime", StepOK, fmt.Sprintf("using vendored checkout %s (no .git — updates ship with the bundle)", dir))
+		s.record("runtime", StepOK, fmt.Sprintf("using source archive %s (no .git)", dir))
 		return dir, ref, nil
 	}
 

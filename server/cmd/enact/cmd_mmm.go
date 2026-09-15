@@ -10,18 +10,22 @@ import (
 
 var mmmCmd = &cobra.Command{
 	Use:   "mmm",
-	Short: "MMM engagement tooling (mmm-runtime provisioning and project linking)",
-	Long: `Tooling for running Marketing Mix Modeling engagements on Enact.
+	Short: "MMM tooling (mmm-runtime provisioning, skill import, agent portfolio)",
+	Long: `Tooling for running Marketing Mix Modeling projects on Enact.
 
 The mmm-runtime (skills, analysis engine, knowledge packs) stays an
-independent repository; these commands provision it on this daemon host and
-link engagement directories to Enact projects.`,
+independent repository; these commands provision it on this daemon host,
+import its skills into a workspace, and apply its agent portfolio.
+
+One workspace is one MMM project: the directory the agents work in is that
+workspace's local_directory resource, and the runtime keeps no project
+directory of its own.`,
 }
 
 var mmmSetupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Provision mmm-runtime on this daemon host in one step",
-	Long: `Provisions everything an agent needs to run MMM engagements on this host:
+	Long: `Provisions everything an agent needs to run MMM projects on this host:
 
   1. clones mmm-runtime into ~/.enact/mmm-runtime (or adopts an existing
      checkout via --runtime-dir) and fast-forwards it to the tracked ref
