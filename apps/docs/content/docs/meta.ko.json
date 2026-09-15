@@ -12,6 +12,7 @@
     "workspaces",
     "members-roles",
     "resources",
+    "code-graph",
     "---이슈---",
     "issues",
     "artifacts",

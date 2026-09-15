@@ -178,6 +178,17 @@ Without `GITHUB_APP_ID` and the private key, PRs still link, mirror, and trigger
 
 For setup steps, see [GitHub integration](/github-integration#self-hosting-setup), [Lark bot](/lark-bot-integration#self-hosting-setup), [Slack bot](/slack-bot-integration#self-hosting-setup), and [Telegram bot](/telegram-bot-integration#self-hosting-setup).
 
+## Code graph
+
+Optional. The [code graph](/code-graph) service is a separate container (`docker-compose.codegraph.yml`); with these two variables empty the feature is disabled and the checkbox in Resources is greyed out.
+
+| Variable | Default | Description |
+|---|---|---|
+| `ENACT_CODEGRAPH_SERVICE_URL` | empty | Internal URL of the code graph service, `http://codegraph:8767` in compose |
+| `ENACT_CODEGRAPH_SERVICE_KEY` | empty | Shared key sent as `X-Codegraph-Service-Key`; must equal the container's `CODEGRAPH_SERVICE_KEY` |
+
+The container reads `CODEGRAPH_SERVICE_KEY`, `CODEGRAPH_DATA_DIR` (`/data`), `CODEGRAPH_ALLOWED_HOSTS` (`github.com`), `CODEGRAPH_MAX_FILES` (`20000`) and `CODEGRAPH_BUILD_TIMEOUT_S` (`900`); see [Code graph → Deployment](/code-graph#deployment).
+
 ## Server-side LLM
 
 This group configures server-side assist generation, such as conversation titles; it is not the AI coding tool credentials agents use to execute tasks.

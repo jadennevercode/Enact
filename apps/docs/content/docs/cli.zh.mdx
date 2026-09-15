@@ -169,6 +169,7 @@ enact runtime activity <runtime-id>
 | `autopilot` | 管理自动化、触发器和运行历史 |
 | `workspace` | 创建、查看、切换工作区和邀请成员 |
 | `repo` | 管理工作区仓库，并把仓库检出到本机 |
+| `graph` | 查询仓库的[代码图谱](/code-graph)：状态、报告、子系统、路径、影响面 |
 | `daemon`、`runtime` | 启停本机守护进程，查看和管理运行时 |
 | `attachment` | 上传或下载附件 |
 | `user profile` | 查看或更新当前用户资料 |
@@ -282,6 +283,20 @@ CLI 配置文件包含可代表你访问 Enact 的令牌。不要提交到仓库
 | `runtime` | `list/usage/activity/update/rename/delete` | 查看和管理运行时 | `delete`：`--cascade`（解绑绑定的智能体、保留其数据并取消其 task） |
 | | `profile list/create/update/delete` | 管理自定义运行时 profile | |
 | | `profile set-path/unset-path <profile-id>` | 固定本机可执行文件路径（仅本地生效，不上传服务器） | |
+
+### `enact graph`
+
+读取已启用[代码图谱](/code-graph)的仓库。每个子命令都接受 `--repo <url>`；不给时用当前目录检出的仓库（它的 `origin` 远端）去匹配工作区资源。图谱未启用、还没建好，或部署没有代码图谱服务时，命令以退出码 2 结束并只打印一行原因——不会有堆栈——智能体据此退回文件工具。
+
+| 子命令 | 用途 | 关键 flag |
+| --- | --- | --- |
+| `status` | 构建状态、commit、规模，以及图谱是否落后于分支头 | `--json` |
+| `report` | 构建报告：最大的子系统、连接最多的节点、跨子系统连接 | |
+| `query "<问题>"` | 针对自然语言问题、受 token 预算约束的子图 | `--dfs`、`--depth N`（默认 3）、`--budget N`（默认 2000）、`--context C`（可重复） |
+| `path "<A>" "<B>"` | 两个符号之间的最短路径 | `--directed` |
+| `explain "<节点>"` | 一个符号的邻居和触及它的边 | |
+| `affected "<节点>"` | 沿调用与导入边找出依赖这个符号的东西 | `--depth N`（默认 2）、`--relation R`（可重复） |
+| `communities` | 子系统及其规模与内聚度 | `--json` |
 
 ### Additional
 
