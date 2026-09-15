@@ -59,6 +59,11 @@ vi.mock("@enact/core/resources", () => ({
 
 // A backend that predates the capability signal: the client must assume it
 // would silently drop execution_mode.
+vi.mock("@enact/core/codegraph", () => ({
+  useCodeGraphCapability: () => ({ data: { enabled: false, graphify_version: null } }),
+  useCodeGraphStatuses: () => ({ data: { statuses: {} } }),
+  useRebuildCodeGraph: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@enact/core/config", () => ({
   useConfigStore: (selector: (state: { localWorktreeSupported: boolean }) => unknown) =>
     selector({ localWorktreeSupported: false }),

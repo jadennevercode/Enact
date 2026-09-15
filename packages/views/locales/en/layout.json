@@ -20,7 +20,8 @@
     "ontologies": "Ontology",
     "skills": "Skills",
     "connections": "Connections",
-    "applications": "Applications"
+    "applications": "Applications",
+    "codegraph": "Code graphs"
   },
   "tab": {
     "issue": "Issue",

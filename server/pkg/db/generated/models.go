@@ -591,6 +591,29 @@ type ClientUsageDaily struct {
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
+// Code graph build queue and history per workspace resource; graph data lives on the codegraph container volume.
+type CodeGraphBuild struct {
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	ResourceID      pgtype.UUID        `json:"resource_id"`
+	ProjectKey      string             `json:"project_key"`
+	RepoUrl         string             `json:"repo_url"`
+	Ref             string             `json:"ref"`
+	Commit          pgtype.Text        `json:"commit"`
+	HeadCommit      pgtype.Text        `json:"head_commit"`
+	State           string             `json:"state"`
+	SkippedReason   pgtype.Text        `json:"skipped_reason"`
+	Error           pgtype.Text        `json:"error"`
+	Stats           []byte             `json:"stats"`
+	Diff            []byte             `json:"diff"`
+	ReportMd        pgtype.Text        `json:"report_md"`
+	GraphifyVersion pgtype.Text        `json:"graphify_version"`
+	LeaseUntil      pgtype.Timestamptz `json:"lease_until"`
+	Attempts        int32              `json:"attempts"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	FinishedAt      pgtype.Timestamptz `json:"finished_at"`
+}
+
 type Comment struct {
 	ID             pgtype.UUID        `json:"id"`
 	IssueID        pgtype.UUID        `json:"issue_id"`

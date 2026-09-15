@@ -36,6 +36,7 @@ export type RouteIconName =
   | "BookOpenText"
   | "Library"
   | "Store"
+  | "Waypoints"
   | "Settings"
   | "File"
   | "FileText"
@@ -65,6 +66,7 @@ export type NavLabelKey =
   | "ontologies"
   | "skills"
   | "marketplace"
+  | "codegraph"
   | "settings";
 
 /** Stable identifier for each workspace navigation page. */
@@ -86,6 +88,7 @@ export type WorkspacePageKey =
   | "ontologies"
   | "skills"
   | "marketplace"
+  | "codeGraphs"
   | "settings";
 
 export interface WorkspacePage {
@@ -119,6 +122,7 @@ export const WORKSPACE_PAGES: Record<WorkspacePageKey, WorkspacePage> = {
   ontologies: { segment: "ontologies", icon: "Network", navKey: "ontologies" },
   skills: { segment: "skills", icon: "BookOpenText", navKey: "skills" },
   marketplace: { segment: "marketplace", icon: "Store", navKey: "marketplace" },
+  codeGraphs: { segment: "codegraph", icon: "Waypoints", navKey: "codegraph" },
   settings: { segment: "settings", icon: "Settings", navKey: "settings" },
 };
 
@@ -175,7 +179,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavGroup[] = [
   {
     id: "intelligence",
     labelKey: "intelligence_group",
-    pages: ["agents", "marketplace"],
+    pages: ["agents", "marketplace", "codeGraphs"],
   },
   {
     id: "execution",

@@ -236,7 +236,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
       className="enact-issue-composer relative flex flex-col pb-8"
     >
       {prefillNotice && (
-        <div className="px-3 py-2 text-xs text-muted-foreground" role={prefillNotice === "failed" ? "alert" : "status"}>
+        <div className="px-3 py-2 text-caption text-muted-foreground" role={prefillNotice === "failed" ? "alert" : "status"}>
           {prefillNotice === "saved" ? t(($) => $.comment.application_draft_ready) : t(($) => $.comment.application_draft_failed)}
           {prefillNotice === "failed" && <button type="button" className="ml-2 underline" onClick={() => setPrefillRetry((value) => value + 1)}>{t(($) => $.comment.application_draft_retry)}</button>}
         </div>

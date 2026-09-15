@@ -2081,6 +2081,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 			// Workspace semantic control plane and business application runtime.
 			h.RegisterSemanticRoutes(r)
 
+			// Repository structure graphs built by the codegraph container.
+			h.RegisterCodeGraphRoutes(r)
+
 			// CapHub remains an optional external catalog. Its URL and API key
 			// remain server-side; members only receive catalog data and links.
 			r.Get("/api/ontologies", h.ListOntologies)

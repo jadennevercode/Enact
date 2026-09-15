@@ -37,6 +37,12 @@ export interface GithubRepoResourceRef {
   provider_repository_id?: string;
   full_name?: string;
   enabled?: boolean;
+  /**
+   * Whether the deployment builds a code graph for this repository. The flag
+   * is the whole switch: absent means off, and flipping it is what enqueues
+   * or removes the build server-side.
+   */
+  code_graph?: boolean;
 }
 
 /**

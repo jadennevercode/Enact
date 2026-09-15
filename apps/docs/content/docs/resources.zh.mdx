@@ -33,6 +33,8 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 一个工作区可以关联任意数量的仓库。资源中的 `ref` 可以指定后续 checkout 默认使用的分支、tag 或 commit。`default_branch_hint` 只向智能体提供默认分支提示，不会强制切换分支。
 
+添加仓库时还可以勾选 **为所选仓库构建代码图谱**。Enact 会在服务端为代码建一张结构图——子系统、入口、依赖路径——智能体在开始读文件之前先查它。这是按仓库可选的，之后可以在仓库行的菜单里改，见[代码图谱](/code-graph)。
+
 ## 添加本地目录
 
 添加本地目录的界面只在 Desktop 中提供，因为浏览器不能选择电脑上的文件夹。

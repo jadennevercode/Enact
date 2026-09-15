@@ -96,3 +96,11 @@ A knowledge base is checked out twice, for two different purposes, and confusing
 See the `enact-resources` skill for the resource CLI. Do not add a resource just because `repo checkout` failed. First determine whether the user asked for durable workspace context or just a task checkout.
 
 More source-backed details: `references/runtimes-and-repos-source-map.md`.
+
+## After a checkout: the code graph
+
+A repository the workspace opted in has a server-built structure map —
+subsystems, symbols, imports and calls. `enact graph status` says whether this
+one does; `enact-code-graph` covers how to read it. It is a locating tool, not
+a substitute for reading the files, and an absent graph is never a reason to
+wait.

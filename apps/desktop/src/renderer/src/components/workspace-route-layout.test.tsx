@@ -37,7 +37,19 @@ vi.mock("@enact/core/auth", () => {
 // tab-swap case below: the incoming layout of a same-workspace swap writes the
 // slug that is already there, so its write is a no-op and cannot be what stops
 // the outgoing cleanup from clearing it.
+// The demo boundary is its own surface with its own suite and needs a
+// NavigationProvider; this file is about the workspace singleton lifecycle.
+vi.mock("@enact/views/anyharness-demo", () => ({
+  AnyHarnessBoundary: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@enact/core/platform", () => ({
+  // The AnyHarness boundary in the shell reads a StorageAdapter from platform.
+  defaultStorage: {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  },
   setCurrentWorkspace: vi.fn((slug: string | null) => {
     if (state.currentSlug === slug) return;
     state.currentSlug = slug;

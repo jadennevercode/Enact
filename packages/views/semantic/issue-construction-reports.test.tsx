@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { AnchorHTMLAttributes } from "react";
 import {
   authoringOptions, authoringSchema, constructionDetailOptions,
-  issueConstructionOptions, reviewPacketOptions, reviewPacketSchema,
-  reviewPacketsForIssue,
+  constructionDetailSchema, issueConstructionOptions, reviewPacketOptions,
+  reviewPacketSchema, reviewPacketsForIssue,
 } from "@enact/core/semantic";
 import { IssueOntologyConstruction } from "./issue-ontology-construction";
 
@@ -20,11 +20,18 @@ vi.mock("./shared", async () => ({
   ...(await vi.importActual<typeof import("./shared")>("./shared")),
   useSemanticText: () => (key: string) => key,
 }));
-const tasks = [
-  { id: "scope-task", issueId: "scope-issue" },
-  { id: "first-task", issueId: "first-issue" },
-  { id: "final-task", issueId: "final-issue" },
-];
+const detail = constructionDetailSchema.parse({
+  construction: {
+    id: "construction", ontology_id: "ontology", issue_id: "root",
+    status: "completed", stage: "release",
+  },
+  issue: { id: "root" },
+  tasks: [
+    { id: "scope-task", issue_id: "scope-issue" },
+    { id: "first-task", issue_id: "first-issue" },
+    { id: "final-task", issue_id: "final-issue" },
+  ],
+});
 const packet = (id: string, gate: string, sequence: number, taskId?: string, status = "approved") => reviewPacketSchema.parse({
   id, construction_id: "construction", gate, sequence, status,
   artifact_digest: id, review_subject_digest: id, created_at: "2026-09-09",
@@ -41,9 +48,7 @@ const reports = [
 function show(issueId: string, packets = reports) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
   client.setQueryData(issueConstructionOptions("workspace", issueId).queryKey, { constructionId: "construction" });
-  client.setQueryData(constructionDetailOptions("workspace", "construction").queryKey, {
-    construction: { issueId: "root", status: "completed", stage: "release" }, tasks,
-  });
+  client.setQueryData(constructionDetailOptions("workspace", "construction").queryKey, detail);
   client.setQueryData(reviewPacketOptions("workspace", "construction").queryKey, packets);
   client.setQueryData(authoringOptions("workspace", "construction").queryKey, authoringSchema.parse({
     construction_id: "construction", revision: 1, interview: { status: "ready", round: 1, questions: [] }, cards: [],
@@ -89,6 +94,6 @@ describe("issue report ownership", () => {
   it("keeps the latest revision within an issue when the gate later moves to another task", () => {
     expect(reviewPacketsForIssue([
       ...reports, packet("older", "model", 0, "first-task", "stale"),
-    ], tasks, "first-issue").map((p) => p.id)).toEqual(["first"]);
+    ], detail.tasks, "first-issue").map((p) => p.id)).toEqual(["first"]);
   });
 });

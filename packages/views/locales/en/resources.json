@@ -161,6 +161,17 @@
     "disabled": "Disabled",
     "no_push": "No push permission"
   },
+  "code_graph_checkbox": "Build a code graph for the selected repositories",
+  "code_graph_checkbox_help": "Enact indexes the repository structure on the server so agents and members can locate subsystems and dependencies. No model cost; code never leaves this deployment.",
+  "code_graph_unavailable": "The code graph service is not enabled for this deployment.",
+  "code_graph_section_hint": "Repositories with a code graph are indexed on the server for agents to use.",
+  "code_graph_enable": "Enable code graph",
+  "code_graph_disable": "Disable code graph",
+  "code_graph_open": "Open code graph",
+  "code_graph_toast_enabled": "Code graph enabled; the first build has started.",
+  "code_graph_toast_disabled": "Code graph disabled",
+  "code_graph_toast_failed": "Could not change the code graph setting",
+  "code_graph_rebuild_queued": "Rebuild queued",
   "semantic": {
     "connections": "Connections",
     "ontologies": "Workspace ontologies",

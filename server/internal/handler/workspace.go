@@ -1262,6 +1262,13 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 		{
+			// Code graph builds carry no foreign key, like the semantic
+			// tables above. The container's own copy of the graph is
+			// released by its operator; teardown here is about the rows.
+			name: "delete code graph builds",
+			run:  func() error { return qtx.DeleteCodeGraphBuildsByWorkspace(ctx, requester.WorkspaceID) },
+		},
+		{
 			name: "delete autopilot runs",
 			run:  func() error { return qtx.DeleteWorkspaceAutopilotRuns(ctx, requester.WorkspaceID) },
 		},

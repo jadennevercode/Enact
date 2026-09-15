@@ -1,0 +1,115 @@
+---
+title: Code graph
+description: A server-side structural map of a repository — files, symbols, imports, calls and subsystems — that agents query and people browse.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A code graph is a structural map of one repository: its files, classes and functions, the imports and calls between them, and the subsystems those connections form. Enact builds it on the server from the repository's source with [graphify](https://github.com/safishamsi/graphify) (Apache-2.0 / MIT), using tree-sitter parsing only. No model is called, so building costs nothing in tokens, and the repository is cloned only inside your Enact deployment.
+
+Agents use it to find the right subsystem before they start reading files. People use it to see how a repository is put together.
+
+## Enable it per repository
+
+The code graph is opt-in per repository, and nothing else needs configuring.
+
+- When you **Pick from GitHub** or paste a Git URL under **Settings → Resources**, tick **Build a code graph for the selected repositories**. The choice applies to every repository added in that dialog.
+- Later, open the repository row's menu and switch **Code graph** on or off.
+
+Switching it on queues the first build. Switching it off deletes every build for that repository, including its data on the server.
+
+The checkbox is disabled, with a note, when the deployment has no code graph service (see [Deployment](#deployment)). It is not offered for local directories: the server has no way to read a directory on your machine.
+
+## What the status chip means
+
+Once enabled, the repository row carries a chip:
+
+| Chip | Meaning |
+|---|---|
+| **Ready · a1b2c3d · 2 hours ago** | The graph for that commit is queryable. Click the chip to open the code graph page. |
+| **Building…** | A build is queued or running. Agents keep working with their file tools in the meantime. |
+| **Skipped · too many files** | The repository exceeds the file cap. Nothing is built; there is no partial graph. |
+| **Failed · reason** | Cloning or building failed. **Retry** queues another build. |
+| *(no chip)* | Code graph is not enabled for this repository. |
+
+## The code graph page
+
+Each enabled repository has a page under **Intelligence → Code graph**, also reachable from its chip. The header shows the commit the graph was built from, when, and its size; workspace owners and admins can trigger **Rebuild**.
+
+| Tab | What it shows |
+|---|---|
+| **Overview** | The build report: the largest subsystems, the most connected nodes, surprising cross-subsystem links, and what changed since the previous build. |
+| **Subsystems** | Each subsystem with its size and cohesion, a generated article describing it, and its main files linked to GitHub at the built commit. |
+| **Graph** | Subsystems as nodes, with edge weight showing how much they reference each other. Click a subsystem to expand it, click a node to see its neighbourhood and `file:line`. Large projections are truncated by degree and say so. |
+| **Tree** | The file and symbol hierarchy as a collapsible tree. |
+| **Call flow** | One diagram per subsystem, showing the calls that hold it together. |
+
+<Callout type="info">
+A subsystem is a community the graph clustering found, named after its most connected member. It is a structural grouping, not a directory: a subsystem can span packages, and a package can split into several.
+</Callout>
+
+## How agents use it
+
+The `enact` CLI exposes the graph to every agent that checks out an enabled repository. The built-in skill tells the agent to run `enact graph status` first and, when the graph is ready, to read the report and query it before opening files.
+
+```bash
+enact graph status                 # ready / building / not enabled, and the commit
+enact graph report                 # the same report as the Overview tab
+enact graph query "where are webhook deliveries retried"
+enact graph path "IssueHandler" "TaskQueue"
+enact graph explain "WebhookDeliveryWorker"
+enact graph affected "EnqueueTask"  # what depends on this symbol
+enact graph communities
+```
+
+Each command takes `--repo <url>`; without it the repository checked out in the current directory is used. When the graph is not enabled, not built yet, or the deployment has no code graph service, the command exits with code 2 and one line saying why, and the agent continues with its ordinary file tools. See the [CLI reference](/cli#enact-graph).
+
+`calls` edges are inferred from the parse tree and are labelled as such in every answer; treat them as strong hints, not proof. Cross-file resolution is most complete for Python and thinner for Go and TypeScript, so "not in the graph" never means "not in the code".
+
+## Keeping it current
+
+A graph is built from one commit of the default branch, and the chip always names it.
+
+- A **push to the default branch** on GitHub queues a rebuild, debounced to one per five minutes per repository.
+- Repositories without a webhook are **polled every six hours**; a rebuild is queued when the branch head moved.
+- When a read finds the graph behind the known head it is marked **stale** and a rebuild is queued once. The existing graph stays queryable.
+
+Rebuilds are incremental: only files that changed since the last build are parsed again.
+
+## Limits
+
+- The default file cap is 20,000 source files per repository (`CODEGRAPH_MAX_FILES`); above it the build is skipped.
+- The Graph tab shows at most 500 nodes and 1,500 edges per projection and says when it has truncated.
+- Local directories are not supported.
+- Only source code is parsed. Markdown, PDFs and images in the repository are ignored — that is what [knowledge bases](/knowledge-bases) are for.
+
+## Deployment
+
+The code graph service is an optional container. Without it the checkbox is disabled and no other feature changes.
+
+```bash
+docker compose -f docker-compose.selfhost.yml -f docker-compose.codegraph.yml up -d
+```
+
+| Where | Variable | Meaning |
+|---|---|---|
+| Enact server | `ENACT_CODEGRAPH_SERVICE_URL` | Internal URL of the service, `http://codegraph:8767` in compose; empty disables the feature |
+| Enact server | `ENACT_CODEGRAPH_SERVICE_KEY` | Shared key sent on every request |
+| Container | `CODEGRAPH_SERVICE_KEY` | Must equal the server's key; the service refuses everything without one |
+| Container | `CODEGRAPH_ALLOWED_HOSTS` | Hosts the service may clone from, default `github.com`; add your Git host for self-hosted Git |
+| Container | `CODEGRAPH_MAX_FILES` | File cap per repository, default `20000` |
+| Container | `CODEGRAPH_BUILD_TIMEOUT_S` | Per-build timeout, default `900` |
+
+The service keeps each repository's checkout and graph on the `codegraph_state` volume. If the volume is lost, the status and reports stored in the Enact database remain, the Graph, Tree and Call flow tabs and agent queries return "not built", and the next rebuild — manual or triggered by a push — restores everything from the repository. Nothing needs to be migrated.
+
+Cloning private repositories uses a short-lived GitHub App installation token, or the token stored for a self-hosted Git integration. It is passed to the service for a single clone and is never written to disk or logs.
+
+## Code graph and Ontology
+
+They answer different questions and do not share data. The code graph describes how a repository's code is structured. An Ontology describes a business domain — entities, actions, policies — and binds it to real systems under human approval. Documents belong in a [knowledge base](/knowledge-bases); the code graph never reads them.
+
+## Next steps
+
+- [Resources](/resources) — the repositories a workspace works on
+- [CLI](/cli#enact-graph) — the `enact graph` commands
+- [Environment variables](/environment-variables#code-graph) — server-side configuration

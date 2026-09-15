@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/enact-ai/enact/server/internal/middleware"
 	agentpkg "github.com/enact-ai/enact/server/pkg/agent"
@@ -153,6 +155,14 @@ type codeRepositoryRef struct {
 	DefaultBranchHint    string `json:"default_branch_hint,omitempty"`
 	Ref                  string `json:"ref,omitempty"`
 	Enabled              bool   `json:"enabled"`
+	// CodeGraph opts this repository into a server-side structure graph
+	// (docs/architecture/code-graph-plan.zh.md). It is a flag on the repo
+	// rather than a resource type of its own because it changes nothing
+	// about what the repository IS to a task — the same URL is still checked
+	// out the same way; it only adds a graph the agent and the workspace can
+	// consult. Absent means false, so repositories attached before the
+	// feature existed stay opted out without a data migration.
+	CodeGraph bool `json:"code_graph,omitempty"`
 }
 
 func validateGithubRepoRef(ref json.RawMessage) (json.RawMessage, error) {
@@ -260,6 +270,27 @@ func (h *Handler) findCodeRepositoryConflict(ctx context.Context, workspaceID pg
 	return false, nil
 }
 
+// rejectCodeGraphFlag refuses resource_ref.code_graph on a type the builder
+// cannot serve. The container clones over the network, so a local_directory
+// has no bytes it can reach, and a knowledge base is documents rather than
+// code. Refusing at the boundary is what keeps a hopeful flag from sitting in
+// a row forever, doing nothing and explaining nothing.
+func rejectCodeGraphFlag(ref json.RawMessage, resourceType string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(ref, &fields); err != nil {
+		return nil
+	}
+	raw, present := fields["code_graph"]
+	if !present {
+		return nil
+	}
+	var enabled bool
+	if json.Unmarshal(raw, &enabled) != nil || !enabled {
+		return nil
+	}
+	return fmt.Errorf("%s: code graph needs a remote repository", resourceType)
+}
+
 // knowledgeRepoResourceType is a git repository of knowledge documents, as
 // opposed to the code a task works on.
 //
@@ -304,6 +335,9 @@ func validateKnowledgeRepoRef(ref json.RawMessage) (json.RawMessage, error) {
 	var payload knowledgeRepoRef
 	if err := json.Unmarshal(ref, &payload); err != nil {
 		return nil, fmt.Errorf("invalid knowledge_repo payload: %w", err)
+	}
+	if err := rejectCodeGraphFlag(ref, knowledgeRepoResourceType); err != nil {
+		return nil, err
 	}
 	payload.URL = strings.TrimSpace(payload.URL)
 	if payload.URL == "" {
@@ -545,6 +579,9 @@ func validateLocalDirectoryRef(ref json.RawMessage) (json.RawMessage, error) {
 	var payload localDirectoryRef
 	if err := json.Unmarshal(ref, &payload); err != nil {
 		return nil, fmt.Errorf("invalid local_directory payload: %w", err)
+	}
+	if err := rejectCodeGraphFlag(ref, "local_directory"); err != nil {
+		return nil, err
 	}
 	payload.LocalPath = strings.TrimSpace(payload.LocalPath)
 	if payload.LocalPath == "" {
@@ -899,6 +936,13 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		map[string]any{"resource": resp},
 	)
 
+	// A repository that arrives already opted into a code graph gets its
+	// first build queued now, so the graph is being built while the member is
+	// still looking at the page they added it on.
+	if codeGraphEnabled(resource) {
+		h.enqueueCodeGraphBuild(r.Context(), resource, "", time.Time{})
+	}
+
 	// Read the tree into the project profile, if this workspace has said what
 	// it is and has a Mika to do it. Deliberately after the response is
 	// decided and never able to fail it: the member asked to attach a
@@ -1091,6 +1135,24 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// The code graph opt-in is the switch: turning it on queues a build,
+	// turning it off drops the build history and asks the container to
+	// release the checkout. Nothing else in the product needs to be told.
+	wasEnabled := codeGraphEnabled(existing)
+	nowEnabled := codeGraphEnabled(updated)
+	switch {
+	case !wasEnabled && nowEnabled:
+		h.enqueueCodeGraphBuild(r.Context(), updated, "", time.Time{})
+	case wasEnabled && !nowEnabled:
+		if err := h.Queries.DeleteCodeGraphBuildsByResource(r.Context(), db.DeleteCodeGraphBuildsByResourceParams{
+			WorkspaceID: updated.WorkspaceID, ResourceID: updated.ID,
+		}); err != nil {
+			slog.Warn("code graph: clearing builds after opt-out failed",
+				"resource_id", uuidToString(updated.ID), "error", err)
+		}
+		h.releaseCodeGraphProject(updated)
+	}
+
 	resp := workspaceResourceToResponse(updated)
 	h.publish(
 		protocol.EventWorkspaceResourceUpdated,
@@ -1187,6 +1249,13 @@ func (h *Handler) DeleteWorkspaceResource(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
 	}
+	// Same reasoning as the bindings above: no foreign key will do this for
+	// us, and a build row whose resource is gone would keep a queue entry
+	// alive for a repository nobody asked about any more.
+	if err := deleteCodeGraphForResource(r.Context(), qtx, resource); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
+		return
+	}
 	if err := qtx.DeleteWorkspaceResource(r.Context(), resource.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
@@ -1194,6 +1263,11 @@ func (h *Handler) DeleteWorkspaceResource(w http.ResponseWriter, r *http.Request
 	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
+	}
+	// After the commit: the rows are gone either way, and a container that
+	// cannot be reached must not turn a successful delete into an error.
+	if codeGraphEnabled(resource) {
+		h.releaseCodeGraphProject(resource)
 	}
 	h.publish(
 		protocol.EventWorkspaceResourceDeleted,

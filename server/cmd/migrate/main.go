@@ -340,6 +340,8 @@ var concurrentIndexCleanups = map[string]string{
 	"563_daemon_repository_validation_daemon_idx":          "idx_daemon_repository_validation_daemon",
 	"564_daemon_repository_validation_id_idx":              "idx_daemon_repository_validation_id",
 	"565_daemon_repository_validation_resource_daemon_idx": "idx_daemon_repository_validation_resource_daemon",
+	"541_code_graph_build_resource_index":                  "idx_code_graph_build_resource",
+	"542_code_graph_build_queue_index":                     "idx_code_graph_build_queue",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

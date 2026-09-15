@@ -161,6 +161,17 @@
     "disabled": "無効",
     "no_push": "push 権限なし"
   },
+  "code_graph_checkbox": "選択したリポジトリのコードグラフを構築",
+  "code_graph_checkbox_help": "Enact がサーバー側でリポジトリ構造を索引化し、エージェントとメンバーがサブシステムと依存関係を把握できるようにします。モデルコストはかからず、コードはこのデプロイの外に出ません。",
+  "code_graph_unavailable": "このデプロイではコードグラフサービスが有効ではありません。",
+  "code_graph_section_hint": "コードグラフが有効なリポジトリは、エージェントが使えるようサーバー側で構造を索引化します。",
+  "code_graph_enable": "コードグラフを有効化",
+  "code_graph_disable": "コードグラフを無効化",
+  "code_graph_open": "コードグラフを開く",
+  "code_graph_toast_enabled": "コードグラフを有効にしました。最初の構築を開始しました。",
+  "code_graph_toast_disabled": "コードグラフを無効にしました",
+  "code_graph_toast_failed": "コードグラフの設定を変更できませんでした",
+  "code_graph_rebuild_queued": "再構築を予約しました",
   "semantic": {
     "connections": "接続",
     "ontologies": "ワークスペースのオントロジー",

@@ -412,6 +412,7 @@ describe("nav grouping", () => {
       "/acme/members",
       "/acme/agents",
       "/acme/marketplace",
+      "/acme/codegraph",
       "/acme/runtimes",
       "/acme/resources",
       "/acme/usage",

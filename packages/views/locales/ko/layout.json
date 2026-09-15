@@ -20,7 +20,8 @@
     "ontologies": "온톨로지",
     "skills": "스킬",
     "connections": "연결",
-    "applications": "애플리케이션"
+    "applications": "애플리케이션",
+    "codegraph": "코드 그래프"
   },
   "tab": {
     "issue": "태스크",
