@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "exports": {
+    "./anyharness-demo": "./anyharness-demo/index.ts",
     ".": "./index.ts",
     "./markdown": "./markdown/index.ts",
     "./types": "./types/index.ts",

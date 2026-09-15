@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "exports": {
+    "./anyharness-demo": "./anyharness-demo/index.ts",
     "./navigation": "./navigation/index.ts",
     "./common/actor-avatar": "./common/actor-avatar.tsx",
     "./editor": "./editor/index.ts",
@@ -118,7 +119,9 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "catalog:",
     "sonner": "^2.0.7",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "graphology-communities-louvain": "catalog:",
+    "graphology-shortest-path": "catalog:"
   },
   "peerDependencies": {
     "@tanstack/react-query": "catalog:",
