@@ -2,18 +2,20 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/integrations/vcs"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // ── Response mappers ────────────────────────────────────────────────────────
@@ -135,6 +137,7 @@ func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid signature")
 		return
 	}
+	_ = h.Queries.MarkVCSConnectionWebhookVerified(r.Context(), conn.ID)
 
 	switch provider.EventKind(r.Header) {
 	case vcs.EventPullRequest:
@@ -158,6 +161,10 @@ func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) mirrorVCSPullRequest(ctx context.Context, conn db.VcsConnection, ev vcs.PullRequestEvent) {
 	if ev.RepoOwner == "" || ev.RepoName == "" || ev.Number == 0 {
 		slog.Warn("vcs: pull_request missing repo identity", "provider", conn.Provider)
+		return
+	}
+	if !h.vcsRepositoryEnabled(ctx, conn, ev.RepoOwner, ev.RepoName) {
+		slog.Info("vcs: ignoring webhook for unbound repository", "connection_id", uuidToString(conn.ID), "repository", ev.RepoOwner+"/"+ev.RepoName)
 		return
 	}
 
@@ -286,6 +293,9 @@ func (h *Handler) mirrorVCSCIStatus(ctx context.Context, conn db.VcsConnection, 
 	if ev.SHA == "" || ev.State == "" {
 		return
 	}
+	if ev.RepoOwner == "" || ev.RepoName == "" || !h.vcsRepositoryEnabled(ctx, conn, ev.RepoOwner, ev.RepoName) {
+		return
+	}
 	// Use the provider's own event timestamp so UpsertVCSCommitStatus's
 	// monotonic guard has something real to compare — writing time.Now() here
 	// made the guard always true, so an out-of-order redelivery could regress a
@@ -317,4 +327,26 @@ func (h *Handler) mirrorVCSCIStatus(ctx context.Context, conn db.VcsConnection, 
 			"issue_id": uuidToString(issueID),
 		})
 	}
+}
+
+func (h *Handler) vcsRepositoryEnabled(ctx context.Context, conn db.VcsConnection, owner, name string) bool {
+	// Forgejo and Gitea keep their existing connection-scoped webhook behavior
+	// in this phase. Repository bindings and managed Git credentials are only
+	// introduced for GitLab (GitHub uses its own installation path).
+	if conn.Provider != "gitlab" {
+		return true
+	}
+	rows, err := h.Queries.ListWorkspaceResourcesUsingConnection(ctx, db.ListWorkspaceResourcesUsingConnectionParams{WorkspaceID: conn.WorkspaceID, ProviderConnectionID: uuidToString(conn.ID)})
+	if err != nil {
+		slog.Warn("vcs: repository binding lookup failed", "error", err)
+		return false
+	}
+	want := strings.Trim(strings.TrimSpace(owner+"/"+name), "/")
+	for _, row := range rows {
+		var ref codeRepositoryRef
+		if json.Unmarshal(row.ResourceRef, &ref) == nil && ref.Enabled && ref.Provider == conn.Provider && strings.EqualFold(strings.Trim(ref.FullName, "/"), want) {
+			return true
+		}
+	}
+	return false
 }

@@ -25,6 +25,7 @@ import (
 
 	"github.com/enact-ai/enact/server/internal/cli"
 	"github.com/enact-ai/enact/server/internal/daemon/execenv"
+	"github.com/enact-ai/enact/server/internal/daemon/gitcredential"
 	"github.com/enact-ai/enact/server/internal/daemon/repocache"
 	"github.com/enact-ai/enact/server/internal/selfexec"
 	"github.com/enact-ai/enact/server/pkg/agent"
@@ -3026,7 +3027,7 @@ func (d *Daemon) registerTaskRepos(workspaceID, taskID string, repos []RepoData)
 	}
 
 	type repoCandidate struct {
-		url     string
+		repo    RepoData
 		tracked bool
 	}
 
@@ -3062,7 +3063,7 @@ func (d *Daemon) registerTaskRepos(workspaceID, taskID string, repos []RepoData)
 			}
 		}
 		candidates = append(candidates, repoCandidate{
-			url:     url,
+			repo:    repo,
 			tracked: inWorkspace || inTask,
 		})
 	}
@@ -3070,10 +3071,10 @@ func (d *Daemon) registerTaskRepos(workspaceID, taskID string, repos []RepoData)
 
 	toSync := make([]RepoData, 0, len(candidates))
 	for _, candidate := range candidates {
-		if candidate.tracked && d.repoCache != nil && d.repoCache.Lookup(workspaceID, candidate.url) != "" {
+		if candidate.tracked && d.repoCache != nil && d.repoCache.Lookup(workspaceID, candidate.repo.URL) != "" {
 			continue
 		}
-		toSync = append(toSync, RepoData{URL: candidate.url})
+		toSync = append(toSync, candidate.repo)
 	}
 
 	if d.repoCache != nil && len(toSync) > 0 {
@@ -3129,24 +3130,91 @@ func (d *Daemon) syncWorkspaceRepos(workspaceID string, repos []RepoData) {
 	d.syncWorkspaceReposContext(context.Background(), workspaceID, repos)
 }
 
-func (d *Daemon) syncWorkspaceReposContext(ctx context.Context, workspaceID string, repos []RepoData) {
+func (d *Daemon) syncWorkspaceReposContext(ctx context.Context, workspaceID string, repos []RepoData) error {
 	if d.repoCache == nil {
-		return
+		return nil
 	}
-	var err error
-	if cache, ok := d.repoCache.(interface {
-		SyncContext(context.Context, string, []repocache.RepoInfo) error
-	}); ok {
-		err = cache.SyncContext(ctx, workspaceID, repoDataToInfo(repos))
-	} else {
-		err = d.repoCache.Sync(workspaceID, repoDataToInfo(repos))
+	var firstErr error
+	for _, repo := range repos {
+		info := repocache.RepoInfo{URL: repo.URL}
+		var temporary *gitcredential.Temporary
+		if repo.ResourceID != "" && repo.Kind != RepoKindKnowledge {
+			credential, err := d.client.GetRepositoryCredential(ctx, workspaceID, repo.ResourceID)
+			if err != nil {
+				status := classifyRepositoryGitError(err)
+				_ = d.client.ReportRepositoryValidation(ctx, workspaceID, repo.ResourceID, status, "unknown", "credential_unavailable", err.Error())
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			if strings.TrimSpace(credential.RepositoryURL) != strings.TrimSpace(repo.URL) {
+				err := errors.New("repository credential does not match requested resource")
+				_ = d.client.ReportRepositoryValidation(ctx, workspaceID, repo.ResourceID, "denied", "unknown", "repository_mismatch", err.Error())
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			temporary, err = gitcredential.New(repo.URL, credential.Username, credential.Password, credential.CAPEM)
+			if err != nil {
+				_ = d.client.ReportRepositoryValidation(ctx, workspaceID, repo.ResourceID, "tls_error", "unknown", "credential_helper", err.Error())
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			info.GitEnv = temporary.Env()
+		}
+
+		var err error
+		if cache, ok := d.repoCache.(interface {
+			SyncContext(context.Context, string, []repocache.RepoInfo) error
+		}); ok {
+			err = cache.SyncContext(ctx, workspaceID, []repocache.RepoInfo{info})
+		} else {
+			err = d.repoCache.Sync(workspaceID, []repocache.RepoInfo{info})
+		}
+		if temporary != nil {
+			_ = temporary.Cleanup()
+		}
+		if repo.ResourceID != "" && repo.Kind != RepoKindKnowledge {
+			status, code, message := "ok", "", ""
+			if err != nil {
+				status, code, message = classifyRepositoryGitError(err), "git_sync_failed", err.Error()
+			}
+			_ = d.client.ReportRepositoryValidation(ctx, workspaceID, repo.ResourceID, status, "unknown", code, message)
+		}
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
-	if err != nil {
-		d.setWorkspaceRepoSyncError(workspaceID, err.Error())
-		d.logger.Warn("repo cache sync failed", "workspace_id", workspaceID, "error", err)
-		return
+	if firstErr != nil {
+		d.setWorkspaceRepoSyncError(workspaceID, firstErr.Error())
+		d.logger.Warn("repo cache sync failed", "workspace_id", workspaceID, "error", firstErr)
+		return firstErr
 	}
 	d.setWorkspaceRepoSyncError(workspaceID, "")
+	return nil
+}
+
+func classifyRepositoryGitError(err error) string {
+	if err == nil {
+		return "ok"
+	}
+	message := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(message, "401"), strings.Contains(message, "403"), strings.Contains(message, "authentication failed"), strings.Contains(message, "access denied"):
+		return "denied"
+	case strings.Contains(message, "no such host"), strings.Contains(message, "could not resolve host"):
+		return "dns_error"
+	case strings.Contains(message, "x509"), strings.Contains(message, "certificate"), strings.Contains(message, "ssl certificate"):
+		return "tls_error"
+	case strings.Contains(message, "timeout"), strings.Contains(message, "deadline exceeded"):
+		return "timeout"
+	default:
+		return "unreachable"
+	}
 }
 
 func (d *Daemon) refreshWorkspaceRepos(ctx context.Context, workspaceID string) (*WorkspaceReposResponse, error) {
@@ -6528,6 +6596,26 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// in the per-workspace allowlist and the local cache, otherwise
 	// `enact repo checkout` would reject resource-only URLs that aren't also
 	// bound at the workspace level.
+	//
+	// A newly enabled managed repository must pass an actual daemon-side clone
+	// before the agent process starts. This is the execution gate behind the UI's
+	// per-daemon status: a runtime with broken DNS, TLS, or repository access
+	// records the specific failure and does not run a code task against an empty
+	// or stale checkout.
+	toValidate := make([]RepoData, 0, len(task.Repos))
+	for _, repo := range task.Repos {
+		if repo.ResourceID == "" || repo.Kind == RepoKindKnowledge || strings.TrimSpace(repo.URL) == "" {
+			continue
+		}
+		if d.repoCache == nil || d.repoCache.Lookup(task.WorkspaceID, repo.URL) == "" {
+			toValidate = append(toValidate, repo)
+		}
+	}
+	if len(toValidate) > 0 {
+		if err := d.syncWorkspaceReposContext(prepareCtx, task.WorkspaceID, toValidate); err != nil {
+			return TaskResult{}, fmt.Errorf("code repository is not available on this daemon: %w", err)
+		}
+	}
 	d.registerTaskRepos(task.WorkspaceID, task.ID, task.Repos)
 	defer d.clearTaskRepoRefs(task.WorkspaceID, task.ID)
 
@@ -8519,15 +8607,6 @@ func mergeUsage(a, b map[string]agent.TokenUsage) map[string]agent.TokenUsage {
 		merged[model] = existing
 	}
 	return merged
-}
-
-// repoDataToInfo converts daemon RepoData to repocache RepoInfo.
-func repoDataToInfo(repos []RepoData) []repocache.RepoInfo {
-	info := make([]repocache.RepoInfo, len(repos))
-	for i, r := range repos {
-		info[i] = repocache.RepoInfo{URL: r.URL}
-	}
-	return info
 }
 
 func convertIssueStatusesForEnv(statuses []IssueStatusData) []execenv.IssueStatusForEnv {

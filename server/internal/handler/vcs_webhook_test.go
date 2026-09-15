@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/util/secretbox"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func withVCSBox(t *testing.T) *secretbox.Box {
@@ -62,10 +62,19 @@ func seedVCSConnection(t *testing.T, ctx context.Context, box *secretbox.Box, pr
 	return uuidToString(conn.ID)
 }
 
+func seedBoundGitLabRepository(t *testing.T, ctx context.Context, connectionID, fullName string) {
+	t.Helper()
+	ref, _ := json.Marshal(codeRepositoryRef{Provider: "gitlab", ProviderConnectionID: connectionID, ProviderRepositoryID: "42", FullName: fullName, URL: "https://gitlab.test/" + fullName + ".git", DefaultBranchHint: "main", Enabled: true})
+	if _, err := testHandler.Queries.CreateWorkspaceResource(ctx, db.CreateWorkspaceResourceParams{WorkspaceID: parseUUID(testWorkspaceID), ResourceType: "github_repo", ResourceRef: ref, Position: 999}); err != nil {
+		t.Fatalf("CreateWorkspaceResource: %v", err)
+	}
+}
+
 func cleanupVCS(ctx context.Context, issueID string) {
 	testPool.Exec(ctx, `DELETE FROM issue_vcs_pull_request WHERE issue_id = $1`, issueID)
 	testPool.Exec(ctx, `DELETE FROM vcs_commit_status cs USING vcs_connection c WHERE cs.connection_id = c.id AND c.workspace_id = $1`, testWorkspaceID)
 	testPool.Exec(ctx, `DELETE FROM vcs_pull_request WHERE workspace_id = $1`, testWorkspaceID)
+	testPool.Exec(ctx, `DELETE FROM workspace_resource WHERE workspace_id = $1 AND resource_type = 'github_repo' AND resource_ref->>'provider' = 'gitlab'`, testWorkspaceID)
 	testPool.Exec(ctx, `DELETE FROM vcs_connection WHERE workspace_id = $1`, testWorkspaceID)
 	if issueID != "" {
 		testPool.Exec(ctx, `DELETE FROM activity_log WHERE issue_id = $1`, issueID)
@@ -230,6 +239,7 @@ func TestCombinedCloseAggregateSpansProviders(t *testing.T) {
 	ctx := context.Background()
 	box := withVCSBox(t)
 	connID := seedVCSConnection(t, ctx, box, "gitlab", "https://gitlab.test")
+	seedBoundGitLabRepository(t, ctx, connID, "acme/widget")
 	issue := newVCSIssue(t, "Cross-provider close gate")
 	now := pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true}
 	t.Cleanup(func() {
@@ -403,6 +413,7 @@ func TestVCSWebhook_GitlabMergeRequest(t *testing.T) {
 	ctx := context.Background()
 	box := withVCSBox(t)
 	connID := seedVCSConnection(t, ctx, box, "gitlab", "https://gitlab.test")
+	seedBoundGitLabRepository(t, ctx, connID, "acme/widget")
 	issue := newVCSIssue(t, "GitLab MR test")
 	t.Cleanup(func() { cleanupVCS(ctx, issue.ID) })
 
@@ -554,5 +565,29 @@ func TestVCSWebhook_MalformedTolerated(t *testing.T) {
 	testPool.QueryRow(ctx, `SELECT count(*) FROM vcs_pull_request WHERE workspace_id = $1`, testWorkspaceID).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected no PR rows, got %d", count)
+	}
+}
+
+func TestVCSWebhook_GitLabIgnoresRepositoryNotBoundToConnection(t *testing.T) {
+	ctx := context.Background()
+	box := withVCSBox(t)
+	connID := seedVCSConnection(t, ctx, box, "gitlab", "https://gitlab.test")
+	t.Cleanup(func() { cleanupVCS(ctx, "") })
+	raw, _ := json.Marshal(map[string]any{
+		"object_kind":       "merge_request",
+		"project":           map[string]any{"path_with_namespace": "other/unbound"},
+		"object_attributes": map[string]any{"iid": 7, "title": "Unbound", "state": "opened", "action": "open", "source_branch": "feat", "url": "https://gitlab.test/other/unbound/-/merge_requests/7"},
+	})
+	w := httptest.NewRecorder()
+	testHandler.HandleVCSWebhook(w, vcsWebhookReq(connID, map[string]string{"X-Gitlab-Event": "Merge Request Hook", "X-Gitlab-Token": vcsTestSecret}, raw))
+	if w.Code != http.StatusAccepted {
+		t.Fatalf("status = %d (%s)", w.Code, w.Body.String())
+	}
+	var count int
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM vcs_pull_request WHERE connection_id = $1`, connID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("unbound repository created %d mirrored rows", count)
 	}
 }

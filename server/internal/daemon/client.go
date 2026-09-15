@@ -888,6 +888,53 @@ func (c *Client) GetWorkspaceRepos(ctx context.Context, workspaceID string) (*Wo
 	return &resp, nil
 }
 
+// RepositoryCredential is a short-lived, repository-scoped HTTPS credential.
+// It is returned only over daemon-authenticated routes and must be placed in a
+// temporary credential helper rather than a remote URL or command argument.
+type RepositoryCredential struct {
+	RepositoryURL string `json:"repository_url"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	CAPEM         string `json:"ca_pem,omitempty"`
+	Provider      string `json:"provider"`
+	ExpiresAt     string `json:"expires_at,omitempty"`
+}
+
+func (c *Client) GetRepositoryCredential(ctx context.Context, workspaceID, resourceID string) (*RepositoryCredential, error) {
+	var resp RepositoryCredential
+	path := fmt.Sprintf("/api/daemon/workspaces/%s/resources/%s/git-credential", workspaceID, resourceID)
+	if err := c.getJSON(ctx, path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) ReportRepositoryValidation(ctx context.Context, workspaceID, resourceID, readStatus, writeStatus, errorCode, errorMessage string) error {
+	path := fmt.Sprintf("/api/daemon/workspaces/%s/resources/%s/git-validation", workspaceID, resourceID)
+	return c.postJSON(ctx, path, map[string]string{
+		"read_status": readStatus, "write_status": writeStatus,
+		"error_code": errorCode, "error_message": errorMessage,
+	}, nil)
+}
+
+type RepositoryChangeRequest struct {
+	Provider string `json:"provider"`
+	Number   int64  `json:"number"`
+	URL      string `json:"url"`
+}
+
+func (c *Client) CreateRepositoryChangeRequest(ctx context.Context, taskID, resourceID, head, base, title, body string, draft bool) (*RepositoryChangeRequest, error) {
+	var resp RepositoryChangeRequest
+	err := c.postJSON(ctx, "/api/daemon/tasks/"+taskID+"/repository-change-requests", map[string]any{
+		"resource_id": resourceID, "head": head, "base": base,
+		"title": title, "body": body, "draft": draft,
+	}, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // RuntimeProfile mirrors the server's workspace custom runtime profile
 // (ENA-3284). protocol_family is the provider used for task routing (it
 // selects the agent backend), while command_name is the actual executable

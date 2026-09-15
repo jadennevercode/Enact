@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_daemon_repository_validation_resource_daemon ON daemon_repository_validation(resource_id, daemon_id);

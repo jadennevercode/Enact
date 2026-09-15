@@ -142,8 +142,15 @@ type fjStatusPayload struct {
 	TargetURL   string `json:"target_url"`
 	Description string `json:"description"`
 	// Forgejo/Gitea send these as RFC3339 on the commit-status object.
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+	Repository struct {
+		Name  string `json:"name"`
+		Owner struct {
+			Login    string `json:"login"`
+			UserName string `json:"username"`
+		} `json:"owner"`
+	} `json:"repository"`
 }
 
 func (p forgejoProvider) ParseCIStatus(body []byte) (CIStatusEvent, error) {
@@ -158,6 +165,8 @@ func (p forgejoProvider) ParseCIStatus(body []byte) (CIStatusEvent, error) {
 		updatedAt = d.CreatedAt
 	}
 	return CIStatusEvent{
+		RepoOwner:   coalesce(d.Repository.Owner.Login, d.Repository.Owner.UserName),
+		RepoName:    d.Repository.Name,
 		SHA:         d.SHA,
 		Context:     d.Context,
 		State:       normalizeForgejoState(d.State),

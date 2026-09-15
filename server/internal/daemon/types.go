@@ -39,6 +39,8 @@ type Runtime struct {
 // RepoData holds repository information from the workspace.
 type RepoData struct {
 	URL         string `json:"url"`
+	ResourceID  string `json:"resource_id,omitempty"`
+	Provider    string `json:"provider,omitempty"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
 	// Kind mirrors handler.RepoData.Kind. Empty means code, which is what
