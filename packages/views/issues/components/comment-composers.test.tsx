@@ -1128,3 +1128,72 @@ describe("sticky composer preference", () => {
     expect(screen.getByTestId("editor").parentElement?.className).not.toContain("max-h-[40vh]");
   });
 });
+
+
+describe("Site questions in the actual task composer", () => {
+  const fragment = { id: "site-request", content: "Which factories are affected?", workspaceSlug: "acme" };
+  function renderTask(onSubmit = vi.fn().mockResolvedValue(true)) {
+    const view = renderWithProviders(<WorkspaceSlugProvider slug="acme"><CommentInput issueId="issue-1" onSubmit={onSubmit} /></WorkspaceSlugProvider>);
+    return {...view, onSubmit};
+  }
+
+  it("opens a queued question as an editable draft and sends only after the user clicks Send", async () => {
+    useCommentDraftStore.getState().queuePrefill("new:issue-1", fragment);
+    const {container,onSubmit} = renderTask();
+    await waitFor(() => expect(useCommentDraftStore.getState().getDraft("new:issue-1")).toBe(fragment.content));
+    expect(screen.getByRole("status")).toHaveTextContent("Review it, then click Send");
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(getSubmitButton(container));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(fragment.content, undefined, undefined));
+  });
+
+  it("appends to an already mounted editor, preserving typing and uploads", async () => {
+    const {onSubmit} = renderTask();
+    activateComposer("comment-composer-shell");
+    fireEvent.change(screen.getByTestId("editor"), {target:{value:"My existing notes"}});
+    const upload = {clientUploadId:"upload",status:"uploading" as const,filename:"evidence.pdf",size:1,contentType:"application/pdf"};
+    act(() => {
+      useCommentDraftStore.getState().addUpload("new:issue-1", upload);
+      useCommentDraftStore.getState().queuePrefill("new:issue-1", fragment);
+    });
+    await waitFor(() => expect(useCommentDraftStore.getState().getDraft("new:issue-1")).toBe(`My existing notes\n\n${fragment.content}`));
+    expect(useCommentDraftStore.getState().getUploads("new:issue-1")).toEqual([upload]);
+    expect(insertMarkdownSpy).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("waits for an older send to finish and preserves only the unsent question", async () => {
+    let resolve!: (value: boolean) => void;
+    const onSubmit = vi.fn().mockReturnValue(new Promise((r) => { resolve = r; }));
+    const {container} = renderTask(onSubmit);
+    activateComposer("comment-composer-shell");
+    fireEvent.change(screen.getByTestId("editor"),{target:{value:"First message"}});
+    fireEvent.click(getSubmitButton(container));
+    act(() => useCommentDraftStore.getState().queuePrefill("new:issue-1",fragment));
+    expect(insertMarkdownSpy).not.toHaveBeenCalled();
+    await act(async () => { resolve(true); });
+    await waitFor(() => expect(useCommentDraftStore.getState().getDraft("new:issue-1")).toBe(fragment.content));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps another task or workspace's question out of this editor", () => {
+    useCommentDraftStore.getState().queuePrefill("new:issue-2",fragment);
+    useCommentDraftStore.getState().queuePrefill("new:issue-1",{...fragment,workspaceSlug:"another-workspace"});
+    const {onSubmit} = renderTask();
+    expect(screen.getByTestId("comment-composer-shell")).toBeInTheDocument();
+    expect(insertMarkdownSpy).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("retains a question when insertion fails, with an explicit retry", async () => {
+    insertMarkdownBehavior.succeed = false;
+    useCommentDraftStore.getState().queuePrefill("new:issue-1",fragment);
+    const {onSubmit} = renderTask();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("could not be added to the editor"));
+    expect(useCommentDraftStore.getState().drafts["new:issue-1"]?.prefills).toHaveLength(1);
+    insertMarkdownBehavior.succeed = true;
+    fireEvent.click(screen.getByRole("button",{name:"Add to editor"}));
+    await waitFor(() => expect(useCommentDraftStore.getState().getDraft("new:issue-1")).toBe(fragment.content));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});

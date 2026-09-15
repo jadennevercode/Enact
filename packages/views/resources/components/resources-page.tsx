@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   BookOpen,
   FolderGit,
   FolderOpen,
@@ -88,6 +89,7 @@ import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
 import { GitHubMark } from "../../settings/components/github-mark";
 import { CollectionPageHeader } from "../../layout/collection-page";
 import { PAGE_GUTTER } from "../../layout/page-header";
+import { CodeHostingConnections } from "./code-hosting-connections";
 
 // Workspace Resources settings tab.
 //
@@ -164,6 +166,7 @@ export function ResourcesPage() {
     Map<number, GitHubRepository>
   >(new Map());
   const [repositorySearch, setRepositorySearch] = useState("");
+  const [githubFixedRef, setGitHubFixedRef] = useState("");
   const [importing, setImporting] = useState(false);
 
   const { data: resources = [] } = useQuery(workspaceResourcesOptions(wsId));
@@ -202,6 +205,7 @@ export function ResourcesPage() {
     runtimeAdvertisesLocalWorktree(runtimes, daemonId);
 
   const githubResources = resources.filter(isGithubRef);
+  const pendingRepositoryCount = githubResources.filter((resource) => resource.configuration_status === "pending").length;
   const localResources = resources.filter(isLocalDirectoryRef);
   const knowledgeResources = resources.filter(isKnowledgeRef);
   const otherResources = resources.filter(
@@ -218,6 +222,14 @@ export function ResourcesPage() {
           .map((r) => repositoryIdentity(r.resource_ref.url))
           .filter((identity): identity is string => !!identity),
       ),
+    [githubResources],
+  );
+  const configuredRepositoryIdentities = useMemo(
+    () => new Set(githubResources.filter((resource) => resource.configuration_status !== "pending").map((resource) => repositoryIdentity(resource.resource_ref.url)).filter((identity): identity is string => !!identity)),
+    [githubResources],
+  );
+  const pendingRepositoryByIdentity = useMemo(
+    () => new Map(githubResources.filter((resource) => resource.configuration_status === "pending").map((resource) => [repositoryIdentity(resource.resource_ref.url), resource]).filter((entry): entry is [string, (typeof githubResources)[number]] => !!entry[0])),
     [githubResources],
   );
   const attachedLocalPaths = new Set(
@@ -340,7 +352,14 @@ export function ResourcesPage() {
     try {
       await createResource.mutateAsync({
         resource_type: "github_repo",
-        resource_ref: { url },
+        resource_ref: {
+          provider: url.includes("github.com") ? "github" : "gitlab",
+          provider_connection_id: "",
+          provider_repository_id: "",
+          full_name: "",
+          url,
+          enabled: false,
+        },
       });
       toast.success(t(($) => $.toast_attached));
     } catch (err) {
@@ -404,6 +423,7 @@ export function ResourcesPage() {
     setGitHubPickerOpen(false);
     setSelectedRepositories(new Map());
     setRepositorySearch("");
+    setGitHubFixedRef("");
   };
 
   const toggleGitHubRepository = (
@@ -421,7 +441,7 @@ export function ResourcesPage() {
   const importGitHubRepositories = async () => {
     if (importing) return;
     setImporting(true);
-    const known = new Set(attachedRepositoryIdentities);
+    const known = new Set(configuredRepositoryIdentities);
     let attached = 0;
     try {
       for (const repository of selectedRepositories.values()) {
@@ -431,11 +451,22 @@ export function ResourcesPage() {
         // The repo's own blurb becomes the resource label, which is what the
         // agent claim handler reads back out as the repository description.
         const description = repository.description?.trim();
-        await createResource.mutateAsync({
-          resource_type: "github_repo",
-          resource_ref: { url: repository.clone_url },
-          ...(description ? { label: description } : {}),
-        });
+        const resourceRef = {
+          provider: "github" as const,
+          provider_connection_id: selectedInstallationID,
+          provider_repository_id: String(repository.id),
+          full_name: repository.full_name,
+          url: repository.clone_url,
+          default_branch_hint: repository.default_branch,
+          ...(githubFixedRef.trim() ? { ref: githubFixedRef.trim() } : {}),
+          enabled: true,
+        };
+        const pending = pendingRepositoryByIdentity.get(identity);
+        if (pending) {
+          await updateResource.mutateAsync({ resourceId: pending.id, data: { resource_ref: resourceRef, ...(description ? { label: description } : {}) } });
+        } else {
+          await createResource.mutateAsync({ resource_type: "github_repo", resource_ref: resourceRef, ...(description ? { label: description } : {}) });
+        }
         attached += 1;
       }
       if (attached > 0) toast.success(t(($) => $.toast_attached));
@@ -645,6 +676,13 @@ export function ResourcesPage() {
             <p className="max-w-[70ch] text-body text-muted-foreground">
               {t(($) => $.tab_description)}
             </p>
+            {pendingRepositoryCount > 0 ? (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-caption">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                <div><p className="font-medium">{t(($) => $.hosting.migration_blocked, { count: pendingRepositoryCount })}</p><p className="text-muted-foreground">{t(($) => $.hosting.migration_action)}</p></div>
+              </div>
+            ) : null}
+            <CodeHostingConnections />
             <ResourceSection
               title={t(($) => $.repos_section_title)}
               description={t(($) => $.repos_section_description)}
@@ -884,6 +922,10 @@ export function ResourcesPage() {
                       className="pl-8"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="github-fixed-ref" className="text-caption font-medium">{t(($) => $.hosting.fixed_ref)}</label>
+                    <Input id="github-fixed-ref" value={githubFixedRef} onChange={(event) => setGitHubFixedRef(event.target.value)} placeholder={t(($) => $.hosting.fixed_ref_hint)} />
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto border-y">
@@ -907,7 +949,7 @@ export function ResourcesPage() {
                       {filteredGitHubRepositories.map((repository) => {
                         const identity = repositoryIdentity(repository.clone_url);
                         const alreadyAdded =
-                          !!identity && attachedRepositoryIdentities.has(identity);
+                          !!identity && configuredRepositoryIdentities.has(identity);
                         const disabled = alreadyAdded || repository.archived;
                         return (
                           <label
@@ -1109,6 +1151,7 @@ function GithubRepoRow({
   const ref = resource.resource_ref;
   const display =
     resource.label ||
+    ref.full_name ||
     (ref.ref
       ? `${githubShortLabel(ref.url)} @ ${ref.ref}`
       : githubShortLabel(ref.url));
@@ -1134,6 +1177,20 @@ function GithubRepoRow({
           {tooltip}
         </TooltipContent>
       </Tooltip>
+      {ref.provider ? <Badge variant="secondary" title={resource.connection_summary?.instance_url}>{ref.provider}{resource.connection_summary?.account_login ? ` · ${resource.connection_summary.account_login}` : ""}</Badge> : null}
+      {resource.configuration_status === "pending" ? (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="outline">{t(($) => $.hosting.pending)}</Badge>} />
+          <TooltipContent>{resource.configuration_errors?.join(" · ")}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <><Badge variant="secondary">{ref.enabled ? t(($) => $.hosting.enabled) : t(($) => $.hosting.disabled)}</Badge><Badge variant="outline">{ref.ref || ref.default_branch_hint || "default"}</Badge></>
+      )}
+      {(resource.daemon_validations ?? []).map((validation) => (
+        <Badge key={validation.daemon_id} variant="outline" title={validation.error_message}>
+          {validation.daemon_id}: {validation.read_status}/{validation.write_status}
+        </Badge>
+      ))}
       <button
         type="button"
         onClick={onRemove}

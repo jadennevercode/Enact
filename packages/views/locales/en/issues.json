@@ -481,7 +481,10 @@
       "bar_authors_more_other": "{{names}} and {{count}} others",
       "resolve_failed": "Failed to resolve thread",
       "unresolve_failed": "Failed to unresolve thread"
-    }
+    },
+    "application_draft_ready": "The app question is now a draft. Review it, then click Send.",
+    "application_draft_failed": "The question is saved, but could not be added to the editor. Try again.",
+    "application_draft_retry": "Add to editor"
   },
   "reply": {
     "placeholder": "Leave a reply..."

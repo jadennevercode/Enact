@@ -7,6 +7,7 @@ import { SearchCommand, SearchTrigger } from "@enact/views/search";
 import { FloatingChat } from "@enact/views/chat";
 import { WebNotificationBridge } from "@/components/web-notification-bridge";
 import { WorkspaceDocumentTitle } from "@/platform/workspace-document-title";
+import { defaultStorage } from "@enact/core/platform";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <WorkspaceDocumentTitle />
       </Suspense>
       <DashboardLayout
+        demoStorage={defaultStorage}
         loadingIndicator={<EnactIcon className="size-6" />}
         searchSlot={<SearchTrigger />}
         extra={

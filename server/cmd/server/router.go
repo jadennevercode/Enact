@@ -1311,12 +1311,15 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Get("/ws", h.DaemonWebSocket)
 		r.Get("/workspaces", h.ListDaemonWorkspaces)
 		r.Get("/workspaces/{workspaceId}/repos", h.GetDaemonWorkspaceRepos)
+		r.Get("/workspaces/{workspaceId}/resources/{resourceId}/git-credential", h.ResolveCodeRepositoryCredential)
+		r.Post("/workspaces/{workspaceId}/resources/{resourceId}/git-validation", h.ReportCodeRepositoryValidation)
 		r.Get("/workspaces/{workspaceId}/runtime-profiles", h.DaemonListRuntimeProfiles)
 
 		// Agent-triggered plugin hooks. The daemon's local MCP server calls
 		// this when an agent picks one of its tools; the server makes the
 		// signed request so the daemon never holds the signing secret.
 		r.Post("/tasks/{id}/plugin-hooks", h.InvokeAgentPluginHook)
+		r.Post("/tasks/{taskId}/repository-change-requests", h.CreateCodeRepositoryChangeRequest)
 		// The broker asks for an mcp hook's credential at connection time, so
 		// a secret never sits in a task record.
 		r.Get("/tasks/{id}/plugin-mcp/{contributionId}/credential", h.ResolvePluginMCPCredential)
@@ -1475,6 +1478,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// for the same reason as GitHub installations; connect /
 					// disconnect are admin-gated in the group below.
 					r.Get("/vcs/connections", h.ListVCSConnections)
+					r.Get("/code-hosting/connections", h.ListCodeHostingConnections)
 					// Custom runtime profiles — listing/reading is member-visible
 					// (the Runtime page renders for everyone; create/edit/delete
 					// are admin-gated below).
@@ -1569,6 +1573,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// VCS connect / disconnect / webhook regeneration (admin-only).
 					r.Post("/vcs/connections", h.ConnectVCS)
 					r.Post("/vcs/connections/{connectionId}/rotate-webhook", h.RotateVCSConnectionWebhook)
+					r.Get("/vcs/connections/{connectionId}/repositories", h.ListVCSConnectionRepositories)
+					r.Post("/vcs/connections/{connectionId}/test", h.TestVCSConnection)
+					r.Put("/vcs/connections/{connectionId}/credentials", h.RotateVCSConnectionCredentials)
 					r.Delete("/vcs/connections/{connectionId}", h.DeleteVCSConnection)
 				})
 

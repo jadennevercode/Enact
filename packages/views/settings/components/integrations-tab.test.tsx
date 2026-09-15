@@ -144,11 +144,11 @@ describe("Settings IntegrationsTab", () => {
     expect(screen.queryByTestId("vcs-tab")).toBeNull();
   });
 
-  it("shows the Git providers section on a self-hosted deployment that enables it", () => {
+  it("keeps Git providers on Sources even when self-hosted VCS is enabled", () => {
     configStore.getState().setAuthConfig({ allowSignup: true, vcsIntegrationAvailable: true });
 
     renderTab();
 
-    expect(screen.getByTestId("vcs-tab")).toBeInTheDocument();
+    expect(screen.queryByTestId("vcs-tab")).toBeNull();
   });
 });

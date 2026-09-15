@@ -38,11 +38,19 @@ export type CommentDraftKey =
   | `reply:${string}:${string}`  // ReplyInput inside a thread, key = `reply:${issueId}:${rootCommentId}`
   | `edit:${string}:${string}`;  // inline edit on existing comment, key = `edit:${issueId}:${commentId}`
 
+export interface CommentDraftPrefill {
+  id: string;
+  content: string;
+  workspaceSlug: string;
+}
+
 interface CommentDraft {
   content: string;
   /** Uploads (placeholders + completed) for this composer session. */
   attachments: DraftUpload[];
   updatedAt: number;
+  /** Site questions wait here until the live editor can append them safely. */
+  prefills?: CommentDraftPrefill[];
 }
 
 interface CommentDraftStore {
@@ -60,6 +68,10 @@ interface CommentDraftStore {
    * the draft body stays the single source of truth for what gets bound.
    */
   appendToDraftContent: (key: CommentDraftKey, markdown: string) => void;
+  /** Queue user-reviewed text without overwriting a mounted editor's unsaved text. */
+  queuePrefill: (key: CommentDraftKey, prefill: CommentDraftPrefill) => void;
+  /** Consume only the fragment that the editor actually inserted. */
+  applyPrefill: (key: CommentDraftKey, id: string, content: string) => void;
   /** Replace the upload list with completed attachments (legacy/compat path). */
   setAttachments: (key: CommentDraftKey, attachments: Attachment[]) => void;
   /** Record a placeholder the moment a file is picked (coordinator-owned). */
@@ -102,8 +114,8 @@ function deriveUploaded(uploads: DraftUpload[]): Attachment[] {
 // upload (in any state). Upload-only drafts (text deleted, a file still pending
 // or failed) are meaningful — pruning or dropping them would silently discard
 // the upload the whole persistence exists to protect.
-function isMeaningful(content: string, uploads: DraftUpload[]): boolean {
-  return content.trim().length > 0 || uploads.length > 0;
+function isMeaningful(content: string, uploads: DraftUpload[], prefills?: CommentDraftPrefill[]): boolean {
+  return content.trim().length > 0 || uploads.length > 0 || !!prefills?.length;
 }
 
 // Shared writer for setDraft/setAttachments/upload mutations: an entry with
@@ -116,7 +128,7 @@ function writeDraft(
   content: string,
   uploads: DraftUpload[],
 ): Record<string, CommentDraft> {
-  if (!isMeaningful(content, uploads)) {
+  if (!isMeaningful(content, uploads, drafts[key]?.prefills)) {
     if (!(key in drafts)) return drafts;
     const next = { ...drafts };
     delete next[key];
@@ -130,7 +142,7 @@ function writeDraft(
   if (existing && existing.content === content && existing.attachments === uploads) {
     return drafts;
   }
-  return { ...drafts, [key]: { content, attachments: uploads, updatedAt: Date.now() } };
+  return { ...drafts, [key]: { ...existing, content, attachments: uploads, updatedAt: Date.now() } };
 }
 
 function uploadsOf(drafts: Record<string, CommentDraft>, key: string): DraftUpload[] {
@@ -145,7 +157,7 @@ function pruneStaleDrafts(drafts: Record<string, CommentDraft>): Record<string, 
     // placeholders, and any placeholder still `uploading` is dropped (the bytes
     // were never persisted, so the upload cannot resume).
     const uploads = normalizeStoredUploads(v.attachments);
-    if (v.updatedAt >= cutoff && isMeaningful(v.content, uploads)) {
+    if (v.updatedAt >= cutoff && isMeaningful(v.content, uploads, v.prefills)) {
       out[k] = { ...v, attachments: uploads };
     }
   }
@@ -170,6 +182,31 @@ export const useCommentDraftStore = create<CommentDraftStore>()(
           return {
             drafts: writeDraft(s.drafts, key, next, uploadsOf(s.drafts, key)),
           };
+        }),
+      queuePrefill: (key, prefill) =>
+        set((s) => {
+          const existing = s.drafts[key];
+          const content = prefill.content.trim();
+          if (!content || !prefill.workspaceSlug) return s;
+          const prefills = existing?.prefills ?? [];
+          const body = existing?.content.trim() ?? "";
+          if (prefills.some((item) => item.id === prefill.id ||
+              (item.workspaceSlug === prefill.workspaceSlug && item.content === content)) ||
+              body === content || body.endsWith(`\n\n${content}`)) return s;
+          return { drafts: { ...s.drafts, [key]: {
+            ...existing, content: existing?.content ?? "",
+            attachments: uploadsOf(s.drafts, key), updatedAt: Date.now(),
+            prefills: [...prefills, { ...prefill, content }],
+          } } };
+        }),
+      applyPrefill: (key, id, content) =>
+        set((s) => {
+          const existing = s.drafts[key];
+          if (!existing?.prefills?.some((item) => item.id === id)) return s;
+          return { drafts: { ...s.drafts, [key]: {
+            ...existing, content, updatedAt: Date.now(),
+            prefills: existing.prefills.filter((item) => item.id !== id),
+          } } };
         }),
       setAttachments: (key, attachments) =>
         set((s) => ({
@@ -230,9 +267,13 @@ export const useCommentDraftStore = create<CommentDraftStore>()(
         }),
       clearDraft: (key) =>
         set((s) => {
-          if (!(key in s.drafts)) return s;
+          const current = s.drafts[key];
+          if (!current) return s;
           const next = { ...s.drafts };
-          delete next[key];
+          // A question received while an older comment was sending is still unsent.
+          if (current.prefills?.length) {
+            next[key] = { ...current, content: "", attachments: [], updatedAt: Date.now() };
+          } else delete next[key];
           return { drafts: next };
         }),
     }),

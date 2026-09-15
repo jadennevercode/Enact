@@ -13,6 +13,10 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "../../test/i18n";
 
+vi.mock("./code-hosting-connections", () => ({
+  CodeHostingConnections: () => null,
+}));
+
 const createMock = vi.hoisted(() => vi.fn().mockResolvedValue({}));
 const connectURLMock = vi.hoisted(() => vi.fn());
 const navReplaceMock = vi.hoisted(() => vi.fn());

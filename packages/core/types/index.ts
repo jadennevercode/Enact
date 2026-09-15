@@ -182,6 +182,8 @@ export type {
   WorkspaceResource,
   WorkspaceResourceType,
   WorkspaceResourceRef,
+  CodeRepositoryProvider,
+  CodeRepositoryResourceRef,
   GithubRepoResourceRef,
   LocalDirectoryResourceRef,
   LocalDirectoryExecutionMode,
@@ -215,6 +217,9 @@ export type {
   ListVCSConnectionsResponse,
   ConnectVCSRequest,
   ConnectVCSResponse,
+  VCSRepository,
+  ListVCSRepositoriesResponse,
+  TestVCSConnectionResponse,
 } from "./vcs";
 export type {
   LarkInstallation,

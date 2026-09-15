@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@enact/core/api";
 import { AppSidebar } from "./app-sidebar";
@@ -53,7 +53,7 @@ vi.mock("./workspace-switcher", () => ({
 vi.mock("@enact/ui/components/ui/sidebar", () => ({
   Sidebar: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SidebarContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SidebarFooter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SidebarFooter: ({ children }: { children: React.ReactNode }) => <div data-testid="sidebar-footer">{children}</div>,
   SidebarGroup: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -63,12 +63,14 @@ vi.mock("@enact/ui/components/ui/sidebar", () => ({
     children,
     isActive,
     render,
+    onClick,
   }: {
     children: React.ReactNode;
     isActive?: boolean;
     render?: React.ReactElement<{ href?: string }>;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
   }) => (
-    <button type="button" data-active={isActive ? "true" : undefined} data-href={render?.props.href}>
+    <button type="button" data-active={isActive ? "true" : undefined} data-href={render?.props.href} onClick={onClick}>
       {children}
     </button>
   ),
@@ -103,7 +105,11 @@ vi.mock("../auth", () => ({ useLogout: () => vi.fn() }));
 vi.mock("../issues/components/status-icon", () => ({ StatusIcon: () => <span /> }));
 vi.mock("../navigation", () => ({
   AppLink: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
-  useNavigation: () => ({ pathname: navigation.current.pathname, push: vi.fn() }),
+  useNavigation: () => ({
+    pathname: navigation.current.pathname,
+    push: vi.fn(),
+    getShareableUrl: (path: string) => `https://connected-enact.example${path}`,
+  }),
 }));
 vi.mock("../workspace/workspace-avatar", () => ({ WorkspaceAvatar: () => <span /> }));
 vi.mock("@enact/ui/components/common/actor-avatar", () => ({ ActorAvatar: () => <span /> }));
@@ -186,6 +192,24 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   },
   useQueryClient: () => ({ fetchQuery: vi.fn(), invalidateQueries: vi.fn() }),
 }));
+
+describe("Guide entry", () => {
+  it("opens the connected environment's guide from the footer and dismisses the mobile sheet", () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    render(<AppSidebar />);
+    sidebarState.setOpenMobile.mockClear();
+
+    fireEvent.click(within(screen.getByTestId("sidebar-footer")).getByRole("button"));
+
+    expect(open).toHaveBeenCalledWith(
+      "https://connected-enact.example/guide/index.html",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    expect(sidebarState.setOpenMobile).toHaveBeenCalledWith(false);
+    open.mockRestore();
+  });
+});
 
 describe("PinRow", () => {
   beforeEach(() => {

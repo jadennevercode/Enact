@@ -159,6 +159,15 @@ describe("comment draft store — prune on rehydrate", () => {
     expect(state.getAttachments("new:issue-1").map((a) => a.id)).toEqual(["att-1"]);
   });
 
+  it("restores a queued Site question before the editor has ever mounted", async () => {
+    const prefill = { id: "site", content: "Trace this part", workspaceSlug: "acme" };
+    seed({ "new:issue-1": { content: "", attachments: [], prefills: [prefill], updatedAt: Date.now() } });
+    setCurrentWorkspace("acme", "ws_a");
+    await flush();
+    await flush();
+    expect(useCommentDraftStore.getState().drafts["new:issue-1"]?.prefills).toEqual([prefill]);
+  });
+
   it("drops a draft with neither text nor attachments", async () => {
     seed({
       "new:issue-1": { content: "   ", attachments: [], updatedAt: Date.now() },
@@ -326,5 +335,41 @@ describe("comment draft store — upload lifecycle", () => {
     // A read again without a mutation must return the identical array.
     const second = useCommentDraftStore.getState().getAttachments(KEY);
     expect(first).toBe(second);
+  });
+});
+
+
+describe("Site follow-up drafts", () => {
+  beforeEach(() => useCommentDraftStore.setState({ drafts: {} }));
+  const fragment = { id: "request-1", content: "Which other plants are affected?", workspaceSlug: "acme" };
+
+  it("queues once without changing existing text or attachments, then adopts the editor's full body once", () => {
+    const store = useCommentDraftStore.getState();
+    store.setDraft("new:issue-1", "Existing draft");
+    store.setAttachments("new:issue-1", [makeAttachment("image")]);
+    const uploads = store.getUploads("new:issue-1");
+    store.queuePrefill("new:issue-1", fragment);
+    store.queuePrefill("new:issue-1", { ...fragment, id: "double-click" });
+    expect(store.getDraft("new:issue-1")).toBe("Existing draft");
+    expect(store.getUploads("new:issue-1")).toBe(uploads);
+    expect(useCommentDraftStore.getState().drafts["new:issue-1"]?.prefills).toHaveLength(1);
+    const appended = `Existing draft and live typing\n\n${fragment.content}`;
+    store.applyPrefill("new:issue-1", fragment.id, appended);
+    store.applyPrefill("new:issue-1", fragment.id, "stale second editor");
+    store.queuePrefill("new:issue-1", { ...fragment, id: "retry-after-navigation" });
+    expect(store.getDraft("new:issue-1")).toBe(appended);
+    expect(store.getUploads("new:issue-1")).toBe(uploads);
+    expect(useCommentDraftStore.getState().drafts["new:issue-1"]?.prefills).toEqual([]);
+    expect(store.getDraft("new:issue-2")).toBeUndefined();
+  });
+
+  it("keeps a pending question when empty editor updates or an older successful send clear the body", () => {
+    const store = useCommentDraftStore.getState();
+    store.queuePrefill("new:issue-1", fragment);
+    store.setDraft("new:issue-1", "");
+    store.clearDraft("new:issue-1");
+    expect(useCommentDraftStore.getState().drafts["new:issue-1"]?.prefills).toEqual([fragment]);
+    store.applyPrefill("new:issue-1", fragment.id, fragment.content);
+    expect(store.getDraft("new:issue-1")).toBe(fragment.content);
   });
 });

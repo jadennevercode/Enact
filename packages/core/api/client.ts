@@ -183,8 +183,11 @@ import type {
   ListGitHubRepositoriesResponse,
   GitHubConnectResponse,
   ListVCSConnectionsResponse,
+  VCSConnection,
   ConnectVCSRequest,
   ConnectVCSResponse,
+  ListVCSRepositoriesResponse,
+  TestVCSConnectionResponse,
   ListLarkInstallationsResponse,
   BeginLarkInstallResponse,
   LarkInstallStatusResponse,
@@ -295,6 +298,12 @@ import {
   EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
   EMPTY_WORKSPACE_RESOURCE,
+  ListVCSConnectionsResponseSchema,
+  EMPTY_LIST_VCS_CONNECTIONS_RESPONSE,
+  ListVCSRepositoriesResponseSchema,
+  EMPTY_LIST_VCS_REPOSITORIES_RESPONSE,
+  TestVCSConnectionResponseSchema,
+  EMPTY_TEST_VCS_CONNECTION_RESPONSE,
   EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SQUAD,
@@ -777,6 +786,13 @@ export class ApiClient {
   }
 
   /** Transport for workspace semantic services; callers validate with domain schemas. */
+  async semanticReportExport(runId: string, format: "html" | "jsonl"): Promise<Blob> {
+    const response = await this.fetchRaw(`/api/semantic/runs/${encodeURIComponent(runId)}/report?format=${format}`);
+    const expected = format === "html" ? "text/html" : "application/x-ndjson";
+    if (!response.headers.get("content-type")?.startsWith(expected)) throw new Error("The report export has an unsupported format");
+    return response.blob();
+  }
+
   async semanticRequest(path: string, init?: RequestInit): Promise<unknown> {
     if (!path.startsWith("/") || path.includes("..") || path.includes("?")) {
       throw new Error("Invalid semantic API path");
@@ -4675,7 +4691,8 @@ export class ApiClient {
 
   // VCS integration (Forgejo / Gitea / GitLab)
   async listVCSConnections(workspaceId: string): Promise<ListVCSConnectionsResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections`);
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections`);
+    return parseWithFallback(raw, ListVCSConnectionsResponseSchema, EMPTY_LIST_VCS_CONNECTIONS_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections" });
   }
 
   async connectVCS(
@@ -4702,6 +4719,29 @@ export class ApiClient {
       `/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/rotate-webhook`,
       { method: "POST" },
     );
+  }
+
+  async listVCSRepositories(workspaceId: string, connectionId: string, page = 1, search = ""): Promise<ListVCSRepositoriesResponse> {
+    const query = new URLSearchParams({ page: String(page) });
+    if (search.trim()) query.set("search", search.trim());
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/repositories?${query.toString()}`);
+    return parseWithFallback(raw, ListVCSRepositoriesResponseSchema, EMPTY_LIST_VCS_REPOSITORIES_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections/:connectionId/repositories" });
+  }
+
+  async testVCSConnection(workspaceId: string, connectionId: string): Promise<TestVCSConnectionResponse> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/test`, { method: "POST" });
+    return parseWithFallback(raw, TestVCSConnectionResponseSchema, EMPTY_TEST_VCS_CONNECTION_RESPONSE, { endpoint: "POST /api/workspaces/:id/vcs/connections/:connectionId/test" });
+  }
+
+  async rotateVCSCredentials(
+    workspaceId: string,
+    connectionId: string,
+    body: ConnectVCSRequest,
+  ): Promise<VCSConnection> {
+    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/credentials`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
   }
 
   // Lark integration

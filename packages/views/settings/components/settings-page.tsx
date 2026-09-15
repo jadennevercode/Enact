@@ -18,7 +18,6 @@ import {
   Blocks,
   CreditCard,
 } from "lucide-react";
-import { GitHubMark } from "./github-mark";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@enact/ui/components/ui/tabs";
 import { useIsMobile } from "@enact/ui/hooks/use-mobile";
 import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
@@ -35,7 +34,6 @@ import { ChatTab } from "./chat-tab";
 import { IssueTab } from "./issue-tab";
 import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
-import { GitHubTab } from "./github-tab";
 import { IntegrationsTab } from "./integrations-tab";
 import { LabsTab } from "./labs-tab";
 import { NotificationsTab } from "./notifications-tab";
@@ -62,7 +60,6 @@ const ACCOUNT_TAB_ICONS = {
 
 const WORKSPACE_TAB_KEYS = [
   "general",
-  "github",
   "integrations",
   "labs",
   "billing",
@@ -74,7 +71,6 @@ const WORKSPACE_TAB_KEYS = [
 ] as const;
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
-  github: "github",
   integrations: "integrations",
   labs: "labs",
   billing: "billing",
@@ -86,7 +82,6 @@ const WORKSPACE_TAB_VALUES = {
 } as const;
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
-  github: GitHubMark,
   integrations: Plug,
   labs: FlaskConical,
   billing: CreditCard,
@@ -122,6 +117,7 @@ const MOVED_TAB_DESTINATIONS: Record<
   mcp: (paths) => paths.agentsTab("mcp"),
   resources: (paths) => paths.resources(),
   repositories: (paths) => paths.resources(),
+  github: (paths) => paths.resources(),
   // Who belongs to a workspace is not a setting. Inviting, changing a role and
   // removing someone now sit on the Members page, beside the roster they act
   // on. Old `?tab=members` links still land there.
@@ -297,7 +293,6 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
-          <TabsContent value="github"><GitHubTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
           {billingEnabled ? (

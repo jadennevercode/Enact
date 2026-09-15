@@ -288,6 +288,8 @@ const (
 // daemon can set up worktrees for each workspace repo.
 type RepoData struct {
 	URL         string `json:"url"`
+	ResourceID  string `json:"resource_id,omitempty"`
+	Provider    string `json:"provider,omitempty"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
 	// Kind separates the code a task works on from a knowledge base bound to

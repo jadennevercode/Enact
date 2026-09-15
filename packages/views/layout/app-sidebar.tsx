@@ -16,6 +16,8 @@ import {
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Layers,
+  ArrowUpRight,
+  BookOpen,
   ChevronRight,
   SquarePen,
   X,
@@ -29,6 +31,7 @@ import { openCreateIssueWithPreference } from "@enact/core/issues/stores/create-
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -314,7 +317,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ topSlot, headerClassName, variant = "sidebar" }: AppSidebarProps = {}) {
   const { t } = useT("layout");
-  const { pathname } = useNavigation();
+  const { pathname, getShareableUrl } = useNavigation();
   const userId = useAuthStore((s) => s.user?.id);
   const workspace = useCurrentWorkspace();
   const p = useWorkspacePaths();
@@ -557,6 +560,27 @@ export function AppSidebar({ topSlot, headerClassName, variant = "sidebar" }: Ap
             </React.Fragment>
           ))}
         </SidebarContent>
+
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="enact-sidebar-nav-item"
+                title={t(($) => $.sidebar.guide_open)}
+                onClick={() => {
+                  // Desktop resolves the connected web environment; its window
+                  // open handler sends this URL to the system browser.
+                  window.open(getShareableUrl("/guide/index.html"), "_blank", "noopener,noreferrer");
+                  setOpenMobile(false);
+                }}
+              >
+                <BookOpen />
+                <span>{t(($) => $.sidebar.guide)}</span>
+                <ArrowUpRight className="ml-auto !size-3 text-muted-foreground" />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
 
         <SidebarRail />
       </Sidebar>

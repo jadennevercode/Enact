@@ -63,7 +63,10 @@ func (q *Queries) CreateWorkspaceResource(ctx context.Context, arg CreateWorkspa
 }
 
 const deleteWorkspaceResource = `-- name: DeleteWorkspaceResource :exec
-DELETE FROM workspace_resource WHERE id = $1
+WITH cleared_validations AS (
+    DELETE FROM daemon_repository_validation drv WHERE drv.resource_id = $1
+)
+DELETE FROM workspace_resource wr WHERE wr.id = $1
 `
 
 func (q *Queries) DeleteWorkspaceResource(ctx context.Context, id pgtype.UUID) error {

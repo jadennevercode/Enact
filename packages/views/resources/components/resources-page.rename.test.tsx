@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithI18n } from "../../test/i18n";
 
+vi.mock("./code-hosting-connections", () => ({
+  CodeHostingConnections: () => null,
+}));
+
 const updateMock = vi.fn().mockResolvedValue({});
 
 const RESOURCE = {

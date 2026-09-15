@@ -6,7 +6,7 @@
     "my_issues": "내 태스크",
     "issues": "태스크",
     "autopilots": "오토파일럿",
-    "agents": "Intelligence Center",
+    "agents": "AI Family",
     "members": "멤버",
     "marketplace": "Capability Hub",
     "runtimes": "런타임",
@@ -49,6 +49,8 @@
     "loading_named_prefix": "로딩 중"
   },
   "sidebar": {
+    "guide": "Guide",
+    "guide_open": "새 창에서 AISDLC Guide 열기",
     "unpin_tooltip": "고정 해제",
     "workspaces_label": "워크스페이스",
     "create_workspace": "워크스페이스 만들기",

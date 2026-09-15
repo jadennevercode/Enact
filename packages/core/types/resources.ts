@@ -14,10 +14,29 @@ export type WorkspaceResourceType =
   | "local_directory"
   | "knowledge_repo";
 
+export type CodeRepositoryProvider = "github" | "gitlab";
+
+export interface CodeRepositoryResourceRef {
+  provider: CodeRepositoryProvider;
+  provider_connection_id: string;
+  provider_repository_id: string;
+  full_name: string;
+  url: string;
+  ref?: string;
+  default_branch_hint?: string;
+  enabled: boolean;
+}
+
+/** @deprecated Use CodeRepositoryResourceRef. The wire type remains github_repo. */
 export interface GithubRepoResourceRef {
   url: string;
   ref?: string;
   default_branch_hint?: string;
+  provider?: CodeRepositoryProvider;
+  provider_connection_id?: string;
+  provider_repository_id?: string;
+  full_name?: string;
+  enabled?: boolean;
 }
 
 /**
@@ -70,6 +89,7 @@ export interface KnowledgeRepoResourceRef {
 }
 
 export type WorkspaceResourceRef =
+  | CodeRepositoryResourceRef
   | GithubRepoResourceRef
   | LocalDirectoryResourceRef
   | KnowledgeRepoResourceRef
@@ -84,6 +104,24 @@ export interface WorkspaceResource {
   position: number;
   created_at: string;
   created_by: string | null;
+  configuration_status?: "ready" | "pending" | "error" | string;
+  configuration_errors?: string[];
+  connection_summary?: {
+    provider: string;
+    connection_id: string;
+    full_name?: string;
+    instance_url?: string;
+    account_login?: string;
+    token_type?: string;
+  } | null;
+  daemon_validations?: Array<{
+    daemon_id: string;
+    read_status: string;
+    write_status: string;
+    error_code?: string;
+    error_message?: string;
+    checked_at: string;
+  }>;
 }
 
 export interface CreateWorkspaceResourceRequest {
