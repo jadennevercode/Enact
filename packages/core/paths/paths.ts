@@ -78,6 +78,11 @@ function workspaceScoped(slug: string) {
     runtimeSettings: (machineId: string, runtimeId: string) =>
       `${ws}/runtimes/${encode(machineId)}/runtime/${encode(runtimeId)}`,
     ontologies: () => `${ws}/ontologies`,
+    // Code graphs: the repositories whose structure the deployment has
+    // indexed for agents and people. One list, one page per repository,
+    // addressed by the workspace resource that owns the repository.
+    codeGraphs: () => `${ws}/codegraph`,
+    codeGraph: (resourceId: string) => `${ws}/codegraph/${encode(resourceId)}`,
     skills: () => `${ws}/skills`,
     // The capability directory. A single-word section like every other
     // workspace destination; a listing is addressed by id because slugs are

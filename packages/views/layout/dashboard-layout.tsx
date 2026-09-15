@@ -9,8 +9,11 @@ import { NavigationProgress } from "./navigation-progress";
 import { WorkspacePresencePrefetch } from "./workspace-presence-prefetch";
 import { GlobalShortcuts } from "./global-shortcuts";
 import { TopBar } from "./top-bar";
+import type { StorageAdapter } from "@enact/core/types/storage";
+import { AnyHarnessBoundary } from "../anyharness-demo";
 
 interface DashboardLayoutProps {
+  demoStorage?: StorageAdapter;
   children: ReactNode;
   /** Rendered inside SidebarInset (e.g. ChatWindow, ChatFab — absolute-positioned overlays) */
   extra?: ReactNode;
@@ -25,7 +28,24 @@ export function DashboardLayout({
   extra,
   searchSlot,
   loadingIndicator,
+  demoStorage,
 }: DashboardLayoutProps) {
+  const content = (
+    <SidebarProvider className="enact-dashboard-shell h-svh flex-col">
+      <GlobalShortcuts />
+      <WorkspacePresencePrefetch />
+      <TopBar searchSlot={searchSlot} />
+      <div className="flex min-h-0 w-full flex-1">
+        <AppSidebar />
+        <SidebarInset className="enact-dashboard-canvas relative overflow-hidden">
+          <NavigationProgress />
+          {children}
+          <ModalRegistry />
+          {extra}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
   return (
     <DashboardGuard
       loadingFallback={
@@ -37,20 +57,11 @@ export function DashboardLayout({
       {/* The bar spans the window; the sidebar and the canvas share what is
           left. Nesting it inside SidebarProvider keeps the collapsed-nav
           trigger it carries wired to the same sidebar it toggles. */}
-      <SidebarProvider className="enact-dashboard-shell h-svh flex-col">
-        <GlobalShortcuts />
-        <WorkspacePresencePrefetch />
-        <TopBar searchSlot={searchSlot} />
-        <div className="flex min-h-0 w-full flex-1">
-          <AppSidebar />
-          <SidebarInset className="enact-dashboard-canvas relative overflow-hidden">
-            <NavigationProgress />
-            {children}
-            <ModalRegistry />
-            {extra}
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+      {demoStorage ? (
+        <AnyHarnessBoundary storage={demoStorage}>{content}</AnyHarnessBoundary>
+      ) : (
+        content
+      )}
     </DashboardGuard>
   );
 }

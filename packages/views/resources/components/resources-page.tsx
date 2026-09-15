@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   BookOpen,
   FolderGit,
   FolderOpen,
@@ -10,6 +11,7 @@ import {
   LoaderCircle,
   Pencil,
   Plus,
+  MoreHorizontal,
   Search,
   Trash2,
 } from "lucide-react";
@@ -21,6 +23,12 @@ import {
   workspaceResourcesOptions,
 } from "@enact/core/resources";
 import { useWorkspaceId } from "@enact/core/hooks";
+import {
+  useCodeGraphCapability,
+  useCodeGraphStatuses,
+  useRebuildCodeGraph,
+  type CodeGraphBuildStatus,
+} from "@enact/core/codegraph";
 import {
   githubInstallationRepositoriesOptions,
   githubInstallationsOptions,
@@ -60,6 +68,12 @@ import {
   SelectValue,
 } from "@enact/ui/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@enact/ui/components/ui/dropdown-menu";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -86,8 +100,10 @@ import { useNavigation } from "../../navigation";
 import { useT } from "../../i18n";
 import { githubShortLabel, repositoryIdentity } from "../../common/github-url";
 import { GitHubMark } from "../../settings/components/github-mark";
+import { CodeGraphStatusChip } from "../../codegraph/components/code-graph-status-chip";
 import { CollectionPageHeader } from "../../layout/collection-page";
 import { PAGE_GUTTER } from "../../layout/page-header";
+import { CodeHostingConnections } from "./code-hosting-connections";
 
 // Workspace Resources settings tab.
 //
@@ -164,9 +180,18 @@ export function ResourcesPage() {
     Map<number, GitHubRepository>
   >(new Map());
   const [repositorySearch, setRepositorySearch] = useState("");
+  const [githubFixedRef, setGitHubFixedRef] = useState("");
   const [importing, setImporting] = useState(false);
+  // One decision per add, not per repository: the picker attaches a batch, and
+  // a per-row toggle inside a list of fifty would be a second job. Repositories
+  // that want a different answer flip it on their own row afterwards.
+  const [codeGraphOptIn, setCodeGraphOptIn] = useState(false);
 
   const { data: resources = [] } = useQuery(workspaceResourcesOptions(wsId));
+  const { data: codeGraphCapability } = useCodeGraphCapability(wsId);
+  const codeGraphEnabled = codeGraphCapability?.enabled === true;
+  const { data: codeGraphStatuses } = useCodeGraphStatuses(wsId);
+  const rebuildCodeGraph = useRebuildCodeGraph(wsId);
   const createResource = useCreateWorkspaceResource(wsId);
   const updateResource = useUpdateWorkspaceResource(wsId);
   const deleteResource = useDeleteWorkspaceResource(wsId);
@@ -202,6 +227,7 @@ export function ResourcesPage() {
     runtimeAdvertisesLocalWorktree(runtimes, daemonId);
 
   const githubResources = resources.filter(isGithubRef);
+  const pendingRepositoryCount = githubResources.filter((resource) => resource.configuration_status === "pending").length;
   const localResources = resources.filter(isLocalDirectoryRef);
   const knowledgeResources = resources.filter(isKnowledgeRef);
   const otherResources = resources.filter(
@@ -218,6 +244,14 @@ export function ResourcesPage() {
           .map((r) => repositoryIdentity(r.resource_ref.url))
           .filter((identity): identity is string => !!identity),
       ),
+    [githubResources],
+  );
+  const configuredRepositoryIdentities = useMemo(
+    () => new Set(githubResources.filter((resource) => resource.configuration_status !== "pending").map((resource) => repositoryIdentity(resource.resource_ref.url)).filter((identity): identity is string => !!identity)),
+    [githubResources],
+  );
+  const pendingRepositoryByIdentity = useMemo(
+    () => new Map(githubResources.filter((resource) => resource.configuration_status === "pending").map((resource) => [repositoryIdentity(resource.resource_ref.url), resource]).filter((entry): entry is [string, (typeof githubResources)[number]] => !!entry[0])),
     [githubResources],
   );
   const attachedLocalPaths = new Set(
@@ -332,7 +366,7 @@ export function ResourcesPage() {
     t,
   ]);
 
-  const handleAttach = async (url: string) => {
+  const handleAttach = async (url: string, codeGraph: boolean) => {
     if (attachedRepositoryIdentities.has(repositoryIdentity(url) ?? "")) {
       toast.error(t(($) => $.toast_already_attached));
       return;
@@ -340,7 +374,17 @@ export function ResourcesPage() {
     try {
       await createResource.mutateAsync({
         resource_type: "github_repo",
-        resource_ref: { url },
+        resource_ref: {
+          provider: url.includes("github.com") ? "github" : "gitlab",
+          provider_connection_id: "",
+          provider_repository_id: "",
+          full_name: "",
+          url,
+          enabled: false,
+          // Omitted rather than sent as false: absent is the server's own
+          // default, so a server that predates the flag stores the same thing.
+          ...(codeGraph ? { code_graph: true } : {}),
+        },
       });
       toast.success(t(($) => $.toast_attached));
     } catch (err) {
@@ -404,6 +448,46 @@ export function ResourcesPage() {
     setGitHubPickerOpen(false);
     setSelectedRepositories(new Map());
     setRepositorySearch("");
+    setGitHubFixedRef("");
+    setCodeGraphOptIn(false);
+  };
+
+  const handleToggleCodeGraph = async (
+    resource: WorkspaceResource & { resource_ref: GithubRepoResourceRef },
+    next: boolean,
+  ) => {
+    try {
+      await updateResource.mutateAsync({
+        resourceId: resource.id,
+        // The whole ref is resent because the server merges on the field, and
+        // dropping `ref`/`default_branch_hint` here would silently unpin a
+        // repository that was attached at a specific revision.
+        data: { resource_ref: { ...resource.resource_ref, code_graph: next } },
+      });
+      toast.success(
+        next
+          ? t(($) => $.code_graph_toast_enabled)
+          : t(($) => $.code_graph_toast_disabled),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : t(($) => $.code_graph_toast_failed),
+      );
+    }
+  };
+
+  const handleRebuildCodeGraph = (resourceId: string) => {
+    rebuildCodeGraph.mutate(resourceId, {
+      onSuccess: () => toast.success(t(($) => $.code_graph_rebuild_queued)),
+      onError: (err) =>
+        toast.error(
+          err instanceof Error && err.message
+            ? err.message
+            : t(($) => $.code_graph_toast_failed),
+        ),
+    });
   };
 
   const toggleGitHubRepository = (
@@ -421,7 +505,7 @@ export function ResourcesPage() {
   const importGitHubRepositories = async () => {
     if (importing) return;
     setImporting(true);
-    const known = new Set(attachedRepositoryIdentities);
+    const known = new Set(configuredRepositoryIdentities);
     let attached = 0;
     try {
       for (const repository of selectedRepositories.values()) {
@@ -431,11 +515,23 @@ export function ResourcesPage() {
         // The repo's own blurb becomes the resource label, which is what the
         // agent claim handler reads back out as the repository description.
         const description = repository.description?.trim();
-        await createResource.mutateAsync({
-          resource_type: "github_repo",
-          resource_ref: { url: repository.clone_url },
-          ...(description ? { label: description } : {}),
-        });
+        const resourceRef = {
+          provider: "github" as const,
+          provider_connection_id: selectedInstallationID,
+          provider_repository_id: String(repository.id),
+          full_name: repository.full_name,
+          url: repository.clone_url,
+          default_branch_hint: repository.default_branch,
+          ...(githubFixedRef.trim() ? { ref: githubFixedRef.trim() } : {}),
+          enabled: true,
+          ...(codeGraphOptIn && codeGraphEnabled ? { code_graph: true } : {}),
+        };
+        const pending = pendingRepositoryByIdentity.get(identity);
+        if (pending) {
+          await updateResource.mutateAsync({ resourceId: pending.id, data: { resource_ref: resourceRef, ...(description ? { label: description } : {}) } });
+        } else {
+          await createResource.mutateAsync({ resource_type: "github_repo", resource_ref: resourceRef, ...(description ? { label: description } : {}) });
+        }
         attached += 1;
       }
       if (attached > 0) toast.success(t(($) => $.toast_attached));
@@ -645,9 +741,20 @@ export function ResourcesPage() {
             <p className="max-w-[70ch] text-body text-muted-foreground">
               {t(($) => $.tab_description)}
             </p>
+            {pendingRepositoryCount > 0 ? (
+              <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 text-caption">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                <div><p className="font-medium">{t(($) => $.hosting.migration_blocked, { count: pendingRepositoryCount })}</p><p className="text-muted-foreground">{t(($) => $.hosting.migration_action)}</p></div>
+              </div>
+            ) : null}
+            <CodeHostingConnections />
             <ResourceSection
               title={t(($) => $.repos_section_title)}
-              description={t(($) => $.repos_section_description)}
+              description={
+                codeGraphEnabled
+                  ? `${t(($) => $.repos_section_description)} ${t(($) => $.code_graph_section_hint)}`
+                  : t(($) => $.repos_section_description)
+              }
               actions={
                 <>
                   <Popover open={addOpen} onOpenChange={setAddOpen}>
@@ -664,8 +771,9 @@ export function ResourcesPage() {
                         {t(($) => $.popover_title)}
                       </div>
                       <CustomRepoForm
-                        onSubmit={async (url) => {
-                          await handleAttach(url);
+                        codeGraphAvailable={codeGraphEnabled}
+                        onSubmit={async (url, codeGraph) => {
+                          await handleAttach(url, codeGraph);
                           setAddOpen(false);
                         }}
                       />
@@ -706,6 +814,16 @@ export function ResourcesPage() {
                     <GithubRepoRow
                       key={resource.id}
                       resource={resource}
+                      codeGraphAvailable={codeGraphEnabled}
+                      codeGraphStatus={codeGraphStatuses?.statuses[resource.id]}
+                      onToggleCodeGraph={(next) =>
+                        void handleToggleCodeGraph(resource, next)
+                      }
+                      onOpenCodeGraph={() =>
+                        navigation.push(paths.codeGraph(resource.id))
+                      }
+                      onRebuildCodeGraph={() => handleRebuildCodeGraph(resource.id)}
+                      rebuilding={rebuildCodeGraph.isPending}
                       onRemove={() => void handleRemove(resource)}
                     />
                   ))
@@ -884,6 +1002,10 @@ export function ResourcesPage() {
                       className="pl-8"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="github-fixed-ref" className="text-caption font-medium">{t(($) => $.hosting.fixed_ref)}</label>
+                    <Input id="github-fixed-ref" value={githubFixedRef} onChange={(event) => setGitHubFixedRef(event.target.value)} placeholder={t(($) => $.hosting.fixed_ref_hint)} />
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto border-y">
@@ -907,7 +1029,7 @@ export function ResourcesPage() {
                       {filteredGitHubRepositories.map((repository) => {
                         const identity = repositoryIdentity(repository.clone_url);
                         const alreadyAdded =
-                          !!identity && attachedRepositoryIdentities.has(identity);
+                          !!identity && configuredRepositoryIdentities.has(identity);
                         const disabled = alreadyAdded || repository.archived;
                         return (
                           <label
@@ -973,6 +1095,15 @@ export function ResourcesPage() {
                       </Button>
                     </div>
                   ) : null}
+                </div>
+
+                <div className="border-t px-6 py-3">
+                  <CodeGraphOptIn
+                    id="github-picker-code-graph"
+                    checked={codeGraphOptIn}
+                    available={codeGraphEnabled}
+                    onChange={setCodeGraphOptIn}
+                  />
                 </div>
 
                 <DialogFooter className="m-0 border-t bg-muted/30 px-6 py-4">
@@ -1101,14 +1232,28 @@ function ResourceSection({
 function GithubRepoRow({
   resource,
   onRemove,
+  codeGraphAvailable,
+  codeGraphStatus,
+  onToggleCodeGraph,
+  onOpenCodeGraph,
+  onRebuildCodeGraph,
+  rebuilding,
 }: {
   resource: WorkspaceResource & { resource_ref: GithubRepoResourceRef };
   onRemove: () => void;
+  codeGraphAvailable: boolean;
+  codeGraphStatus: CodeGraphBuildStatus | undefined;
+  onToggleCodeGraph: (next: boolean) => void;
+  onOpenCodeGraph: () => void;
+  onRebuildCodeGraph: () => void;
+  rebuilding: boolean;
 }) {
   const { t } = useT("resources");
   const ref = resource.resource_ref;
+  const codeGraphOn = ref.code_graph === true;
   const display =
     resource.label ||
+    ref.full_name ||
     (ref.ref
       ? `${githubShortLabel(ref.url)} @ ${ref.ref}`
       : githubShortLabel(ref.url));
@@ -1134,6 +1279,59 @@ function GithubRepoRow({
           {tooltip}
         </TooltipContent>
       </Tooltip>
+      {ref.provider ? <Badge variant="secondary" title={resource.connection_summary?.instance_url}>{ref.provider}{resource.connection_summary?.account_login ? ` · ${resource.connection_summary.account_login}` : ""}</Badge> : null}
+      {resource.configuration_status === "pending" ? (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="outline">{t(($) => $.hosting.pending)}</Badge>} />
+          <TooltipContent>{resource.configuration_errors?.join(" · ")}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <><Badge variant="secondary">{ref.enabled ? t(($) => $.hosting.enabled) : t(($) => $.hosting.disabled)}</Badge><Badge variant="outline">{ref.ref || ref.default_branch_hint || "default"}</Badge></>
+      )}
+      {(resource.daemon_validations ?? []).map((validation) => (
+        <Badge key={validation.daemon_id} variant="outline" title={validation.error_message}>
+          {validation.daemon_id}: {validation.read_status}/{validation.write_status}
+        </Badge>
+      ))}
+      {codeGraphAvailable && codeGraphOn ? (
+        <CodeGraphStatusChip
+          status={codeGraphStatus ?? { enabled: true, queued: true, stale: false, build: null }}
+          onOpen={onOpenCodeGraph}
+          onRetry={onRebuildCodeGraph}
+          retrying={rebuilding}
+        />
+      ) : null}
+      {codeGraphAvailable ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                className={ROW_ACTION_CLASS}
+                aria-label={t(($) => $.code_graph_enable)}
+              >
+                <MoreHorizontal className="size-3.5" />
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            {codeGraphOn ? (
+              <>
+                <DropdownMenuItem onClick={onOpenCodeGraph}>
+                  {t(($) => $.code_graph_open)}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onToggleCodeGraph(false)}>
+                  {t(($) => $.code_graph_disable)}
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem onClick={() => onToggleCodeGraph(true)}>
+                {t(($) => $.code_graph_enable)}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
       <button
         type="button"
         onClick={onRemove}
@@ -1434,11 +1632,14 @@ function LocalDirectoryRow({
 
 function CustomRepoForm({
   onSubmit,
+  codeGraphAvailable,
 }: {
-  onSubmit: (url: string) => Promise<void> | void;
+  onSubmit: (url: string, codeGraph: boolean) => Promise<void> | void;
+  codeGraphAvailable: boolean;
 }) {
   const { t } = useT("resources");
   const [url, setUrl] = useState("");
+  const [codeGraph, setCodeGraph] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1446,31 +1647,88 @@ function CustomRepoForm({
     if (!trimmed) return;
     setSubmitting(true);
     try {
-      await onSubmit(trimmed);
+      await onSubmit(trimmed, codeGraph && codeGraphAvailable);
       setUrl("");
+      setCodeGraph(false);
     } finally {
       setSubmitting(false);
     }
   };
   return (
-    <form onSubmit={handle} className="flex items-center gap-1.5 border-t pt-1">
-      <input
-        type="text"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder={t(($) => $.url_placeholder)}
-        className="flex-1 bg-transparent px-2 py-1 text-caption outline-none placeholder:text-muted-foreground"
+    <form onSubmit={handle} className="space-y-1.5 border-t pt-1">
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder={t(($) => $.url_placeholder)}
+          className="flex-1 bg-transparent px-2 py-1 text-caption outline-none placeholder:text-muted-foreground"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-caption"
+          disabled={!url.trim() || submitting}
+        >
+          {t(($) => $.url_submit)}
+        </Button>
+      </div>
+      <CodeGraphOptIn
+        id="custom-repo-code-graph"
+        checked={codeGraph}
+        available={codeGraphAvailable}
+        onChange={setCodeGraph}
+        compact
       />
-      <Button
-        type="submit"
-        size="sm"
-        variant="ghost"
-        className="h-6 px-2 text-caption"
-        disabled={!url.trim() || submitting}
-      >
-        {t(($) => $.url_submit)}
-      </Button>
     </form>
+  );
+}
+
+/**
+ * The opt-in that decides whether a repository gets a code graph.
+ *
+ * It is deliberately a checkbox on the add flow rather than a setting
+ * elsewhere: the choice belongs to the moment someone is thinking about this
+ * repository, and the consequence (server-side indexing, no model cost) is one
+ * sentence long. When the deployment has no code graph service the control
+ * stays visible but disabled — a missing checkbox would read as a missing
+ * feature rather than an unconfigured one.
+ */
+function CodeGraphOptIn({
+  id,
+  checked,
+  available,
+  onChange,
+  compact = false,
+}: {
+  id: string;
+  checked: boolean;
+  available: boolean;
+  onChange: (next: boolean) => void;
+  compact?: boolean;
+}) {
+  const { t } = useT("resources");
+  return (
+    <div className={cn("flex items-start gap-2", compact ? "px-2 pb-1" : "")}>
+      <Checkbox
+        id={id}
+        checked={available && checked}
+        disabled={!available}
+        onCheckedChange={(next) => onChange(next === true)}
+        className="mt-0.5"
+      />
+      <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
+        <span className="block text-caption font-medium">
+          {t(($) => $.code_graph_checkbox)}
+        </span>
+        <span className="block text-caption text-muted-foreground">
+          {available
+            ? t(($) => $.code_graph_checkbox_help)
+            : t(($) => $.code_graph_unavailable)}
+        </span>
+      </label>
+    </div>
   );
 }
 

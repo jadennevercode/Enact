@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/enact-ai/enact/server/internal/middleware"
 	agentpkg "github.com/enact-ai/enact/server/pkg/agent"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
@@ -19,14 +22,61 @@ import (
 
 // WorkspaceResourceResponse is the JSON shape returned by the resource API.
 type WorkspaceResourceResponse struct {
-	ID           string          `json:"id"`
-	WorkspaceID  string          `json:"workspace_id"`
-	ResourceType string          `json:"resource_type"`
-	ResourceRef  json.RawMessage `json:"resource_ref"`
-	Label        *string         `json:"label"`
-	Position     int32           `json:"position"`
-	CreatedAt    string          `json:"created_at"`
-	CreatedBy    *string         `json:"created_by"`
+	ID                  string                               `json:"id"`
+	WorkspaceID         string                               `json:"workspace_id"`
+	ResourceType        string                               `json:"resource_type"`
+	ResourceRef         json.RawMessage                      `json:"resource_ref"`
+	Label               *string                              `json:"label"`
+	Position            int32                                `json:"position"`
+	CreatedAt           string                               `json:"created_at"`
+	CreatedBy           *string                              `json:"created_by"`
+	ConfigurationStatus string                               `json:"configuration_status"`
+	ConfigurationErrors []string                             `json:"configuration_errors"`
+	ConnectionSummary   *CodeRepositoryConnectionSummary     `json:"connection_summary,omitempty"`
+	DaemonValidations   []DaemonRepositoryValidationResponse `json:"daemon_validations,omitempty"`
+}
+
+type DaemonRepositoryValidationResponse struct {
+	DaemonID     string `json:"daemon_id"`
+	ReadStatus   string `json:"read_status"`
+	WriteStatus  string `json:"write_status"`
+	ErrorCode    string `json:"error_code,omitempty"`
+	ErrorMessage string `json:"error_message,omitempty"`
+	CheckedAt    string `json:"checked_at"`
+}
+
+type CodeRepositoryConnectionSummary struct {
+	Provider     string `json:"provider"`
+	ConnectionID string `json:"connection_id"`
+	FullName     string `json:"full_name,omitempty"`
+	InstanceURL  string `json:"instance_url,omitempty"`
+	AccountLogin string `json:"account_login,omitempty"`
+	TokenType    string `json:"token_type,omitempty"`
+}
+
+func (h *Handler) hydrateCodeRepositoryConnectionSummary(ctx context.Context, workspaceID pgtype.UUID, resp *WorkspaceResourceResponse) {
+	if resp == nil || resp.ResourceType != "github_repo" || resp.ConnectionSummary == nil || resp.ConnectionSummary.ConnectionID == "" {
+		return
+	}
+	id, err := parseUUIDLoose(resp.ConnectionSummary.ConnectionID)
+	if err != nil {
+		return
+	}
+	if resp.ConnectionSummary.Provider == "github" {
+		row, err := h.Queries.GetGitHubInstallationByID(ctx, id)
+		if err == nil && row.WorkspaceID == workspaceID {
+			resp.ConnectionSummary.InstanceURL = "https://github.com"
+			resp.ConnectionSummary.AccountLogin = row.AccountLogin
+			resp.ConnectionSummary.TokenType = "installation"
+		}
+		return
+	}
+	row, err := h.Queries.GetVCSConnectionByID(ctx, id)
+	if err == nil && row.WorkspaceID == workspaceID {
+		resp.ConnectionSummary.InstanceURL = row.InstanceUrl
+		resp.ConnectionSummary.AccountLogin = row.AccountLogin
+		resp.ConnectionSummary.TokenType = row.TokenType
+	}
 }
 
 func workspaceResourceToResponse(r db.WorkspaceResource) WorkspaceResourceResponse {
@@ -34,16 +84,29 @@ func workspaceResourceToResponse(r db.WorkspaceResource) WorkspaceResourceRespon
 	if len(ref) == 0 {
 		ref = json.RawMessage("{}")
 	}
-	return WorkspaceResourceResponse{
-		ID:           uuidToString(r.ID),
-		WorkspaceID:  uuidToString(r.WorkspaceID),
-		ResourceType: r.ResourceType,
-		ResourceRef:  ref,
-		Label:        textToPtr(r.Label),
-		Position:     r.Position,
-		CreatedAt:    timestampToString(r.CreatedAt),
-		CreatedBy:    uuidToPtr(r.CreatedBy),
+	resp := WorkspaceResourceResponse{
+		ID:                  uuidToString(r.ID),
+		WorkspaceID:         uuidToString(r.WorkspaceID),
+		ResourceType:        r.ResourceType,
+		ResourceRef:         ref,
+		Label:               textToPtr(r.Label),
+		Position:            r.Position,
+		CreatedAt:           timestampToString(r.CreatedAt),
+		CreatedBy:           uuidToPtr(r.CreatedBy),
+		ConfigurationStatus: "ready",
+		ConfigurationErrors: []string{},
 	}
+	if r.ResourceType == "github_repo" {
+		var repo codeRepositoryRef
+		_ = json.Unmarshal(ref, &repo)
+		errs := codeRepositoryConfigurationErrors(repo)
+		resp.ConfigurationErrors = errs
+		if len(errs) > 0 || !repo.Enabled {
+			resp.ConfigurationStatus = "pending"
+		}
+		resp.ConnectionSummary = &CodeRepositoryConnectionSummary{Provider: repo.Provider, ConnectionID: repo.ProviderConnectionID, FullName: repo.FullName}
+	}
+	return resp
 }
 
 // CreateWorkspaceResourceRequest is the body for POST /api/resources.
@@ -83,14 +146,27 @@ func validateAndNormalizeResourceRef(resourceType string, ref json.RawMessage) (
 	}
 }
 
-type githubRepoRef struct {
-	URL               string `json:"url"`
-	DefaultBranchHint string `json:"default_branch_hint,omitempty"`
-	Ref               string `json:"ref,omitempty"`
+type codeRepositoryRef struct {
+	Provider             string `json:"provider"`
+	ProviderConnectionID string `json:"provider_connection_id"`
+	ProviderRepositoryID string `json:"provider_repository_id"`
+	FullName             string `json:"full_name"`
+	URL                  string `json:"url"`
+	DefaultBranchHint    string `json:"default_branch_hint,omitempty"`
+	Ref                  string `json:"ref,omitempty"`
+	Enabled              bool   `json:"enabled"`
+	// CodeGraph opts this repository into a server-side structure graph
+	// (docs/architecture/code-graph-plan.zh.md). It is a flag on the repo
+	// rather than a resource type of its own because it changes nothing
+	// about what the repository IS to a task — the same URL is still checked
+	// out the same way; it only adds a graph the agent and the workspace can
+	// consult. Absent means false, so repositories attached before the
+	// feature existed stay opted out without a data migration.
+	CodeGraph bool `json:"code_graph,omitempty"`
 }
 
 func validateGithubRepoRef(ref json.RawMessage) (json.RawMessage, error) {
-	var payload githubRepoRef
+	var payload codeRepositoryRef
 	if err := json.Unmarshal(ref, &payload); err != nil {
 		return nil, fmt.Errorf("invalid github_repo payload: %w", err)
 	}
@@ -103,11 +179,116 @@ func validateGithubRepoRef(ref json.RawMessage) (json.RawMessage, error) {
 	}
 	payload.DefaultBranchHint = strings.TrimSpace(payload.DefaultBranchHint)
 	payload.Ref = strings.TrimSpace(payload.Ref)
+	payload.Provider = strings.ToLower(strings.TrimSpace(payload.Provider))
+	payload.ProviderConnectionID = strings.TrimSpace(payload.ProviderConnectionID)
+	payload.ProviderRepositoryID = strings.TrimSpace(payload.ProviderRepositoryID)
+	payload.FullName = strings.Trim(strings.TrimSpace(payload.FullName), "/")
+	// Old clients sent only {url, ref}. Preserve the row but keep it out of
+	// daemon claims until an administrator binds it to a connection.
+	if payload.Provider == "" {
+		if u, err := url.Parse(payload.URL); err == nil && strings.EqualFold(u.Hostname(), "github.com") {
+			payload.Provider = "github"
+		} else {
+			payload.Provider = "gitlab"
+		}
+		payload.Enabled = false
+	}
+	if payload.Provider != "github" && payload.Provider != "gitlab" {
+		return nil, errors.New("github_repo: provider must be github or gitlab")
+	}
+	if payload.ProviderConnectionID == "" || payload.ProviderRepositoryID == "" || payload.FullName == "" {
+		payload.Enabled = false
+	}
 	out, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+func codeRepositoryConfigurationErrors(repo codeRepositoryRef) []string {
+	errs := make([]string, 0, 4)
+	if repo.ProviderConnectionID == "" {
+		errs = append(errs, "Select a code-hosting connection")
+	}
+	if repo.ProviderRepositoryID == "" {
+		errs = append(errs, "Repository identity is missing")
+	}
+	if repo.FullName == "" {
+		errs = append(errs, "Full repository path is missing")
+	}
+	if !repo.Enabled {
+		errs = append(errs, "Repository is disabled until configuration is verified")
+	}
+	return errs
+}
+
+func codeRepositoryIdentity(raw string) string {
+	raw = strings.TrimSpace(raw)
+	host, path := "", ""
+	if parsed, err := url.Parse(raw); err == nil && parsed.Host != "" {
+		host, path = strings.ToLower(parsed.Hostname()), parsed.Path
+	} else if colon := strings.Index(raw, ":"); colon > 0 {
+		left := raw[:colon]
+		if at := strings.LastIndex(left, "@"); at >= 0 {
+			left = left[at+1:]
+		}
+		host, path = strings.ToLower(left), raw[colon+1:]
+	}
+	path = strings.TrimSuffix(strings.Trim(strings.TrimSpace(path), "/"), ".git")
+	if host == "" || path == "" {
+		return ""
+	}
+	return host + "/" + strings.ToLower(path)
+}
+
+func (h *Handler) findCodeRepositoryConflict(ctx context.Context, workspaceID pgtype.UUID, resourceType string, ref json.RawMessage, excludeID pgtype.UUID) (bool, error) {
+	if resourceType != "github_repo" {
+		return false, nil
+	}
+	var candidate codeRepositoryRef
+	if json.Unmarshal(ref, &candidate) != nil {
+		return false, nil
+	}
+	want := codeRepositoryIdentity(candidate.URL)
+	if want == "" {
+		return false, nil
+	}
+	rows, err := h.Queries.ListWorkspaceResources(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		if row.ResourceType != "github_repo" || (excludeID.Valid && row.ID == excludeID) {
+			continue
+		}
+		var existing codeRepositoryRef
+		if json.Unmarshal(row.ResourceRef, &existing) == nil && codeRepositoryIdentity(existing.URL) == want {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// rejectCodeGraphFlag refuses resource_ref.code_graph on a type the builder
+// cannot serve. The container clones over the network, so a local_directory
+// has no bytes it can reach, and a knowledge base is documents rather than
+// code. Refusing at the boundary is what keeps a hopeful flag from sitting in
+// a row forever, doing nothing and explaining nothing.
+func rejectCodeGraphFlag(ref json.RawMessage, resourceType string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(ref, &fields); err != nil {
+		return nil
+	}
+	raw, present := fields["code_graph"]
+	if !present {
+		return nil
+	}
+	var enabled bool
+	if json.Unmarshal(raw, &enabled) != nil || !enabled {
+		return nil
+	}
+	return fmt.Errorf("%s: code graph needs a remote repository", resourceType)
 }
 
 // knowledgeRepoResourceType is a git repository of knowledge documents, as
@@ -154,6 +335,9 @@ func validateKnowledgeRepoRef(ref json.RawMessage) (json.RawMessage, error) {
 	var payload knowledgeRepoRef
 	if err := json.Unmarshal(ref, &payload); err != nil {
 		return nil, fmt.Errorf("invalid knowledge_repo payload: %w", err)
+	}
+	if err := rejectCodeGraphFlag(ref, knowledgeRepoResourceType); err != nil {
+		return nil, err
 	}
 	payload.URL = strings.TrimSpace(payload.URL)
 	if payload.URL == "" {
@@ -396,6 +580,9 @@ func validateLocalDirectoryRef(ref json.RawMessage) (json.RawMessage, error) {
 	if err := json.Unmarshal(ref, &payload); err != nil {
 		return nil, fmt.Errorf("invalid local_directory payload: %w", err)
 	}
+	if err := rejectCodeGraphFlag(ref, "local_directory"); err != nil {
+		return nil, err
+	}
 	payload.LocalPath = strings.TrimSpace(payload.LocalPath)
 	if payload.LocalPath == "" {
 		return nil, errors.New("local_directory: local_path is required")
@@ -578,6 +765,63 @@ func (h *Handler) loadWorkspaceForResource(w http.ResponseWriter, r *http.Reques
 	return parseUUIDOrBadRequest(w, h.resolveWorkspaceID(r), "workspace id")
 }
 
+// validateCodeRepositoryBinding protects the enabled path. Legacy and pending
+// rows are accepted disabled so an upgrade never drops data, while any row
+// that can reach a daemon must name a real connection in the same workspace
+// and use that connection's HTTPS host.
+func (h *Handler) validateCodeRepositoryBinding(w http.ResponseWriter, r *http.Request, workspaceID pgtype.UUID, raw json.RawMessage) bool {
+	var repo codeRepositoryRef
+	if err := json.Unmarshal(raw, &repo); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid code repository payload")
+		return false
+	}
+	if !repo.Enabled {
+		return true
+	}
+	member, ok := middleware.MemberFromContext(r.Context())
+	if !ok || !roleAllowed(member.Role, "owner", "admin") {
+		writeError(w, http.StatusForbidden, "only workspace owners and admins can enable code repositories")
+		return false
+	}
+	u, err := url.Parse(repo.URL)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" {
+		writeError(w, http.StatusBadRequest, "enabled code repositories must use an HTTPS remote in phase one")
+		return false
+	}
+	connectionID, ok := parseUUIDOrBadRequest(w, repo.ProviderConnectionID, "provider_connection_id")
+	if !ok {
+		return false
+	}
+	switch repo.Provider {
+	case "github":
+		installation, err := h.Queries.GetGitHubInstallationByID(r.Context(), connectionID)
+		if err != nil || uuidToString(installation.WorkspaceID) != uuidToString(workspaceID) {
+			writeError(w, http.StatusBadRequest, "GitHub installation does not belong to this workspace")
+			return false
+		}
+		if !strings.EqualFold(u.Hostname(), "github.com") {
+			writeError(w, http.StatusBadRequest, "GitHub.com repositories must use github.com")
+			return false
+		}
+	case "gitlab":
+		connection, err := h.Queries.GetVCSConnectionByID(r.Context(), connectionID)
+		if err != nil || uuidToString(connection.WorkspaceID) != uuidToString(workspaceID) || connection.Provider != "gitlab" {
+			writeError(w, http.StatusBadRequest, "GitLab connection does not belong to this workspace")
+			return false
+		}
+		instance, _ := url.Parse(connection.InstanceUrl)
+		cloneHost := connection.CloneHost
+		if cloneHost == "" && instance != nil {
+			cloneHost = instance.Host
+		}
+		if !strings.EqualFold(u.Host, cloneHost) && !strings.EqualFold(u.Hostname(), cloneHost) {
+			writeError(w, http.StatusBadRequest, "repository host does not match the selected GitLab connection")
+			return false
+		}
+	}
+	return true
+}
+
 // ListWorkspaceResources returns the resources attached to the workspace.
 func (h *Handler) ListWorkspaceResources(w http.ResponseWriter, r *http.Request) {
 	wsID, ok := h.loadWorkspaceForResource(w, r)
@@ -589,9 +833,17 @@ func (h *Handler) ListWorkspaceResources(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "failed to list workspace resources")
 		return
 	}
+	validationRows, _ := h.Queries.ListDaemonRepositoryValidationsByWorkspace(r.Context(), wsID)
+	validations := make(map[string][]DaemonRepositoryValidationResponse)
+	for _, row := range validationRows {
+		key := uuidToString(row.ResourceID)
+		validations[key] = append(validations[key], DaemonRepositoryValidationResponse{DaemonID: row.DaemonID, ReadStatus: row.ReadStatus, WriteStatus: row.WriteStatus, ErrorCode: row.ErrorCode, ErrorMessage: row.ErrorMessage, CheckedAt: timestampToString(row.CheckedAt)})
+	}
 	resp := make([]WorkspaceResourceResponse, len(resources))
 	for i, res := range resources {
 		resp[i] = workspaceResourceToResponse(res)
+		h.hydrateCodeRepositoryConnectionSummary(r.Context(), wsID, &resp[i])
+		resp[i].DaemonValidations = validations[resp[i].ID]
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"resources": resp, "total": len(resp)})
 }
@@ -619,6 +871,16 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 	normalizedRef, err := validateAndNormalizeResourceRef(req.ResourceType, req.ResourceRef)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if req.ResourceType == "github_repo" && !h.validateCodeRepositoryBinding(w, r, wsID, normalizedRef) {
+		return
+	}
+	if conflict, err := h.findCodeRepositoryConflict(r.Context(), wsID, req.ResourceType, normalizedRef, pgtype.UUID{}); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to check existing repositories")
+		return
+	} else if conflict {
+		writeError(w, http.StatusConflict, "this code repository is already attached using another URL form")
 		return
 	}
 
@@ -673,6 +935,13 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		userID,
 		map[string]any{"resource": resp},
 	)
+
+	// A repository that arrives already opted into a code graph gets its
+	// first build queued now, so the graph is being built while the member is
+	// still looking at the page they added it on.
+	if codeGraphEnabled(resource) {
+		h.enqueueCodeGraphBuild(r.Context(), resource, "", time.Time{})
+	}
 
 	// Read the tree into the project profile, if this workspace has said what
 	// it is and has a Mika to do it. Deliberately after the response is
@@ -731,6 +1000,16 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 			return
 		}
 		nextRef = normalized
+		if existing.ResourceType == "github_repo" && !h.validateCodeRepositoryBinding(w, r, wsID, nextRef) {
+			return
+		}
+		if conflict, checkErr := h.findCodeRepositoryConflict(r.Context(), wsID, existing.ResourceType, nextRef, existing.ID); checkErr != nil {
+			writeError(w, http.StatusInternalServerError, "failed to check existing repositories")
+			return
+		} else if conflict {
+			writeError(w, http.StatusConflict, "this code repository is already attached using another URL form")
+			return
+		}
 	}
 
 	if conflict, err := h.findLocalDirectoryConflict(r.Context(), wsID, existing.ResourceType, nextRef, existing.ID); err != nil {
@@ -856,6 +1135,24 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// The code graph opt-in is the switch: turning it on queues a build,
+	// turning it off drops the build history and asks the container to
+	// release the checkout. Nothing else in the product needs to be told.
+	wasEnabled := codeGraphEnabled(existing)
+	nowEnabled := codeGraphEnabled(updated)
+	switch {
+	case !wasEnabled && nowEnabled:
+		h.enqueueCodeGraphBuild(r.Context(), updated, "", time.Time{})
+	case wasEnabled && !nowEnabled:
+		if err := h.Queries.DeleteCodeGraphBuildsByResource(r.Context(), db.DeleteCodeGraphBuildsByResourceParams{
+			WorkspaceID: updated.WorkspaceID, ResourceID: updated.ID,
+		}); err != nil {
+			slog.Warn("code graph: clearing builds after opt-out failed",
+				"resource_id", uuidToString(updated.ID), "error", err)
+		}
+		h.releaseCodeGraphProject(updated)
+	}
+
 	resp := workspaceResourceToResponse(updated)
 	h.publish(
 		protocol.EventWorkspaceResourceUpdated,
@@ -952,6 +1249,13 @@ func (h *Handler) DeleteWorkspaceResource(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
 	}
+	// Same reasoning as the bindings above: no foreign key will do this for
+	// us, and a build row whose resource is gone would keep a queue entry
+	// alive for a repository nobody asked about any more.
+	if err := deleteCodeGraphForResource(r.Context(), qtx, resource); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
+		return
+	}
 	if err := qtx.DeleteWorkspaceResource(r.Context(), resource.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
@@ -959,6 +1263,11 @@ func (h *Handler) DeleteWorkspaceResource(w http.ResponseWriter, r *http.Request
 	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete workspace resource")
 		return
+	}
+	// After the commit: the rows are gone either way, and a container that
+	// cannot be reached must not turn a successful delete into an error.
+	if codeGraphEnabled(resource) {
+		h.releaseCodeGraphProject(resource)
 	}
 	h.publish(
 		protocol.EventWorkspaceResourceDeleted,
@@ -1028,10 +1337,12 @@ func (h *Handler) workspaceRepos(ctx context.Context, workspaceID pgtype.UUID) [
 			continue
 		}
 		var payload struct {
-			URL string `json:"url"`
-			Ref string `json:"ref,omitempty"`
+			URL      string `json:"url"`
+			Ref      string `json:"ref,omitempty"`
+			Provider string `json:"provider"`
+			Enabled  bool   `json:"enabled"`
 		}
-		if json.Unmarshal(row.ResourceRef, &payload) != nil || strings.TrimSpace(payload.URL) == "" {
+		if json.Unmarshal(row.ResourceRef, &payload) != nil || strings.TrimSpace(payload.URL) == "" || !payload.Enabled {
 			continue
 		}
 		description := ""
@@ -1040,6 +1351,8 @@ func (h *Handler) workspaceRepos(ctx context.Context, workspaceID pgtype.UUID) [
 		}
 		repos = append(repos, RepoData{
 			URL:         strings.TrimSpace(payload.URL),
+			ResourceID:  uuidToString(row.ID),
+			Provider:    payload.Provider,
 			Ref:         strings.TrimSpace(payload.Ref),
 			Description: description,
 		})
@@ -1084,12 +1397,16 @@ func (h *Handler) applyWorkspaceResourcesToClaim(ctx context.Context, resp *Agen
 		// task's repos.
 		if row.ResourceType == "github_repo" {
 			var payload struct {
-				URL string `json:"url"`
-				Ref string `json:"ref,omitempty"`
+				URL      string `json:"url"`
+				Ref      string `json:"ref,omitempty"`
+				Provider string `json:"provider"`
+				Enabled  bool   `json:"enabled"`
 			}
-			if json.Unmarshal(row.ResourceRef, &payload) == nil && strings.TrimSpace(payload.URL) != "" {
+			if json.Unmarshal(row.ResourceRef, &payload) == nil && strings.TrimSpace(payload.URL) != "" && payload.Enabled {
 				repos = append(repos, RepoData{
 					URL:         strings.TrimSpace(payload.URL),
+					ResourceID:  uuidToString(row.ID),
+					Provider:    payload.Provider,
 					Ref:         strings.TrimSpace(payload.Ref),
 					Description: label,
 				})

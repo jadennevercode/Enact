@@ -1,0 +1,32 @@
+[project]
+name = "enact-codegraph"
+version = "0.1.0"
+description = "Enact code graph service: builds and serves graphify code graphs for workspace repositories."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+dependencies = [
+  # Pinned: the service depends on a few underscore-prefixed graphify entry points
+  # (see enact_codegraph/build_worker.py and queries.py). Bump deliberately and
+  # re-run the test suite.
+  "graphifyy[mcp,leiden]==0.9.61",
+  "starlette",
+  "uvicorn",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "httpx>=0.27",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["enact_codegraph*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

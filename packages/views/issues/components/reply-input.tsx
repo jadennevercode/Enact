@@ -10,6 +10,8 @@ import { formatShortcut, useShortcut } from "@enact/core/shortcuts";
 import { useCommentDraftStore, type CommentDraftKey } from "@enact/core/issues/stores";
 import { cn } from "@enact/ui/lib/utils";
 import type { AvatarSize } from "@enact/ui/lib/avatar-size";
+import { isCompactCommand } from "@enact/core/context";
+import { useContextControls } from "../../context/use-context-controls";
 import { useT } from "../../i18n";
 import { CommentTriggerChips } from "./comment-trigger-chips";
 import { useCommentTriggerPreview } from "../hooks/use-comment-trigger-preview";
@@ -65,6 +67,7 @@ function ReplyInput({
   // behavior as the top-level composer. A reply posts to the same issue, so
   // `/` has to offer the same thing here (ENA-5588).
   const quickActionMenu = useQuickActionMenu(issueId);
+  const contextControls = useContextControls({type:"issue",id:issueId});
   // If a draft key is provided, hydrate from store on mount (defaultValue is
   // the only injection point on ContentEditorRef) and flush on every onUpdate.
   const [initialDraft] = useState(() =>
@@ -162,7 +165,7 @@ function ReplyInput({
     // to pull the eye elsewhere. `containerRef` keeps this from stealing focus
     // if the user moved to another composer while the reply was in flight.
     afterAccepted: () => (editorScrubbedRef.current ? "refocus" : "none"),
-    onSubmit: (content) => {
+    onSubmit: async (content) => {
       editorScrubbedRef.current = false;
       if (draftKey) {
         // Flush pending debounce before snapshotting — see CommentInput.
@@ -173,6 +176,7 @@ function ReplyInput({
       // Bind only uploads the body still references (see CommentInput):
       // deleting an inline image really unbinds it; close-surviving uploads
       // are written back into the body by the settle handler.
+      if (isCompactCommand(content)) { const maintenance = await contextControls.handleCommand(content); acceptedCommentIdRef.current = null; return maintenance === true; }
       const activeIds = pendingAttachments
         .filter((a) => contentReferencesAttachment(content, a))
         .map((a) => a.id);
@@ -229,7 +233,8 @@ function ReplyInput({
           !isEmpty && "pb-9",
         )}
       >
-        {/* Lock the editor while the reply is in flight — see CommentInput. */}
+        {contextControls.panel}
+      {/* Lock the editor while the reply is in flight — see CommentInput. */}
         {lazy.active && (
         <div
           className={cn(

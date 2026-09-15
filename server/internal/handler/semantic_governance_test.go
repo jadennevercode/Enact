@@ -71,7 +71,7 @@ func TestSemanticRetirementAndDisabledConnectionBlockNewWork(t *testing.T) {
 	testutil.Call(t, testHandler.semanticDisableConnection, semanticRequest("POST", connection, nil)).Want(200)
 	testutil.Call(t, testHandler.semanticQuery, semanticRequest("POST", run, map[string]any{"binding_id": "case"})).Want(422)
 	testutil.Call(t, testHandler.semanticRetireRelease, semanticRequest("POST", release, map[string]any{"reason": "superseded"})).Want(200)
-	testutil.Call(t, testHandler.semanticCreateRun, newRequest("POST", "/api/semantic/runs", map[string]any{"release_id": release})).Want(404)
+	testutil.Call(t, testHandler.semanticCreateRun, newRequest("POST", "/api/semantic/runs", map[string]any{"release_id": release, "question": "这个批次有哪些风险？"})).Want(404)
 	testutil.Call(t, testHandler.semanticGetRun, semanticRequest("GET", run, nil)).Want(200)
 }
 

@@ -369,6 +369,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	h.FeatureFlags = opts.FeatureFlags
 	h.TaskService.FeatureFlags = opts.FeatureFlags
 	h.TaskService.Metrics = opts.BusinessMetrics
+	h.EnableFinalDeliveryOutbox()
 	h.IssueService.Metrics = opts.BusinessMetrics
 	entitlementClient, entitlementErr := entitlement.New(entitlement.Config{
 		Enabled:      envBool("ENACT_ENTITLEMENT_POLICY_ENABLED", false),
@@ -1310,12 +1311,15 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Get("/ws", h.DaemonWebSocket)
 		r.Get("/workspaces", h.ListDaemonWorkspaces)
 		r.Get("/workspaces/{workspaceId}/repos", h.GetDaemonWorkspaceRepos)
+		r.Get("/workspaces/{workspaceId}/resources/{resourceId}/git-credential", h.ResolveCodeRepositoryCredential)
+		r.Post("/workspaces/{workspaceId}/resources/{resourceId}/git-validation", h.ReportCodeRepositoryValidation)
 		r.Get("/workspaces/{workspaceId}/runtime-profiles", h.DaemonListRuntimeProfiles)
 
 		// Agent-triggered plugin hooks. The daemon's local MCP server calls
 		// this when an agent picks one of its tools; the server makes the
 		// signed request so the daemon never holds the signing secret.
 		r.Post("/tasks/{id}/plugin-hooks", h.InvokeAgentPluginHook)
+		r.Post("/tasks/{taskId}/repository-change-requests", h.CreateCodeRepositoryChangeRequest)
 		// The broker asks for an mcp hook's credential at connection time, so
 		// a secret never sits in a task record.
 		r.Get("/tasks/{id}/plugin-mcp/{contributionId}/credential", h.ResolvePluginMCPCredential)
@@ -1341,6 +1345,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Post("/tasks/{taskId}/complete", h.CompleteTask)
 		r.Post("/tasks/{taskId}/fail", h.FailTask)
 		r.Post("/tasks/{taskId}/usage", h.ReportTaskUsage)
+		r.Post("/tasks/{taskId}/context", h.BeginTaskContext)
+		r.Post("/context-sessions/{id}", h.UpdateContextSession)
+		r.Post("/runtimes/{runtimeId}/context-maintenance/claim", h.ClaimContextMaintenance)
 		r.Post("/tasks/{taskId}/messages", h.ReportTaskMessages)
 		r.Get("/tasks/{taskId}/messages", h.ListTaskMessages)
 		r.Post("/tasks/{taskId}/cancel-ack", h.AckTaskCancelled)
@@ -1471,6 +1478,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// for the same reason as GitHub installations; connect /
 					// disconnect are admin-gated in the group below.
 					r.Get("/vcs/connections", h.ListVCSConnections)
+					r.Get("/code-hosting/connections", h.ListCodeHostingConnections)
 					// Custom runtime profiles — listing/reading is member-visible
 					// (the Runtime page renders for everyone; create/edit/delete
 					// are admin-gated below).
@@ -1565,6 +1573,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					// VCS connect / disconnect / webhook regeneration (admin-only).
 					r.Post("/vcs/connections", h.ConnectVCS)
 					r.Post("/vcs/connections/{connectionId}/rotate-webhook", h.RotateVCSConnectionWebhook)
+					r.Get("/vcs/connections/{connectionId}/repositories", h.ListVCSConnectionRepositories)
+					r.Post("/vcs/connections/{connectionId}/test", h.TestVCSConnection)
+					r.Put("/vcs/connections/{connectionId}/credentials", h.RotateVCSConnectionCredentials)
 					r.Delete("/vcs/connections/{connectionId}", h.DeleteVCSConnection)
 				})
 
@@ -1821,6 +1832,13 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 
 			// Task messages (user-facing, not daemon auth)
 			r.Get("/api/tasks/{taskId}/messages", h.ListTaskMessagesByUser)
+			r.Get("/api/context-sessions", h.ListContextSessions)
+			r.Get("/api/context-checkpoints", h.ListContextCheckpoints)
+			r.Get("/api/context/current", h.GetTaskContext)
+			r.Post("/api/context/checkpoint", h.SaveTaskCheckpoint)
+			r.Post("/api/context-sessions/{id}/compactions", h.CreateContextCompaction)
+			r.Get("/api/context-operations/{id}", h.GetContextOperation)
+			r.Post("/api/context-operations/{id}/cancel", h.CancelContextOperation)
 
 			// Issue quick actions (definitions; running one lives under
 			// /api/issues/{id}/quick-actions/{quickActionId}/run)
@@ -2062,6 +2080,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 
 			// Workspace semantic control plane and business application runtime.
 			h.RegisterSemanticRoutes(r)
+
+			// Repository structure graphs built by the codegraph container.
+			h.RegisterCodeGraphRoutes(r)
 
 			// CapHub remains an optional external catalog. Its URL and API key
 			// remain server-side; members only receive catalog data and links.

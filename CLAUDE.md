@@ -100,6 +100,8 @@ Worktrees share one PostgreSQL container and get isolated DB names/ports via `.e
 
 CI runs Node 22, the latest Go 1.26 patch, and a `pgvector/pgvector:pg17` PostgreSQL service.
 
+MMM skills, engine, knowledge, and apps belong to the independent `mmm-runtime` repository, not this checkout. Enact owns the integration under `server/internal/mmm/` and `server/cmd/enact/cmd_mmm*.go`. Use `make mmm-setup MMM_RUNTIME_DIR=/path/to/mmm-runtime` to adopt it; later runs use the saved `~/.enact/mmm.yaml`. One workspace is one MMM project and its directory is that workspace's `local_directory` resource — the runtime has no project directory of its own. See `docs/development/mmm-runtime.md`.
+
 ## Database and Migration Rules
 
 These are hard requirements for every new or modified database design and production migration:

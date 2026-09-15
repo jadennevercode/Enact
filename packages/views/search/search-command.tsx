@@ -149,6 +149,7 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
     "安装",
     "发布",
   ],
+  codeGraphs: ["code graph", "codegraph", "graph", "repository structure", "代码图谱", "图谱", "子系统"],
   settings: ["settings", "config", "preferences", "设置", "配置"],
 };
 

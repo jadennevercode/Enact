@@ -178,6 +178,17 @@ allowlist の正確な判定順序は[ログインとサインアップ](/auth-s
 
 設定手順は [GitHub 連携](/github-integration#セルフホスト設定)、[Lark Bot](/lark-bot-integration#セルフホスト設定)、[Slack Bot](/slack-bot-integration#セルフホスト設定)、[Telegram Bot](/telegram-bot-integration#管理とセルフホスティング)を参照してください。
 
+## コードグラフ
+
+オプション。[コードグラフ](/code-graph)サービスは別のコンテナ（`docker-compose.codegraph.yml`）です。この 2 つの変数が空の場合、機能は無効になり、リソースページのチェックボックスはグレーアウトされます。
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `ENACT_CODEGRAPH_SERVICE_URL` | 空 | コードグラフサービスの内部 URL。compose では `http://codegraph:8767` |
+| `ENACT_CODEGRAPH_SERVICE_KEY` | 空 | `X-Codegraph-Service-Key` として送信される共有キー。コンテナの `CODEGRAPH_SERVICE_KEY` と一致させる必要があります |
+
+コンテナは `CODEGRAPH_SERVICE_KEY`、`CODEGRAPH_DATA_DIR`（`/data`）、`CODEGRAPH_ALLOWED_HOSTS`（`github.com`）、`CODEGRAPH_MAX_FILES`（`20000`）、`CODEGRAPH_BUILD_TIMEOUT_S`（`900`）を読み取ります。[コードグラフ → デプロイ](/code-graph#デプロイ)を参照してください。
+
 ## サーバーサイド LLM
 
 このグループは、会話タイトルなどサーバー側の補助生成機能の設定です。エージェントがタスクを実行するときに使う AI コーディングツールの資格情報ではありません。

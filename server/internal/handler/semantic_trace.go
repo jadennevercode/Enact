@@ -53,6 +53,32 @@ func semanticExecutionTrace(run map[string]any) map[string]any {
 			}
 		}
 		output, _ := step["output"].(map[string]any)
+		if kind == "ontology_context" {
+			for _, category := range []string{"entities", "attributes", "actions", "policies"} {
+				objects, _ := output[category].([]any)
+				for _, rawObject := range objects {
+					object, _ := rawObject.(map[string]any)
+					objectID := id + ":object:" + text(object["id"])
+					objectKind := map[string]string{"entities": "entity", "attributes": "attribute", "actions": "action", "policies": "policy"}[category]
+					addNode(objectID, text(object["label"]), objectKind, "inspected", map[string]any{"step_id": step["id"], "object": object})
+					addEdge(id, objectID, "inspected ontology")
+				}
+			}
+			relationships, _ := output["relationships"].([]any)
+			for _, rawRelation := range relationships {
+				relation, _ := rawRelation.(map[string]any)
+				addEdge(id+":object:"+text(relation["source_entity_id"]), id+":object:"+text(relation["target_entity_id"]), text(relation["label"]))
+			}
+		}
+		if kind == "policy_evaluation" {
+			policies, _ := output["policies"].([]any)
+			for _, rawPolicy := range policies {
+				policy, _ := rawPolicy.(map[string]any)
+				policyID := id + ":policy:" + text(policy["policy_id"])
+				addNode(policyID, text(policy["label"]), "policy", text(policy["status"]), map[string]any{"step_id": step["id"], "policy": policy})
+				addEdge(policyID, id, "constrains action")
+			}
+		}
 		derivations, _ := output["derivations"].([]any)
 		for _, rawDerivation := range derivations {
 			derivation, ok := rawDerivation.(map[string]any)

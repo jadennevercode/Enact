@@ -10,6 +10,7 @@ import type { WorkspaceResource } from "./resources";
 
 // WebSocket event types (matching Go server protocol/events.go)
 export type WSEventType =
+  | "context_session:updated"
   | "issue:created"
   | "issue:updated"
   | "issue_attachments:changed"

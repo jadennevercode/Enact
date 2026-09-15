@@ -41,6 +41,10 @@ func (k Kind) Valid() bool {
 // failure distinct from transport/instance errors.
 var ErrUnauthorized = errors.New("vcs: token unauthorized")
 
+// ErrForbidden distinguishes an authenticated token that lacks scope or
+// project visibility from a rejected/expired credential.
+var ErrForbidden = errors.New("vcs: token forbidden")
+
 // EventKind is the normalized webhook event category. Anything a provider does
 // not model maps to EventOther and is acknowledged but ignored.
 type EventKind int
@@ -95,6 +99,8 @@ func (e PullRequestEvent) Terminal() bool {
 // webhook. State is normalized to passed/failed/pending so the aggregation
 // query is provider-independent.
 type CIStatusEvent struct {
+	RepoOwner   string
+	RepoName    string
 	SHA         string
 	Context     string // status check / pipeline name; "" is allowed
 	State       string // passed | failed | pending

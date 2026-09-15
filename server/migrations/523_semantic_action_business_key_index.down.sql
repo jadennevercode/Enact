@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS semantic_action_business_key_index;

@@ -178,6 +178,17 @@ reverse proxy 뒤에 배포한다면 실제 proxy 네트워크를 입력해야 �
 
 설정 단계는 [GitHub 연동](/github-integration#자체-호스팅-설정), [Feishu Bot](/lark-bot-integration#자체-호스팅-설정), [Slack Bot](/slack-bot-integration#자체-호스팅-설정), [Telegram Bot](/telegram-bot-integration#관리-및-자체-호스팅)을 참고하세요.
 
+## 코드 그래프
+
+선택 사항. [코드 그래프](/code-graph) 서비스는 별도 컨테이너(`docker-compose.codegraph.yml`)입니다. 이 두 변수가 비어 있으면 기능이 비활성화되고 리소스 페이지의 체크박스가 회색으로 표시됩니다.
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `ENACT_CODEGRAPH_SERVICE_URL` | 비어 있음 | 코드 그래프 서비스의 내부 URL. compose에서는 `http://codegraph:8767` |
+| `ENACT_CODEGRAPH_SERVICE_KEY` | 비어 있음 | `X-Codegraph-Service-Key`로 보내는 공유 키. 컨테이너의 `CODEGRAPH_SERVICE_KEY`와 같아야 함 |
+
+컨테이너는 `CODEGRAPH_SERVICE_KEY`, `CODEGRAPH_DATA_DIR`(`/data`), `CODEGRAPH_ALLOWED_HOSTS`(`github.com`), `CODEGRAPH_MAX_FILES`(`20000`), `CODEGRAPH_BUILD_TIMEOUT_S`(`900`)를 읽습니다. [코드 그래프 → 배포](/code-graph#배포)를 참고하세요.
+
 ## 서버 측 LLM
 
 이 설정 그룹은 대화 제목 같은 서버 측 보조 생성 기능에 사용됩니다. 에이전트가 태스크를 실행할 때 사용하는 AI 코딩 도구의 자격 증명이 아닙니다.

@@ -6,7 +6,7 @@
     "my_issues": "내 태스크",
     "issues": "태스크",
     "autopilots": "오토파일럿",
-    "agents": "Intelligence Center",
+    "agents": "AI Family",
     "members": "멤버",
     "marketplace": "Capability Hub",
     "runtimes": "런타임",
@@ -20,7 +20,8 @@
     "ontologies": "온톨로지",
     "skills": "스킬",
     "connections": "연결",
-    "applications": "애플리케이션"
+    "applications": "애플리케이션",
+    "codegraph": "코드 그래프"
   },
   "tab": {
     "issue": "태스크",
@@ -49,6 +50,8 @@
     "loading_named_prefix": "로딩 중"
   },
   "sidebar": {
+    "guide": "Guide",
+    "guide_open": "새 창에서 AISDLC Guide 열기",
     "unpin_tooltip": "고정 해제",
     "workspaces_label": "워크스페이스",
     "create_workspace": "워크스페이스 만들기",

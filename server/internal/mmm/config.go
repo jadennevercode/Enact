@@ -1,6 +1,11 @@
-// Package mmm implements the `enact mmm` integration layer: provisioning
-// of the external mmm-runtime checkout on a daemon host and linking MMM
-// engagement directories to Enact projects.
+// Package mmm implements the `enact mmm` integration layer: provisioning of
+// the external mmm-runtime checkout on a daemon host, importing its skills,
+// and applying its agent portfolio to a workspace.
+//
+// Project directories are not this package's business. One workspace is one
+// MMM project, and the directory an agent works in is the workspace's
+// local_directory resource — the runtime keeps no marker file and no project
+// registry of its own.
 //
 // The package deliberately knows nothing about Enact server internals; it
 // orchestrates external tools (git, pip, npm, the claude CLI, and the
@@ -32,8 +37,8 @@ const (
 )
 
 // Config pins the mmm-runtime checkout used by `enact mmm` commands. It is
-// persisted at ~/.enact/mmm.yaml so setup re-runs and engagement commands
-// agree on which checkout is authoritative.
+// persisted at ~/.enact/mmm.yaml so setup re-runs and later commands agree on
+// which checkout is authoritative.
 type Config struct {
 	RuntimeGitURL string `yaml:"runtime_git_url,omitempty"`
 	RuntimeRef    string `yaml:"runtime_ref,omitempty"`

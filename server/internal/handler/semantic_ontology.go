@@ -94,6 +94,9 @@ func (h *Handler) semanticSaveOntology(w http.ResponseWriter, r *http.Request, u
 		var saved json.RawMessage
 		err = tx.QueryRow(r.Context(), "UPDATE semantic_ontology SET name=$3,description=$4,bundle=$5,binding_config=COALESCE($6,binding_config),test_data=COALESCE($7,test_data),updated_at=now() WHERE workspace_id=$1 AND id=$2 RETURNING to_jsonb(semantic_ontology)", actor.WorkspaceID, id, input.Name, input.Description, input.Bundle, input.BindingConfig, input.TestData).Scan(&saved)
 		if err == nil {
+			err = h.semanticInvalidateOntologyReviews(r.Context(), tx, actor.WorkspaceID, id)
+		}
+		if err == nil {
 			err = tx.Commit(r.Context())
 		}
 		if err != nil {
@@ -144,6 +147,7 @@ func (h *Handler) semanticPublishRelease(w http.ResponseWriter, r *http.Request)
 		writeError(w, 400, "version is required")
 		return
 	}
+	usesSavedBindings := input.Bindings == nil
 	var bundle, savedBindings, savedTestData json.RawMessage
 	if err := h.DB.QueryRow(r.Context(), "SELECT bundle,binding_config,test_data FROM semantic_ontology WHERE workspace_id=$1 AND id=$2", actor.WorkspaceID, id).Scan(&bundle, &savedBindings, &savedTestData); err != nil {
 		writeError(w, 404, "ontology not found")
@@ -242,6 +246,15 @@ func (h *Handler) semanticPublishRelease(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	releaseBindings := semanticMarshal(input.Bindings)
+	if usesSavedBindings {
+		var pinErr error
+		releaseBindings, pinErr = semanticPinnedBindingConfig(savedBindings, *input.Bindings)
+		if pinErr != nil {
+			writeError(w, 409, "saved binding configuration changed shape during publication")
+			return
+		}
+	}
 	releaseID := uuid.NewString()
 	scope := map[string]string{"workspace_id": actor.WorkspaceID, "ontology_id": id, "release_id": releaseID}
 	compiled, err := semanticService(r.Context(), "compile", map[string]any{"scope": scope, "bundle": bundle})
@@ -265,7 +278,7 @@ func (h *Handler) semanticPublishRelease(w http.ResponseWriter, r *http.Request)
 		writeJSON(w, 422, map[string]any{"error": "ontology release failed its validation gate", "validation": validation})
 		return
 	}
-	digest := semantic.Digest(map[string]any{"artifact": output.Artifact, "binding_config": input.Bindings, "validation": validation})
+	digest := semanticReleaseDigest(output.Artifact, releaseBindings, input.TestData, validation)
 	// Recheck the draft under lock after potentially slow compilation. The exact
 	// bytes validated must be the bytes the publisher releases.
 	tx, err := h.TxStarter.Begin(r.Context())
@@ -287,8 +300,12 @@ func (h *Handler) semanticPublishRelease(w http.ResponseWriter, r *http.Request)
 		writeError(w, 409, "ontology changed while release was being validated")
 		return
 	}
+	if err = h.semanticRequireReleaseReview(r.Context(), tx, actor.WorkspaceID, id); err != nil {
+		writeError(w, 409, err.Error())
+		return
+	}
 	var published json.RawMessage
-	err = tx.QueryRow(r.Context(), "INSERT INTO semantic_release(id,workspace_id,ontology_id,version,digest,artifact,binding_config,published_by,validation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING to_jsonb(semantic_release)", releaseID, actor.WorkspaceID, id, input.Version, digest, output.Artifact, semanticMarshal(input.Bindings), actor.UserID, validation).Scan(&published)
+	err = tx.QueryRow(r.Context(), "INSERT INTO semantic_release(id,workspace_id,ontology_id,version,digest,artifact,binding_config,test_data,published_by,validation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING to_jsonb(semantic_release)", releaseID, actor.WorkspaceID, id, input.Version, digest, output.Artifact, releaseBindings, input.TestData, actor.UserID, validation).Scan(&published)
 	if err != nil {
 		writeError(w, 409, "release version already exists or publication failed")
 		return
@@ -336,6 +353,21 @@ func semanticValidationPassed(raw json.RawMessage) bool {
 		}
 	}
 	return true
+}
+
+func semanticReleaseDigest(artifact, bindings, testData, validation json.RawMessage) string {
+	return semantic.Digest(map[string]any{
+		"artifact": semanticCanonicalJSONValue(artifact), "binding_config": semanticCanonicalJSONValue(bindings),
+		"test_data": semanticCanonicalJSONValue(testData), "validation": semanticCanonicalJSONValue(validation),
+	})
+}
+
+func semanticCanonicalJSONValue(raw json.RawMessage) any {
+	var value any
+	if json.Unmarshal(raw, &value) != nil {
+		return raw
+	}
+	return value
 }
 
 type semanticRelease struct {

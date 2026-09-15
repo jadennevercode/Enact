@@ -6,7 +6,7 @@
     "my_issues": "My Issues",
     "issues": "Issues",
     "autopilots": "Autopilot",
-    "agents": "Intelligence Center",
+    "agents": "AI Family",
     "members": "Members",
     "marketplace": "Capability Hub",
     "runtimes": "Runtimes",
@@ -20,7 +20,8 @@
     "ontologies": "Ontology",
     "skills": "Skills",
     "connections": "Connections",
-    "applications": "Applications"
+    "applications": "Applications",
+    "codegraph": "Code graphs"
   },
   "tab": {
     "issue": "Issue",
@@ -49,6 +50,8 @@
     "loading_named_prefix": "Loading"
   },
   "sidebar": {
+    "guide": "Guide",
+    "guide_open": "Open the AISDLC Guide in a new window",
     "unpin_tooltip": "Unpin",
     "workspaces_label": "Workspaces",
     "create_workspace": "Create workspace",

@@ -96,6 +96,9 @@ func (h *Handler) invokeSemanticApplication(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if request.Operation == "run.create" {
+		if !h.semanticRequireAgentRelease(w, r, actor, app.OntologyReleaseID) {
+			return
+		}
 		if _, err := h.semanticLoadRelease(r, actor.WorkspaceID, app.OntologyReleaseID); err != nil {
 			writeError(w, 409, "ontology release is not available")
 			return
@@ -115,6 +118,29 @@ func (h *Handler) invokeSemanticApplication(w http.ResponseWriter, r *http.Reque
 	switch request.Operation {
 	case "run.get":
 		handler = h.semanticGetRun
+		objectID = runID
+	case "issue.open":
+		handler = h.semanticIssueTarget
+		objectID = runID
+	case "run.report":
+		handler = h.semanticGetBusinessReport
+		objectID = runID
+	case "run.context":
+		if !applicationAllows(manifest.Queries, "@ontology") {
+			writeError(w, 403, "ontology inspection is outside the application capabilities")
+			return
+		}
+		handler = h.semanticBusinessContext
+		objectID = runID
+	case "policies":
+		if !applicationAllows(manifest.Queries, "@ontology") {
+			writeError(w, 403, "ontology inspection is outside the application capabilities")
+			return
+		}
+		if !h.semanticPresentationEvaluation(w, r, actor, runID, input, manifest) {
+			return
+		}
+		handler = h.semanticEvaluatePolicies
 		objectID = runID
 	case "run.trace":
 		handler = h.semanticRunTrace
@@ -157,7 +183,7 @@ func (h *Handler) invokeSemanticApplication(w http.ResponseWriter, r *http.Reque
 		}
 		if request.Operation == "approval.get" {
 			handler = func(w http.ResponseWriter, r *http.Request) {
-				h.semanticRow(w, r, 200, "SELECT to_jsonb(a) FROM semantic_approval a WHERE workspace_id=$1 AND id=$2", actor.WorkspaceID, objectID)
+				h.semanticApprovalPresentation(w, r, actor, objectID)
 			}
 		} else if request.Operation == "approval.decide" {
 			handler = h.semanticDecide
@@ -185,6 +211,15 @@ func (h *Handler) invokeSemanticApplication(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if _, ok := parseUUIDOrBadRequest(w, runID, "run_id"); !ok {
+		return
+	}
+	// Navigation may return to an older investigation. The target handler
+	// rechecks run ownership and Issue access; no data or execution scope moves.
+	if request.Operation == "issue.open" {
+		route := chi.NewRouteContext()
+		route.URLParams.Add("id", runID)
+		next := r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, route))
+		h.semanticIssueTarget(w, next)
 		return
 	}
 	var belongs bool

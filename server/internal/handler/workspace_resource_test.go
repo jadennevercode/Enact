@@ -593,11 +593,14 @@ func TestClaimTask_ReposComeFromWorkspaceResources(t *testing.T) {
 	}
 	const resourceRepoURL = "https://github.com/example/resource-only-repo"
 	const resourceRepoRef = "release/v2"
-	created := createWorkspaceResourceForTest(t, map[string]any{
-		"resource_type": "github_repo",
-		"resource_ref":  map[string]any{"url": resourceRepoURL, "ref": resourceRepoRef},
-		"label":         "the one repo",
-	})
+	var createdID string
+	dbfx.QueryRow(t, `INSERT INTO workspace_resource (workspace_id, resource_type, resource_ref, label)
+		VALUES ($1, 'github_repo', $2, 'the one repo') RETURNING id`, testWorkspaceID, map[string]any{
+		"provider": "github", "provider_connection_id": "00000000-0000-0000-0000-000000000001",
+		"provider_repository_id": "12345", "full_name": "example/resource-only-repo",
+		"url": resourceRepoURL, "ref": resourceRepoRef, "enabled": true,
+	}).Scan(&createdID)
+	t.Cleanup(func() { dbfx.Exec(t, `DELETE FROM workspace_resource WHERE id = $1`, createdID) })
 
 	var agentID, runtimeID string
 	dbfx.QueryRow(t,
@@ -636,7 +639,7 @@ func TestClaimTask_ReposComeFromWorkspaceResources(t *testing.T) {
 	if resp.Task.Repos[0].Description != "the one repo" {
 		t.Errorf("repo description = %q, want the resource's label", resp.Task.Repos[0].Description)
 	}
-	if len(resp.Task.WorkspaceResources) != 1 || resp.Task.WorkspaceResources[0].ID != created.ID {
+	if len(resp.Task.WorkspaceResources) != 1 || resp.Task.WorkspaceResources[0].ID != createdID {
 		t.Errorf("expected the one workspace resource on the claim, got %+v", resp.Task.WorkspaceResources)
 	}
 }
@@ -680,5 +683,33 @@ func TestClaimTask_NoWorkspaceResources_MeansNoRepos(t *testing.T) {
 	}
 	if len(resp.Task.Repos) != 0 {
 		t.Fatalf("expected no repos with nothing attached, got %+v", resp.Task.Repos)
+	}
+}
+
+func TestCodeRepositoryIdentityCollapsesHTTPSAndSSHForms(t *testing.T) {
+	forms := []string{
+		"https://gitlab.example/platform/payments/service.git",
+		"ssh://git@gitlab.example/platform/payments/service.git",
+		"git@gitlab.example:platform/payments/service.git",
+	}
+	want := "gitlab.example/platform/payments/service"
+	for _, form := range forms {
+		if got := codeRepositoryIdentity(form); got != want {
+			t.Errorf("identity(%q) = %q, want %q", form, got, want)
+		}
+	}
+}
+
+func TestLegacyCodeRepositoryIsPreservedButDisabled(t *testing.T) {
+	normalized, err := validateGithubRepoRef([]byte(`{"url":"https://github.com/enact-ai/enact.git","ref":"main"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ref codeRepositoryRef
+	if err := json.Unmarshal(normalized, &ref); err != nil {
+		t.Fatal(err)
+	}
+	if ref.Provider != "github" || ref.Enabled {
+		t.Fatalf("normalized ref = %#v", ref)
 	}
 }

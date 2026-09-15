@@ -67,7 +67,7 @@ func TestSemanticConstructionTracksActualFamilyAndRejectsOutsideTask(t *testing.
 	taskReq := func(input any) *http.Request {
 		return testutil.WithHeaders(semanticRequest("POST", id, input), "X-Actor-Source", "task_token", "X-Agent-ID", agentID, "X-Task-ID", taskID)
 	}
-	testutil.Call(t, testHandler.semanticConstructionEvent, taskReq(map[string]any{"stage": "review", "kind": "validation", "message": "Native SHACL report inspected", "data": map[string]any{"conforms": false}})).Want(201)
+	testutil.Call(t, testHandler.semanticConstructionEvent, taskReq(map[string]any{"stage": "scope", "kind": "validation", "message": "Native SHACL report inspected", "data": map[string]any{"conforms": false}})).Want(201)
 	var state struct {
 		Tasks  []map[string]any `json:"tasks"`
 		Events []map[string]any `json:"events"`
@@ -80,6 +80,6 @@ func TestSemanticConstructionTracksActualFamilyAndRejectsOutsideTask(t *testing.
 	testutil.Call(t, testHandler.semanticReviseConstruction, taskReq(map[string]any{"message": "approve myself", "decision": "accept"})).Want(403)
 	outsideIssue := dbfx.Issue(t, "unrelated issue")
 	outsideTask := dbfx.Task(t, agentID, testutil.Cols{"runtime_id": runtimeID, "issue_id": outsideIssue, "status": "running", "originator_user_id": testUserID, "accountable_user_id": testUserID})
-	testutil.Call(t, testHandler.semanticConstructionEvent, testutil.WithHeaders(taskReq(map[string]any{"stage": "review", "kind": "validation", "message": "forged"}), "X-Task-ID", outsideTask)).Want(403)
+	testutil.Call(t, testHandler.semanticConstructionEvent, testutil.WithHeaders(taskReq(map[string]any{"stage": "scope", "kind": "validation", "message": "forged"}), "X-Task-ID", outsideTask)).Want(403)
 	testutil.Call(t, testHandler.semanticGetConstruction, semanticRequest("GET", uuid.NewString(), nil)).Want(404)
 }

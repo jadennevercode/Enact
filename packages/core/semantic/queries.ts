@@ -53,9 +53,9 @@ export const buildOptions = (wsId: string, appId: string, buildId: string) =>
     queryFn: () => semanticApi.build(appId, buildId),
     enabled: !!appId && !!buildId,
   });
-export function useSemanticMutation<T = void>(
+export function useSemanticMutation<T = void, R = unknown>(
   wsId: string,
-  fn: (input: T) => Promise<unknown>,
+  fn: (input: T) => Promise<R>,
 ) {
   const qc = useQueryClient();
   return useMutation({

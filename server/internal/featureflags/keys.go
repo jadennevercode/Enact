@@ -7,6 +7,10 @@ import (
 )
 
 const (
+	AgentContextTelemetry  = "agent_context_telemetry"
+	AgentContextCompaction = "agent_context_compaction"
+	AgentContextEnvelope   = "agent_context_envelope"
+	AgentFinalDelivery     = "agent_final_delivery"
 	// BillingWorkspaceSubscriptions gates the workspace-scoped entitlement,
 	// Stripe Checkout, seat reconcile, and Billing Portal proxy surface. It is
 	// deliberately off by default so the main repository can ship before the

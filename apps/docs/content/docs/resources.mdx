@@ -33,6 +33,8 @@ Repositories are not limited to GitHub: any Git URL the runtime can reach works 
 
 A workspace can link any number of repositories. A resource's `ref` sets the branch, tag, or commit that later checkouts use by default. `default_branch_hint` only gives the agent a default-branch hint and does not force a branch switch.
 
+When adding repositories you can also tick **Build a code graph for the selected repositories**. Enact then builds a structural map of the code on the server — subsystems, entry points, dependency paths — that agents query before they start reading files. It is optional per repository and can be switched later from the row menu; see [Code graph](/code-graph).
+
 ## Add a local directory
 
 The UI for adding a local directory is Desktop-only, because browsers cannot pick folders on your computer.

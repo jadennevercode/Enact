@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "exports": {
+    "./anyharness-demo": "./anyharness-demo/index.ts",
     "./navigation": "./navigation/index.ts",
     "./common/actor-avatar": "./common/actor-avatar.tsx",
     "./editor": "./editor/index.ts",
@@ -35,6 +36,7 @@
     "./squads": "./squads/index.ts",
     "./home": "./home/index.ts",
     "./resources": "./resources/index.ts",
+    "./codegraph": "./codegraph/index.ts",
     "./squads/components": "./squads/components/index.ts",
     "./workspace/workspace-avatar": "./workspace/workspace-avatar.tsx",
     "./workspace/no-access-page": "./workspace/no-access-page.tsx",
@@ -118,7 +120,9 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "catalog:",
     "sonner": "^2.0.7",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "graphology-communities-louvain": "catalog:",
+    "graphology-shortest-path": "catalog:"
   },
   "peerDependencies": {
     "@tanstack/react-query": "catalog:",

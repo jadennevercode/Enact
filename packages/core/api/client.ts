@@ -1,3 +1,4 @@
+import { parseContextSessions, parseContextOperation, parseContextCheckpoints, type ContextScope } from "../context/schema";
 import type {
   Issue,
   IssuePriority,
@@ -182,8 +183,11 @@ import type {
   ListGitHubRepositoriesResponse,
   GitHubConnectResponse,
   ListVCSConnectionsResponse,
+  VCSConnection,
   ConnectVCSRequest,
   ConnectVCSResponse,
+  ListVCSRepositoriesResponse,
+  TestVCSConnectionResponse,
   ListLarkInstallationsResponse,
   BeginLarkInstallResponse,
   LarkInstallStatusResponse,
@@ -294,6 +298,12 @@ import {
   EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
   EMPTY_WORKSPACE_RESOURCE,
+  ListVCSConnectionsResponseSchema,
+  EMPTY_LIST_VCS_CONNECTIONS_RESPONSE,
+  ListVCSRepositoriesResponseSchema,
+  EMPTY_LIST_VCS_REPOSITORIES_RESPONSE,
+  TestVCSConnectionResponseSchema,
+  EMPTY_TEST_VCS_CONNECTION_RESPONSE,
   EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SQUAD,
@@ -775,7 +785,22 @@ export class ApiClient {
     return res.json() as Promise<T>;
   }
 
+  /** Transport for the code graph API; callers validate with domain schemas. */
+  async codeGraphRequest(path: string, init?: RequestInit): Promise<unknown> {
+    if (!path.startsWith("/") || path.includes("..")) {
+      throw new Error("Invalid code graph API path");
+    }
+    return this.fetch<unknown>(`/api/code-graph${path}`, init);
+  }
+
   /** Transport for workspace semantic services; callers validate with domain schemas. */
+  async semanticReportExport(runId: string, format: "html" | "jsonl"): Promise<Blob> {
+    const response = await this.fetchRaw(`/api/semantic/runs/${encodeURIComponent(runId)}/report?format=${format}`);
+    const expected = format === "html" ? "text/html" : "application/x-ndjson";
+    if (!response.headers.get("content-type")?.startsWith(expected)) throw new Error("The report export has an unsupported format");
+    return response.blob();
+  }
+
   async semanticRequest(path: string, init?: RequestInit): Promise<unknown> {
     if (!path.startsWith("/") || path.includes("..") || path.includes("?")) {
       throw new Error("Invalid semantic API path");
@@ -2360,6 +2385,26 @@ export class ApiClient {
   // Powers the front-end's "active wins, else latest terminal" presence
   // derivation; one fetch backs every per-agent presence read in the app.
   // Workspace is resolved server-side from the X-Workspace-Slug header.
+  async listContextCheckpoints(scope:ContextScope) {
+    const key=scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextCheckpoints(await this.fetch<unknown>(`/api/context-checkpoints?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async listContextSessions(scope: ContextScope) {
+    const key = scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextSessions(await this.fetch<unknown>(`/api/context-sessions?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async compactContext(id: string, generation: number, key: string) {
+    const raw = await this.fetch<unknown>(`/api/context-sessions/${encodeURIComponent(id)}/compactions`, {method:"POST",body:JSON.stringify({expected_generation:generation,idempotency_key:key})});
+    const result = parseContextOperation(raw);
+    if (!result) throw new Error("Invalid context operation response");
+    return result;
+  }
+  async cancelContextCompaction(id: string) {
+    const result = parseContextOperation(await this.fetch<unknown>(`/api/context-operations/${encodeURIComponent(id)}/cancel`, {method:"POST"}));
+ if (!result) throw new Error("Invalid context operation response");
+ return result;
+  }
+
   async getAgentTaskSnapshot(): Promise<AgentTask[]> {
     return this.fetch(`/api/agent-task-snapshot`);
   }
@@ -4654,7 +4699,8 @@ export class ApiClient {
 
   // VCS integration (Forgejo / Gitea / GitLab)
   async listVCSConnections(workspaceId: string): Promise<ListVCSConnectionsResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections`);
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections`);
+    return parseWithFallback(raw, ListVCSConnectionsResponseSchema, EMPTY_LIST_VCS_CONNECTIONS_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections" });
   }
 
   async connectVCS(
@@ -4681,6 +4727,29 @@ export class ApiClient {
       `/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/rotate-webhook`,
       { method: "POST" },
     );
+  }
+
+  async listVCSRepositories(workspaceId: string, connectionId: string, page = 1, search = ""): Promise<ListVCSRepositoriesResponse> {
+    const query = new URLSearchParams({ page: String(page) });
+    if (search.trim()) query.set("search", search.trim());
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/repositories?${query.toString()}`);
+    return parseWithFallback(raw, ListVCSRepositoriesResponseSchema, EMPTY_LIST_VCS_REPOSITORIES_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections/:connectionId/repositories" });
+  }
+
+  async testVCSConnection(workspaceId: string, connectionId: string): Promise<TestVCSConnectionResponse> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/test`, { method: "POST" });
+    return parseWithFallback(raw, TestVCSConnectionResponseSchema, EMPTY_TEST_VCS_CONNECTION_RESPONSE, { endpoint: "POST /api/workspaces/:id/vcs/connections/:connectionId/test" });
+  }
+
+  async rotateVCSCredentials(
+    workspaceId: string,
+    connectionId: string,
+    body: ConnectVCSRequest,
+  ): Promise<VCSConnection> {
+    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/credentials`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
   }
 
   // Lark integration

@@ -63,6 +63,66 @@ NATIVE_DIAGNOSTICS = {
 }
 
 
+ACTION_CONFLICT_DIAGNOSTICS = {
+    "action evidence is older than five minutes; refresh the queries and review the updated action": (
+        "action_evidence_stale",
+        {"prepare", "execute"},
+        "The stored action evidence is older than five minutes. Do not execute this approval. Re-run the exact required data queries with the same business parameters, evaluate the applicable Policy from the new query step IDs, prepare the replacement action with the exact parameters, and obtain a new human review before execute.",
+    ),
+    "action review was superseded by refreshed evidence": (
+        "action_review_superseded",
+        {"decide", "execute"},
+        "This action review was replaced by a draft based on newer evidence. Do not decide or execute the old approval. Read the scoped run to locate the current approval, inspect its parameters and Policy evaluation, and continue only from that current review.",
+    ),
+    "action review expired; prepare a current action": (
+        "action_review_expired",
+        {"decide"},
+        "This action review expired. Re-run the required queries, evaluate the applicable Policy, prepare a current action with the exact parameters, and obtain a new human review.",
+    ),
+    "action is not approved or its approval expired": (
+        "action_review_not_current",
+        {"execute"},
+        "This action has no current approval. Do not retry execute. Read the scoped run and receipt state; if no receipt exists, refresh the required queries and Policy evaluation, prepare a current action, and obtain a new human review.",
+    ),
+    "action configuration or credential changed; prepare and authorize again": (
+        "action_configuration_changed",
+        {"execute"},
+        "The reviewed action no longer matches the current connection configuration or credential revision. Do not retry execute. Re-query through the current bindings, evaluate the applicable Policy, prepare the exact action again, and obtain a new human review.",
+    ),
+}
+
+
+def _action_conflict_stage(method, path):
+    if method != "POST" or "?" in path or "#" in path:
+        return None
+    parts = path.split("/")
+    if len(parts) != 6 or parts[1:3] != ["api", "semantic"] or not parts[4]:
+        return None
+    if parts[3] == "runs" and parts[5] == "actions":
+        return "prepare"
+    if parts[3] == "approvals" and parts[5] in {"decide", "execute"}:
+        return parts[5]
+    return None
+
+
+def safe_action_conflict(raw, method, path):
+    # Only exact server-owned action conflicts become static recovery guidance.
+    if len(raw) > 64 * 1024:
+        return None
+    stage = _action_conflict_stage(method, path)
+    if stage is None:
+        return None
+    try:
+        payload = json.loads(raw)
+        error = payload.get("error") if isinstance(payload, dict) else None
+        known = ACTION_CONFLICT_DIAGNOSTICS.get(error) if isinstance(error, str) else None
+        if known is None or stage not in known[1]:
+            return None
+        return "[" + known[0] + "] " + known[2]
+    except (ValueError, UnicodeError, RecursionError):
+        return None
+
+
 def safe_native_diagnostic(raw, path):
     # Accept only native-build diagnostics, and never trust a response message.
     if len(raw) > 64 * 1024 or not path.startswith("/api/semantic/ontologies/") or not path.endswith("/native") or len(path.split("/")) != 6:
@@ -100,7 +160,22 @@ class Client:
         self.opener = build_opener(NoRedirect())
 
     def request(self, method, path, payload=None, *, idempotency_key=None):
-        if not path.startswith("/api/semantic/") or ".." in path or "?" in path or "#" in path:
+        path_without_query, separator, query = path.partition("?")
+        report_format_allowed = (
+            method == "GET"
+            and separator == "?"
+            and query in {"format=html", "format=jsonl"}
+            and path_without_query.startswith("/api/semantic/runs/")
+            and path_without_query.endswith("/report")
+            and len(path_without_query.split("/")) == 6
+            and bool(path_without_query.split("/")[4])
+        )
+        if (
+            not path.startswith("/api/semantic/")
+            or ".." in path
+            or (separator and not report_format_allowed)
+            or "#" in path
+        ):
             raise SemanticClientError("Only Enact semantic API paths are accepted")
         body = None if payload is None else json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
         headers = dict(self.headers)
@@ -114,11 +189,14 @@ class Client:
                 raw = response.read(12 * 1024 * 1024 + 1)
                 if len(raw) > 12 * 1024 * 1024:
                     raise SemanticClientError("Enact response exceeds the 12 MB limit")
+                if report_format_allowed:
+                    return raw.decode("utf-8")
                 return json.loads(raw)
         except HTTPError as exc:
             message = "Enact semantic request failed with HTTP " + str(exc.code)
             try:
-                diagnostic = safe_native_diagnostic(exc.read(64 * 1024 + 1), path)
+                raw = exc.read(64 * 1024 + 1)
+                diagnostic = safe_action_conflict(raw, method, path) if exc.code == 409 else safe_native_diagnostic(raw, path)
                 if diagnostic:
                     message += " " + diagnostic
             except (OSError, ValueError):
@@ -141,6 +219,64 @@ def _id(value):
     return quote(value, safe="")
 
 
+def action_review_summary(run, approval_id):
+    """Return only the current action review inputs and freshness metadata."""
+    if not isinstance(run, dict) or not isinstance(run.get("approvals"), list):
+        raise SemanticClientError("Enact returned an invalid scoped run")
+    approval = next((item for item in run["approvals"] if isinstance(item, dict) and item.get("id") == approval_id), None)
+    if approval is None:
+        raise SemanticClientError("The approval is not present in the scoped run")
+
+    allowed_approval = (
+        "id", "status", "binding_id", "parameters", "evaluation_step_id", "created_at", "expires_at",
+        "supersedes_approval_id", "superseded_by",
+    )
+    summary = {
+        "run_id": run.get("id"),
+        "approval": {key: approval.get(key) for key in allowed_approval},
+    }
+    steps = run.get("steps") if isinstance(run.get("steps"), list) else []
+    evaluation_id = approval.get("evaluation_step_id")
+    evaluation = next((item for item in steps if isinstance(item, dict) and item.get("id") == evaluation_id), None)
+    source_ids = []
+    if evaluation is not None:
+        evaluation_input = evaluation.get("input") if isinstance(evaluation.get("input"), dict) else {}
+        source_ids = evaluation_input.get("source_step_ids") if isinstance(evaluation_input.get("source_step_ids"), list) else []
+        evaluation_output = evaluation.get("output") if isinstance(evaluation.get("output"), dict) else {}
+        summary["policy_evaluation"] = {
+            "id": evaluation.get("id"),
+            "status": evaluation.get("status"),
+            "created_at": evaluation.get("created_at"),
+            "finished_at": evaluation.get("finished_at"),
+            "source_step_ids": source_ids,
+            "decision": evaluation_output.get("decision"),
+            "reason": evaluation_output.get("reason"),
+        }
+    else:
+        summary["policy_evaluation"] = None
+
+    source_set = {value for value in source_ids if isinstance(value, str)}
+    summary["source_queries"] = [
+        {
+            "id": item.get("id"),
+            "binding_id": item.get("input", {}).get("binding_id") if isinstance(item.get("input"), dict) else None,
+            "parameters": item.get("input", {}).get("parameters") if isinstance(item.get("input"), dict) else None,
+            "status": item.get("status"),
+            "created_at": item.get("created_at"),
+            "finished_at": item.get("finished_at"),
+        }
+        for item in steps
+        if isinstance(item, dict) and item.get("id") in source_set and item.get("kind") == "data_query"
+    ]
+    receipts = run.get("receipts") if isinstance(run.get("receipts"), list) else []
+    summary["receipts"] = [
+        {key: item.get(key) for key in ("id", "status", "created_at", "updated_at")}
+        for item in receipts
+        if isinstance(item, dict) and item.get("approval_id") == approval_id
+    ]
+    return summary
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -152,6 +288,9 @@ def main(argv=None):
     commands.add_parser("ontologies")
     for name in ("ontology", "releases", "run", "receipt", "reconcile"):
         commands.add_parser(name).add_argument("id")
+    review = commands.add_parser("review", help="Read one action review without printing the full run or source results")
+    review.add_argument("run_id")
+    review.add_argument("approval_id")
     create = commands.add_parser("start")
     create.add_argument("--release-id", required=True)
     create.add_argument("--question", required=True)
@@ -188,6 +327,9 @@ def main(argv=None):
             result = client.request("GET", path + ("/releases" if command == "releases" else ""))
         elif command == "run":
             result = client.request("GET", "/api/semantic/runs/" + _id(args.id))
+        elif command == "review":
+            run = client.request("GET", "/api/semantic/runs/" + _id(args.run_id))
+            result = action_review_summary(run, args.approval_id)
         elif command in {"receipt", "reconcile"}:
             path = "/api/semantic/receipts/" + _id(args.id)
             result = client.request("POST" if command == "reconcile" else "GET", path + ("/reconcile" if command == "reconcile" else ""))
@@ -211,7 +353,11 @@ def main(argv=None):
             result = client.request("POST", "/api/semantic/runs/" + _id(args.run_id) + "/actions", payload)
         else:
             result = client.request("POST", "/api/semantic/approvals/" + _id(args.approval_id) + "/execute", {}, idempotency_key=args.idempotency_key)
-        print(json.dumps(redact(result, client.token), ensure_ascii=False, indent=2))
+        redacted = redact(result, client.token)
+        if isinstance(redacted, str):
+            print(redacted, end="" if redacted.endswith("\n") else "\n")
+        else:
+            print(json.dumps(redacted, ensure_ascii=False, indent=2))
         return 0
     except (SemanticClientError, OSError, ValueError) as exc:
         # Configuration tokens are never accepted on argv or printed in errors.

@@ -20,14 +20,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	"github.com/enact-ai/enact/server/internal/middleware"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // githubAPIBase is the base URL for GitHub's REST API. Mutable so tests can
@@ -911,6 +911,44 @@ func fetchGitHubInstallationRepositories(
 	return out, nil
 }
 
+// mintGitHubRepositoryToken creates a short-lived installation token limited
+// to one repository and the permissions required by the managed HTTPS flow.
+// The caller must never persist or log the returned token.
+func mintGitHubRepositoryToken(ctx context.Context, installationID, repositoryID int64) (string, string, error) {
+	appJWT, err := signGitHubAppJWT(time.Now())
+	if err != nil || appJWT == "" {
+		return "", "", errors.New("github App JWT credentials unavailable")
+	}
+	body := fmt.Sprintf(`{"repository_ids":[%d],"permissions":{"contents":"write","pull_requests":"write","checks":"read","statuses":"read","metadata":"read"}}`, repositoryID)
+	endpoint := fmt.Sprintf("%s/app/installations/%d/access_tokens", strings.TrimRight(githubAPIBase, "/"), installationID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(body))
+	if err != nil {
+		return "", "", err
+	}
+	setGitHubAPIHeaders(req, appJWT)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("create repository installation token: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, githubAPIResponseLimit))
+		return "", "", fmt.Errorf("create repository installation token: github status %d", resp.StatusCode)
+	}
+	var result struct {
+		Token     string `json:"token"`
+		ExpiresAt string `json:"expires_at"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, githubAPIResponseLimit)).Decode(&result); err != nil {
+		return "", "", err
+	}
+	if result.Token == "" {
+		return "", "", errors.New("github returned an empty installation token")
+	}
+	return result.Token, result.ExpiresAt, nil
+}
+
 func setGitHubAPIHeaders(req *http.Request, token string) {
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -943,6 +981,24 @@ func (h *Handler) DeleteGitHubInstallation(w http.ResponseWriter, r *http.Reques
 	id := chi.URLParam(r, "installationId")
 	idUUID, ok := parseUUIDOrBadRequest(w, id, "installation id")
 	if !ok {
+		return
+	}
+	count, err := h.Queries.CountWorkspaceResourcesUsingConnection(r.Context(), db.CountWorkspaceResourcesUsingConnectionParams{WorkspaceID: wsUUID, ProviderConnectionID: id})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to check repository bindings")
+		return
+	}
+	if count > 0 {
+		rows, _ := h.Queries.ListWorkspaceResourcesUsingConnection(r.Context(), db.ListWorkspaceResourcesUsingConnectionParams{WorkspaceID: wsUUID, ProviderConnectionID: id})
+		names := make([]string, 0, len(rows))
+		for _, row := range rows {
+			if row.Label.Valid {
+				names = append(names, row.Label.String)
+			} else {
+				names = append(names, uuidToString(row.ID))
+			}
+		}
+		writeJSON(w, http.StatusConflict, map[string]any{"error": "GitHub installation is still used by code repositories", "repositories": names})
 		return
 	}
 	if err := h.Queries.DeleteGitHubInstallation(r.Context(), db.DeleteGitHubInstallationParams{
@@ -1080,6 +1136,10 @@ func (h *Handler) HandleGitHubWebhook(w http.ResponseWriter, r *http.Request) {
 		h.handleInstallationEvent(ctx, body)
 	case "pull_request":
 		h.handlePullRequestEvent(ctx, body)
+	case "push":
+		// The only consumer is the code graph: a default-branch push means
+		// the repository's structure moved and its graph should be rebuilt.
+		h.handlePushEvent(ctx, body)
 	case "check_suite", "check_run", "status":
 		// CI events are pure triggers under Plan C (ENA-5265): their payload is
 		// never read for display. Each just asks the API pipeline to re-fetch

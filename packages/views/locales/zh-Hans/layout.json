@@ -6,7 +6,7 @@
     "my_issues": "我的任务",
     "issues": "任务",
     "autopilots": "自动化",
-    "agents": "智能中心",
+    "agents": "智能体团队",
     "members": "成员管理",
     "marketplace": "能力中心",
     "runtimes": "运行时",
@@ -20,7 +20,8 @@
     "ontologies": "Ontology",
     "skills": "Skills",
     "connections": "数据与系统连接",
-    "applications": "应用"
+    "applications": "应用",
+    "codegraph": "代码图谱"
   },
   "tab": {
     "issue": "任务",
@@ -49,6 +50,8 @@
     "loading_named_prefix": "正在加载"
   },
   "sidebar": {
+    "guide": "Guide",
+    "guide_open": "在新窗口打开 AISDLC Guide",
     "unpin_tooltip": "取消固定",
     "workspaces_label": "工作区",
     "create_workspace": "创建工作区",
@@ -61,7 +64,7 @@
     "new_issue_shortcut": "C",
     "pinned_label": "固定",
     "collaboration_group": "协作",
-    "intelligence_group": "智能中心",
+    "intelligence_group": "智能体团队",
     "execution_group": "运行",
     "unread_overflow": "99+",
     "discord_card": {

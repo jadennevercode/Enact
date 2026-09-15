@@ -39,6 +39,8 @@ const allowedDevOrigins = process.env.CORS_ALLOWED_ORIGINS
   : undefined;
 
 const nextConfig: NextConfig = {
+  // Separate preview output avoids taking the lock of an existing dev server.
+  ...(process.env.ENACT_NEXT_DIST_DIR ? { distDir: process.env.ENACT_NEXT_DIST_DIR } : {}),
   ...(process.env.STANDALONE === "true" ? { output: "standalone" as const } : {}),
   transpilePackages: ["@enact/core", "@enact/ui", "@enact/views"],
   ...(allowedDevOrigins && allowedDevOrigins.length > 0

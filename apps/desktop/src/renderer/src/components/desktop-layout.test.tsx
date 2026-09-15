@@ -41,7 +41,22 @@ vi.mock("@enact/core/paths", () => ({
   useCurrentWorkspace: () => null,
 }));
 
+// The shell reads the signed-in email to decide whether the AnyHarness demo
+// applies; these suites are about chrome, so no user is signed in.
+vi.mock("@enact/core/auth", () => ({
+  useAuthStore: Object.assign(
+    (selector: (s: { user: null }) => unknown) => selector({ user: null }),
+    { getState: () => ({ user: null }) },
+  ),
+}));
+
 vi.mock("@enact/core/platform", () => ({
+  // The AnyHarness boundary in the shell reads a StorageAdapter from platform.
+  defaultStorage: {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  },
   getCurrentSlug: () => "acme",
   subscribeToCurrentSlug: () => () => {},
 }));

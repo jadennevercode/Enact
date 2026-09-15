@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/enact-ai/enact/server/internal/semantic"
@@ -41,6 +42,11 @@ func (h *Handler) semanticCreateRun(w http.ResponseWriter, r *http.Request) {
 	if !semanticDecode(w, r, &input) {
 		return
 	}
+	input.Question = strings.TrimSpace(input.Question)
+	if input.Question == "" || len(input.Question) > 10000 {
+		writeError(w, 400, "provide a business question of at most ten thousand characters")
+		return
+	}
 	if _, err := uuid.Parse(input.ReleaseID); err != nil {
 		writeError(w, 400, "release_id must be a UUID")
 		return
@@ -48,6 +54,15 @@ func (h *Handler) semanticCreateRun(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.semanticLoadRelease(r, actor.WorkspaceID, input.ReleaseID); err != nil {
 		writeError(w, 404, err.Error())
 		return
+	}
+	if !h.semanticRequireAgentRelease(w, r, actor, input.ReleaseID) {
+		return
+	}
+	if actor.ActorType == "agent" && input.IssueID == nil {
+		if err := h.DB.QueryRow(r.Context(), "SELECT issue_id::text FROM agent_task_queue WHERE id=$1 AND agent_id=$2", actor.TaskID, actor.ActorID).Scan(&input.IssueID); err != nil || input.IssueID == nil {
+			writeError(w, 400, "create the investigation from the assigned Issue so the conversation can continue there")
+			return
+		}
 	}
 	continueOnIssue := false
 	if input.IssueID != nil {
@@ -301,41 +316,10 @@ func (h *Handler) semanticEvaluate(w http.ResponseWriter, r *http.Request) {
 	if !semanticDecode(w, r, &input) {
 		return
 	}
-	if len(input.SourceStepIDs) == 0 || len(input.SourceStepIDs) > 100 {
-		writeError(w, 400, "source_step_ids must identify between one and 100 successful data queries from this run")
+	facts, err := h.semanticEvidence(r, actor, id, input.SourceStepIDs, false)
+	if err != nil {
+		writeError(w, 400, err.Error())
 		return
-	}
-	observations := map[string][]map[string]any{}
-	facts := map[string]any{"bindings": map[string]any{}, "steps": map[string]any{}, "binding_step_ids": map[string]any{}, "binding_observations": observations}
-	seenSteps := map[string]bool{}
-	for _, stepID := range input.SourceStepIDs {
-		if _, err := uuid.Parse(stepID); err != nil {
-			writeError(w, 400, "invalid source_step_id")
-			return
-		}
-		if seenSteps[stepID] {
-			writeError(w, 400, "source_step_ids must not contain duplicate queries")
-			return
-		}
-		seenSteps[stepID] = true
-		var request, output json.RawMessage
-		if err := h.DB.QueryRow(r.Context(), "SELECT input,output FROM semantic_step WHERE workspace_id=$1 AND run_id=$2 AND id=$3 AND kind='data_query' AND status='succeeded'", actor.WorkspaceID, id, stepID).Scan(&request, &output); err != nil {
-			writeError(w, 400, "source step is not a successful query in this run")
-			return
-		}
-		var query struct {
-			BindingID  string         `json:"binding_id"`
-			Parameters map[string]any `json:"parameters"`
-		}
-		var value any
-		if json.Unmarshal(request, &query) != nil || json.Unmarshal(output, &value) != nil {
-			writeError(w, 500, "stored query evidence is invalid")
-			return
-		}
-		facts["bindings"].(map[string]any)[query.BindingID] = value
-		facts["binding_step_ids"].(map[string]any)[query.BindingID] = []string{stepID}
-		facts["steps"].(map[string]any)[stepID] = value
-		observations[query.BindingID] = append(observations[query.BindingID], map[string]any{"step_id": stepID, "parameters": query.Parameters, "output": value})
 	}
 	h.semanticStep(w, r, actor, id, "rule_evaluation", input, func() (json.RawMessage, error) {
 		return semanticService(r.Context(), "evaluate", map[string]any{"scope": semanticRunScope(actor, release, id), "artifact": release.Artifact, "data": map[string]any{"facts": facts}, "source_step_ids": input.SourceStepIDs})

@@ -189,6 +189,7 @@ See [Daemon and runtimes](/daemon-runtimes) for how it works and for custom prof
 | `autopilot` | Manage automations, triggers, and run history |
 | `workspace` | Create, view, and switch workspaces, and invite members |
 | `repo` | Manage workspace repositories and check them out locally |
+| `graph` | Query a repository's [code graph](/code-graph): status, report, subsystems, paths, impact |
 | `daemon`, `runtime` | Start and stop the local daemon; view and manage runtimes |
 | `attachment` | Upload or download attachments |
 | `user profile` | View or update the current user's profile |
@@ -310,6 +311,20 @@ The tables below cover every current top-level command, grouped the way the CLI 
 | `runtime` | `list/usage/activity/update/rename/delete` | View and manage runtimes | `delete`: `--cascade` (unbinds bound agents, preserves their data, and cancels their tasks) |
 | | `profile list/create/update/delete` | Manage custom runtime profiles | |
 | | `profile set-path/unset-path <profile-id>` | Pin a local executable path (local only, never uploaded to the server) | |
+
+### `enact graph`
+
+Reads the [code graph](/code-graph) of a repository that has it enabled. Every subcommand takes `--repo <url>`; without it the repository checked out in the current directory (its `origin` remote) is matched against the workspace's resources. When the graph is not enabled, not built yet, or the deployment has no code graph service, the command exits with code 2 and a one-line reason — never a stack trace — so an agent can fall back to its file tools.
+
+| Subcommand | Purpose | Key flags |
+| --- | --- | --- |
+| `status` | Build state, commit, size, whether the graph is behind the branch head | `--json` |
+| `report` | The build report: largest subsystems, most connected nodes, cross-subsystem links | |
+| `query "<question>"` | A token-budgeted subgraph for a natural-language question | `--dfs`, `--depth N` (default 3), `--budget N` (default 2000), `--context C` (repeatable) |
+| `path "<A>" "<B>"` | Shortest path between two symbols | `--directed` |
+| `explain "<node>"` | A symbol's neighbours and the edges touching it | |
+| `affected "<node>"` | What depends on a symbol, following call and import edges | `--depth N` (default 2), `--relation R` (repeatable) |
+| `communities` | The subsystems with their size and cohesion | `--json` |
 
 ### Additional
 

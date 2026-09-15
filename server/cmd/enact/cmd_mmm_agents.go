@@ -40,8 +40,8 @@ design, so a MMM_ENGINE_INTERPRETER that was missing at create time has to be
 set with "enact agent env set".
 
 Model and thinking level are never set — agents follow the runtime defaults
-of this deployment. Run once per workspace; every engagement project in the
-workspace is served by the same portfolio.`,
+of this deployment. Run once per workspace; one workspace is one MMM project,
+and its directory is the workspace's local_directory resource.`,
 	Args: cobra.NoArgs,
 	RunE: runMMMAgentBootstrap,
 }

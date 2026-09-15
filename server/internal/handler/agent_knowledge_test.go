@@ -238,8 +238,8 @@ func TestClaimInjectsKnowledgeOnlyForBoundAgent(t *testing.T) {
 			t.Fatalf("knowledge base leaked into the workspace resource list: %+v", res)
 		}
 	}
-	if len(wsResp.Repos) != 1 || wsResp.Repos[0].Kind != "" {
-		t.Fatalf("workspace repos = %+v, want exactly one code repo with no kind", wsResp.Repos)
+	if len(wsResp.Repos) != 0 {
+		t.Fatalf("workspace repos = %+v, want the legacy URL-only code repo to remain pending", wsResp.Repos)
 	}
 
 	// The bound agent gets it, as a knowledge source and as an allowlisted repo.

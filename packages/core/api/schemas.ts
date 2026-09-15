@@ -71,6 +71,9 @@ import type {
   OntologySummary,
   ListGitHubInstallationsResponse,
   ListGitHubRepositoriesResponse,
+  ListVCSConnectionsResponse,
+  ListVCSRepositoriesResponse,
+  TestVCSConnectionResponse,
   ListLabelsResponse,
   ListWebhookDeliveriesResponse,
   IssueStatusEntry,
@@ -382,6 +385,44 @@ export const EMPTY_LIST_GITHUB_REPOSITORIES_RESPONSE: ListGitHubRepositoriesResp
   repositories: [],
   total_count: 0,
   next_page: null,
+};
+
+const VCSConnectionSchema = z.object({
+  id: z.string().default(""), workspace_id: z.string().default(""),
+  provider: z.enum(["forgejo", "gitea", "gitlab"]).catch("gitlab"),
+  instance_url: z.string().default(""), account_login: z.string().default(""),
+  webhook_url: z.string().default(""), webhook_path: z.string().default(""),
+  created_at: z.string().default(""), token_type: z.string().default("personal"),
+  token_scopes: z.array(z.string()).default([]), token_expires_at: z.string().nullable().default(null),
+  clone_host: z.string().default(""), has_custom_ca: z.boolean().default(false),
+  last_validated_at: z.string().nullable().default(null), api_status: z.string().default("unknown"),
+  webhook_status: z.string().default("pending"), git_read_status: z.string().default("unknown"),
+  git_write_status: z.string().default("unknown"), change_request_status: z.string().default("unknown"),
+}).loose();
+
+export const ListVCSConnectionsResponseSchema = z.object({
+  connections: z.array(VCSConnectionSchema).default([]), available: z.boolean().optional().default(true),
+  configured: z.boolean().optional().default(false), can_manage: z.boolean().optional().default(false),
+  requirements: z.object({ gitlab: z.object({ api_token_scope: z.string(), git_token_scope: z.string(), preferred_token_type: z.string(), webhook_events: z.array(z.string()) }).loose().optional() }).loose().optional(),
+}).loose();
+export const EMPTY_LIST_VCS_CONNECTIONS_RESPONSE: ListVCSConnectionsResponse = { connections: [], available: true, configured: false, can_manage: false };
+
+const VCSRepositorySchema = z.object({
+  id: z.number(), path_with_namespace: z.string(), web_url: z.string(), http_url_to_repo: z.string(),
+  description: z.string().nullable().transform((v) => v ?? ""), visibility: z.string(), archived: z.boolean(), default_branch: z.string().default(""),
+  permissions: z.object({ project_access: z.object({ access_level: z.number() }).nullable().optional(), group_access: z.object({ access_level: z.number() }).nullable().optional() }).loose().optional(),
+}).loose();
+export const ListVCSRepositoriesResponseSchema = z.object({ repositories: z.array(VCSRepositorySchema).default([]), total_count: z.number().default(0), next_page: z.number().nullable().default(null) }).loose();
+export const EMPTY_LIST_VCS_REPOSITORIES_RESPONSE: ListVCSRepositoriesResponse = { repositories: [], total_count: 0, next_page: null };
+
+export const TestVCSConnectionResponseSchema = z.object({
+  connection: VCSConnectionSchema,
+  api: z.object({ status: z.string(), detail: z.string() }),
+  webhook: z.object({ status: z.string(), detail: z.string() }),
+  git: z.object({ read_status: z.string(), write_status: z.string(), detail: z.string() }),
+}).loose();
+export const EMPTY_TEST_VCS_CONNECTION_RESPONSE: TestVCSConnectionResponse = {
+  connection: VCSConnectionSchema.parse({}), api: { status: "unknown", detail: "" }, webhook: { status: "pending", detail: "" }, git: { read_status: "unknown", write_status: "unknown", detail: "" },
 };
 
 export const GitHubPullRequestSchema = z.object({
@@ -3221,6 +3262,20 @@ const WorkspaceResourceSchema = z.object({
   position: z.number().default(0),
   created_at: z.string().default(""),
   created_by: z.string().nullable().default(null),
+  configuration_status: z.string().optional().default("ready"),
+  configuration_errors: z.array(z.string()).optional().default([]),
+  connection_summary: z.object({
+    provider: z.string().default(""),
+    connection_id: z.string().default(""),
+    full_name: z.string().optional(),
+    instance_url: z.string().optional(),
+    account_login: z.string().optional(),
+    token_type: z.string().optional(),
+  }).loose().nullable().optional().default(null),
+  daemon_validations: z.array(z.object({
+    daemon_id: z.string(), read_status: z.string(), write_status: z.string(),
+    error_code: z.string().optional(), error_message: z.string().optional(), checked_at: z.string(),
+  }).loose()).optional().default([]),
 }).loose();
 
 export const ListWorkspaceResourcesResponseSchema = z.object({
@@ -3272,6 +3327,10 @@ export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
   position: 0,
   created_at: "",
   created_by: null,
+  configuration_status: "ready",
+  configuration_errors: [],
+  connection_summary: null,
+  daemon_validations: [],
 };
 
 // --- Marketplace -----------------------------------------------------------

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"encoding/json"
+	"github.com/enact-ai/enact/server/pkg/contextstate"
 
 	"github.com/enact-ai/enact/server/internal/runtimeapps"
 	"github.com/enact-ai/enact/server/pkg/remotemcp"
@@ -38,6 +39,8 @@ type Runtime struct {
 // RepoData holds repository information from the workspace.
 type RepoData struct {
 	URL         string `json:"url"`
+	ResourceID  string `json:"resource_id,omitempty"`
+	Provider    string `json:"provider,omitempty"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
 	// Kind mirrors handler.RepoData.Kind. Empty means code, which is what
@@ -108,12 +111,15 @@ type IssueStatusData struct {
 // Task represents a claimed task from the server.
 // Agent data (name, skills) is populated by the claim endpoint.
 type Task struct {
-	ID                   string                 `json:"id"`
-	AgentID              string                 `json:"agent_id"`
-	RuntimeID            string                 `json:"runtime_id"`
-	IssueID              string                 `json:"issue_id"`
-	WorkspaceID          string                 `json:"workspace_id"`
-	RemoteMCPConnections []remotemcp.Connection `json:"remote_mcp_connections,omitempty"`
+	FinalDeliveryContract bool                   `json:"final_delivery_contract,omitempty"`
+	ContextEnvelope       *contextstate.Envelope `json:"context_envelope,omitempty"`
+	ContextProtocol       string                 `json:"context_protocol,omitempty"`
+	ID                    string                 `json:"id"`
+	AgentID               string                 `json:"agent_id"`
+	RuntimeID             string                 `json:"runtime_id"`
+	IssueID               string                 `json:"issue_id"`
+	WorkspaceID           string                 `json:"workspace_id"`
+	RemoteMCPConnections  []remotemcp.Connection `json:"remote_mcp_connections,omitempty"`
 	// RemoteMCPDaemonToken stays inside the daemon and authenticates the local
 	// broker's credential-resolution calls. It must never enter agent env/config.
 	RemoteMCPDaemonToken string `json:"remote_mcp_daemon_token,omitempty"`

@@ -1,5 +1,10 @@
 import { useId, useState, useEffect } from "react";
 import { cn } from "../../lib/utils";
+import {
+  ENACT_MARK_GRADIENT,
+  ENACT_MARK_PATH,
+  ENACT_MARK_VIEWBOX,
+} from "./enact-mark-path";
 
 interface EnactIconProps extends React.ComponentProps<"span"> {
   /**
@@ -19,7 +24,7 @@ interface EnactIconProps extends React.ComponentProps<"span"> {
    */
   size?: "sm" | "md" | "lg";
   /**
-   * "mono" (default) inherits text colour; "color" paints the three-step green.
+   * "mono" (default) inherits text colour; "color" paints the green gradient.
    */
   variant?: "mono" | "color";
 }
@@ -31,105 +36,23 @@ const borderedSizes = {
 };
 
 /**
- * The Enact mark: three cubes stacked in isometric projection.
+ * The Enact mark: a green ring cut twice on the diagonal, holding three
+ * slanted bars that read as an E.
  *
- * Geometry — each cube is a hexagon split into three faces. With half-width
- * w = 5.5 and side height s = 5.5, the top cube's lower silhouette (the V from
- * 6.5,10.625 through 12,13.375 to 17.5,10.625) is exactly the upper edge of the
- * two lower cubes' top faces, so the three tessellate with no overlap and draw
- * order does not matter.
+ * The path is generated into ./enact-mark-path.ts from
+ * design-system/enact/mark-source.svg by scripts/generate-brand-mark.mjs, so
+ * the geometry here is never edited by hand.
  *
  * Two variants (design-system/enact/MASTER.md §10):
  *
- * - "mono": depth comes from opacity on a single `currentColor` fill rather
- *   than from a palette, so the mark inherits text colour and stays correct in
- *   both themes and on any surface it is placed on.
- * - "color": the three-step green ladder. Each cube carries its own gradient,
- *   oriented top-left to bottom-right across that cube's own bounding box, and
- *   the left and right faces are darkened by a `--mark-shade` overlay painted
- *   on top of the same gradient. The stop colours are tokens so this file stays
- *   free of raw literals; both themes define them identically, so the colour
- *   mark does not change with the theme.
+ * - "mono": one flat `currentColor` fill, so the mark inherits text colour and
+ *   stays correct in both themes and on any surface it is placed on.
+ * - "color": one vertical gradient across the mark's full height, Deep Green
+ *   at the top to Deloitte Green at the bottom. The stops are the
+ *   `--mark-from` / `--mark-mid` / `--mark-to` tokens so this file stays free
+ *   of raw literals; both themes define them identically, so the colour mark
+ *   does not change with the theme.
  */
-type Face = {
-  /** Path data for the face. */
-  d: string;
-  /** Mono fill-opacity. */
-  o: number;
-  /** Colour-variant black overlay opacity; 0 means the face is unshaded. */
-  shade: number;
-};
-
-type Cube = {
-  /** Gradient bounding box: top-left to bottom-right of this cube. */
-  box: { x1: number; y1: number; x2: number; y2: number };
-  /** Token names for the gradient's start and end stops. */
-  stops: readonly [string, string];
-  /** Top, left, right. */
-  faces: readonly Face[];
-};
-
-const CUBES: readonly Cube[] = [
-  {
-    box: { x1: 6.5, y1: 2.375, x2: 17.5, y2: 13.375 },
-    stops: ["--mark-top-from", "--mark-top-to"],
-    faces: [
-      { d: "M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z", o: 1, shade: 0 },
-      {
-        d: "M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z",
-        o: 0.62,
-        shade: 0.18,
-      },
-      {
-        d: "M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z",
-        o: 0.38,
-        shade: 0.36,
-      },
-    ],
-  },
-  {
-    box: { x1: 1, y1: 10.625, x2: 12, y2: 21.625 },
-    stops: ["--mark-left-from", "--mark-left-to"],
-    faces: [
-      {
-        d: "M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z",
-        o: 1,
-        shade: 0,
-      },
-      {
-        d: "M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z",
-        o: 0.62,
-        shade: 0.18,
-      },
-      {
-        d: "M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z",
-        o: 0.38,
-        shade: 0.36,
-      },
-    ],
-  },
-  {
-    box: { x1: 12, y1: 10.625, x2: 23, y2: 21.625 },
-    stops: ["--mark-right-from", "--mark-right-to"],
-    faces: [
-      {
-        d: "M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z",
-        o: 1,
-        shade: 0,
-      },
-      {
-        d: "M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z",
-        o: 0.62,
-        shade: 0.18,
-      },
-      {
-        d: "M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z",
-        o: 0.38,
-        shade: 0.36,
-      },
-    ],
-  },
-];
 
 /** `useId` output carries separators that are awkward inside `url(#…)`. */
 const toFragmentId = (raw: string) => raw.replace(/[^a-zA-Z0-9_-]/g, "");
@@ -137,64 +60,42 @@ const toFragmentId = (raw: string) => raw.replace(/[^a-zA-Z0-9_-]/g, "");
 function MonoMark({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox={ENACT_MARK_VIEWBOX}
       fill="currentColor"
       className={className}
       aria-hidden="true"
       focusable="false"
     >
-      {CUBES.flatMap((cube) => cube.faces).map((face) => (
-        <path key={face.d} d={face.d} fillOpacity={face.o} />
-      ))}
+      <path d={ENACT_MARK_PATH} />
     </svg>
   );
 }
 
 function ColorMark({ className }: { className?: string }) {
-  const prefix = `enact-mark-${toFragmentId(useId())}`;
+  const gradientId = `enact-mark-${toFragmentId(useId())}`;
 
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox={ENACT_MARK_VIEWBOX}
       className={className}
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        {CUBES.map((cube, index) => (
-          <linearGradient
-            key={cube.stops[0]}
-            id={`${prefix}-${index}`}
-            gradientUnits="userSpaceOnUse"
-            x1={cube.box.x1}
-            y1={cube.box.y1}
-            x2={cube.box.x2}
-            y2={cube.box.y2}
-          >
-            <stop offset="0" stopColor={`var(${cube.stops[0]})`} />
-            <stop offset="1" stopColor={`var(${cube.stops[1]})`} />
-          </linearGradient>
-        ))}
+        <linearGradient
+          id={gradientId}
+          gradientUnits="userSpaceOnUse"
+          x1={ENACT_MARK_GRADIENT.x1}
+          y1={ENACT_MARK_GRADIENT.y1}
+          x2={ENACT_MARK_GRADIENT.x2}
+          y2={ENACT_MARK_GRADIENT.y2}
+        >
+          <stop offset="0" stopColor="var(--mark-from)" />
+          <stop offset="0.5" stopColor="var(--mark-mid)" />
+          <stop offset="1" stopColor="var(--mark-to)" />
+        </linearGradient>
       </defs>
-      {CUBES.map((cube, index) =>
-        cube.faces.map((face) => (
-          <path
-            key={face.d}
-            d={face.d}
-            fill={`url(#${prefix}-${index})`}
-          />
-        )),
-      )}
-      {CUBES.flatMap((cube) => cube.faces)
-        .filter((face) => face.shade > 0)
-        .map((face) => (
-          <path
-            key={face.d}
-            d={face.d}
-            fill="var(--mark-shade)"
-            fillOpacity={face.shade}
-          />
-        ))}
+      <path d={ENACT_MARK_PATH} fill={`url(#${gradientId})`} />
     </svg>
   );
 }

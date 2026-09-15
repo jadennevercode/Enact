@@ -330,3 +330,15 @@ Verification command:
 ```bash
 go test ./internal/handler -run 'Test.*Squad|Test.*squad|Test.*Autopilot.*Squad|Test.*ChildDone.*Squad'
 ```
+
+
+## Context / final-delivery protocol v1
+
+| Contract | Source (search symbol) |
+| --- | --- |
+| Complete versioned envelope replaces initial reads; gaps remain explicit | `server/internal/daemon/prompt.go` (`BuildPrompt`); `server/internal/daemon/execenv/runtime_config_sections.go` (`writeWorkflowIssue`) |
+| Source revisions, bounded manifest, explicit acknowledged versions, completed-source checkpoint | `server/internal/service/context_envelope.go` (`BuildContextEnvelope`, `SaveCheckpoint`); `server/internal/service/task.go` (`MarkContextProcessed`) |
+| `context get`, `context checkpoint`, `comment add --final --result-revision` | `server/cmd/enact/cmd_context.go`; `server/cmd/enact/cmd_issue.go` (`runIssueCommentAdd`) |
+| Final comment plus receipt in one transaction; no_action preserved | `server/internal/service/final_delivery.go` (`CreateFinalComment`, `PersistFinalFallback`) |
+| Original target/version outbox with authorization recheck; precise transactional acknowledgment | `server/internal/handler/final_delivery.go` (`planFinalDelivery`, `drainFinalDelivery`) |
+| Maintenance lease and native completion, independent from business comments | `server/internal/service/agent_context.go`; `server/internal/daemon/agent_context.go` |

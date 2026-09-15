@@ -8,6 +8,9 @@ import { SubmitButton } from "@enact/ui/components/common/submit-button";
 import { contentReferencesAttachment } from "@enact/core/types";
 import { formatShortcut, useShortcut } from "@enact/core/shortcuts";
 import { useCommentDraftStore } from "@enact/core/issues/stores";
+import { useWorkspaceSlug } from "@enact/core/paths";
+import { isCompactCommand } from "@enact/core/context";
+import { useContextControls } from "../../context/use-context-controls";
 import { useT } from "../../i18n";
 import { CommentTriggerChips } from "./comment-trigger-chips";
 import { useCommentTriggerPreview } from "../hooks/use-comment-trigger-preview";
@@ -40,7 +43,14 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
   // Quick actions in the `/` menu: picking one inserts the server-rendered
   // body so the user can edit before sending, instead of firing immediately.
   const quickActionMenu = useQuickActionMenu(issueId);
+  const contextControls = useContextControls({type:"issue",id:issueId});
   const draftKey = `new:${issueId}` as const;
+  const workspaceSlug = useWorkspaceSlug();
+  const pendingPrefill = useCommentDraftStore((s) =>
+    s.drafts[draftKey]?.prefills?.find((item) => item.workspaceSlug === workspaceSlug),
+  );
+  const [prefillNotice, setPrefillNotice] = useState<"saved" | "failed" | null>(null);
+  const [prefillRetry, setPrefillRetry] = useState(0);
   const [initialDraft] = useState(() =>
     useCommentDraftStore.getState().getDraft(draftKey),
   );
@@ -65,7 +75,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
   // visible and editable, exactly like the pre-lazy behavior.
   const lazy = useLazyEditor({
     initialActive:
-      !!initialDraft?.trim() ||
+      !!pendingPrefill || !!initialDraft?.trim() ||
       useCommentDraftStore.getState().getUploads(draftKey).length > 0,
     editorRef,
   });
@@ -77,8 +87,8 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
   // the host so the height cap below can never outlive the pinning.
   const sticky = useStickyComposer();
 
-  // Draft persistence. Hydrate from store on mount via `defaultValue` above
-  // (ContentEditorRef has no setContent, so this is the only injection point).
+  // Draft persistence. Hydrate saved text on mount via `defaultValue`;
+  // incoming Site questions are appended through the live editor below.
   // Flush on every onUpdate (debounced upstream) + visibilitychange/pagehide
   // so tab close / mobile background doesn't lose work. Cleared on submit.
   const setDraft = useCommentDraftStore((s) => s.setDraft);
@@ -131,7 +141,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
       mountedRef.current = false;
     };
   }, []);
-  const submittedEntryRef = useRef<unknown>(null);
+  const submittedEntryRef = useRef<ReturnType<typeof useCommentDraftStore.getState>["drafts"][string] | undefined>(undefined);
   // Set by `onAccepted` only on the branch that actually wiped the editor; read
   // back by `afterAccepted`. Bound this way because the stale-submit guard can
   // leave a mid-flight draft in place: dropping the caret then would yank it
@@ -146,7 +156,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
     // so the composer stops reading as "still writing" once the comment is
     // posted above it. Thread replies are the opposite — see ReplyInput.
     afterAccepted: () => (editorScrubbedRef.current ? "blur" : "none"),
-    onSubmit: (content) => {
+    onSubmit: async (content) => {
       editorScrubbedRef.current = false;
       // Flush the editor's pending debounce before snapshotting — a late flush
       // of pre-submit typing must not read as an edit made during the request.
@@ -157,6 +167,7 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
       // inline image really unbinds it. Uploads that finished after a close
       // are written back into the body by the settle handler, so surviving
       // files are referenced too — never silently attached.
+      if (isCompactCommand(content)) { const maintenance = await contextControls.handleCommand(content); acceptedCommentIdRef.current = null; return maintenance === true; }
       const activeIds = pendingAttachments
         .filter((a) => contentReferencesAttachment(content, a))
         .map((a) => a.id);
@@ -182,10 +193,13 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
       if (lateMd != null) setDraft(draftKey, lateMd);
       const store = useCommentDraftStore.getState();
       const live = store.drafts[draftKey];
-      const untouched = live === undefined || live === submittedEntryRef.current;
+      const submitted = submittedEntryRef.current;
+      const untouched = live === undefined || live === submitted ||
+        (!!live.prefills?.length && live.content === submitted?.content && live.attachments === submitted?.attachments);
       if (untouched) store.clearDraft(draftKey);
       if (!mountedRef.current || !untouched) return;
       editorRef.current?.clearContent();
+      setPrefillNotice(null);
       setContent("");
       setIsEmpty(true);
       setSuppressedAgentIds(new Set());
@@ -194,11 +208,40 @@ function CommentInput({ issueId, onSubmit, onAccepted }: CommentInputProps) {
     },
   });
 
+  const { active: editorActive, ready: editorReady, activate: activateEditor } = lazy;
+  useEffect(() => {
+    if (!pendingPrefill || submitting) return;
+    if (!editorActive) { activateEditor(); return; }
+    if (!editorReady) return;
+    // The editor may already be open in another desktop tab. Append through its
+    // own document API so unsaved typing and upload placeholders remain intact.
+    const store = useCommentDraftStore.getState();
+    if (!store.drafts[draftKey]?.prefills?.some((item) => item.id === pendingPrefill.id)) return;
+    const editor = editorRef.current;
+    if (!editor?.insertMarkdownAtEnd(pendingPrefill.content)) {
+      setPrefillNotice("failed");
+      return;
+    }
+    const markdown = editor.getMarkdown();
+    store.applyPrefill(draftKey, pendingPrefill.id, markdown);
+    setContent(markdown);
+    setIsEmpty(!markdown.trim());
+    setPrefillNotice("saved");
+    editor.focus();
+  }, [pendingPrefill, submitting, editorActive, editorReady, activateEditor, draftKey, prefillRetry]);
+
   return (
     <div
       {...dropZoneProps}
       className="enact-issue-composer relative flex flex-col pb-8"
     >
+      {prefillNotice && (
+        <div className="px-3 py-2 text-caption text-muted-foreground" role={prefillNotice === "failed" ? "alert" : "status"}>
+          {prefillNotice === "saved" ? t(($) => $.comment.application_draft_ready) : t(($) => $.comment.application_draft_failed)}
+          {prefillNotice === "failed" && <button type="button" className="ml-2 underline" onClick={() => setPrefillRetry((value) => value + 1)}>{t(($) => $.comment.application_draft_retry)}</button>}
+        </div>
+      )}
+      {contextControls.panel}
       {/* Lock the editor while the send is in flight. ContentEditor can't
           toggle Tiptap's `editable` post-mount (see its docstring), so the
           documented way to make it non-interactive is a pointer-events-none +

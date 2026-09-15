@@ -13,15 +13,15 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/logger"
 	"github.com/enact-ai/enact/server/internal/service"
 	"github.com/enact-ai/enact/server/internal/util"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/dbid"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CommentResponse struct {
@@ -1458,6 +1458,8 @@ func keepRootConnected(byID map[string]db.Comment) []db.Comment {
 }
 
 type CreateCommentRequest struct {
+	Final            bool     `json:"final"`
+	ResultRevision   int64    `json:"result_revision"`
 	Content          string   `json:"content"`
 	Type             string   `json:"type"`
 	ParentID         *string  `json:"parent_id"`
@@ -1884,7 +1886,7 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	created, err := h.Queries.CreateComment(r.Context(), db.CreateCommentParams{
+	params := db.CreateCommentParams{
 		ID:           dbid.NewV7(),
 		IssueID:      issue.ID,
 		WorkspaceID:  issue.WorkspaceID,
@@ -1894,23 +1896,68 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		Type:         req.Type,
 		ParentID:     parentID,
 		SourceTaskID: sourceTaskID,
-	})
-	if err != nil {
-		slog.Warn("create comment failed", append(logger.RequestAttrs(r), "error", err, "issue_id", issueID)...)
-		writeError(w, http.StatusInternalServerError, "failed to create comment: "+err.Error())
-		return
 	}
-	comment := created.Comment()
+	var comment db.Comment
+	var issueRevision int64
+	if req.Final {
+		if !sourceTaskID.Valid || authorType != "agent" {
+			writeError(w, 403, "final delivery requires an agent task")
+			return
+		}
+		if req.ResultRevision == 0 {
+			req.ResultRevision = 1
+		}
+		tx, err := h.TxStarter.Begin(r.Context())
+		if err != nil {
+			contextError(w, err)
+			return
+		}
+		defer tx.Rollback(r.Context())
+		var fresh bool
+		comment, issueRevision, fresh, err = service.CreateFinalComment(r.Context(), h.Queries.WithTx(tx), params, req.ResultRevision)
+		if err != nil {
+			contextError(w, err)
+			return
+		}
+		if fresh {
+			if len(attachmentIDs) > 0 {
+				if err = h.Queries.WithTx(tx).LinkAttachmentsToComment(r.Context(), db.LinkAttachmentsToCommentParams{CommentID: comment.ID, IssueID: issue.ID, Column3: attachmentIDs}); err != nil {
+					contextError(w, err)
+					return
+				}
+			}
+			if err = h.planFinalDelivery(r.Context(), h.Queries.WithTx(tx), comment); err != nil {
+				contextError(w, err)
+				return
+			}
+		}
+		if err = tx.Commit(r.Context()); err != nil {
+			contextError(w, err)
+			return
+		}
+		if !fresh {
+			writeJSON(w, http.StatusOK, commentToResponse(comment, nil, h.groupAttachments(r, []pgtype.UUID{comment.ID})[uuidToString(comment.ID)]))
+			return
+		}
+	} else {
+		created, err := h.Queries.CreateComment(r.Context(), params)
+		if err != nil {
+			writeError(w, 500, "failed to create comment")
+			return
+		}
+		comment = created.Comment()
+		issueRevision = created.IssueRevision
+	}
 
 	// Link uploaded attachments to this comment.
-	if len(attachmentIDs) > 0 {
+	if !req.Final && len(attachmentIDs) > 0 {
 		h.linkAttachmentsByIDs(r.Context(), comment.ID, issue.ID, attachmentIDs)
 	}
 
 	// Fetch linked attachments so the response includes them.
 	groupedAtt := h.groupAttachments(r, []pgtype.UUID{comment.ID})
 	resp := commentToResponse(comment, nil, groupedAtt[uuidToString(comment.ID)])
-	resp.IssueRevision = created.IssueRevision
+	resp.IssueRevision = issueRevision
 	slog.Info("comment created", append(logger.RequestAttrs(r), "comment_id", uuidToString(comment.ID), "issue_id", issueID)...)
 	h.publish(protocol.EventCommentCreated, uuidToString(issue.WorkspaceID), authorType, authorID, map[string]any{
 		"comment":             resp,
@@ -1918,7 +1965,7 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		"issue_assignee_type": textToPtr(issue.AssigneeType),
 		"issue_assignee_id":   uuidToPtr(issue.AssigneeID),
 		"issue_status":        issue.Status,
-		"issue_revision":      created.IssueRevision,
+		"issue_revision":      issueRevision,
 	})
 
 	// A reply in a resolved thread re-opens it. Done after CreateComment commits
@@ -1939,7 +1986,11 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	// The comment is already saved; a blocked mention must not fail the whole
 	// request. Surface the per-target outcomes so the client can show partial
 	// success instead of a silent no-op (ENA-4525 §2).
-	resp.TriggerOutcomes = h.triggerTasksForComment(r.Context(), issue, comment, parentComment, authorType, authorID, originatorUserID, delegationAuthority, suppressAgentIDs)
+	if req.Final {
+		h.DrainFinalDeliveries(r.Context())
+	} else {
+		resp.TriggerOutcomes = h.triggerTasksForComment(r.Context(), issue, comment, parentComment, authorType, authorID, originatorUserID, delegationAuthority, suppressAgentIDs)
+	}
 
 	writeJSON(w, http.StatusCreated, resp)
 }
