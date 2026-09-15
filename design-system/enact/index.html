@@ -27,31 +27,15 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <!-- Brand mark, variant A "three-step green" (MASTER.md §10). -->
-    <linearGradient id="mk-t" gradientUnits="userSpaceOnUse" x1="6.5" y1="2.375" x2="17.5" y2="13.375"><stop offset="0" stop-color="#C4D600"/><stop offset="1" stop-color="#86BC25"/></linearGradient>
-    <linearGradient id="mk-l" gradientUnits="userSpaceOnUse" x1="1" y1="10.625" x2="12" y2="21.625"><stop offset="0" stop-color="#86BC25"/><stop offset="1" stop-color="#26890D"/></linearGradient>
-    <linearGradient id="mk-r" gradientUnits="userSpaceOnUse" x1="12" y1="10.625" x2="23" y2="21.625"><stop offset="0" stop-color="#26890D"/><stop offset="1" stop-color="#046A38"/></linearGradient>
-    <symbol id="mark-color" viewBox="0 0 24 24">
-      <path d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z" fill="url(#mk-t)"/>
-      <path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="url(#mk-t)"/><path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="#000" fill-opacity="0.18"/>
-      <path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="url(#mk-t)"/><path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="#000" fill-opacity="0.36"/>
-      <path d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z" fill="url(#mk-l)"/>
-      <path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="url(#mk-l)"/><path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="#000" fill-opacity="0.18"/>
-      <path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="url(#mk-l)"/><path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="#000" fill-opacity="0.36"/>
-      <path d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z" fill="url(#mk-r)"/>
-      <path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="url(#mk-r)"/><path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="#000" fill-opacity="0.18"/>
-      <path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="url(#mk-r)"/><path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="#000" fill-opacity="0.36"/>
+    <!-- Brand mark (MASTER.md §10). Path generated from mark-source.svg by
+         scripts/generate-brand-mark.mjs; keep byte-identical with
+         packages/ui/components/common/enact-mark-path.ts. -->
+    <linearGradient id="mk" gradientUnits="userSpaceOnUse" x1="400" y1="42" x2="400" y2="758"><stop offset="0" stop-color="#066B38"/><stop offset="0.5" stop-color="#61A533"/><stop offset="1" stop-color="#86BC25"/></linearGradient>
+    <symbol id="mark-color" viewBox="0 0 800 800">
+      <path d="M 82.6080,565.6090 A 358,358 0 0 1 688.6958,188.2956 L 249.5000,355.1900 L 249.5000,265.1900 L 522.2926,161.5288 A 268,268 0 0 0 167.5256,533.3403 Z M 249.5000,412.1900 L 550.5000,297.8100 L 550.5000,387.8100 L 249.5000,502.1900 Z M 717.3920,234.3910 A 358,358 0 0 1 111.3042,611.7044 L 550.5000,444.8100 L 550.5000,534.8100 L 277.7074,638.4712 A 268,268 0 0 0 632.4744,266.6597 Z" fill="url(#mk)"/>
     </symbol>
-    <symbol id="mark-mono" viewBox="0 0 24 24">
-      <path d="M12 2.375 L17.5 5.125 L12 7.875 L6.5 5.125 Z" fill="currentColor"/>
-      <path d="M6.5 5.125 L12 7.875 L12 13.375 L6.5 10.625 Z" fill="currentColor" fill-opacity="0.62"/>
-      <path d="M12 7.875 L17.5 5.125 L17.5 10.625 L12 13.375 Z" fill="currentColor" fill-opacity="0.38"/>
-      <path d="M6.5 10.625 L12 13.375 L6.5 16.125 L1 13.375 Z" fill="currentColor"/>
-      <path d="M1 13.375 L6.5 16.125 L6.5 21.625 L1 18.875 Z" fill="currentColor" fill-opacity="0.62"/>
-      <path d="M6.5 16.125 L12 13.375 L12 18.875 L6.5 21.625 Z" fill="currentColor" fill-opacity="0.38"/>
-      <path d="M17.5 10.625 L23 13.375 L17.5 16.125 L12 13.375 Z" fill="currentColor"/>
-      <path d="M12 13.375 L17.5 16.125 L17.5 21.625 L12 18.875 Z" fill="currentColor" fill-opacity="0.62"/>
-      <path d="M17.5 16.125 L23 13.375 L23 18.875 L17.5 21.625 Z" fill="currentColor" fill-opacity="0.38"/>
+    <symbol id="mark-mono" viewBox="0 0 800 800">
+      <path d="M 82.6080,565.6090 A 358,358 0 0 1 688.6958,188.2956 L 249.5000,355.1900 L 249.5000,265.1900 L 522.2926,161.5288 A 268,268 0 0 0 167.5256,533.3403 Z M 249.5000,412.1900 L 550.5000,297.8100 L 550.5000,387.8100 L 249.5000,502.1900 Z M 717.3920,234.3910 A 358,358 0 0 1 111.3042,611.7044 L 550.5000,444.8100 L 550.5000,534.8100 L 277.7074,638.4712 A 268,268 0 0 0 632.4744,266.6597 Z" fill="currentColor"/>
     </symbol>
   </defs>
 </svg>

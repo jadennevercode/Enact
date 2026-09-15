@@ -223,22 +223,26 @@ Every component below is a `packages/ui` primitive; values reference §3–§6.
 
 ## 10. Brand mark
 
-Geometry is unchanged from `packages/ui/components/common/enact-icon.tsx`: nine faces,
-three cubes, half-width 5.5, side 5.5. Two variants:
+The mark is a ring of Deloitte green cut twice on the diagonal, holding three slanted bars
+that read as an E. The source of truth is `design-system/enact/mark-source.svg`;
+`scripts/generate-brand-mark.mjs` copies its path verbatim, in its own 800-unit coordinate
+space, into `packages/ui/components/common/enact-mark-path.ts`, the mobile and docs copies
+of that file, `apps/web/public/favicon.svg`, `apps/web/public/icons/icon.svg` and
+`docs/assets/logo-*.svg`. `apps/web/app/brand-mark-sync.test.ts` holds every copy to the
+source. Two variants:
 
-- **Colour (variant A, "three-step green"):** each cube has its own gradient, oriented
-  top-left to bottom-right across the cube's box: top cube Green 2 → Green
-  (`#C4D600 → #86BC25`), left cube Green → Mid Green (`#86BC25 → #26890D`), right cube
-  Mid → Deep Green (`#26890D → #046A38`). Faces are shaded by a black overlay at
-  0% (top), 18% (left), 36% (right). Transparent ground. Used for favicon, app icons,
-  login, workspace switcher, landing, docs.
-- **Mono:** `currentColor` with `fill-opacity` 1 / 0.62 / 0.38, unchanged. Used inline
-  beside text, in the sidebar, in breadcrumbs.
-- **Small sizes:** at 16 and 24px the top cube's gradient is tightened so Green 2 covers
-  only the top-left 30%; the rest of the ladder uses the full gradient.
-- **App icons** (macOS, Windows, Linux, PWA, apple-touch): the colour mark at 52% of the
-  canvas on `#F7F7F6` with the shell light (22% green top-left, 16% Green 2 bottom-right)
-  inside the platform's own mask. Never on a dark ground.
+- **Colour:** one vertical gradient across the mark's full height, Deep Green at the top
+  (`#066B38`) through the brand source's midpoint (`#61A533`) to Deloitte Green
+  (`#86BC25`) at the bottom; the stops are `--mark-from`, `--mark-mid`, `--mark-to`.
+  Three stops reproduce the source's eased ramp to within a few sRGB units. Transparent
+  ground. Identical in both themes. Used for favicon, app icons, login, workspace
+  switcher, landing, docs.
+- **Mono:** one flat `currentColor` fill. Used inline beside text, in the sidebar, in
+  breadcrumbs, and wherever the mark sits on a coloured ground.
+- **App icons** (macOS, Windows, Linux, PWA, apple-touch): the colour mark at 62% of the
+  canvas on `#F7F7F6` with the shell light (28% green top-left, 18% Green 2
+  bottom-right) inside the platform's own mask. Never on a dark ground. Regenerate with
+  `node scripts/generate-brand-icons.mjs` after the source changes.
 - Gradient `<defs>` ids are generated with `useId` so several marks can share a page.
 
 ## 11. Accessibility
@@ -294,6 +298,7 @@ change actually lives in.
 | 1 | Whole token set repalletted to the Deloitte values under unchanged names; light became the default scope; shell, elevation, glass, gradient, status and identity tokens added | `packages/ui/styles/tokens.css` |
 | 1 | Open Sans replaced Inter as the product face and the editorial serif was dropped from the app (the landing keeps its own) | `apps/web/app/layout.tsx`, `apps/web/app/globals.css`, `apps/desktop/src/renderer/src/{main.tsx,globals.css}`, `apps/desktop/package.json` |
 | 1b | Colour brand mark, and every favicon / PWA / desktop / mobile / docs asset regenerated from it | `packages/ui/components/common/enact-icon.tsx`, `apps/web/public/*`, `apps/desktop/build/*`, `apps/mobile/*`, `docs/assets/*`, `scripts/generate-brand-icons.mjs` |
+| 1c | The ring-and-bars mark from brand replaced the isometric cubes; every copy is generated from one source file and held to it by a test | `design-system/enact/mark-source.svg`, `scripts/generate-brand-mark.mjs`, `*/enact-mark-path.ts`, `apps/web/app/brand-mark-sync.test.ts` |
 | 2 | Shell light, the canvas hairline, the lifted active nav item, the top bar on shell tokens | `packages/ui/styles/features/shell.css` |
 | 2 | Elevation on cards and floating layers, glass with three fallbacks, the brand fill, the identity shapes and the run ring | `packages/ui/styles/primitives.css`, `packages/ui/components/ui/button.tsx`, `packages/ui/components/common/actor-avatar.tsx` |
 | 3 | One status→colour mapping across the board, swimlanes, the Gantt and the icon config, replacing three that disagreed | `packages/ui/styles/features/issues.css`, `packages/core/issues/config/status.ts` |
