@@ -20,7 +20,8 @@
     "ontologies": "オントロジー",
     "skills": "スキル",
     "connections": "接続",
-    "applications": "アプリケーション"
+    "applications": "アプリケーション",
+    "codegraph": "コードグラフ"
   },
   "tab": {
     "issue": "タスク",

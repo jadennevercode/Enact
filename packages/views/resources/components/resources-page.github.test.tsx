@@ -78,6 +78,11 @@ vi.mock("@enact/core/resources", () => ({
   useDeleteWorkspaceResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
+vi.mock("@enact/core/codegraph", () => ({
+  useCodeGraphCapability: () => ({ data: { enabled: false, graphify_version: null } }),
+  useCodeGraphStatuses: () => ({ data: { statuses: {} } }),
+  useRebuildCodeGraph: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@enact/core/config", () => ({
   useConfigStore: (selector: (s: { localWorktreeSupported: boolean }) => unknown) =>
     selector({ localWorktreeSupported: true }),

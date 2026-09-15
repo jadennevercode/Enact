@@ -18,6 +18,12 @@ export interface GithubRepoResourceRef {
   url: string;
   ref?: string;
   default_branch_hint?: string;
+  /**
+   * Whether the deployment builds a code graph for this repository. The flag
+   * is the whole switch: absent means off, and flipping it is what enqueues
+   * or removes the build server-side.
+   */
+  code_graph?: boolean;
 }
 
 /**

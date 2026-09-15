@@ -89,6 +89,7 @@
     "./artifacts/artifact-tree": "./artifacts/artifact-tree.ts",
     "./resources": "./resources/index.ts",
     "./resources/queries": "./resources/queries.ts",
+    "./codegraph": "./codegraph/index.ts",
     "./plugins": "./plugins/index.ts",
     "./plugins/queries": "./plugins/queries.ts",
     "./plugins/mutations": "./plugins/mutations.ts",

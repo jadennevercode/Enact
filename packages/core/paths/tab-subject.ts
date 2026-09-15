@@ -116,6 +116,10 @@ export function parseTabSubject(url: string): TabSubject {
       return { kind: "machine", machineId: id };
     case "skills":
       return id ? { kind: "skill", id } : { kind: "page", page: "skills" };
+    case "codegraph":
+      // `/codegraph/:resourceId` is one repository's graph; it keeps the
+      // page's identity because the repository has no icon of its own.
+      return { kind: "page", page: "codeGraphs" };
     case "settings":
       return { kind: "page", page: "settings" };
     case "attachments":

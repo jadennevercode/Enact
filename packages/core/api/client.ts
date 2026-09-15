@@ -775,6 +775,14 @@ export class ApiClient {
     return res.json() as Promise<T>;
   }
 
+  /** Transport for the code graph API; callers validate with domain schemas. */
+  async codeGraphRequest(path: string, init?: RequestInit): Promise<unknown> {
+    if (!path.startsWith("/") || path.includes("..")) {
+      throw new Error("Invalid code graph API path");
+    }
+    return this.fetch<unknown>(`/api/code-graph${path}`, init);
+  }
+
   /** Transport for workspace semantic services; callers validate with domain schemas. */
   async semanticRequest(path: string, init?: RequestInit): Promise<unknown> {
     if (!path.startsWith("/") || path.includes("..") || path.includes("?")) {

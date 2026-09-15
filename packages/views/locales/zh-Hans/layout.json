@@ -20,7 +20,8 @@
     "ontologies": "Ontology",
     "skills": "Skills",
     "connections": "数据与系统连接",
-    "applications": "应用"
+    "applications": "应用",
+    "codegraph": "代码图谱"
   },
   "tab": {
     "issue": "任务",
