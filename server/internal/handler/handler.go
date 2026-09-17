@@ -75,16 +75,6 @@ type Config struct {
 	// invitation only. The public /api/config endpoint mirrors this flag so
 	// the UI can hide every "Create workspace" affordance — see #3433.
 	DisableWorkspaceCreation bool
-	// VCSIntegrationEnabled gates the self-hosted Git provider integration
-	// (Forgejo / Gitea / GitLab) at the deployment level, independent of whether
-	// ENACT_VCS_SECRET_KEY is set. It is the product boundary: the feature is
-	// intended for self-hosted Enact only (where Enact and the Git instance
-	// can share a network), and is left off on the managed cloud — connect,
-	// rotate, and webhook handlers reject when it is false, and /api/config
-	// omits it so the UI hides the whole section rather than showing a
-	// "missing key" message a cloud user cannot act on. Populated from
-	// ENACT_VCS_INTEGRATION_ENABLED; the self-host compose defaults it on.
-	VCSIntegrationEnabled bool
 	// PublicURL is the absolute base URL the API is reachable at from the
 	// public internet, with no trailing slash (e.g. "https://enact.ai").
 	// Used to build webhook_url responses and the fixed Remote MCP OAuth

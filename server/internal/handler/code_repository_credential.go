@@ -224,11 +224,7 @@ func (h *Handler) CreateCodeRepositoryChangeRequest(w http.ResponseWriter, r *ht
 			writeError(w, http.StatusInternalServerError, "secret error")
 			return
 		}
-		caPEM := ""
-		if connection.CaPemEncrypted != "" {
-			caPEM, err = h.openVCSSecret(connection.CaPemEncrypted)
-		}
-		client, err := vcsHTTPClient(caPEM)
+		client, err := h.vcsConnectionHTTPClient(connection)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "invalid enterprise CA")
 			return

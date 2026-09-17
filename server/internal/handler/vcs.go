@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -61,13 +62,11 @@ type VCSConnectResponse struct {
 
 const vcsWebhookPathPrefix = "/api/webhooks/vcs/"
 
-// isVCSAvailable reports whether this deployment offers the self-hosted Git
-// provider integration at all. It is the product boundary (self-host only) and
-// is independent of isVCSConfigured (whether the encryption key is set): the
-// managed cloud leaves it off, so connect/rotate/webhook reject and the UI
-// hides the section rather than surfacing an operator-only "missing key" hint.
-func (h *Handler) isVCSAvailable() bool { return h.cfg.VCSIntegrationEnabled }
-
+// isVCSConfigured reports whether at-rest encryption for provider credentials
+// is available. It is the only gate on code-hosting connections: every
+// deployment offers them, but none may store a token without a key to seal it
+// with, so connect/rotate reject with an operator-actionable message and the UI
+// renders the section with setup guidance instead of hiding it.
 func (h *Handler) isVCSConfigured() bool { return h.VCSSecretBox != nil }
 
 func (h *Handler) vcsWebhookPath(connID string) string { return vcsWebhookPathPrefix + connID }
@@ -141,20 +140,6 @@ func (h *Handler) ListVCSConnections(w http.ResponseWriter, r *http.Request) {
 	member, _ := middleware.MemberFromContext(r.Context())
 	canManage := roleAllowed(member.Role, "owner", "admin")
 
-	// Deployments where the integration is off (the managed cloud) report
-	// available=false and nothing else, so the UI hides the whole section
-	// instead of showing an operator-only "missing key" hint. No connections
-	// can exist there anyway (connect is rejected), so skip the query.
-	if !h.isVCSAvailable() {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"connections": []VCSConnectionResponse{},
-			"available":   false,
-			"configured":  false,
-			"can_manage":  false,
-		})
-		return
-	}
-
 	rows, err := h.Queries.ListVCSConnectionsByWorkspace(r.Context(), wsUUID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list connections")
@@ -166,7 +151,6 @@ func (h *Handler) ListVCSConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"connections": out,
-		"available":   true,
 		"configured":  h.isVCSConfigured(),
 		"can_manage":  canManage,
 		"requirements": map[string]any{
@@ -201,10 +185,6 @@ func (h *Handler) ConnectVCS(w http.ResponseWriter, r *http.Request) {
 	workspaceID := chi.URLParam(r, "id")
 	wsUUID, ok := parseUUIDOrBadRequest(w, workspaceID, "workspace id")
 	if !ok {
-		return
-	}
-	if !h.isVCSAvailable() {
-		writeError(w, http.StatusNotFound, "vcs integration is not available on this deployment")
 		return
 	}
 	if !h.isVCSConfigured() {
@@ -245,16 +225,6 @@ func (h *Handler) ConnectVCS(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "git_token with write_repository scope is required for GitLab")
 		return
 	}
-	if provider.Kind() == vcs.KindGitLab && strings.TrimSpace(req.AccessToken) == "" {
-		if !vcsContainsString(req.TokenScopes, "api") || !vcsContainsString(req.TokenScopes, "write_repository") {
-			writeError(w, http.StatusBadRequest, "token_scopes must explicitly include api and write_repository")
-			return
-		}
-		if strings.TrimSpace(req.TokenExpiresAt) == "" {
-			writeError(w, http.StatusBadRequest, "token_expires_at is required for GitLab")
-			return
-		}
-	}
 	client, err := vcsHTTPClient(strings.TrimSpace(req.CAPEM))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -281,11 +251,26 @@ func (h *Handler) ConnectVCS(w http.ResponseWriter, r *http.Request) {
 	verifiedScopes := append([]string(nil), req.TokenScopes...)
 	verifiedExpiry := strings.TrimSpace(req.TokenExpiresAt)
 	if provider.Kind() == vcs.KindGitLab && strings.TrimSpace(req.AccessToken) == "" {
-		verifiedScopes, verifiedExpiry, err = inspectGitLabManagedTokens(r.Context(), client, instanceURL, token, gitToken)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+		scopes, expiry, inspectErr := inspectGitLabManagedTokens(r.Context(), client, instanceURL, token, gitToken)
+		if errors.Is(inspectErr, errVCSScopeMissing) {
+			writeError(w, http.StatusBadRequest, inspectErr.Error())
 			return
 		}
+		if inspectErr != nil {
+			// Introspection is a convenience, not the authorization: the token
+			// already authenticated above, and a GitLab that will not describe
+			// it (an older instance, a token type without `self`, a restricted
+			// network path) is not a reason to refuse a working credential.
+			// Record what the operator declared and let the capability probes
+			// report the truth.
+			slog.Warn("vcs: GitLab token introspection unavailable; keeping declared metadata",
+				"instance_url", instanceURL, "error", inspectErr)
+		} else {
+			verifiedScopes, verifiedExpiry = scopes, expiry
+		}
+	}
+	if len(verifiedScopes) == 0 {
+		verifiedScopes = []string{"api", "write_repository"}
 	}
 
 	webhookSecret, err := newVCSWebhookSecret()
@@ -335,21 +320,10 @@ func (h *Handler) ConnectVCS(w http.ResponseWriter, r *http.Request) {
 	if cloneHost == "" {
 		cloneHost = parsed.Host
 	}
-	var expiresAt pgtype.Timestamptz
-	if verifiedExpiry != "" {
-		parsedExpiry, parseErr := time.Parse("2006-01-02", verifiedExpiry)
-		if parseErr != nil {
-			parsedExpiry, parseErr = time.Parse(time.RFC3339, verifiedExpiry)
-		}
-		if parseErr != nil {
-			writeError(w, http.StatusBadRequest, "token_expires_at must be YYYY-MM-DD or RFC3339")
-			return
-		}
-		if parsedExpiry.Before(time.Now()) {
-			writeError(w, http.StatusBadRequest, "token_expires_at must be in the future")
-			return
-		}
-		expiresAt = pgtype.Timestamptz{Time: parsedExpiry, Valid: true}
+	expiresAt, expiryErr := parseVCSTokenExpiry(verifiedExpiry)
+	if expiryErr != nil {
+		writeError(w, http.StatusBadRequest, expiryErr.Error())
+		return
 	}
 	conn, err := h.Queries.UpsertVCSConnection(r.Context(), db.UpsertVCSConnectionParams{
 		WorkspaceID:            wsUUID,
@@ -413,10 +387,6 @@ func (h *Handler) RotateVCSConnectionCredentials(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, "api_token and git_token are required")
 		return
 	}
-	if !vcsContainsString(req.TokenScopes, "api") || !vcsContainsString(req.TokenScopes, "write_repository") {
-		writeError(w, http.StatusBadRequest, "token_scopes must explicitly include api and write_repository")
-		return
-	}
 	client, err := vcsHTTPClient(strings.TrimSpace(req.CAPEM))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -435,10 +405,19 @@ func (h *Handler) RotateVCSConnectionCredentials(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadGateway, "could not reach the provider instance")
 		return
 	}
-	verifiedScopes, verifiedExpiry, err := inspectGitLabManagedTokens(r.Context(), client, conn.InstanceUrl, apiToken, gitToken)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	verifiedScopes, verifiedExpiry, inspectErr := inspectGitLabManagedTokens(r.Context(), client, conn.InstanceUrl, apiToken, gitToken)
+	if errors.Is(inspectErr, errVCSScopeMissing) {
+		writeError(w, http.StatusBadRequest, inspectErr.Error())
 		return
+	}
+	if inspectErr != nil {
+		slog.Warn("vcs: GitLab token introspection unavailable; keeping declared metadata",
+			"instance_url", conn.InstanceUrl, "error", inspectErr)
+		verifiedScopes = append([]string(nil), req.TokenScopes...)
+		verifiedExpiry = strings.TrimSpace(req.TokenExpiresAt)
+	}
+	if len(verifiedScopes) == 0 {
+		verifiedScopes = []string{"api", "write_repository"}
 	}
 	tokenType := strings.TrimSpace(req.TokenType)
 	if tokenType == "" {
@@ -449,24 +428,11 @@ func (h *Handler) RotateVCSConnectionCredentials(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, "unsupported token_type")
 		return
 	}
-	var expiresAt pgtype.Timestamptz
-	if verifiedExpiry == "" {
-		writeError(w, http.StatusBadRequest, "token_expires_at is required")
+	expiresAt, expiryErr := parseVCSTokenExpiry(verifiedExpiry)
+	if expiryErr != nil {
+		writeError(w, http.StatusBadRequest, expiryErr.Error())
 		return
 	}
-	parsedExpiry, parseErr := time.Parse("2006-01-02", verifiedExpiry)
-	if parseErr != nil {
-		parsedExpiry, parseErr = time.Parse(time.RFC3339, verifiedExpiry)
-	}
-	if parseErr != nil {
-		writeError(w, http.StatusBadRequest, "token_expires_at must be YYYY-MM-DD or RFC3339")
-		return
-	}
-	if parsedExpiry.Before(time.Now()) {
-		writeError(w, http.StatusBadRequest, "token_expires_at must be in the future")
-		return
-	}
-	expiresAt = pgtype.Timestamptz{Time: parsedExpiry, Valid: true}
 
 	apiEncrypted, err := h.sealVCSSecret(apiToken)
 	if err != nil {
@@ -519,34 +485,68 @@ func vcsContainsString(values []string, want string) bool {
 	return false
 }
 
+// errVCSScopeMissing marks the one introspection outcome that must block a
+// connect: the provider answered, and its answer was that the credential lacks
+// a scope the integration needs. Every other failure means introspection did
+// not happen, which is not evidence against the token — see the callers.
+var errVCSScopeMissing = errors.New("vcs: provider reports a missing token scope")
+
+// parseVCSTokenExpiry accepts a date, an RFC3339 timestamp, or nothing. Nothing
+// is a legitimate answer: a non-expiring token is a valid, if less desirable,
+// credential, and refusing it would push operators toward pasting a fake date.
+// The UI surfaces an unset expiry so the tradeoff stays visible.
+func parseVCSTokenExpiry(value string) (pgtype.Timestamptz, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return pgtype.Timestamptz{}, nil
+	}
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		parsed, err = time.Parse(time.RFC3339, value)
+	}
+	if err != nil {
+		return pgtype.Timestamptz{}, errors.New("token_expires_at must be YYYY-MM-DD or RFC3339")
+	}
+	if parsed.Before(time.Now()) {
+		return pgtype.Timestamptz{}, errors.New("token_expires_at must be in the future")
+	}
+	return pgtype.Timestamptz{Time: parsed, Valid: true}, nil
+}
+
+// inspectGitLabManagedTokens asks GitLab what the two credentials actually are,
+// so a caller cannot claim scopes it does not hold. A missing scope is
+// definitive and wraps errVCSScopeMissing; an unreachable or unsupported
+// introspection endpoint returns a plain error the caller may degrade past.
+// An empty expiry is returned as empty rather than as a failure — GitLab
+// permits non-expiring tokens and reports them that way.
 func inspectGitLabManagedTokens(ctx context.Context, client *http.Client, instanceURL, apiToken, gitToken string) ([]string, string, error) {
 	apiMetadata, err := vcs.InspectGitLabToken(ctx, client, instanceURL, apiToken)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not inspect GitLab API token: %w", err)
 	}
 	if !vcsContainsString(apiMetadata.Scopes, "api") {
-		return nil, "", errors.New("GitLab reports that the API token does not have api scope")
+		return nil, "", fmt.Errorf("%w: the API token does not have api scope", errVCSScopeMissing)
 	}
 	gitMetadata, err := vcs.InspectGitLabToken(ctx, client, instanceURL, gitToken)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not inspect GitLab Git token: %w", err)
 	}
 	if !vcsContainsString(gitMetadata.Scopes, "write_repository") {
-		return nil, "", errors.New("GitLab reports that the Git token does not have write_repository scope")
+		return nil, "", fmt.Errorf("%w: the Git token does not have write_repository scope", errVCSScopeMissing)
 	}
-	expiry := earliestGitLabTokenExpiry(apiMetadata.ExpiresAt, gitMetadata.ExpiresAt)
-	if expiry == "" {
-		return nil, "", errors.New("GitLab token expiration could not be verified")
-	}
-	return []string{"api", "write_repository"}, expiry, nil
+	return []string{"api", "write_repository"}, earliestGitLabTokenExpiry(apiMetadata.ExpiresAt, gitMetadata.ExpiresAt), nil
 }
 
+// earliestGitLabTokenExpiry returns the soonest expiry among the tokens, which
+// is when the connection starts failing. A token with no expiry contributes
+// nothing rather than voiding the answer, so a pairing of one expiring and one
+// permanent token still reports the date that matters.
 func earliestGitLabTokenExpiry(values ...string) string {
 	var earliest time.Time
 	for _, value := range values {
 		value = strings.TrimSpace(value)
 		if value == "" {
-			return ""
+			continue
 		}
 		parsed, err := time.Parse("2006-01-02", value)
 		if err != nil {
@@ -592,15 +592,7 @@ func (h *Handler) ListVCSConnectionRepositories(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusInternalServerError, "secret error")
 		return
 	}
-	caPEM := ""
-	if conn.CaPemEncrypted != "" {
-		caPEM, err = h.openVCSSecret(conn.CaPemEncrypted)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "CA secret error")
-			return
-		}
-	}
-	client, err := vcsHTTPClient(caPEM)
+	client, err := h.vcsConnectionHTTPClient(conn)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "invalid stored CA certificate")
 		return
@@ -644,11 +636,7 @@ func (h *Handler) TestVCSConnection(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "secret error")
 		return
 	}
-	caPEM := ""
-	if conn.CaPemEncrypted != "" {
-		caPEM, err = h.openVCSSecret(conn.CaPemEncrypted)
-	}
-	client, clientErr := vcsHTTPClient(caPEM)
+	client, clientErr := h.vcsConnectionHTTPClient(conn)
 	status := "ok"
 	detail := "API authenticated successfully"
 	if err != nil || clientErr != nil {
@@ -689,6 +677,24 @@ func classifyVCSTestError(err error) string {
 	default:
 		return "unreachable"
 	}
+}
+
+// vcsConnectionHTTPClient builds the outbound API client for one connection,
+// decrypting its enterprise CA first. Both steps fail as one because a CA that
+// cannot be decrypted must not silently degrade to the system trust store: on
+// an enterprise instance that turns a TLS misconfiguration into a connection
+// that appears to work until the day the private chain is the only one that
+// validates.
+func (h *Handler) vcsConnectionHTTPClient(conn db.VcsConnection) (*http.Client, error) {
+	caPEM := ""
+	if conn.CaPemEncrypted != "" {
+		decrypted, err := h.openVCSSecret(conn.CaPemEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt stored enterprise CA: %w", err)
+		}
+		caPEM = decrypted
+	}
+	return vcsHTTPClient(caPEM)
 }
 
 func vcsHTTPClient(caPEM string) (*http.Client, error) {
@@ -762,10 +768,6 @@ func (h *Handler) RotateVCSConnectionWebhook(w http.ResponseWriter, r *http.Requ
 	connID := chi.URLParam(r, "connectionId")
 	connUUID, ok := parseUUIDOrBadRequest(w, connID, "connection id")
 	if !ok {
-		return
-	}
-	if !h.isVCSAvailable() {
-		writeError(w, http.StatusNotFound, "vcs integration is not available on this deployment")
 		return
 	}
 	if !h.isVCSConfigured() {

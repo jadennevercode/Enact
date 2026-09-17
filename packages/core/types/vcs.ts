@@ -36,14 +36,9 @@ export interface VCSConnection {
 
 export interface ListVCSConnectionsResponse {
   connections: VCSConnection[];
-  /** Whether this deployment offers the integration at all (self-host only;
-   * off on the managed cloud). When false the section is hidden entirely.
-   * Older backends omit it; treat as true so the existing self-host UI still
-   * renders (visibility is also gated by vcs_integration_available on
-   * /api/config, which is the authoritative deployment signal). */
-  available?: boolean;
-  /** Whether the deployment has ENACT_VCS_SECRET_KEY configured. When false
-   * the connect form is disabled. Older backends omit it; treat as false. */
+  /** Whether the deployment has ENACT_VCS_SECRET_KEY configured. Without it no
+   * credential can be sealed, so the connect form is replaced by setup
+   * guidance rather than hidden. Older backends omit it; treat as false. */
   configured?: boolean;
   /** Whether the caller can connect / disconnect. Non-admins get false. */
   can_manage?: boolean;
