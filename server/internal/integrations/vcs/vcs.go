@@ -1,8 +1,14 @@
 // Package vcs is the provider abstraction for token-based Git providers that
 // Enact mirrors pull requests and CI status from: Forgejo, Gitea (Forgejo's
-// upstream, wire-identical), and GitLab. GitHub is intentionally NOT a vcs
-// provider — its App/installation model and check_suite CI differ enough that
-// it keeps its own handler (server/internal/handler/github.go).
+// upstream, wire-identical), GitLab, and token-authenticated GitHub — both
+// GitHub.com and Enterprise Server.
+//
+// GitHub appears here only in its token form. The GitHub App integration keeps
+// its own handler (server/internal/handler/github.go) because installation
+// tokens, the check_suite CI model, and the install redirect have no analogue
+// in a token connection. The two coexist on purpose: an App is the stronger
+// credential where it can be installed, and a token is the one an admin can
+// configure without deployment access or a route to github.com.
 //
 // Each provider only contributes the parts that actually differ between
 // providers: how a webhook is authenticated, how its event/payload shapes map to
@@ -25,12 +31,13 @@ const (
 	KindForgejo Kind = "forgejo"
 	KindGitea   Kind = "gitea"
 	KindGitLab  Kind = "gitlab"
+	KindGitHub  Kind = "github"
 )
 
 // Valid reports whether k is a known provider kind.
 func (k Kind) Valid() bool {
 	switch k {
-	case KindForgejo, KindGitea, KindGitLab:
+	case KindForgejo, KindGitea, KindGitLab, KindGitHub:
 		return true
 	}
 	return false

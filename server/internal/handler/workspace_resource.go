@@ -63,13 +63,16 @@ func (h *Handler) hydrateCodeRepositoryConnectionSummary(ctx context.Context, wo
 		return
 	}
 	if resp.ConnectionSummary.Provider == "github" {
+		// A github ref may name an App installation or a token connection, so
+		// try the App table first and fall through when the id belongs to the
+		// other one. Enterprise Server only ever appears as a connection.
 		row, err := h.Queries.GetGitHubInstallationByID(ctx, id)
 		if err == nil && row.WorkspaceID == workspaceID {
 			resp.ConnectionSummary.InstanceURL = "https://github.com"
 			resp.ConnectionSummary.AccountLogin = row.AccountLogin
 			resp.ConnectionSummary.TokenType = "installation"
+			return
 		}
-		return
 	}
 	row, err := h.Queries.GetVCSConnectionByID(ctx, id)
 	if err == nil && row.WorkspaceID == workspaceID {
@@ -961,6 +964,14 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Point the repository at this workspace's webhook endpoint. Deliberately
+	// after the row is committed and deliberately non-fatal: the attachment is
+	// what the user asked for, and a hook the token may not create is a status
+	// to show, not a reason to undo their action.
+	if req.ResourceType == "github_repo" {
+		h.syncCodeRepositoryWebhook(r.Context(), wsID, normalizedRef)
+	}
+
 	resp := workspaceResourceToResponse(resource)
 	h.publish(
 		protocol.EventWorkspaceResourceCreated,
@@ -1189,6 +1200,13 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 				"resource_id", uuidToString(updated.ID), "error", err)
 		}
 		h.releaseCodeGraphProject(updated)
+	}
+
+	// An edit can change which connection or repository the row points at, or
+	// enable a row that was pending, so registration runs here too. Same
+	// contract as on create: never fatal.
+	if refProvided && updated.ResourceType == "github_repo" {
+		h.syncCodeRepositoryWebhook(r.Context(), wsID, nextRef)
 	}
 
 	resp := workspaceResourceToResponse(updated)

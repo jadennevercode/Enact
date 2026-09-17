@@ -1574,6 +1574,11 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/vcs/connections/{connectionId}/rotate-webhook", h.RotateVCSConnectionWebhook)
 					r.Get("/vcs/connections/{connectionId}/repositories", h.ListVCSConnectionRepositories)
 					r.Post("/vcs/connections/{connectionId}/test", h.TestVCSConnection)
+					// Re-run hook registration for every bound repository.
+					// Attach already does this; this is the retry for a token
+					// that has since gained webhook permission, a rotated
+					// secret, or a hook deleted at the provider.
+					r.Post("/vcs/connections/{connectionId}/webhooks", h.RegisterVCSConnectionWebhooks)
 					r.Put("/vcs/connections/{connectionId}/credentials", h.RotateVCSConnectionCredentials)
 					r.Delete("/vcs/connections/{connectionId}", h.DeleteVCSConnection)
 				})
