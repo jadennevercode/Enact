@@ -99,6 +99,8 @@ import type {
   WorkspaceResource,
   SkillVersionDetail,
   ListSkillVersionsResponse,
+  TeamRole,
+  ListTeamRolesResponse,
 } from "../types";
 import type { CloudRuntimeNode } from "../runtimes/cloud-runtime";
 import type { CreateFeedbackResponse } from "../feedback/types";
@@ -554,6 +556,55 @@ export const EMPTY_LIST_ISSUE_STATUSES_RESPONSE: ListIssueStatusesResponse = {
   categories: ["backlog", "todo", "in_progress", "in_review", "done", "blocked", "cancelled"],
   total: 0,
 };
+
+// Team role catalog. A team role is functional (架构 / QA / ops), never a
+// permission — see packages/core/types/team-role.ts.
+export const TeamRoleSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().optional().default(""),
+  key: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(""),
+  color: z.string().optional().default("#6b7280"),
+  position: z.number().optional().default(0),
+  archived_at: z.string().nullable().optional().default(null),
+  created_at: z.string().optional().default(""),
+  updated_at: z.string().optional().default(""),
+}).loose();
+
+export const EMPTY_TEAM_ROLE: TeamRole = {
+  id: "",
+  workspace_id: "",
+  key: "",
+  name: "",
+  description: "",
+  color: "#6b7280",
+  position: 0,
+  archived_at: null,
+  created_at: "",
+  updated_at: "",
+};
+
+export const ListTeamRolesResponseSchema = z.object({
+  team_roles: z.array(TeamRoleSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_TEAM_ROLES_RESPONSE: ListTeamRolesResponse = {
+  team_roles: [],
+  total: 0,
+};
+
+// Denormalized onto every member payload. `archived` defaults to false so a
+// server that omits it does not make live roles look retired.
+export const TeamRoleRefSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string().optional().default(""),
+  color: z.string().optional().default("#6b7280"),
+  archived: z.boolean().optional().default(false),
+}).loose();
+
 
 export const ResourceLabelsResponseSchema = z.object({
   labels: z.array(LabelSchema).default([]),
@@ -3174,12 +3225,38 @@ export const MemberWithUserSchema = z.object({
   id: z.string(),
   workspace_id: z.string(),
   user_id: z.string(),
+  // The PERMISSION. Functional roles are `team_roles` below.
   role: z.string(),
   created_at: z.string().optional().default(""),
   name: z.string().optional().default(""),
   email: z.string().optional().default(""),
   avatar_url: z.string().nullable().optional().default(null),
+  // Defaulted, so a server that predates team roles yields [] rather than
+  // undefined and the roster can iterate without a guard.
+  team_roles: z.array(TeamRoleRefSchema).optional().default([]),
 }).loose();
+
+// The member list is the routing lookup ("who can review this"), so it is
+// parsed rather than cast: a malformed row would otherwise reach the roster as
+// `undefined.name`.
+export const MemberWithUserListSchema = z.array(MemberWithUserSchema).default([]);
+
+export const EMPTY_MEMBER_WITH_USER_LIST: MemberWithUser[] = [];
+
+// A single-member fallback carries no identity on purpose: a caller that gets
+// this back has no member to act on, and an empty id fails loudly at the next
+// request instead of quietly patching the wrong row.
+export const EMPTY_MEMBER_WITH_USER: MemberWithUser = {
+  id: "",
+  workspace_id: "",
+  user_id: "",
+  role: "member",
+  created_at: "",
+  name: "",
+  email: "",
+  avatar_url: null,
+  team_roles: [],
+};
 
 export const JoinShareLinkResponseSchema = z.object({
   member: MemberWithUserSchema,

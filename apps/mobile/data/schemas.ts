@@ -492,6 +492,22 @@ export const MemberWithUserSchema: z.ZodType<MemberWithUser> = z.object({
   name: z.string().default(""),
   email: z.string().default(""),
   avatar_url: z.string().nullable().default(null),
+  // Team roles (角色) — the functional role a person plays, distinct from the
+  // permission above. Mobile has no member-management surface yet, so this is
+  // parsed and carried rather than dropped: a field the schema strips is a
+  // field nobody notices is missing when the surface does arrive.
+  team_roles: z
+    .array(
+      z.object({
+        id: z.string(),
+        key: z.string(),
+        name: z.string().default(""),
+        color: z.string().default("#6b7280"),
+        archived: z.boolean().default(false),
+      }).loose(),
+    )
+    .catch([])
+    .default([]),
 }).loose();
 
 export const MemberListSchema = z.array(MemberWithUserSchema).default([]);

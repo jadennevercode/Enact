@@ -21,6 +21,7 @@ import { runtimeKeys } from "../runtimes/queries";
 import { labelKeys } from "../labels/queries";
 import { propertyKeys } from "../properties/queries";
 import { issueStatusKeys } from "../issue-statuses/queries";
+import { teamRoleKeys } from "../team-roles/queries";
 import {
   agentTaskSnapshotKeys,
   workspaceWorkingAgentsKeys,
@@ -664,6 +665,10 @@ function invalidateWorkspaceScopedQueries(qc: QueryClient): void {
     // 5-minute staleTime — long enough to offer a status the server already
     // archived, or to keep painting its old name.
     qc.invalidateQueries({ queryKey: issueStatusKeys.all(wsId) });
+    // Same reasoning for team roles: a role renamed or archived while
+    // disconnected would otherwise sit behind its staleTime, long enough for a
+    // picker to offer a role the server already retired.
+    qc.invalidateQueries({ queryKey: teamRoleKeys.all(wsId) });
   }
   // Cross-workspace, so outside the wsId guard: a reconnect may have missed
   // inbox events from any workspace, so re-pull the switcher-dot summary.
@@ -834,6 +839,16 @@ export function useRealtimeSync(
       issue_status: () => {
         const wsId = getCurrentWsId();
         if (wsId) qc.invalidateQueries({ queryKey: issueStatusKeys.all(wsId) });
+      },
+      // The team role catalog. An admin edits it in settings; every roster and
+      // member card renders out of it, and member payloads denormalize each
+      // role's name and color — so the member list is refreshed alongside it,
+      // or a rename would keep painting the old label on everyone who holds it.
+      team_role: () => {
+        const wsId = getCurrentWsId();
+        if (!wsId) return;
+        qc.invalidateQueries({ queryKey: teamRoleKeys.all(wsId) });
+        qc.invalidateQueries({ queryKey: workspaceKeys.members(wsId) });
       },
       pin: () => {
         const wsId = getCurrentWsId();

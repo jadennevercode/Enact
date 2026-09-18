@@ -13,9 +13,16 @@ import {
   X,
 } from "lucide-react";
 import { agentListOptions } from "@enact/core/workspace/queries";
+import { activeTeamRoles, teamRoleListOptions } from "@enact/core/team-roles/queries";
 import { useWorkspaceId } from "@enact/core/hooks";
 import { useWorkspacePaths } from "@enact/core/paths";
-import type { Invitation, MemberRole, MemberWithUser } from "@enact/core/types";
+import type {
+  Invitation,
+  MemberRole,
+  MemberWithUser,
+  TeamRole,
+  TeamRoleRef,
+} from "@enact/core/types";
 import { cn } from "@enact/ui/lib/utils";
 import { Button } from "@enact/ui/components/ui/button";
 import { Input } from "@enact/ui/components/ui/input";
@@ -29,7 +36,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@enact/ui/components/ui/dropdown-menu";
-import { Shield } from "lucide-react";
+import { Shield, UserCog } from "lucide-react";
 import { PAGE_GUTTER } from "../../layout/page-header";
 import { CollectionPageState } from "../../layout/collection-page";
 import { ActorAvatar } from "../../common/actor-avatar";
@@ -40,7 +47,56 @@ import { useRoleLabels } from "./role-labels";
 import type { MemberManagement } from "./use-member-management";
 
 /**
- * The role menu and removal for one person, for an owner or admin.
+ * The roles a person holds, as chips on their roster row.
+ *
+ * Archived roles are left out here: the roster is a live picture of who does
+ * what, and a retired role says nothing about that. The member detail page is
+ * where the full history, archived roles included, is shown.
+ *
+ * Beyond OVERFLOW_AFTER the rest collapse into a count, so a person with eight
+ * roles does not push the permission and the actions menu off a narrow window.
+ */
+const OVERFLOW_AFTER = 2;
+
+function TeamRoleChips({ roles }: { roles: TeamRoleRef[] }) {
+  const { t } = useT("members");
+  const live = roles.filter((role) => !role.archived);
+  if (live.length === 0) return null;
+
+  const shown = live.slice(0, OVERFLOW_AFTER);
+  const hidden = live.slice(OVERFLOW_AFTER);
+
+  return (
+    <div className="flex min-w-0 shrink-0 items-center gap-1">
+      {shown.map((role) => (
+        <span
+          key={role.id}
+          className="flex max-w-28 items-center gap-1 rounded-full border border-surface-border px-2 py-0.5 text-caption"
+          title={role.name}
+        >
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: role.color }}
+          />
+          <span className="truncate">{role.name}</span>
+        </span>
+      ))}
+      {hidden.length > 0 && (
+        <span
+          className="text-muted-foreground shrink-0 text-caption"
+          title={hidden.map((role) => role.name).join(", ")}
+        >
+          {t(($) => $.roster.team_roles_more, { count: hidden.length })}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The permission menu, the team role picker and removal for one person, for an
+ * owner or admin.
  *
  * A sibling of the row's link rather than a child of it: the row navigates to
  * the member, and a menu nested inside a link is a control the keyboard cannot
@@ -54,7 +110,9 @@ function MemberRowActions({
   management: MemberManagement;
 }) {
   const { t } = useT("members");
+  const wsId = useWorkspaceId();
   const roleLabels = useRoleLabels();
+  const { data: allTeamRoles = [] } = useQuery(teamRoleListOptions(wsId));
   const {
     canManage,
     isOwner,
@@ -62,6 +120,7 @@ function MemberRowActions({
     currentUserId,
     memberActionId,
     changeRole,
+    setTeamRoles,
     removeMember,
   } = management;
 
@@ -135,6 +194,11 @@ function MemberRowActions({
             })}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <TeamRolesSubmenu
+          member={member}
+          roles={allTeamRoles}
+          onToggle={(teamRoleIds) => setTeamRoles(member.id, teamRoleIds)}
+        />
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
@@ -149,6 +213,83 @@ function MemberRowActions({
 }
 
 /** Someone invited but not yet joined. Their row is an address, not a person. */
+/**
+ * The team role picker: a multi-select over the ACTIVE catalog.
+ *
+ * Every click sends the whole resulting set rather than a delta, which is what
+ * makes a double click, a retry or a stale menu converge on the same state.
+ * Archived roles are not offered — the server refuses them — and the ones this
+ * person already holds are left untouched by a save from here.
+ */
+function TeamRolesSubmenu({
+  member,
+  roles,
+  onToggle,
+}: {
+  member: MemberWithUser;
+  roles: TeamRole[];
+  onToggle: (teamRoleIds: string[]) => void;
+}) {
+  const { t } = useT("members");
+  const assignable = activeTeamRoles(roles);
+  const held = new Set(
+    (member.team_roles ?? []).filter((role) => !role.archived).map((role) => role.id),
+  );
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <UserCog className="size-3.5" />
+        {t(($) => $.manage.change_team_roles)}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="w-auto">
+        {assignable.length === 0 ? (
+          // Nothing to offer yet. Saying where roles come from beats an empty
+          // menu that looks broken.
+          <DropdownMenuItem disabled>
+            <span className="text-muted-foreground text-caption">
+              {t(($) => $.manage.no_team_roles)}
+            </span>
+          </DropdownMenuItem>
+        ) : (
+          assignable.map((role) => {
+            const selected = held.has(role.id);
+            return (
+              <DropdownMenuItem
+                key={role.id}
+                closeOnClick={false}
+                onClick={() => {
+                  const next = new Set(held);
+                  if (selected) next.delete(role.id);
+                  else next.add(role.id);
+                  onToggle([...next]);
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: role.color }}
+                />
+                <div className="flex flex-col">
+                  <span>{role.name}</span>
+                  {role.description && (
+                    <span className="text-muted-foreground text-caption font-normal">
+                      {role.description}
+                    </span>
+                  )}
+                </div>
+                {selected && (
+                  <span className="text-muted-foreground ml-auto text-caption">{"✓"}</span>
+                )}
+              </DropdownMenuItem>
+            );
+          })
+        )}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
 function InvitationRow({
   invitation,
   management,
@@ -325,6 +466,7 @@ export function MembersRoster({
                       </p>
                     </div>
                   </AppLink>
+                  <TeamRoleChips roles={member.team_roles ?? []} />
                   <span className="text-muted-foreground shrink-0 text-caption">
                     {t(($) => $.roster.role[member.role])}
                   </span>

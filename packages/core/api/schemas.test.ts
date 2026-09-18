@@ -69,6 +69,14 @@ import {
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
   EMPTY_ISSUE_STATUS_ENTRY,
 } from "./schemas";
+import {
+  ListTeamRolesResponseSchema,
+  TeamRoleSchema,
+  MemberWithUserSchema,
+  MemberWithUserListSchema,
+  EMPTY_LIST_TEAM_ROLES_RESPONSE,
+  EMPTY_MEMBER_WITH_USER_LIST,
+} from "./schemas";
 import { parseWithFallback } from "./schema";
 
 const baseIssue = {
@@ -1831,5 +1839,59 @@ describe("Agent knowledge schemas", () => {
       ListAgentKnowledgeResponseSchema.safeParse("not an object").success,
     ).toBe(false);
     expect(EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE.knowledge_sources).toEqual([]);
+  });
+});
+
+describe("team role schemas", () => {
+  it("defaults the optional presentation fields a newer server may omit", () => {
+    const parsed = TeamRoleSchema.parse({
+      id: "role-1",
+      key: "qa",
+      name: "QA",
+    });
+    expect(parsed.color).toBe("#6b7280");
+    expect(parsed.archived_at).toBeNull();
+    expect(parsed.position).toBe(0);
+  });
+
+  it("falls back instead of handing a malformed catalog to installed clients", () => {
+    expect(parseWithFallback(
+      { team_roles: [{ id: "role-1", key: 7 }], total: 1 },
+      ListTeamRolesResponseSchema,
+      EMPTY_LIST_TEAM_ROLES_RESPONSE,
+      { endpoint: "GET /api/team-roles" },
+    )).toEqual(EMPTY_LIST_TEAM_ROLES_RESPONSE);
+  });
+
+  // A desktop build older than team roles talks to a server that sends them,
+  // and a build newer than the server does not. Both must render the roster.
+  it("defaults team_roles to an empty array on a member payload without them", () => {
+    const parsed = MemberWithUserSchema.parse({
+      id: "m-1",
+      workspace_id: "ws-1",
+      user_id: "u-1",
+      role: "member",
+    });
+    expect(parsed.team_roles).toEqual([]);
+  });
+
+  it("keeps roles a member holds, defaulting archived to false", () => {
+    const parsed = MemberWithUserSchema.parse({
+      id: "m-1",
+      workspace_id: "ws-1",
+      user_id: "u-1",
+      role: "admin",
+      team_roles: [{ id: "role-1", key: "qa", name: "QA", color: "#123456" }],
+    });
+    expect(parsed.team_roles[0]?.archived).toBe(false);
+  });
+
+  it("falls back instead of exposing a malformed member list to the roster", () => {
+    expect(parseWithFallback(
+      [{ id: "m-1", workspace_id: "ws-1", user_id: 42, role: "member" }],
+      MemberWithUserListSchema,
+      EMPTY_MEMBER_WITH_USER_LIST,
+      { endpoint: "GET /api/workspaces/{id}/members" },
+    )).toEqual(EMPTY_MEMBER_WITH_USER_LIST);
   });
 });
