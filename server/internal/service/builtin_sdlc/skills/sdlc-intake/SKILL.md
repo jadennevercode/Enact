@@ -33,7 +33,7 @@ Intake 不涉及三条铁律中的任何一条，也没有正式 Gate。它是�
 
 ## 输入：读什么
 
-**必读**（两条路径都要）：`.sdlc/config.yaml`（`roles`、`quick_lane_criteria`、`data_policy`）、
+**必读**（两条路径都要）：`.sdlc/config.yaml`（`quick_lane_criteria`、`data_policy`）、工作区的角色与担任人（`enact workspace team-role list --output json`）、
 `.sdlc/current.yaml`、`wi_status.py` 的输出。登记路径再加 `.sdlc/lessons/` 与同模块已完成 WI。
 
 **可发现范围**：项目代码与 `docs/`，只为把 objective 与 trigger 写准，默认不读——
@@ -73,7 +73,7 @@ Intake 不涉及三条铁律中的任何一条，也没有正式 Gate。它是�
 python3 "$CORE/scripts/sdlc_init.py" .
 ```
 
-幂等，已存在只报告现状。同时读一眼 `.sdlc/config.yaml`：`roles` 里如果 Gate 要求的角色没有人担，现在提出来——后面每个 Gate 都按角色要求签署，签不下去就卡住。**一个人可以担多个角色**，小团队照实写多个即可。
+幂等，已存在只报告现状。同时用 `enact workspace team-role list --output json` 看一眼：Gate 要求的角色如果没有人担，现在提出来——后面每个 Gate 都按角色要求签署，签不下去就卡住。角色目录在设置 › 角色维护，指派在成员页；**一个人可以担多个角色**，小团队照实指派多个即可。
 
 ### A1. 先看有没有重复
 
@@ -319,7 +319,7 @@ awaiting_human_approval: ["release"]，pending_amendments: []。
 
 | 情况 | 怎么问 |
 |---|---|
-| owner 不明 | 给出候选（用户本人、config.yaml 的 `roles` 里的人）+ "待定"选项。选了待定就把 WI 留在 Proposed 并说明它不能往下走 |
+| owner 不明 | 给出候选（用户本人、工作区里担任相关角色的人）+ "待定"选项。选了待定就把 WI 留在 Proposed 并说明它不能往下走 |
 | 疑似重复工单 | 把疑似的那个 WI 的 objective 和当前状态摆出来，让用户选"就是它"/"另开一单" |
 | lane 判据有一条说不准 | 说明是哪一条说不准（例如"会不会动到接口"），给 full/quick 两个选项并标注推荐 full |
 
@@ -333,7 +333,7 @@ awaiting_human_approval: ["release"]，pending_amendments: []。
 |---|---|
 | **可读** | `.sdlc/` 全部；项目代码与 `docs/` 可读，但**只用于把 objective 与 trigger 写准**，不用于下任何判断 |
 | **可写** | 只写 `.sdlc/`：本次新建的 `work-items/WI-###-slug/` 与 `current.yaml`（都由脚本写入）、`evidence.jsonl` 的追加行 |
-| **受保护** | `.sdlc/config.yaml` 由人维护——`roles` 缺人时提出来请人补，**不自己填一个名字**；`config.yaml` 的 `data_policy.never_read` 命中的路径**连读都不读**，`protected_paths` 管的是不可写，它拦不住把一个 `.pem` 读进上下文 |
+| **受保护** | `.sdlc/config.yaml` 由人维护；角色没人担时提出来请人在成员页指派，**不自己填一个名字**；`config.yaml` 的 `data_policy.never_read` 命中的路径**连读都不读**，`protected_paths` 管的是不可写，它拦不住把一个 `.pem` 读进上下文 |
 | **禁止动作** | 任何业务代码、配置、测试文件的改动；手工建 WI 目录或自己数编号；`tool_actions.always_forbidden` 里的动作（deploy / push / publish / db-migrate） |
 | **升级条件** | owner 说不准 / 疑似重复 / lane 判据有一条说不准 → 见"什么时候问"；`.sdlc/` 存在但结构不完整 → 停下来报告，不代替别的环节修它的产物；用户要求按人给绩效数字 → 说明为什么不给 |
 
@@ -363,7 +363,8 @@ intake 阶段**还没有 change-scope**，也就没有任何"批准过的写入�
 
 | 这条约束 | 来自哪一层 |
 |---|---|
-| `roles` 与各 Gate 的 `require`、`quick_lane_criteria`、`protected_paths`、`data_policy`、`tool_actions` | `.sdlc/config.yaml` 项目级 |
+| 各 Gate 的 `require`、`quick_lane_criteria`、`protected_paths`、`data_policy`、`tool_actions` | `.sdlc/config.yaml` 项目级 |
+| 角色目录与谁担哪个角色 | 工作区（设置 › 角色 + 成员页） |
 | 状态机允许的流转、模板字段 | `../sdlc-core/`（全套件级） |
 | lane 判断、objective 措辞、是否疑似重复 | 本次会话的判断，可以被用户推翻 |
 
@@ -401,7 +402,7 @@ intake 阶段**还没有 change-scope**，也就没有任何"批准过的写入�
 
 ## Done When
 
-- [ ] `.sdlc/` 存在；`config.yaml` 的 `roles` 里各 Gate 要求的角色都有人（没有则已明确提出）
+- [ ] `.sdlc/` 存在；各 Gate 要求的角色在工作区里都有人担（没有则已明确提出）
 - [ ] 开单前跑过 `wi_status.py`，确认不是重复工单
 - [ ] WI 目录由 `new_work_item.py` 创建，`current.yaml` 指向它
 - [ ] `owner` 是具名的人（不是 "TBD"、不是 "AI"）；若留空，已明确告知用户这单不能进入 Exploring

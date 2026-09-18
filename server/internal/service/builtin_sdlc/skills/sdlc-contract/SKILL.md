@@ -19,7 +19,7 @@ description: Use when an Exploration Record is ready and the work needs a locked
 |---|---|
 | `.sdlc/work-items/WI-###-slug/work-item.yaml` | objective、owner、lane |
 | `.sdlc/work-items/WI-###-slug/exploration.md` | 已确认事实、澄清结论、假设、冲突、未决问题 |
-| `.sdlc/config.yaml` | `roles`（谁担哪个角色）、`gates.contract-approval.require`（这道 Gate 要哪几个角色签）、保护路径、风险默认值 |
+| `.sdlc/config.yaml` | `gates.contract-approval.require`（这道 Gate 要哪几个角色签）、保护路径、风险默认值。**谁担哪个角色不在这里**——它在工作区：设置 › 角色维护目录，成员页指派 |
 
 需要展开时才读：`../sdlc-core/references/objects.md` §3（Execution Contract 完整字段）、`../sdlc-core/references/redlines.md`（觉得 Gate 这次可以变通时）。
 
@@ -326,7 +326,8 @@ contract 说的是"应该做到什么"，跑测试说的是"现在是什么"。�
 
 | 这条约束 | 来自哪一层 |
 |---|---|
-| `roles` 与各 Gate 的 `require`、`protected_paths`、`data_policy`、`tool_actions` | `.sdlc/config.yaml` 项目级 |
+| 各 Gate 的 `require`、`protected_paths`、`data_policy`、`tool_actions` | `.sdlc/config.yaml` 项目级 |
+| 角色目录与谁担哪个角色 | 工作区：设置 › 角色 + 成员页 |
 | `policies` 字段指向的编码规范、安全策略、发布规则 | 项目文档。contract 只引用路径，不复述内容 |
 | criteria 与 scope 的具体内容 | 本 WI 的 exploration.md |
 | 批准协议、受控词表、EARS 五模式 | `../sdlc-core/references/gates.md` 与 `references/ears.md`（全套件级） |

@@ -7,7 +7,9 @@ Exit code convention used by every script here:
 """
 
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -181,18 +183,11 @@ def missing_approver_roles(cfg):
     """Roles that some gate requires but nobody holds.
 
     Reports by role rather than by gate: one unstaffed role can block several
-    gates, and the fix is the same in every case -- put a name against the role.
-
-    Falls back to the legacy `approvers:` shape (keyed by gate, not by role) so a
-    project written against the older config still gets a useful answer instead of
-    a silent pass.
+    gates, and the fix is the same in every case -- put a name against the role,
+    which now means assigning it to someone on the workspace's Members page.
     """
     cfg = cfg if isinstance(cfg, dict) else {}
     holders = role_holders(cfg)
-
-    if not holders and isinstance(cfg.get("approvers"), dict):
-        legacy = cfg["approvers"]
-        return sorted(k for k, v in legacy.items() if not v)
 
     needed = set()
     for phase in PHASE_REVIEW:
@@ -203,17 +198,42 @@ def missing_approver_roles(cfg):
 
 
 def unknown_roles(cfg):
-    """Role names in config that are not in the controlled vocabulary."""
-    return sorted(r for r in role_holders(cfg) if r not in ROLES)
+    """Roles named by config that neither the suite nor the workspace defines.
 
-# The role vocabulary. Fixed on purpose, like every other controlled vocabulary in
-# this suite: a role that each project spells differently cannot be checked, and a
-# gate requirement written against it would mean nothing.
+    A role the workspace has defined for itself is legitimate here: the catalog
+    is editable, and a project may route a phase to a role this suite never
+    heard of. What is not legitimate is a name nothing defines -- a gate
+    requiring it can never be satisfied, and nobody would notice why.
+    """
+    known = known_role_names()
+    named = set()
+    cfg = cfg if isinstance(cfg, dict) else {}
+    for phase in PHASE_REVIEW:
+        named.update(phase_reviewers(cfg, phase))
+    for gate in DEFAULT_GATE_ROLES:
+        named.update(gate_required_roles(cfg, gate))
+    return sorted(r for r in named if r not in known)
+
+# The role vocabulary this suite ships with. These are capability domains -- what
+# kind of judgement is being asked for -- not the named-persona pattern the suite
+# rejects (Analyst Mary, Dev James).
 #
-# This is not the named-persona pattern the suite rejects (Analyst Mary, Dev James).
-# These are capability domains -- what kind of judgement is being asked for. Who
-# holds each one is project configuration, and one person may hold several.
+# WHO holds each one is no longer project configuration: it is the workspace's
+# 角色 catalog, edited in Settings > Roles and assigned per person on the Members
+# page. A workspace may define roles beyond these five and route a phase to them;
+# the five below are what the suite's own defaults require, and what the
+# "AI-SDLC" preset creates.
 ROLES = ["业务负责人", "架构", "开发", "QA", "运维"]
+
+# Each suite role's stable key in the workspace catalog. The KEY is the contract:
+# names are editable per workspace (and per language), keys are not.
+TEAM_ROLE_KEYS = {
+    "业务负责人": "business_owner",
+    "架构": "architect",
+    "开发": "developer",
+    "QA": "qa",
+    "运维": "ops",
+}
 
 # Who reviews each phase's output. This is the single source: every phase is
 # executed by the agent and reviewed by a human role, and the gate phases simply
@@ -278,11 +298,90 @@ def gate_required_roles(cfg, gate_name):
     return list(DEFAULT_GATE_ROLES.get(gate_name, []))
 
 
-def role_holders(cfg):
-    """role -> [people], from config.yaml. Empty dict when nothing is declared."""
-    cfg = cfg if isinstance(cfg, dict) else {}
-    roles = cfg.get("roles")
-    if not isinstance(roles, dict):
+# Cached because several checks in one script run ask for the same answer, and
+# each miss is a subprocess. `False` means "not looked up yet"; `None` means
+# "looked up and unavailable", which is a different thing from "nobody holds
+# anything".
+_TEAM_ROLE_CACHE = False
+
+
+def workspace_team_roles():
+    """The workspace's role catalog with its holders, or None if unreachable.
+
+    Read through the CLI rather than a config file because who plays which role
+    is a property of the team, not of a checkout: a new reviewer joins once, in
+    the product, instead of in every repository that runs this suite.
+    """
+    global _TEAM_ROLE_CACHE
+    if _TEAM_ROLE_CACHE is not False:
+        return _TEAM_ROLE_CACHE
+
+    _TEAM_ROLE_CACHE = None
+    try:
+        result = subprocess.run(
+            ["enact", "workspace", "team-role", "list", "--output", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=os.environ,
+        )
+        if result.returncode == 0:
+            parsed = json.loads(result.stdout or "[]")
+            if isinstance(parsed, list):
+                _TEAM_ROLE_CACHE = parsed
+    except (OSError, ValueError, subprocess.SubprocessError):
+        # Unreachable on purpose: no enact CLI, no workspace configured, no
+        # network. Reported as "nobody holds this role" by the callers, which is
+        # the honest answer -- this script cannot confirm anyone does.
+        _TEAM_ROLE_CACHE = None
+    return _TEAM_ROLE_CACHE
+
+
+def known_role_names():
+    """Every role name a project may legitimately reference."""
+    known = set(ROLES) | set(TEAM_ROLE_KEYS.values())
+    for view in workspace_team_roles() or []:
+        if not isinstance(view, dict) or view.get("archived"):
+            continue
+        for field in ("key", "name"):
+            value = str(view.get(field, "") or "").strip()
+            if value:
+                known.add(value)
+    return known
+
+
+def role_holders(cfg=None):
+    """role -> [people], from the workspace catalog.
+
+    Keyed by every name a project might use for the same role: the workspace
+    key, the workspace's own display name, and the suite's name for the five
+    roles it ships with. An archived role holds nobody -- it was retired from
+    assignment, so a gate requiring it must report as unstaffed rather than
+    quietly accept the people who held it before.
+    """
+    views = workspace_team_roles()
+    if not views:
         return {}
-    return {str(k): [str(p).strip() for p in (v or []) if str(p).strip()]
-            for k, v in roles.items()}
+
+    by_key = {}
+    for view in views:
+        if not isinstance(view, dict) or view.get("archived"):
+            continue
+        people = []
+        for holder in view.get("holders") or []:
+            if isinstance(holder, dict):
+                name = str(holder.get("name", "") or "").strip()
+                if name:
+                    people.append(name)
+        if not people:
+            continue
+        key = str(view.get("key", "") or "").strip()
+        name = str(view.get("name", "") or "").strip()
+        for alias in (key, name):
+            if alias:
+                by_key[alias] = people
+
+    for suite_name, key in TEAM_ROLE_KEYS.items():
+        if key in by_key and suite_name not in by_key:
+            by_key[suite_name] = by_key[key]
+    return by_key

@@ -62,7 +62,8 @@ def main():
     next_steps = []
     if empty_roles:
         next_steps.append(
-            f"在 .sdlc/config.yaml 的 roles 下填入真实的人（还空着：{', '.join(empty_roles)}）。"
+            f"在工作区「成员」页把这些角色指派给真实的人（还没人担：{', '.join(empty_roles)}）。"
+            "角色目录在「设置 › 角色」里维护，可以一键导入 AI-SDLC 预设。"
             "Gate 按角色要求签署，没有人担这个角色就签不下去。一个人可以担多个角色。"
         )
     next_steps.append("填写 .sdlc/config.yaml 的 commands（lint/test/build），避免每次重新探测。")
