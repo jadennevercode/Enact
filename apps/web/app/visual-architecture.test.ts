@@ -282,6 +282,38 @@ const dynamicStyleAllowlist: Partial<
       pattern: /style=\{\{ paddingLeft: `\$\{depth \* 14 \+ 4\}px` \}\}/g,
     },
   ],
+  "packages/views/members/components/members-roster.tsx": [
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 2,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+  ],
+  "packages/views/members/member-profile-card.tsx": [
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 1,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+  ],
+  "packages/views/settings/components/team-roles-tab.tsx": [
+    {
+      description: "drag-and-drop row transform supplied by dnd-kit",
+      expectedMatches: 1,
+      pattern:
+        /style=\{\{ transform: CSS\.Transform\.toString\(transform\), transition \}\}/g,
+    },
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 2,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+    {
+      description: "role draft swatch in the color being edited",
+      expectedMatches: 1,
+      pattern: /style=\{\{ backgroundColor: draft\.color \}\}/g,
+    },
+  ],
   "packages/views/semantic/explorer/graph-canvas.tsx": [
     {
       description: "fade the graph in once the layout has settled",
