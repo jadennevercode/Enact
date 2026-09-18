@@ -342,6 +342,12 @@ var concurrentIndexCleanups = map[string]string{
 	"565_daemon_repository_validation_resource_daemon_idx": "idx_daemon_repository_validation_resource_daemon",
 	"541_code_graph_build_resource_index":                  "idx_code_graph_build_resource",
 	"542_code_graph_build_queue_index":                     "idx_code_graph_build_queue",
+	"568_team_role_pkey_index":                             "team_role_pkey_uidx",
+	"570_team_role_workspace_key_index":                    "idx_team_role_workspace_key",
+	"571_team_role_workspace_name_index":                   "idx_team_role_workspace_name_active",
+	"573_member_team_role_pkey_index":                      "member_team_role_pkey_uidx",
+	"575_member_team_role_unique_index":                    "idx_member_team_role_unique",
+	"576_member_team_role_role_index":                      "idx_member_team_role_role",
 }
 
 // concurrentDownIndexCleanups covers every migration whose down direction

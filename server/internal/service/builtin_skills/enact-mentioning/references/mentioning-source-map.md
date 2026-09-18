@@ -30,7 +30,7 @@ a pointer.
 
 | Fact | Source |
 | --- | --- |
-| `team_role` is a FUNCTIONAL role, never a permission; `member.role` still gates access | `server/migrations/566_team_role.up.sql:1-18` |
+| `team_role` is a FUNCTIONAL role, never a permission; `member.role` still gates access | `server/migrations/567_team_role.up.sql:1-18` |
 | `GET /api/workspaces/{id}/members` carries each member's `team_roles` | `server/internal/handler/workspace.go` (`ListMembersWithUser`, `MemberWithUserResponse.TeamRoles`) |
 | `?team_role=<key>` filters the roster to holders of those roles, OR semantics | `server/internal/handler/workspace.go` (`teamRoleKeyFilter`, `holdsAnyActiveTeamRole`) |
 | An ARCHIVED role matches nobody, even though the assignment survives | `server/internal/handler/workspace.go` (`holdsAnyActiveTeamRole` skips `role.Archived`) |

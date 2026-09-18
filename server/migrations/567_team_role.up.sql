@@ -14,8 +14,8 @@
 -- project's database rules); cleanup is handled by the application.
 --
 -- id is NOT declared inline as PRIMARY KEY: the backing unique index is built
--- CONCURRENTLY in its own single-statement migration (567) and attached with
--- PRIMARY KEY USING INDEX (568), following migrations 332-334.
+-- CONCURRENTLY in its own single-statement migration (568) and attached with
+-- PRIMARY KEY USING INDEX (569), following migrations 332-334.
 CREATE TABLE team_role (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL,
