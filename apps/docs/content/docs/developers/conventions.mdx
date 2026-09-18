@@ -197,17 +197,37 @@ Other product nouns follow the same "translate what has a settled local word" te
 | Active / Archived | 活跃 (or 启用) / 已归档 |
 | Status / Priority | 状态 / 优先级 |
 | Assignee / Reporter | 负责人 / 报告人 |
+| Permission | 权限（`owner` / `admin` / `member`）|
+| Role | 角色（workspace-defined functional role; grants nothing）|
 | Description / Title | 描述 / 标题 |
 | Date / Time | 日期 / 时间 |
 | Today / Yesterday / Tomorrow | 今天 / 昨天 / 明天 |
 | Empty / Failed / Success | 空 / 失败 / 成功 |
 | Error / Warning | 错误 / 警告 |
 
-### Roles and status enums (lowercase English, not translated)
+### Permission and role — two different words
+
+The product has two concepts English keeps apart and Chinese must keep apart too:
+
+| Concept | Values | English UI | Chinese UI | Code |
+| --- | --- | --- | --- | --- |
+| What someone may DO | `owner` / `admin` / `member` | Permission | 权限 | `member.role`, `MemberRole` |
+| What kind of judgement someone GIVES | workspace-defined | Role | 角色 | `team_role`, `TeamRole` |
+
+A team role grants no access. It exists so work can be routed to the right
+reviewer — the AI-SDLC suite resolves each phase's reviewers from it.
+
+Code keeps `member.role` for the permission because it is a stored column and a
+response field installed clients already read; anything about the functional
+role carries the `team_role` prefix, so neither concept can be reached by a bare
+`role`.
+
+### Permission and status enums (lowercase English, not translated)
 
 These are schema-level identifiers; render as lowercase English even in Chinese context.
 
-- Roles: `owner` / `admin` / `member`
+- Permissions: `owner` / `admin` / `member`
+- Team role keys: workspace-defined, e.g. `architect` / `qa` / `ops`
 - Issue status: `backlog` / `todo` / `in_progress` / `in_review` / `done` / `blocked` / `cancelled`
 
 In UI, surface them in English (optionally `code-style` wrapped):
