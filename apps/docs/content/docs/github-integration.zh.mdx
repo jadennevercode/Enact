@@ -9,7 +9,9 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 GitHub 集成只读取安装时授权的仓库，不会提交代码、评论或 status check。
 
-自部署的 Enact 还可以并行连接自托管的 Forgejo、Gitea 或 GitLab 实例，获得同样的 PR 自动关联、合并转 Done 和 CI 展示，入口在 **设置 → 集成 → Git 代码托管**，详见[自托管 Git 代码托管](/vcs-integration)。Enact Cloud 不提供该入口。
+<Callout type="info">
+本页介绍 GitHub App。如需改用 token 连接（GitHub Enterprise Server 必须如此，任何部署也都无需注册 App 即可使用），见[GitHub、GitHub Enterprise 与 GitLab 代码仓库](/vcs-integration)。
+</Callout>
 
 ## 连接 GitHub
 
@@ -38,7 +40,6 @@ GitHub 集成只读取安装时授权的仓库，不会提交代码、评论或 
 | Co-authored-by | 在智能体创建的 commit 中加入 `Co-authored-by: enact-agent <github@enact.ai>`。 |
 | 自动关联 PR | 从 PR 的分支名、标题和正文中识别 issue 编号。 |
 | **PR 卡片 → CI 与可合并性** | 对每个关联的 PR，Enact 从 GitHub API 拉取一份经鉴权的快照，把它的 **CI 状态**和**可合并性**镜像到卡片上（见下方 **PR 卡片展示什么**）。 |
-
 
 
 ## 让 PR 关联到 issue

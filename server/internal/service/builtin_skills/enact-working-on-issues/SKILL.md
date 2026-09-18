@@ -115,9 +115,12 @@ Returns `{"pull_requests": [...]}`. Each element exposes:
   Only then does `checks_rollup == null` mean "no checks"; false means the
   snapshot feature is disabled, has not fetched yet, or only has an old head.
 - `checks_conclusion` — coarse CI compatibility status: `passed`, `failed`,
-  `pending`, or `null`. GitHub derives it from the current API snapshot;
-  Forgejo/Gitea/GitLab derive it from webhook commit statuses. Backed by the
-  provider-appropriate check counts.
+  `pending`, or `null`. A PR from a GitHub App installation derives it from
+  the current API snapshot; a PR from a token connection — GitLab, Forgejo,
+  Gitea, or GitHub/GitHub Enterprise Server connected with a token — derives
+  it from webhook commit statuses and check runs, and has no API snapshot
+  fields (`snapshot_available` is false). Backed by the provider-appropriate
+  check counts.
 
 So "is it merged?" is `state == "merged"` (or `merged_at != null`); "is it still
 a draft?" is `state == "draft"`; coarse CI status is `checks_conclusion`.

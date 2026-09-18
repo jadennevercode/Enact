@@ -29,7 +29,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 リポジトリは **設定 → リポジトリ** で管理します。Git URL を貼り付けて追加します。GitHub を接続すると、同じページの **GitHub から選択** で、App が認可済みのリポジトリをインポートできます。
 
-リポジトリは GitHub に限定されません。ランタイムがアクセスできる Git URL であれば、どれでもリポジトリリソースとして使えます。セルフホストの Enact では、**設定 → 連携 → Git ホスティング** でセルフホストの Forgejo、Gitea、GitLab も接続できます。詳細は[セルフホスト Git ホスティング](/vcs-integration)を参照してください。
+リポジトリは GitHub に限定されません。ランタイムがアクセスできる Git URL であれば、どれでもリポジトリリソースとして使えます。GitHub、GitHub Enterprise Server、GitLab のリポジトリを参照して紐付けるには、**ソース → コードとディレクトリ** でコードホスティングを接続します。詳細は[GitHub・GitHub Enterprise・GitLab のリポジトリ](/vcs-integration)を参照してください。
 
 1 つのワークスペースには任意の数のリポジトリを紐づけられます。リソースの `ref` には、以後の checkout がデフォルトで使うブランチ、タグ、またはコミットを指定できます。`default_branch_hint` はエージェントにデフォルトブランチのヒントを与えるだけで、ブランチの切り替えを強制しません。
 

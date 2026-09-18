@@ -29,7 +29,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 仓库在 **设置 → 代码仓库** 中维护，粘贴 Git URL 即可添加。连接 GitHub 后，可在同一页面通过 **从 GitHub 选择** 导入 App 已授权的仓库。
 
-仓库不限于 GitHub：任何运行时能访问的 Git URL 都可以作为仓库资源。自部署的 Enact 还可以在 **设置 → 集成 → Git 代码托管** 连接自托管的 Forgejo、Gitea 或 GitLab，见[自托管 Git 代码托管](/vcs-integration)。
+仓库不限于 GitHub：任何运行时能访问的 Git URL 都可以作为仓库资源。要从 GitHub、GitHub Enterprise Server 或 GitLab 浏览并关联仓库，请在 **来源 → 代码与目录** 连接代码托管，见[GitHub、GitHub Enterprise 与 GitLab 代码仓库](/vcs-integration)。
 
 一个工作区可以关联任意数量的仓库。资源中的 `ref` 可以指定后续 checkout 默认使用的分支、tag 或 commit。`default_branch_hint` 只向智能体提供默认分支提示，不会强制切换分支。
 

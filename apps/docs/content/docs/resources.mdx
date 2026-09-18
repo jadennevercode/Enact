@@ -29,7 +29,7 @@ A local directory only applies to the daemon it is bound to. When the daemon run
 
 Repositories are managed in **Settings → Repositories**. Add one by pasting a Git URL. Once GitHub is connected, the same page offers **Pick from GitHub** to import repositories the App is authorized for.
 
-Repositories are not limited to GitHub: any Git URL the runtime can reach works as a repository resource. Self-hosted Enact can also connect self-hosted Forgejo, Gitea, or GitLab under **Settings → Integrations → Git hosting**; see [Self-hosted Git hosting](/vcs-integration).
+Repositories are not limited to GitHub: any Git URL the runtime can reach works as a repository resource. To browse and attach repositories from GitHub, GitHub Enterprise Server or GitLab, connect code hosting under **Sources → Code & directories**; see [GitHub, GitHub Enterprise and GitLab repositories](/vcs-integration).
 
 A workspace can link any number of repositories. A resource's `ref` sets the branch, tag, or commit that later checkouts use by default. `default_branch_hint` only gives the agent a default-branch hint and does not force a branch switch.
 

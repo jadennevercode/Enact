@@ -1,14 +1,54 @@
 ---
-title: GitHub と企業 GitLab リポジトリ
-description: コードとディレクトリで GitHub App、GitLab HTTPS、企業 CA、Webhook を設定します。
+title: GitHub・GitHub Enterprise・GitLab のリポジトリ
+description: 「ソース → コードとディレクトリ」で、インスタンス URL とトークン、または GitHub App を使ってコードホスティングを接続します。
 ---
 
-コードホスティング設定は **ソース → コードとディレクトリ** に集約されました。GitHub は GitHub App、企業 GitLab の第1段階は管理された HTTPS を使用します。
+import { Callout } from "fumadocs-ui/components/callout";
 
-接続カードは Server→API、provider→Webhook、daemon→Git remote の3経路を別々に表示します。GitLab では期限付き Service Account を推奨します。API 用に `api`、Git HTTPS 用に `write_repository` の2つの token を設定してください。秘密と企業 CA PEM は `ENACT_VCS_SECRET_KEY` で暗号化され、ブラウザ API には返りません。
+<Callout type="warn">
+サーバーに必要な設定は `ENACT_VCS_SECRET_KEY`（base64 の 32 バイト鍵、`openssl rand -base64 32`）だけです。保存するトークン、Webhook secret、企業 CA をすべて暗号化します。未設定の場合、画面に不足内容が表示され、認証情報の保存は拒否されます。プロバイダーが到達できるアドレスで Webhook を登録するため、`ENACT_PUBLIC_URL` も設定してください。
+</Callout>
 
-管理対象タスクでは `enact repo push` で daemon の一時的なリポジトリ限定認証情報を使って push し、`enact repo change-request --title "…"` で Enact Server から PR/MR を作成します。
+設定はすべて **ソース → コードとディレクトリ** で、ワークスペースのオーナーまたは管理者が行います。**接続** から次のいずれかを選びます。
 
-自部署では `ENACT_VCS_INTEGRATION_ENABLED=true`、base64 32-byte の `ENACT_VCS_SECRET_KEY`、完全な Webhook URL 用の `ENACT_PUBLIC_URL` を設定します。TLS 検証は無効化できません。GitLab の Outbound requests では Enact Webhook の host/IP だけを許可し、Merge request と Pipeline event を登録します。
+| 方式 | 用途 | 入力内容 |
+| --- | --- | --- |
+| トークンで GitHub.com に接続 | GitHub App 未設定の github.com | ファイングレインまたはクラシックトークン |
+| GitHub Enterprise Server | 社内ネットワーク上を含む GHES | インスタンス URL とトークン |
+| GitLab | GitLab.com またはセルフマネージド GitLab | インスタンス URL、API トークン、Git トークン |
+| GitHub App | App が設定済みの github.com | 入力不要。GitHub へ遷移します |
 
-GitHub App は Contents と Pull requests の読み書き、Checks と Commit statuses の読み取り権限が必要です。旧 URL のみのリポジトリは「設定待ち」で停止し、接続を割り当てるまで daemon に渡されません。SSH は第2段階です。
+トークン接続にはデプロイ単位のプロバイダー設定が不要です。利用できる場合は GitHub App の方が強い認証情報です。リポジトリごとに短期トークンを発行し、Webhook は GitHub が登録します。
+
+## ネットワーク要件
+
+Enact サーバーはプロバイダー API を呼び出し、各 daemon は HTTPS でクローンします。どちらもインスタンスに到達できる必要があります。公開インターネット上の Enact サーバーは、社内ネットワークにしかない GitLab に到達できません。サーバーは `HTTPS_PROXY` と `NO_PROXY` に従います。
+
+Webhook は逆方向で、プロバイダーから Enact に届きます。セルフマネージド GitLab は内部アドレスへのリクエストを禁止していることが多いため、管理者に **Admin → Settings → Network → Outbound requests** で Enact の Webhook ホストを許可してもらってください。各接続カードに正確なアドレスが表示されます。
+
+## トークン
+
+**GitHub。** 1 つのトークンで API と HTTPS Git の両方を認証します。ファイングレイントークンには Contents 読み書き、Pull requests 読み書き、Webhooks 読み書き、Checks 読み取り、Commit statuses 読み取り、Metadata 読み取りが必要です。クラシックトークンには `repo` と `admin:repo_hook` が必要です。組織で SAML SSO を使う場合はトークンを認可してください。
+
+**GitLab。** GitLab は 2 つの役割を分けるため、トークンも 2 つ必要です。API トークンは `api` が必要で、Enact サーバーにのみ保持されます。Git トークンは `write_repository` が必要で、認可済み daemon にリポジトリ単位で配布されます。LDAP や SSO でサインインするアカウントも、ユーザー設定からこれらのトークンを作成できます。
+
+有効期限は任意です。Enact は入力値ではなくプロバイダーが報告したスコープを記録します。
+
+## エンタープライズ向けオプション
+
+インスタンスを指定した場合のみ表示されます。
+
+- **クローンホスト**：Git 通信が API と異なるホスト名を使う場合に指定します。紐付けたリポジトリのリモートはこのホストに書き換えられます。
+- **企業 CA（PEM）**：サーバーの API 呼び出しと daemon の Git 通信の信頼ストアに追加されます。TLS 検証は無効化できません。
+
+## リポジトリと Webhook
+
+接続カードの **リポジトリを参照** から選択します。push できない、アーカイブ済み、紐付け済みのリポジトリは選択できません。紐付けると Enact がバックグラウンドで Webhook を登録し、状態は `registered`、`ok`、`manual`、`failed` のいずれかになります。`manual` の場合はカードのアドレスと接続時に一度だけ表示された secret で手動追加し、`failed` の場合は **Webhook を登録** で再試行します。
+
+## 接続の健全性
+
+各カードは API、Webhook、Git 読み取り、Git 書き込み、PR/MR 作成の 5 つを個別に報告します。**テスト** は API を確認し、Git の読み書きは各 daemon がリポジトリごとに報告します。
+
+## タスクからの push と PR
+
+エージェントは `enact repo push` を使います。daemon はリポジトリ単位の認証情報を `0600` の一時ファイルに書き込んで push し、終了後に削除します。`enact repo change-request --title "…"` は Enact サーバー経由で PR/MR を作成するため、API トークンはエージェントのプロセスに入りません。SSH は別フェーズで提供予定です。

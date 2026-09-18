@@ -257,3 +257,12 @@ grep -n 'func notifyParentOfChildDone'       internal/handler/issue_child_done.g
 | Final comment plus receipt in one transaction; no_action preserved | `server/internal/service/final_delivery.go` (`CreateFinalComment`, `PersistFinalFallback`) |
 | Original target/version outbox with authorization recheck; precise transactional acknowledgment | `server/internal/handler/final_delivery.go` (`planFinalDelivery`, `drainFinalDelivery`) |
 | Maintenance lease and native completion, independent from business comments | `server/internal/service/agent_context.go`; `server/internal/daemon/agent_context.go` |
+
+## Token-connection pull requests
+
+A GitHub or GitHub Enterprise Server repository attached through a token
+connection mirrors its pull requests into `vcs_pull_request` like GitLab does,
+not into the GitHub App tables. Its `checks_conclusion` comes from `check_run`
+and `status` webhooks via `server/internal/integrations/vcs/github.go`
+(`ParseCIStatus`) and `server/internal/handler/vcs_webhook.go`
+(`mirrorVCSCIStatus`); the API snapshot fields stay unset for these PRs.

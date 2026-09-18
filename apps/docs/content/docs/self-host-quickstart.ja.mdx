@@ -48,7 +48,7 @@ make selfhost
 初回実行時、`make selfhost` は次を行います。
 
 1. `.env.example` から `.env` を作成する
-2. `JWT_SECRET`、PostgreSQL パスワード、`ENACT_VCS_SECRET_KEY`（セルフホストの Git 連携用の暗号化キー）をランダム生成する
+2. `JWT_SECRET`、PostgreSQL パスワード、`ENACT_VCS_SECRET_KEY`（コードホスティング接続用の暗号化キー）をランダム生成する
 3. PostgreSQL、Enact backend、Enact frontend のイメージを取得する
 4. 永続化ボリュームを作成し、3 つのコンテナを起動する
 5. backend がヘルスチェックに応答し始めるまで待機する

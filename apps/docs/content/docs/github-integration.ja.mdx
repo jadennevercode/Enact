@@ -9,7 +9,9 @@ GitHub を接続すると、Enact はイシュー番号を使って pull request
 
 GitHub 連携が読み取るのは、インストール時に許可されたリポジトリだけです。コード、コメント、status check を書き込むことはありません。
 
-セルフホスト版 Enact では、セルフホストの Forgejo、Gitea、GitLab インスタンスも同時に接続できます。PR の自動紐づけ、マージ時の Done への変更、CI 表示を同じように利用できます。**設定 → 連携 → Git ホスティング**から設定してください。詳しくは[セルフホスト Git ホスティング](/vcs-integration)を参照してください。Enact Cloud にはこの項目はありません。
+<Callout type="info">
+このページは GitHub App について説明します。トークンで接続する場合（GitHub Enterprise Server では必須、App を登録せずにどのデプロイでも利用可）は[GitHub・GitHub Enterprise・GitLab のリポジトリ](/vcs-integration)を参照してください。
+</Callout>
 
 ## GitHub を接続する
 
@@ -38,7 +40,6 @@ GitHub 連携が読み取るのは、インストール時に許可されたリ�
 | Co-authored-by | エージェントが作成する commit に `Co-authored-by: enact-agent <github@enact.ai>` を追加します。 |
 | PR の自動紐づけ | PR のブランチ名、タイトル、本文からイシュー番号を検出します。 |
 | **PR カード → CI とマージ可否** | 紐づいた各 PR について、Enact は認証済みの GitHub API スナップショットを取得し、その **CI ステータス**と**マージ可否**をカードにミラーリングします（下記の **PR カードに表示される内容** を参照）。 |
-
 
 ## PR をイシューに紐づける
 
