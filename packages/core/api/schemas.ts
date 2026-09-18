@@ -72,6 +72,7 @@ import type {
   ListGitHubInstallationsResponse,
   ListGitHubRepositoriesResponse,
   ListVCSConnectionsResponse,
+  RegisterVCSWebhooksResponse,
   ListVCSRepositoriesResponse,
   TestVCSConnectionResponse,
   ListLabelsResponse,
@@ -389,7 +390,7 @@ export const EMPTY_LIST_GITHUB_REPOSITORIES_RESPONSE: ListGitHubRepositoriesResp
 
 const VCSConnectionSchema = z.object({
   id: z.string().default(""), workspace_id: z.string().default(""),
-  provider: z.enum(["forgejo", "gitea", "gitlab"]).catch("gitlab"),
+  provider: z.enum(["forgejo", "gitea", "gitlab", "github"]).catch("gitlab"),
   instance_url: z.string().default(""), account_login: z.string().default(""),
   webhook_url: z.string().default(""), webhook_path: z.string().default(""),
   created_at: z.string().default(""), token_type: z.string().default("personal"),
@@ -401,19 +402,35 @@ const VCSConnectionSchema = z.object({
 }).loose();
 
 export const ListVCSConnectionsResponseSchema = z.object({
-  connections: z.array(VCSConnectionSchema).default([]), available: z.boolean().optional().default(true),
+  connections: z.array(VCSConnectionSchema).default([]),
   configured: z.boolean().optional().default(false), can_manage: z.boolean().optional().default(false),
-  requirements: z.object({ gitlab: z.object({ api_token_scope: z.string(), git_token_scope: z.string(), preferred_token_type: z.string(), webhook_events: z.array(z.string()) }).loose().optional() }).loose().optional(),
+  requirements: z.object({
+    gitlab: z.object({ api_token_scope: z.string(), git_token_scope: z.string(), preferred_token_type: z.string(), webhook_events: z.array(z.string()) }).loose().optional(),
+    github: z.object({ fine_grained_permissions: z.array(z.string()).default([]), classic_scopes: z.array(z.string()).default([]), preferred_token_type: z.string().default("fine_grained"), webhook_events: z.array(z.string()).default([]) }).loose().optional(),
+  }).loose().optional(),
 }).loose();
-export const EMPTY_LIST_VCS_CONNECTIONS_RESPONSE: ListVCSConnectionsResponse = { connections: [], available: true, configured: false, can_manage: false };
+export const EMPTY_LIST_VCS_CONNECTIONS_RESPONSE: ListVCSConnectionsResponse = { connections: [], configured: false, can_manage: false };
 
+// One picker row for every provider. id is a string because GitLab numbers its
+// projects and GitHub numbers its repositories on different scales, and the
+// value is only ever echoed back to the server.
 const VCSRepositorySchema = z.object({
-  id: z.number(), path_with_namespace: z.string(), web_url: z.string(), http_url_to_repo: z.string(),
-  description: z.string().nullable().transform((v) => v ?? ""), visibility: z.string(), archived: z.boolean(), default_branch: z.string().default(""),
-  permissions: z.object({ project_access: z.object({ access_level: z.number() }).nullable().optional(), group_access: z.object({ access_level: z.number() }).nullable().optional() }).loose().optional(),
+  id: z.string().default(""), full_name: z.string().default(""), web_url: z.string().default(""),
+  clone_url: z.string().default(""),
+  description: z.string().nullable().transform((v) => v ?? ""),
+  visibility: z.string().default("private"), archived: z.boolean().default(false),
+  default_branch: z.string().default(""), can_push: z.boolean().default(false),
 }).loose();
 export const ListVCSRepositoriesResponseSchema = z.object({ repositories: z.array(VCSRepositorySchema).default([]), total_count: z.number().default(0), next_page: z.number().nullable().default(null) }).loose();
 export const EMPTY_LIST_VCS_REPOSITORIES_RESPONSE: ListVCSRepositoriesResponse = { repositories: [], total_count: 0, next_page: null };
+
+export const RegisterVCSWebhooksResponseSchema = z.object({
+  connection: VCSConnectionSchema,
+  repositories: z.array(z.object({ repository: z.string().default(""), status: z.string().default("failed") }).loose()).default([]),
+}).loose();
+export const EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE: RegisterVCSWebhooksResponse = {
+  connection: VCSConnectionSchema.parse({}), repositories: [],
+};
 
 export const TestVCSConnectionResponseSchema = z.object({
   connection: VCSConnectionSchema,

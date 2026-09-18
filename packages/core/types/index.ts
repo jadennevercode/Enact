@@ -220,6 +220,8 @@ export type {
   VCSRepository,
   ListVCSRepositoriesResponse,
   TestVCSConnectionResponse,
+  VCSWebhookRegistrationResult,
+  RegisterVCSWebhooksResponse,
 } from "./vcs";
 export type {
   LarkInstallation,

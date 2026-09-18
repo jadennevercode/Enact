@@ -187,6 +187,7 @@ import type {
   ConnectVCSRequest,
   ConnectVCSResponse,
   ListVCSRepositoriesResponse,
+  RegisterVCSWebhooksResponse,
   TestVCSConnectionResponse,
   ListLarkInstallationsResponse,
   BeginLarkInstallResponse,
@@ -300,6 +301,8 @@ import {
   EMPTY_WORKSPACE_RESOURCE,
   ListVCSConnectionsResponseSchema,
   EMPTY_LIST_VCS_CONNECTIONS_RESPONSE,
+  RegisterVCSWebhooksResponseSchema,
+  EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE,
   ListVCSRepositoriesResponseSchema,
   EMPTY_LIST_VCS_REPOSITORIES_RESPONSE,
   TestVCSConnectionResponseSchema,
@@ -4697,7 +4700,8 @@ export class ApiClient {
     );
   }
 
-  // VCS integration (Forgejo / Gitea / GitLab)
+  // Code hosting connections (GitHub / GitHub Enterprise Server / GitLab /
+  // Forgejo / Gitea). GitHub App installations are separate; see above.
   async listVCSConnections(workspaceId: string): Promise<ListVCSConnectionsResponse> {
     const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections`);
     return parseWithFallback(raw, ListVCSConnectionsResponseSchema, EMPTY_LIST_VCS_CONNECTIONS_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections" });
@@ -4750,6 +4754,28 @@ export class ApiClient {
       method: "PUT",
       body: JSON.stringify(body),
     });
+  }
+
+  /**
+   * Re-runs webhook registration for every repository bound to the connection.
+   * Attaching a repository already does this; this is the retry for a token
+   * that has since gained webhook permission, a rotated secret, or a hook
+   * someone deleted at the provider.
+   */
+  async registerVCSWebhooks(
+    workspaceId: string,
+    connectionId: string,
+  ): Promise<RegisterVCSWebhooksResponse> {
+    const raw = await this.fetch<unknown>(
+      `/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/webhooks`,
+      { method: "POST" },
+    );
+    return parseWithFallback(
+      raw,
+      RegisterVCSWebhooksResponseSchema,
+      EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE,
+      { endpoint: "POST /api/workspaces/:id/vcs/connections/:connectionId/webhooks" },
+    );
   }
 
   // Lark integration
