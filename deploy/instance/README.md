@@ -1,18 +1,20 @@
 # Complete Enact instance snapshot
 
-Snapshot captured on 2026-09-10 (UTC) for `jadennevercode/Enact-Onto`.
+Main database and backend uploads refreshed on 2026-09-14 (UTC) after test-workspace cleanup. Other components retain their original 2026-09-10 capture for `jadennevercode/Enact-Onto`.
 This is a complete encrypted instance backup, separate from the older five-workspace
 account bundle in `deploy/demo`. Publishing this repository does not start a server
 or import data into a hosted application.
 
 ## Contents
 
-- Main Enact database: all **242 workspaces**, **134 tables**, **81,374 rows**,
-  including 161 issues and 112 attachment records. No tables or accounts filtered.
+- Main Enact database: **17 retained workspaces**, **134 tables**, **53,984 rows**,
+  including 142 issues and 112 attachment records. The live database was cleaned
+  of 225 verified test workspaces before capture. All five demo workspaces and
+  all user account records are preserved; the dump itself filters no tables.
 - Seven additional development/integration databases (eight databases total).
-  They contain 343 workspace rows across their independent database histories;
+  Together with the refreshed main database, they contain 118 workspace rows across their independent database histories;
   this is not a count of unique production workspaces.
-- Entire backend upload volume: 205 files, including every referenced attachment.
+- Entire backend upload volume refreshed on 2026-09-14: 201 files, including every referenced attachment. Four orphaned test upload files were removed after local backup.
 - Entire semantic persistent volume: 688 files, including artifacts, checkpoints,
   ontology state, provenance, reasoning state and historical results.
 - Local Agent task workspaces: 6,478 files, plus the local daemon profile/logs.
@@ -22,9 +24,9 @@ or import data into a hosted application.
 - Instance configuration, original connection-encryption keys, source environment
   and the key for the previous demo archive, all inside encrypted components.
 
-`manifest.json` contains checksums, file sizes, counts and verification results.
+`manifest.json` contains checksums, file sizes, counts, per-component capture dates and verification results. The original `startedAt`/`finishedAt` describe the initial capture; `lastUpdatedAt`/`latestUpdate` describe this refresh. Historical additional databases, source archives, configuration and `inventory.json.enc` were not refreshed. They must not be interpreted as current main-database state. See `CLEANUP-20260914.md` for the cleanup scope.
 Workspace identities, record content and credentials are stored only in ciphertext.
-The new backup key is never included in this repository or in these archives.
+The existing backup key remains valid and is never included in this repository or in these archives.
 
 ## Encryption and integrity
 
@@ -114,14 +116,20 @@ Reconnect local Sources and daemon paths to the restored instance.
 
 ## Verification and consistency
 
-All eight databases were actually restored into a network-isolated PostgreSQL 17
-container whose database storage was tmpfs. Every main-database table count
-matched. All 112 attachment records resolved to archived local files. Every
-component authenticated successfully and all eight tar archives were fully read.
+The refreshed encrypted main database was authenticated and actually restored
+into a newly created isolated database on PostgreSQL 17. It contains 17
+workspaces, including all five demo memberships, and all 134 tables were counted.
+All 112 restored attachment records resolve to the refreshed upload archive.
+Every published file checksum was verified.
+
+The original 2026-09-10 verification restored all eight original database archives
+and read all eight original tar archives. That historical verification applies
+to the unchanged components, not to current main-database counts.
 Streaming encryption, split restore, tamper rejection, wrong-key rejection and
 existing-output protection are covered by `scripts/instance-archive.test.mjs`.
 
-Main database, upload volume and semantic volume were captured while the backend
-and semantic containers were briefly paused; both resumed after capture. Other
-databases use independent transaction-consistent `pg_dump` snapshots. Local daemon
-files are a live filesystem capture, not a global transaction across all systems.
+For the 2026-09-14 refresh, the main database uses one transaction-consistent
+`pg_dump` snapshot. Uploads were captured immediately afterward, with every
+restored attachment reference checked. Services remained running. The unchanged
+2026-09-10 components retain their original consistency characteristics; there
+is no single global snapshot spanning both dates.
