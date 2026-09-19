@@ -11,6 +11,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countWorkspaceResourcesUsingConnection = `-- name: CountWorkspaceResourcesUsingConnection :one
+SELECT count(*) FROM workspace_resource
+WHERE workspace_id = $1
+  AND resource_type = 'github_repo'
+  AND resource_ref->>'provider_connection_id' = $2::text
+`
+
+type CountWorkspaceResourcesUsingConnectionParams struct {
+	WorkspaceID          pgtype.UUID `json:"workspace_id"`
+	ProviderConnectionID string      `json:"provider_connection_id"`
+}
+
+func (q *Queries) CountWorkspaceResourcesUsingConnection(ctx context.Context, arg CountWorkspaceResourcesUsingConnectionParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countWorkspaceResourcesUsingConnection, arg.WorkspaceID, arg.ProviderConnectionID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteDaemonRepositoryValidationsByResource = `-- name: DeleteDaemonRepositoryValidationsByResource :exec
+DELETE FROM daemon_repository_validation WHERE resource_id = $1
+`
+
+func (q *Queries) DeleteDaemonRepositoryValidationsByResource(ctx context.Context, resourceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDaemonRepositoryValidationsByResource, resourceID)
+	return err
+}
+
 const deleteVCSConnection = `-- name: DeleteVCSConnection :exec
 WITH target AS (
     SELECT vcs_connection.id FROM vcs_connection WHERE vcs_connection.id = $1 AND vcs_connection.workspace_id = $2
@@ -87,7 +115,7 @@ func (q *Queries) GetIssueCombinedPullRequestCloseAggregate(ctx context.Context,
 }
 
 const getVCSConnectionByID = `-- name: GetVCSConnectionByID :one
-SELECT id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at FROM vcs_connection
+SELECT id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status FROM vcs_connection
 WHERE id = $1
 `
 
@@ -105,6 +133,18 @@ func (q *Queries) GetVCSConnectionByID(ctx context.Context, id pgtype.UUID) (Vcs
 		&i.ConnectedByID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GitTokenEncrypted,
+		&i.TokenType,
+		&i.TokenScopes,
+		&i.TokenExpiresAt,
+		&i.CloneHost,
+		&i.CaPemEncrypted,
+		&i.LastValidatedAt,
+		&i.ApiStatus,
+		&i.WebhookStatus,
+		&i.GitReadStatus,
+		&i.GitWriteStatus,
+		&i.ChangeRequestStatus,
 	)
 	return i, err
 }
@@ -157,6 +197,42 @@ func (q *Queries) LinkIssueToVCSPullRequest(ctx context.Context, arg LinkIssueTo
 	return err
 }
 
+const listDaemonRepositoryValidationsByWorkspace = `-- name: ListDaemonRepositoryValidationsByWorkspace :many
+SELECT id, workspace_id, resource_id, daemon_id, read_status, write_status, error_code, error_message, checked_at FROM daemon_repository_validation
+WHERE workspace_id = $1
+ORDER BY resource_id, daemon_id
+`
+
+func (q *Queries) ListDaemonRepositoryValidationsByWorkspace(ctx context.Context, workspaceID pgtype.UUID) ([]DaemonRepositoryValidation, error) {
+	rows, err := q.db.Query(ctx, listDaemonRepositoryValidationsByWorkspace, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DaemonRepositoryValidation{}
+	for rows.Next() {
+		var i DaemonRepositoryValidation
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ResourceID,
+			&i.DaemonID,
+			&i.ReadStatus,
+			&i.WriteStatus,
+			&i.ErrorCode,
+			&i.ErrorMessage,
+			&i.CheckedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIssueIDsForVCSPRHead = `-- name: ListIssueIDsForVCSPRHead :many
 SELECT DISTINCT ipr.issue_id
 FROM vcs_pull_request pr
@@ -193,7 +269,7 @@ func (q *Queries) ListIssueIDsForVCSPRHead(ctx context.Context, arg ListIssueIDs
 
 const listVCSConnectionsByWorkspace = `-- name: ListVCSConnectionsByWorkspace :many
 
-SELECT id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at FROM vcs_connection
+SELECT id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status FROM vcs_connection
 WHERE workspace_id = $1
 ORDER BY created_at ASC
 `
@@ -221,6 +297,18 @@ func (q *Queries) ListVCSConnectionsByWorkspace(ctx context.Context, workspaceID
 			&i.ConnectedByID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.GitTokenEncrypted,
+			&i.TokenType,
+			&i.TokenScopes,
+			&i.TokenExpiresAt,
+			&i.CloneHost,
+			&i.CaPemEncrypted,
+			&i.LastValidatedAt,
+			&i.ApiStatus,
+			&i.WebhookStatus,
+			&i.GitReadStatus,
+			&i.GitWriteStatus,
+			&i.ChangeRequestStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -345,12 +433,63 @@ func (q *Queries) ListVCSPullRequestsByIssue(ctx context.Context, issueID pgtype
 	return items, nil
 }
 
+const listWorkspaceResourcesUsingConnection = `-- name: ListWorkspaceResourcesUsingConnection :many
+SELECT id, workspace_id, resource_type, resource_ref, label, position, created_at, created_by FROM workspace_resource
+WHERE workspace_id = $1
+  AND resource_type = 'github_repo'
+  AND resource_ref->>'provider_connection_id' = $2::text
+ORDER BY position ASC, created_at ASC
+`
+
+type ListWorkspaceResourcesUsingConnectionParams struct {
+	WorkspaceID          pgtype.UUID `json:"workspace_id"`
+	ProviderConnectionID string      `json:"provider_connection_id"`
+}
+
+func (q *Queries) ListWorkspaceResourcesUsingConnection(ctx context.Context, arg ListWorkspaceResourcesUsingConnectionParams) ([]WorkspaceResource, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceResourcesUsingConnection, arg.WorkspaceID, arg.ProviderConnectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WorkspaceResource{}
+	for rows.Next() {
+		var i WorkspaceResource
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ResourceType,
+			&i.ResourceRef,
+			&i.Label,
+			&i.Position,
+			&i.CreatedAt,
+			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markVCSConnectionWebhookVerified = `-- name: MarkVCSConnectionWebhookVerified :exec
+UPDATE vcs_connection SET webhook_status = 'ok', updated_at = now() WHERE id = $1
+`
+
+func (q *Queries) MarkVCSConnectionWebhookVerified(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markVCSConnectionWebhookVerified, id)
+	return err
+}
+
 const rotateVCSConnectionWebhookSecret = `-- name: RotateVCSConnectionWebhookSecret :one
 UPDATE vcs_connection
 SET webhook_secret_encrypted = $3,
     updated_at = now()
 WHERE id = $1 AND workspace_id = $2
-RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at
+RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status
 `
 
 type RotateVCSConnectionWebhookSecretParams struct {
@@ -373,6 +512,221 @@ func (q *Queries) RotateVCSConnectionWebhookSecret(ctx context.Context, arg Rota
 		&i.ConnectedByID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GitTokenEncrypted,
+		&i.TokenType,
+		&i.TokenScopes,
+		&i.TokenExpiresAt,
+		&i.CloneHost,
+		&i.CaPemEncrypted,
+		&i.LastValidatedAt,
+		&i.ApiStatus,
+		&i.WebhookStatus,
+		&i.GitReadStatus,
+		&i.GitWriteStatus,
+		&i.ChangeRequestStatus,
+	)
+	return i, err
+}
+
+const setVCSConnectionWebhookStatus = `-- name: SetVCSConnectionWebhookStatus :exec
+UPDATE vcs_connection
+SET webhook_status = $3, updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+`
+
+type SetVCSConnectionWebhookStatusParams struct {
+	ID            pgtype.UUID `json:"id"`
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	WebhookStatus string      `json:"webhook_status"`
+}
+
+// Records the outcome of registering the hook with the provider, which is a
+// different claim from MarkVCSConnectionWebhookVerified: that one means a
+// delivery actually arrived, this one means the hook exists (or that we were
+// not allowed to create it and the operator must).
+func (q *Queries) SetVCSConnectionWebhookStatus(ctx context.Context, arg SetVCSConnectionWebhookStatusParams) error {
+	_, err := q.db.Exec(ctx, setVCSConnectionWebhookStatus, arg.ID, arg.WorkspaceID, arg.WebhookStatus)
+	return err
+}
+
+const updateVCSConnectionCredentials = `-- name: UpdateVCSConnectionCredentials :one
+UPDATE vcs_connection
+SET account_login = $3,
+    access_token_encrypted = $4,
+    git_token_encrypted = $5,
+    token_type = $6,
+    token_scopes = $7,
+    token_expires_at = $10,
+    clone_host = $8,
+    ca_pem_encrypted = $9,
+    last_validated_at = now(),
+    api_status = 'ok',
+    git_read_status = 'untested',
+    git_write_status = 'untested',
+    change_request_status = 'untested',
+    updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status
+`
+
+type UpdateVCSConnectionCredentialsParams struct {
+	ID                   pgtype.UUID        `json:"id"`
+	WorkspaceID          pgtype.UUID        `json:"workspace_id"`
+	AccountLogin         string             `json:"account_login"`
+	AccessTokenEncrypted string             `json:"access_token_encrypted"`
+	GitTokenEncrypted    string             `json:"git_token_encrypted"`
+	TokenType            string             `json:"token_type"`
+	TokenScopes          []string           `json:"token_scopes"`
+	CloneHost            string             `json:"clone_host"`
+	CaPemEncrypted       string             `json:"ca_pem_encrypted"`
+	TokenExpiresAt       pgtype.Timestamptz `json:"token_expires_at"`
+}
+
+func (q *Queries) UpdateVCSConnectionCredentials(ctx context.Context, arg UpdateVCSConnectionCredentialsParams) (VcsConnection, error) {
+	row := q.db.QueryRow(ctx, updateVCSConnectionCredentials,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.AccountLogin,
+		arg.AccessTokenEncrypted,
+		arg.GitTokenEncrypted,
+		arg.TokenType,
+		arg.TokenScopes,
+		arg.CloneHost,
+		arg.CaPemEncrypted,
+		arg.TokenExpiresAt,
+	)
+	var i VcsConnection
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Provider,
+		&i.InstanceUrl,
+		&i.AccountLogin,
+		&i.AccessTokenEncrypted,
+		&i.WebhookSecretEncrypted,
+		&i.ConnectedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GitTokenEncrypted,
+		&i.TokenType,
+		&i.TokenScopes,
+		&i.TokenExpiresAt,
+		&i.CloneHost,
+		&i.CaPemEncrypted,
+		&i.LastValidatedAt,
+		&i.ApiStatus,
+		&i.WebhookStatus,
+		&i.GitReadStatus,
+		&i.GitWriteStatus,
+		&i.ChangeRequestStatus,
+	)
+	return i, err
+}
+
+const updateVCSConnectionValidation = `-- name: UpdateVCSConnectionValidation :one
+UPDATE vcs_connection
+SET last_validated_at = now(),
+    api_status = $3,
+    git_read_status = $4,
+    git_write_status = $5,
+    change_request_status = $6,
+    updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status
+`
+
+type UpdateVCSConnectionValidationParams struct {
+	ID                  pgtype.UUID `json:"id"`
+	WorkspaceID         pgtype.UUID `json:"workspace_id"`
+	ApiStatus           string      `json:"api_status"`
+	GitReadStatus       string      `json:"git_read_status"`
+	GitWriteStatus      string      `json:"git_write_status"`
+	ChangeRequestStatus string      `json:"change_request_status"`
+}
+
+func (q *Queries) UpdateVCSConnectionValidation(ctx context.Context, arg UpdateVCSConnectionValidationParams) (VcsConnection, error) {
+	row := q.db.QueryRow(ctx, updateVCSConnectionValidation,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.ApiStatus,
+		arg.GitReadStatus,
+		arg.GitWriteStatus,
+		arg.ChangeRequestStatus,
+	)
+	var i VcsConnection
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Provider,
+		&i.InstanceUrl,
+		&i.AccountLogin,
+		&i.AccessTokenEncrypted,
+		&i.WebhookSecretEncrypted,
+		&i.ConnectedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GitTokenEncrypted,
+		&i.TokenType,
+		&i.TokenScopes,
+		&i.TokenExpiresAt,
+		&i.CloneHost,
+		&i.CaPemEncrypted,
+		&i.LastValidatedAt,
+		&i.ApiStatus,
+		&i.WebhookStatus,
+		&i.GitReadStatus,
+		&i.GitWriteStatus,
+		&i.ChangeRequestStatus,
+	)
+	return i, err
+}
+
+const upsertDaemonRepositoryValidation = `-- name: UpsertDaemonRepositoryValidation :one
+INSERT INTO daemon_repository_validation (
+    workspace_id, resource_id, daemon_id, read_status, write_status,
+    error_code, error_message, checked_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+ON CONFLICT (resource_id, daemon_id) DO UPDATE SET
+    workspace_id = EXCLUDED.workspace_id,
+    read_status = EXCLUDED.read_status,
+    write_status = EXCLUDED.write_status,
+    error_code = EXCLUDED.error_code,
+    error_message = EXCLUDED.error_message,
+    checked_at = now()
+RETURNING id, workspace_id, resource_id, daemon_id, read_status, write_status, error_code, error_message, checked_at
+`
+
+type UpsertDaemonRepositoryValidationParams struct {
+	WorkspaceID  pgtype.UUID `json:"workspace_id"`
+	ResourceID   pgtype.UUID `json:"resource_id"`
+	DaemonID     string      `json:"daemon_id"`
+	ReadStatus   string      `json:"read_status"`
+	WriteStatus  string      `json:"write_status"`
+	ErrorCode    string      `json:"error_code"`
+	ErrorMessage string      `json:"error_message"`
+}
+
+func (q *Queries) UpsertDaemonRepositoryValidation(ctx context.Context, arg UpsertDaemonRepositoryValidationParams) (DaemonRepositoryValidation, error) {
+	row := q.db.QueryRow(ctx, upsertDaemonRepositoryValidation,
+		arg.WorkspaceID,
+		arg.ResourceID,
+		arg.DaemonID,
+		arg.ReadStatus,
+		arg.WriteStatus,
+		arg.ErrorCode,
+		arg.ErrorMessage,
+	)
+	var i DaemonRepositoryValidation
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ResourceID,
+		&i.DaemonID,
+		&i.ReadStatus,
+		&i.WriteStatus,
+		&i.ErrorCode,
+		&i.ErrorMessage,
+		&i.CheckedAt,
 	)
 	return i, err
 }
@@ -424,28 +778,50 @@ func (q *Queries) UpsertVCSCommitStatus(ctx context.Context, arg UpsertVCSCommit
 const upsertVCSConnection = `-- name: UpsertVCSConnection :one
 INSERT INTO vcs_connection (
     workspace_id, provider, instance_url, account_login,
-    access_token_encrypted, webhook_secret_encrypted, connected_by_id
+    access_token_encrypted, git_token_encrypted, webhook_secret_encrypted,
+    token_type, token_scopes, token_expires_at, clone_host,
+    ca_pem_encrypted, last_validated_at, api_status,
+    git_read_status, git_write_status, change_request_status, connected_by_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7,
+    $8, $9, $12, $10,
+    $11, now(), 'ok', 'untested', 'untested', 'untested', $13
 )
 ON CONFLICT (workspace_id, instance_url) DO UPDATE SET
     provider                 = EXCLUDED.provider,
     account_login            = EXCLUDED.account_login,
     access_token_encrypted   = EXCLUDED.access_token_encrypted,
+    git_token_encrypted      = EXCLUDED.git_token_encrypted,
     webhook_secret_encrypted = EXCLUDED.webhook_secret_encrypted,
+    token_type               = EXCLUDED.token_type,
+    token_scopes             = EXCLUDED.token_scopes,
+    token_expires_at         = EXCLUDED.token_expires_at,
+    clone_host               = EXCLUDED.clone_host,
+    ca_pem_encrypted         = EXCLUDED.ca_pem_encrypted,
+    last_validated_at        = now(),
+    api_status               = 'ok',
+    git_read_status          = 'untested',
+    git_write_status         = 'untested',
+    change_request_status    = 'untested',
     connected_by_id          = EXCLUDED.connected_by_id,
     updated_at               = now()
-RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at
+RETURNING id, workspace_id, provider, instance_url, account_login, access_token_encrypted, webhook_secret_encrypted, connected_by_id, created_at, updated_at, git_token_encrypted, token_type, token_scopes, token_expires_at, clone_host, ca_pem_encrypted, last_validated_at, api_status, webhook_status, git_read_status, git_write_status, change_request_status
 `
 
 type UpsertVCSConnectionParams struct {
-	WorkspaceID            pgtype.UUID `json:"workspace_id"`
-	Provider               string      `json:"provider"`
-	InstanceUrl            string      `json:"instance_url"`
-	AccountLogin           string      `json:"account_login"`
-	AccessTokenEncrypted   string      `json:"access_token_encrypted"`
-	WebhookSecretEncrypted string      `json:"webhook_secret_encrypted"`
-	ConnectedByID          pgtype.UUID `json:"connected_by_id"`
+	WorkspaceID            pgtype.UUID        `json:"workspace_id"`
+	Provider               string             `json:"provider"`
+	InstanceUrl            string             `json:"instance_url"`
+	AccountLogin           string             `json:"account_login"`
+	AccessTokenEncrypted   string             `json:"access_token_encrypted"`
+	GitTokenEncrypted      string             `json:"git_token_encrypted"`
+	WebhookSecretEncrypted string             `json:"webhook_secret_encrypted"`
+	TokenType              string             `json:"token_type"`
+	TokenScopes            []string           `json:"token_scopes"`
+	CloneHost              string             `json:"clone_host"`
+	CaPemEncrypted         string             `json:"ca_pem_encrypted"`
+	TokenExpiresAt         pgtype.Timestamptz `json:"token_expires_at"`
+	ConnectedByID          pgtype.UUID        `json:"connected_by_id"`
 }
 
 // Reconnecting the same instance rotates the stored token/secret, provider,
@@ -457,7 +833,13 @@ func (q *Queries) UpsertVCSConnection(ctx context.Context, arg UpsertVCSConnecti
 		arg.InstanceUrl,
 		arg.AccountLogin,
 		arg.AccessTokenEncrypted,
+		arg.GitTokenEncrypted,
 		arg.WebhookSecretEncrypted,
+		arg.TokenType,
+		arg.TokenScopes,
+		arg.CloneHost,
+		arg.CaPemEncrypted,
+		arg.TokenExpiresAt,
 		arg.ConnectedByID,
 	)
 	var i VcsConnection
@@ -472,6 +854,18 @@ func (q *Queries) UpsertVCSConnection(ctx context.Context, arg UpsertVCSConnecti
 		&i.ConnectedByID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GitTokenEncrypted,
+		&i.TokenType,
+		&i.TokenScopes,
+		&i.TokenExpiresAt,
+		&i.CloneHost,
+		&i.CaPemEncrypted,
+		&i.LastValidatedAt,
+		&i.ApiStatus,
+		&i.WebhookStatus,
+		&i.GitReadStatus,
+		&i.GitWriteStatus,
+		&i.ChangeRequestStatus,
 	)
 	return i, err
 }

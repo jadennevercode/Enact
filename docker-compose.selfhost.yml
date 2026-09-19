@@ -178,12 +178,10 @@ services:
       # in the database, so this single deployment-wide key is all the operator
       # needs to set here.
       ENACT_SLACK_SECRET_KEY: ${ENACT_SLACK_SECRET_KEY:-}
-      # Self-hosted Git provider integration (Forgejo / Gitea / GitLab). This
-      # is a self-host-only feature, so the compose file turns it on by default;
-      # the managed cloud leaves it unset (off). It still needs a valid
-      # ENACT_VCS_SECRET_KEY below to actually work.
-      ENACT_VCS_INTEGRATION_ENABLED: ${ENACT_VCS_INTEGRATION_ENABLED:-true}
-      # VCS integration at-rest encryption key for token-based providers
+      # Code hosting connections (GitHub, GitHub Enterprise Server, GitLab).
+      # This key encrypts every stored provider token, webhook secret, and
+      # enterprise CA at rest. Unset it and the product refuses to store a
+      # credential rather than keeping one in plaintext.
       ENACT_VCS_SECRET_KEY: ${ENACT_VCS_SECRET_KEY:-}
       # WeCom smart-bot integration. ENACT_WECOM_SECRET_KEY is the
       # opt-in: unset = integration disabled. It encrypts each installation's

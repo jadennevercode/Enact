@@ -123,5 +123,34 @@
   },
   "navigation": {
     "open_in_new_tab": "在新标签页打开"
+  },
+  "context": {
+    "title": "上下文",
+    "unknown": "未知",
+    "select": "选择智能体会话",
+    "compact": "压缩上下文",
+    "cancel": "取消排队压缩",
+    "reading": "上次记录的窗口占用",
+    "last_record": "记录时间",
+    "basis": "按原生运行时的有效窗口计算，与累计计费 Token 分开。",
+    "queued": "等待当前执行结束",
+    "running": "正在压缩",
+    "succeeded": "原生压缩已完成",
+    "skipped": "无需压缩",
+    "cancelled": "已取消",
+    "failed": "压缩不可用或失败",
+    "unknown_result": "结果待核实",
+    "awaiting_reading": "等待新的上下文读数",
+    "unsupported": "此运行时未报告原生压缩支持",
+    "accepted": "已接受压缩请求",
+    "request_failed": "请求失败，草稿已保留。",
+    "handoffs": "交接记录",
+    "source": "来源执行",
+    "decisions": "已记录的决定",
+    "pending": "待人决策／未完成项",
+    "evidence": "证据",
+    "activity": "维护记录",
+    "tokens": "tokens",
+    "revision": "版本"
   }
 }

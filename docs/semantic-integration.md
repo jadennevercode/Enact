@@ -33,6 +33,10 @@ Family Skill 是**交付方法**。原生 Ontology artifact 才是主要交付�
 
 连接器 registry 会明确显示依赖是否已安装、适配器是否已实现；一个上游模块存在不等于当前部署已经支持全部操作。FAISS/向量库、云数仓、邮件和流等可选能力需要对应依赖与真实账户。私有语义服务已有路径/时间检查及带来源的输入向量检索适配，但尚未接入 Enact Agent 网关或 Studio 操作入口，不属于本次用户旅程的已验证能力。Git 支持已授权的本地 commit 快照与公开远程源；私有远程认证、OAuth 刷新和 daemon 私网隧道仍需另外实现。
 
+## 与代码图谱的边界
+
+代码图谱（`docs/architecture/code-graph-plan.zh.md`）与 Semantica 是两条互不依赖的线，不共享数据、不共用镜像。代码图谱只做仓库源码的结构图（文件、符号、导入、调用、子系统），由独立的 `codegraph` 容器用 tree-sitter 构建，不调用模型，服务对象是正在改代码的 Agent 和看代码的人；Semantica 负责业务本体、数据与行动绑定以及受治理的读写。两者唯一重合的能力是文档语义抽取，代码图谱明确不启用这一部分：仓库里的 Markdown、PDF 等文档继续走知识库与 Semantica Sources。不把代码图谱并入 Semantica 镜像，是因为 Semantica 是可选的重镜像，不需要本体的部署不应为了代码图谱去装它。
+
 ## 运行与配置
 
 1. 按 Enact 原有方式应用全部迁移。语义表从 454 开始；478–486 增加 Source Catalog、快照、原生修订和 Site 同 run；500–505 增加模型子操作与 Family construction。

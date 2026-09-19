@@ -177,7 +177,7 @@ Gate 等待长通常意味着批准人负载过高，那是排班问题。
 
 ## Done When
 
-- [ ] `.sdlc/` 存在；config.yaml 的 `roles` 里，各 Gate 要求的角色都有真实的人（一个人可担多个）
+- [ ] `.sdlc/` 存在；各 Gate 要求的角色，在工作区里都指派给了真实的人（设置 › 角色维护目录，成员页指派；一个人可担多个）
 - [ ] 当前工作对应的 Work Item 目录已存在，`current.yaml` 指向它
 - [ ] 你知道自己在哪个阶段、下一个 Gate 是什么、由谁批准
 - [ ] `.sdlc/config.yaml` 的 `data_policy.never_read` 覆盖了本项目真实的密钥路径

@@ -49,6 +49,51 @@
       "cancelled": "見送り。"
     }
   },
+  "team_roles": {
+    "title": "ロール",
+    "description": "ロールは、その人がどの種類の判断を担うかを表します（ビジネスオーナー、アーキテクト、QA など）。権限ではありません。ワークスペースで何ができるかはメンバーページの権限で決まります。",
+    "loading": "ロールを読み込み中…",
+    "add": "ロールを追加",
+    "section_title": "ロール（{{count}}）",
+    "archived_title": "アーカイブ済み（{{count}}）",
+    "archived_hint": "新規の割り当てには表示されません。すでに担っている人はそのまま保持します。",
+    "empty_title": "ロールがまだありません",
+    "empty_description": "AI-SDLC のロールをインポートすると各フェーズのレビューが適切な担当者に振り分けられます。独自に定義することもできます。",
+    "import_preset": "AI-SDLC ロールをインポート",
+    "preset_hint": "AI-SDLC スイートは各フェーズのレビューをこれらのロールに振り分けます。",
+    "preset_imported": "ロールをインポートしました",
+    "preset_failed": "ロールをインポートできませんでした。",
+    "reorder_failed": "並び順を保存できませんでした。",
+    "restore_failed": "ロールを復元できませんでした。",
+    "actions": {
+      "open": "{{name}} の操作",
+      "edit": "編集",
+      "archive": "アーカイブ",
+      "restore": "復元",
+      "reorder": "{{name}} を並べ替え"
+    },
+    "editor": {
+      "create_title": "新しいロール",
+      "edit_title": "ロールを編集",
+      "hint": "ロールはその人が担う判断を表し、アクセス権は付与しません。",
+      "name": "名前",
+      "name_placeholder": "例：セキュリティレビュー",
+      "key_hint": "API、CLI、AI-SDLC 設定では {{key}} として参照されます。",
+      "description": "説明",
+      "description_placeholder": "このロールが担うこと",
+      "color": "色",
+      "cancel": "キャンセル",
+      "save": "保存",
+      "save_failed": "ロールを保存できませんでした。"
+    },
+    "archive_dialog": {
+      "title": "このロールをアーカイブしますか？",
+      "description": "ロールの割り当て時に {{name}} は表示されなくなります。すでに担っている人はそのまま保持し、復元すれば戻ります。",
+      "cancel": "キャンセル",
+      "confirm": "アーカイブ",
+      "failed": "ロールをアーカイブできませんでした。"
+    }
+  },
   "quick_actions": {
     "title": "クイックアクション",
     "description": "実行するエージェントとプロンプトを事前に設定し、任意のタスクのサイドバーからワンクリックで実行します。",
@@ -325,6 +370,7 @@
       "labels": "ラベル",
       "issue_statuses": "ステータス",
       "properties": "プロパティ",
+      "team_roles": "ロール",
       "quick_actions": "クイックアクション",
       "plugins": "Plugins",
       "mcp": "MCP",

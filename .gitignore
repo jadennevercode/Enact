@@ -83,7 +83,12 @@ __pycache__/
 *.pyc
 
 # separate projects and scratch that happen to live under this checkout
+/mmm-runtime/
 /ProjectIntelligenceSpace /
 /intelligence-space-proposals/
 /.codex/
 /_shot.cjs
+/output/
+
+# Office lock files
+~$*

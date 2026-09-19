@@ -16,18 +16,111 @@ WHERE id = $1;
 -- and identity in place rather than creating a duplicate row.
 INSERT INTO vcs_connection (
     workspace_id, provider, instance_url, account_login,
-    access_token_encrypted, webhook_secret_encrypted, connected_by_id
+    access_token_encrypted, git_token_encrypted, webhook_secret_encrypted,
+    token_type, token_scopes, token_expires_at, clone_host,
+    ca_pem_encrypted, last_validated_at, api_status,
+    git_read_status, git_write_status, change_request_status, connected_by_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, sqlc.narg('connected_by_id')
+    $1, $2, $3, $4, $5, $6, $7,
+    $8, $9, sqlc.narg('token_expires_at'), $10,
+    $11, now(), 'ok', 'untested', 'untested', 'untested', sqlc.narg('connected_by_id')
 )
 ON CONFLICT (workspace_id, instance_url) DO UPDATE SET
     provider                 = EXCLUDED.provider,
     account_login            = EXCLUDED.account_login,
     access_token_encrypted   = EXCLUDED.access_token_encrypted,
+    git_token_encrypted      = EXCLUDED.git_token_encrypted,
     webhook_secret_encrypted = EXCLUDED.webhook_secret_encrypted,
+    token_type               = EXCLUDED.token_type,
+    token_scopes             = EXCLUDED.token_scopes,
+    token_expires_at         = EXCLUDED.token_expires_at,
+    clone_host               = EXCLUDED.clone_host,
+    ca_pem_encrypted         = EXCLUDED.ca_pem_encrypted,
+    last_validated_at        = now(),
+    api_status               = 'ok',
+    git_read_status          = 'untested',
+    git_write_status         = 'untested',
+    change_request_status    = 'untested',
     connected_by_id          = EXCLUDED.connected_by_id,
     updated_at               = now()
 RETURNING *;
+
+-- name: UpdateVCSConnectionValidation :one
+UPDATE vcs_connection
+SET last_validated_at = now(),
+    api_status = $3,
+    git_read_status = $4,
+    git_write_status = $5,
+    change_request_status = $6,
+    updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+RETURNING *;
+
+-- name: UpdateVCSConnectionCredentials :one
+UPDATE vcs_connection
+SET account_login = $3,
+    access_token_encrypted = $4,
+    git_token_encrypted = $5,
+    token_type = $6,
+    token_scopes = $7,
+    token_expires_at = sqlc.narg('token_expires_at'),
+    clone_host = $8,
+    ca_pem_encrypted = $9,
+    last_validated_at = now(),
+    api_status = 'ok',
+    git_read_status = 'untested',
+    git_write_status = 'untested',
+    change_request_status = 'untested',
+    updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+RETURNING *;
+
+-- name: MarkVCSConnectionWebhookVerified :exec
+UPDATE vcs_connection SET webhook_status = 'ok', updated_at = now() WHERE id = $1;
+
+-- name: SetVCSConnectionWebhookStatus :exec
+-- Records the outcome of registering the hook with the provider, which is a
+-- different claim from MarkVCSConnectionWebhookVerified: that one means a
+-- delivery actually arrived, this one means the hook exists (or that we were
+-- not allowed to create it and the operator must).
+UPDATE vcs_connection
+SET webhook_status = $3, updated_at = now()
+WHERE id = $1 AND workspace_id = $2;
+
+-- name: CountWorkspaceResourcesUsingConnection :one
+SELECT count(*) FROM workspace_resource
+WHERE workspace_id = $1
+  AND resource_type = 'github_repo'
+  AND resource_ref->>'provider_connection_id' = sqlc.arg('provider_connection_id')::text;
+
+-- name: ListWorkspaceResourcesUsingConnection :many
+SELECT * FROM workspace_resource
+WHERE workspace_id = $1
+  AND resource_type = 'github_repo'
+  AND resource_ref->>'provider_connection_id' = sqlc.arg('provider_connection_id')::text
+ORDER BY position ASC, created_at ASC;
+
+-- name: UpsertDaemonRepositoryValidation :one
+INSERT INTO daemon_repository_validation (
+    workspace_id, resource_id, daemon_id, read_status, write_status,
+    error_code, error_message, checked_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+ON CONFLICT (resource_id, daemon_id) DO UPDATE SET
+    workspace_id = EXCLUDED.workspace_id,
+    read_status = EXCLUDED.read_status,
+    write_status = EXCLUDED.write_status,
+    error_code = EXCLUDED.error_code,
+    error_message = EXCLUDED.error_message,
+    checked_at = now()
+RETURNING *;
+
+-- name: ListDaemonRepositoryValidationsByWorkspace :many
+SELECT * FROM daemon_repository_validation
+WHERE workspace_id = $1
+ORDER BY resource_id, daemon_id;
+
+-- name: DeleteDaemonRepositoryValidationsByResource :exec
+DELETE FROM daemon_repository_validation WHERE resource_id = $1;
 
 -- name: DeleteVCSConnection :exec
 -- These tables carry no FKs, so the cascade that once removed the connection's

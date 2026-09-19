@@ -171,12 +171,22 @@ allowlist の正確な判定順序は[ログインとサインアップ](/auth-s
 | Composio | `COMPOSIO_API_KEY` | Composio ツール接続を有効化 |
 | Composio | `COMPOSIO_CALLBACK_BASE_URL` | コールバック API アドレス。`ENACT_PUBLIC_URL` にフォールバック可能 |
 | Composio | `COMPOSIO_STATE_SECRET` | OAuth state の署名シークレット。`JWT_SECRET` から派生可能 |
-| セルフホスト Git | `ENACT_VCS_INTEGRATION_ENABLED` | Forgejo/Gitea/GitLab 連携のスイッチ。compose ではデフォルトで有効 |
-| セルフホスト Git | `ENACT_VCS_SECRET_KEY` | base64 エンコードされた 32 バイトの暗号化キー（`openssl rand -base64 32`）。未設定の場合、この機能全体が利用できません |
+| コードホスティング | `ENACT_VCS_SECRET_KEY` | base64 の 32 バイト鍵（`openssl rand -base64 32`）。コードホスティングのトークン、Webhook secret、企業 CA を暗号化します。未設定だとトークン接続を保存できません |
 
 `GITHUB_APP_ID` と秘密鍵を設定しなくても、PR の関連付け・ミラー・マージによる done への遷移は通常どおり動きますが、カードに CI とマージ可否のステータスが表示されず、「GitHub から選択」のリポジトリ入口も無効になります。
 
 設定手順は [GitHub 連携](/github-integration#セルフホスト設定)、[Lark Bot](/lark-bot-integration#セルフホスト設定)、[Slack Bot](/slack-bot-integration#セルフホスト設定)、[Telegram Bot](/telegram-bot-integration#管理とセルフホスティング)を参照してください。
+
+## コードグラフ
+
+オプション。[コードグラフ](/code-graph)サービスは別のコンテナ（`docker-compose.codegraph.yml`）です。この 2 つの変数が空の場合、機能は無効になり、リソースページのチェックボックスはグレーアウトされます。
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `ENACT_CODEGRAPH_SERVICE_URL` | 空 | コードグラフサービスの内部 URL。compose では `http://codegraph:8767` |
+| `ENACT_CODEGRAPH_SERVICE_KEY` | 空 | `X-Codegraph-Service-Key` として送信される共有キー。コンテナの `CODEGRAPH_SERVICE_KEY` と一致させる必要があります |
+
+コンテナは `CODEGRAPH_SERVICE_KEY`、`CODEGRAPH_DATA_DIR`（`/data`）、`CODEGRAPH_ALLOWED_HOSTS`（`github.com`）、`CODEGRAPH_MAX_FILES`（`20000`）、`CODEGRAPH_BUILD_TIMEOUT_S`（`900`）を読み取ります。[コードグラフ → デプロイ](/code-graph#デプロイ)を参照してください。
 
 ## サーバーサイド LLM
 

@@ -1,3 +1,10 @@
+import type { TeamRoleRef } from "./team-role";
+
+/**
+ * The workspace PERMISSION, called 权限 in the Chinese product. Not to be
+ * confused with a team role (角色), which is a functional role and gates
+ * nothing — see ./team-role.
+ */
 export type MemberRole = "owner" | "admin" | "member";
 
 export interface Workspace {
@@ -82,11 +89,18 @@ export interface MemberWithUser {
   id: string;
   workspace_id: string;
   user_id: string;
+  /** The PERMISSION (权限). Functional roles are `team_roles`. */
   role: MemberRole;
   created_at: string;
   name: string;
   email: string;
   avatar_url: string | null;
+  /**
+   * The functional roles this person holds (角色). Optional because a client
+   * may be talking to a server that predates them; the schema defaults it to
+   * an empty array, so readers can iterate without a guard.
+   */
+  team_roles?: TeamRoleRef[];
 }
 
 export interface Invitation {

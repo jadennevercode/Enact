@@ -21,7 +21,7 @@ func vcsHandlerRequest(method, path string, body any, connectionID string) *http
 	return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 }
 
-func TestListVCSConnectionsHonorsDeploymentSwitch(t *testing.T) {
+func TestListVCSConnectionsReportsEncryptionKeyState(t *testing.T) {
 	ctx := context.Background()
 	box := withVCSBox(t)
 	connID := seedVCSConnection(t, ctx, box, "forgejo", "https://forgejo-list.test")
@@ -29,7 +29,6 @@ func TestListVCSConnectionsHonorsDeploymentSwitch(t *testing.T) {
 
 	fetch := func() struct {
 		Connections []VCSConnectionResponse `json:"connections"`
-		Available   bool                    `json:"available"`
 		Configured  bool                    `json:"configured"`
 	} {
 		t.Helper()
@@ -41,7 +40,6 @@ func TestListVCSConnectionsHonorsDeploymentSwitch(t *testing.T) {
 		}
 		var resp struct {
 			Connections []VCSConnectionResponse `json:"connections"`
-			Available   bool                    `json:"available"`
 			Configured  bool                    `json:"configured"`
 		}
 		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -50,23 +48,27 @@ func TestListVCSConnectionsHonorsDeploymentSwitch(t *testing.T) {
 		return resp
 	}
 
-	testHandler.cfg.VCSIntegrationEnabled = false
-	disabled := fetch()
-	if disabled.Available || disabled.Configured || len(disabled.Connections) != 0 {
-		t.Fatalf("disabled response must hide stored connections and availability, got %+v", disabled)
+	// Without a key the section still lists what is stored — an operator needs
+	// to see the connections that exist in order to understand why they stopped
+	// working — but reports configured=false so the UI shows setup guidance
+	// instead of a connect form that would fail.
+	testHandler.VCSSecretBox = nil
+	unconfigured := fetch()
+	if unconfigured.Configured {
+		t.Fatalf("response must report configured=false without an encryption key, got %+v", unconfigured)
 	}
+	testHandler.VCSSecretBox = box
 
-	testHandler.cfg.VCSIntegrationEnabled = true
-	enabled := fetch()
-	if !enabled.Available || !enabled.Configured {
-		t.Fatalf("enabled response must expose availability and configuration, got %+v", enabled)
+	configured := fetch()
+	if !configured.Configured {
+		t.Fatalf("response must report configured=true with an encryption key, got %+v", configured)
 	}
-	if len(enabled.Connections) != 1 || enabled.Connections[0].ID != connID {
-		t.Fatalf("enabled response must include seeded connection %s, got %+v", connID, enabled.Connections)
+	if len(configured.Connections) != 1 || configured.Connections[0].ID != connID {
+		t.Fatalf("response must include seeded connection %s, got %+v", connID, configured.Connections)
 	}
 }
 
-func TestConnectVCSHonorsDeploymentSwitch(t *testing.T) {
+func TestConnectVCSRequiresEncryptionKey(t *testing.T) {
 	var validationCalls atomic.Int32
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		validationCalls.Add(1)
@@ -105,30 +107,34 @@ func TestConnectVCSHonorsDeploymentSwitch(t *testing.T) {
 		return count
 	}
 
-	testHandler.cfg.VCSIntegrationEnabled = false
-	if w := connect(); w.Code != http.StatusNotFound {
-		t.Fatalf("disabled ConnectVCS: expected 404, got %d: %s", w.Code, w.Body.String())
+	// The gate must short-circuit before the token reaches the network: a
+	// deployment with no key has nowhere to seal the credential, so reaching
+	// the provider at all would send a secret it could never store.
+	box := testHandler.VCSSecretBox
+	testHandler.VCSSecretBox = nil
+	if w := connect(); w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unconfigured ConnectVCS: expected 503, got %d: %s", w.Code, w.Body.String())
 	}
 	if got := validationCalls.Load(); got != 0 {
-		t.Fatalf("disabled ConnectVCS must not call provider, got %d requests", got)
+		t.Fatalf("unconfigured ConnectVCS must not call provider, got %d requests", got)
 	}
 	if got := countConnections(); got != 0 {
-		t.Fatalf("disabled ConnectVCS must not write a connection, got %d rows", got)
+		t.Fatalf("unconfigured ConnectVCS must not write a connection, got %d rows", got)
 	}
+	testHandler.VCSSecretBox = box
 
-	testHandler.cfg.VCSIntegrationEnabled = true
 	if w := connect(); w.Code != http.StatusOK {
-		t.Fatalf("enabled ConnectVCS: expected 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("configured ConnectVCS: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 	if got := validationCalls.Load(); got != 1 {
-		t.Fatalf("enabled ConnectVCS: expected one provider validation, got %d", got)
+		t.Fatalf("configured ConnectVCS: expected one provider validation, got %d", got)
 	}
 	if got := countConnections(); got != 1 {
-		t.Fatalf("enabled ConnectVCS: expected one stored connection, got %d", got)
+		t.Fatalf("configured ConnectVCS: expected one stored connection, got %d", got)
 	}
 }
 
-func TestRotateVCSConnectionWebhookHonorsDeploymentSwitch(t *testing.T) {
+func TestRotateVCSConnectionWebhookRequiresEncryptionKey(t *testing.T) {
 	ctx := context.Background()
 	box := withVCSBox(t)
 	connID := seedVCSConnection(t, ctx, box, "forgejo", "https://forgejo-rotate.test")
@@ -157,19 +163,19 @@ func TestRotateVCSConnectionWebhookHonorsDeploymentSwitch(t *testing.T) {
 	}
 
 	originalSecret := loadSecret()
-	testHandler.cfg.VCSIntegrationEnabled = false
-	if w := rotate(); w.Code != http.StatusNotFound {
-		t.Fatalf("disabled RotateVCSConnectionWebhook: expected 404, got %d: %s", w.Code, w.Body.String())
+	testHandler.VCSSecretBox = nil
+	if w := rotate(); w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unconfigured RotateVCSConnectionWebhook: expected 503, got %d: %s", w.Code, w.Body.String())
 	}
 	if got := loadSecret(); got != originalSecret {
-		t.Fatal("disabled RotateVCSConnectionWebhook must not modify the stored secret")
+		t.Fatal("unconfigured RotateVCSConnectionWebhook must not modify the stored secret")
 	}
+	testHandler.VCSSecretBox = box
 
-	testHandler.cfg.VCSIntegrationEnabled = true
 	if w := rotate(); w.Code != http.StatusOK {
-		t.Fatalf("enabled RotateVCSConnectionWebhook: expected 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("configured RotateVCSConnectionWebhook: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 	if got := loadSecret(); got == originalSecret {
-		t.Fatal("enabled RotateVCSConnectionWebhook must replace the stored secret")
+		t.Fatal("configured RotateVCSConnectionWebhook must replace the stored secret")
 	}
 }

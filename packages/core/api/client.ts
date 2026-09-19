@@ -1,3 +1,4 @@
+import { parseContextSessions, parseContextOperation, parseContextCheckpoints, type ContextScope } from "../context/schema";
 import type {
   Issue,
   IssuePriority,
@@ -51,6 +52,11 @@ import type {
   Workspace,
   WorkspaceMcpServer,
   MemberWithUser,
+  TeamRole,
+  ListTeamRolesResponse,
+  CreateTeamRoleRequest,
+  UpdateTeamRoleRequest,
+  ImportTeamRolePresetRequest,
   User,
   Skill,
   SkillSummary,
@@ -182,8 +188,12 @@ import type {
   ListGitHubRepositoriesResponse,
   GitHubConnectResponse,
   ListVCSConnectionsResponse,
+  VCSConnection,
   ConnectVCSRequest,
   ConnectVCSResponse,
+  ListVCSRepositoriesResponse,
+  RegisterVCSWebhooksResponse,
+  TestVCSConnectionResponse,
   ListLarkInstallationsResponse,
   BeginLarkInstallResponse,
   LarkInstallStatusResponse,
@@ -294,6 +304,14 @@ import {
   EMPTY_LIST_AGENT_KNOWLEDGE_RESPONSE,
   EMPTY_LIST_WORKSPACE_RESOURCES_RESPONSE,
   EMPTY_WORKSPACE_RESOURCE,
+  ListVCSConnectionsResponseSchema,
+  EMPTY_LIST_VCS_CONNECTIONS_RESPONSE,
+  RegisterVCSWebhooksResponseSchema,
+  EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE,
+  ListVCSRepositoriesResponseSchema,
+  EMPTY_LIST_VCS_REPOSITORIES_RESPONSE,
+  TestVCSConnectionResponseSchema,
+  EMPTY_TEST_VCS_CONNECTION_RESPONSE,
   EMPTY_ONTOLOGY_DETAIL,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SQUAD,
@@ -396,6 +414,10 @@ import {
   LabelSchema,
   ListLabelsResponseSchema,
   ListIssueStatusesResponseSchema,
+  ListTeamRolesResponseSchema,
+  TeamRoleSchema,
+  MemberWithUserSchema,
+  MemberWithUserListSchema,
   IssueStatusEntrySchema,
   IssuePropertySchema,
   ListPropertiesResponseSchema,
@@ -416,6 +438,10 @@ import {
   EMPTY_LABEL,
   EMPTY_LIST_LABELS_RESPONSE,
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+  EMPTY_LIST_TEAM_ROLES_RESPONSE,
+  EMPTY_TEAM_ROLE,
+  EMPTY_MEMBER_WITH_USER_LIST,
+  EMPTY_MEMBER_WITH_USER,
   EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_RESOURCE_LABELS_RESPONSE,
   GitHubConnectResponseSchema,
@@ -773,6 +799,14 @@ export class ApiClient {
       return undefined as T;
     }
     return res.json() as Promise<T>;
+  }
+
+  /** Transport for the code graph API; callers validate with domain schemas. */
+  async codeGraphRequest(path: string, init?: RequestInit): Promise<unknown> {
+    if (!path.startsWith("/") || path.includes("..")) {
+      throw new Error("Invalid code graph API path");
+    }
+    return this.fetch<unknown>(`/api/code-graph${path}`, init);
   }
 
   /** Transport for workspace semantic services; callers validate with domain schemas. */
@@ -2367,6 +2401,26 @@ export class ApiClient {
   // Powers the front-end's "active wins, else latest terminal" presence
   // derivation; one fetch backs every per-agent presence read in the app.
   // Workspace is resolved server-side from the X-Workspace-Slug header.
+  async listContextCheckpoints(scope:ContextScope) {
+    const key=scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextCheckpoints(await this.fetch<unknown>(`/api/context-checkpoints?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async listContextSessions(scope: ContextScope) {
+    const key = scope.type === "issue" ? "issue_id" : "chat_session_id";
+    return parseContextSessions(await this.fetch<unknown>(`/api/context-sessions?${key}=${encodeURIComponent(scope.id)}`));
+  }
+  async compactContext(id: string, generation: number, key: string) {
+    const raw = await this.fetch<unknown>(`/api/context-sessions/${encodeURIComponent(id)}/compactions`, {method:"POST",body:JSON.stringify({expected_generation:generation,idempotency_key:key})});
+    const result = parseContextOperation(raw);
+    if (!result) throw new Error("Invalid context operation response");
+    return result;
+  }
+  async cancelContextCompaction(id: string) {
+    const result = parseContextOperation(await this.fetch<unknown>(`/api/context-operations/${encodeURIComponent(id)}/cancel`, {method:"POST"}));
+ if (!result) throw new Error("Invalid context operation response");
+ return result;
+  }
+
   async getAgentTaskSnapshot(): Promise<AgentTask[]> {
     return this.fetch(`/api/agent-task-snapshot`);
   }
@@ -2960,8 +3014,20 @@ export class ApiClient {
   }
 
   // Members
-  async listMembers(workspaceId: string): Promise<MemberWithUser[]> {
-    return this.fetch(`/api/workspaces/${workspaceId}/members`);
+  /**
+   * The workspace roster, and the routing lookup behind it: each member
+   * carries the team roles they hold. `teamRoleKeys` narrows the list to the
+   * people holding any of those roles (OR semantics), which is how a caller
+   * asks "who can review this kind of work".
+   */
+  async listMembers(workspaceId: string, teamRoleKeys?: string[]): Promise<MemberWithUser[]> {
+    const query = teamRoleKeys?.length
+      ? `?${teamRoleKeys.map((key) => `team_role=${encodeURIComponent(key)}`).join("&")}`
+      : "";
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members${query}`);
+    return parseWithFallback(raw, MemberWithUserListSchema, EMPTY_MEMBER_WITH_USER_LIST, {
+      endpoint: "GET /api/workspaces/{id}/members",
+    });
   }
 
   async createMember(workspaceId: string, data: CreateMemberRequest): Promise<Invitation> {
@@ -2971,10 +3037,104 @@ export class ApiClient {
     });
   }
 
+  /** Changes a member's PERMISSION (owner/admin/member). */
   async updateMember(workspaceId: string, memberId: string, data: UpdateMemberRequest): Promise<MemberWithUser> {
-    return this.fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members/${memberId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, MemberWithUserSchema, EMPTY_MEMBER_WITH_USER, {
+      endpoint: "PATCH /api/workspaces/{id}/members/{memberId}",
+    });
+  }
+
+  /**
+   * Replaces the set of team roles a member holds. Set semantics: the payload
+   * is the whole intended set, so a retry is idempotent. Assignments to
+   * ARCHIVED roles are outside that set and survive untouched.
+   */
+  async setMemberTeamRoles(
+    workspaceId: string,
+    memberId: string,
+    teamRoleIds: string[],
+  ): Promise<MemberWithUser> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members/${memberId}/team-roles`, {
+      method: "PUT",
+      body: JSON.stringify({ team_role_ids: teamRoleIds }),
+    });
+    return parseWithFallback(raw, MemberWithUserSchema, EMPTY_MEMBER_WITH_USER, {
+      endpoint: "PUT /api/workspaces/{id}/members/{memberId}/team-roles",
+    });
+  }
+
+  // Team role catalog. Reads are open to any workspace member; the mutations
+  // are owner/admin only and return 403 otherwise.
+  async listTeamRoles(includeArchived = false): Promise<ListTeamRolesResponse> {
+    const query = includeArchived ? "?include_archived=true" : "";
+    const raw = await this.fetch<unknown>(`/api/team-roles${query}`);
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "GET /api/team-roles",
+    });
+  }
+
+  async createTeamRole(data: CreateTeamRoleRequest): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "POST /api/team-roles",
+    });
+  }
+
+  async updateTeamRole(id: string, data: UpdateTeamRoleRequest): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "PATCH /api/team-roles/{id}",
+    });
+  }
+
+  /** Archives a role: it leaves the picker, and everyone who holds it keeps it. */
+  async archiveTeamRole(id: string): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}`, { method: "DELETE" });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "DELETE /api/team-roles/{id}",
+    });
+  }
+
+  async restoreTeamRole(id: string): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}/restore`, { method: "POST" });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "POST /api/team-roles/{id}/restore",
+    });
+  }
+
+  /**
+   * Rewrites the whole role order in one server-side statement. Not expressible
+   * as a sequence of updates: a row rejected mid-sequence would leave the
+   * earlier rows already reordered while the caller sees a failure.
+   */
+  async reorderTeamRoles(ids: string[]): Promise<ListTeamRolesResponse> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/reorder`, {
+      method: "PATCH",
+      body: JSON.stringify({ ids }),
+    });
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "PATCH /api/team-roles/reorder",
+    });
+  }
+
+  /** Idempotent: roles whose key or name already exists are left untouched. */
+  async importTeamRolePreset(data: ImportTeamRolePresetRequest): Promise<ListTeamRolesResponse> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/presets`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "POST /api/team-roles/presets",
     });
   }
 
@@ -4659,9 +4819,11 @@ export class ApiClient {
     );
   }
 
-  // VCS integration (Forgejo / Gitea / GitLab)
+  // Code hosting connections (GitHub / GitHub Enterprise Server / GitLab /
+  // Forgejo / Gitea). GitHub App installations are separate; see above.
   async listVCSConnections(workspaceId: string): Promise<ListVCSConnectionsResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections`);
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections`);
+    return parseWithFallback(raw, ListVCSConnectionsResponseSchema, EMPTY_LIST_VCS_CONNECTIONS_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections" });
   }
 
   async connectVCS(
@@ -4687,6 +4849,51 @@ export class ApiClient {
     return this.fetch(
       `/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/rotate-webhook`,
       { method: "POST" },
+    );
+  }
+
+  async listVCSRepositories(workspaceId: string, connectionId: string, page = 1, search = ""): Promise<ListVCSRepositoriesResponse> {
+    const query = new URLSearchParams({ page: String(page) });
+    if (search.trim()) query.set("search", search.trim());
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/repositories?${query.toString()}`);
+    return parseWithFallback(raw, ListVCSRepositoriesResponseSchema, EMPTY_LIST_VCS_REPOSITORIES_RESPONSE, { endpoint: "GET /api/workspaces/:id/vcs/connections/:connectionId/repositories" });
+  }
+
+  async testVCSConnection(workspaceId: string, connectionId: string): Promise<TestVCSConnectionResponse> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/test`, { method: "POST" });
+    return parseWithFallback(raw, TestVCSConnectionResponseSchema, EMPTY_TEST_VCS_CONNECTION_RESPONSE, { endpoint: "POST /api/workspaces/:id/vcs/connections/:connectionId/test" });
+  }
+
+  async rotateVCSCredentials(
+    workspaceId: string,
+    connectionId: string,
+    body: ConnectVCSRequest,
+  ): Promise<VCSConnection> {
+    return this.fetch(`/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/credentials`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * Re-runs webhook registration for every repository bound to the connection.
+   * Attaching a repository already does this; this is the retry for a token
+   * that has since gained webhook permission, a rotated secret, or a hook
+   * someone deleted at the provider.
+   */
+  async registerVCSWebhooks(
+    workspaceId: string,
+    connectionId: string,
+  ): Promise<RegisterVCSWebhooksResponse> {
+    const raw = await this.fetch<unknown>(
+      `/api/workspaces/${workspaceId}/vcs/connections/${connectionId}/webhooks`,
+      { method: "POST" },
+    );
+    return parseWithFallback(
+      raw,
+      RegisterVCSWebhooksResponseSchema,
+      EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE,
+      { endpoint: "POST /api/workspaces/:id/vcs/connections/:connectionId/webhooks" },
     );
   }
 

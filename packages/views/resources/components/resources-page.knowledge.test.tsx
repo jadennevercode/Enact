@@ -13,6 +13,10 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "../../test/i18n";
 
+vi.mock("./code-hosting", () => ({
+  CodeHostingConnections: () => null,
+}));
+
 const createMock = vi.hoisted(() => vi.fn().mockResolvedValue({}));
 const connectURLMock = vi.hoisted(() => vi.fn());
 const navReplaceMock = vi.hoisted(() => vi.fn());
@@ -80,6 +84,11 @@ vi.mock("@enact/core/resources", () => ({
   useDeleteWorkspaceResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
+vi.mock("@enact/core/codegraph", () => ({
+  useCodeGraphCapability: () => ({ data: { enabled: false, graphify_version: null } }),
+  useCodeGraphStatuses: () => ({ data: { statuses: {} } }),
+  useRebuildCodeGraph: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@enact/core/config", () => ({
   useConfigStore: (selector: (s: { localWorktreeSupported: boolean }) => unknown) =>
     selector({ localWorktreeSupported: true }),

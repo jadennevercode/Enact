@@ -1,3 +1,5 @@
+// Context command behavior has its canonical suite in context/use-context-controls.test.tsx.
+vi.mock("../../context/use-context-controls", () => ({ useContextControls: () => ({panel:null,handleCommand:async()=>null}) }));
 import { forwardRef, useEffect, useRef, useImperativeHandle } from "react";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";

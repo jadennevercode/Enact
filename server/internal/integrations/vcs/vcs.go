@@ -1,8 +1,14 @@
 // Package vcs is the provider abstraction for token-based Git providers that
 // Enact mirrors pull requests and CI status from: Forgejo, Gitea (Forgejo's
-// upstream, wire-identical), and GitLab. GitHub is intentionally NOT a vcs
-// provider — its App/installation model and check_suite CI differ enough that
-// it keeps its own handler (server/internal/handler/github.go).
+// upstream, wire-identical), GitLab, and token-authenticated GitHub — both
+// GitHub.com and Enterprise Server.
+//
+// GitHub appears here only in its token form. The GitHub App integration keeps
+// its own handler (server/internal/handler/github.go) because installation
+// tokens, the check_suite CI model, and the install redirect have no analogue
+// in a token connection. The two coexist on purpose: an App is the stronger
+// credential where it can be installed, and a token is the one an admin can
+// configure without deployment access or a route to github.com.
 //
 // Each provider only contributes the parts that actually differ between
 // providers: how a webhook is authenticated, how its event/payload shapes map to
@@ -25,12 +31,13 @@ const (
 	KindForgejo Kind = "forgejo"
 	KindGitea   Kind = "gitea"
 	KindGitLab  Kind = "gitlab"
+	KindGitHub  Kind = "github"
 )
 
 // Valid reports whether k is a known provider kind.
 func (k Kind) Valid() bool {
 	switch k {
-	case KindForgejo, KindGitea, KindGitLab:
+	case KindForgejo, KindGitea, KindGitLab, KindGitHub:
 		return true
 	}
 	return false
@@ -40,6 +47,10 @@ func (k Kind) Valid() bool {
 // token (HTTP 401/403). Callers surface it as a connect-time validation
 // failure distinct from transport/instance errors.
 var ErrUnauthorized = errors.New("vcs: token unauthorized")
+
+// ErrForbidden distinguishes an authenticated token that lacks scope or
+// project visibility from a rejected/expired credential.
+var ErrForbidden = errors.New("vcs: token forbidden")
 
 // EventKind is the normalized webhook event category. Anything a provider does
 // not model maps to EventOther and is acknowledged but ignored.
@@ -95,6 +106,8 @@ func (e PullRequestEvent) Terminal() bool {
 // webhook. State is normalized to passed/failed/pending so the aggregation
 // query is provider-independent.
 type CIStatusEvent struct {
+	RepoOwner   string
+	RepoName    string
 	SHA         string
 	Context     string // status check / pipeline name; "" is allowed
 	State       string // passed | failed | pending

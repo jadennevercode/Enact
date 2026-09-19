@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithI18n } from "../../test/i18n";
 
+vi.mock("./code-hosting", () => ({
+  CodeHostingConnections: () => null,
+}));
+
 const updateMock = vi.fn().mockResolvedValue({});
 
 const RESOURCE = {
@@ -55,6 +59,11 @@ vi.mock("@enact/core/resources", () => ({
 
 // A backend that predates the capability signal: the client must assume it
 // would silently drop execution_mode.
+vi.mock("@enact/core/codegraph", () => ({
+  useCodeGraphCapability: () => ({ data: { enabled: false, graphify_version: null } }),
+  useCodeGraphStatuses: () => ({ data: { statuses: {} } }),
+  useRebuildCodeGraph: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@enact/core/config", () => ({
   useConfigStore: (selector: (state: { localWorktreeSupported: boolean }) => unknown) =>
     selector({ localWorktreeSupported: false }),

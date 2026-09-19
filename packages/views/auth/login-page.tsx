@@ -14,6 +14,7 @@ import { Input } from "@enact/ui/components/ui/input";
 import { Button } from "@enact/ui/components/ui/button";
 import { Label } from "@enact/ui/components/ui/label";
 import { useAuthStore } from "@enact/core/auth";
+import { isRegistrationEmail } from "@enact/core/auth/registration";
 import { workspaceKeys } from "@enact/core/workspace/queries";
 import { api } from "@enact/core/api";
 import type { User } from "@enact/core/types";
@@ -163,10 +164,7 @@ export function LoginPage({
         setError(t(($) => $.common.name_required));
         return;
       }
-      if (
-        mode === "register" &&
-        !email.trim().toLowerCase().endsWith("@deloittecn.com.cn")
-      ) {
+      if (mode === "register" && !isRegistrationEmail(email)) {
         setError(t(($) => $.signup.domain_error));
         return;
       }

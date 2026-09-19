@@ -8,9 +8,147 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
+
+// GitLabProject is the repository picker shape returned by /api/v4/projects.
+// It intentionally contains only fields required to configure a checkout.
+type GitLabProject struct {
+	ID                int64  `json:"id"`
+	PathWithNamespace string `json:"path_with_namespace"`
+	WebURL            string `json:"web_url"`
+	HTTPURLToRepo     string `json:"http_url_to_repo"`
+	Description       string `json:"description"`
+	Visibility        string `json:"visibility"`
+	Archived          bool   `json:"archived"`
+	DefaultBranch     string `json:"default_branch"`
+	Permissions       struct {
+		ProjectAccess *struct {
+			AccessLevel int `json:"access_level"`
+		} `json:"project_access"`
+		GroupAccess *struct {
+			AccessLevel int `json:"access_level"`
+		} `json:"group_access"`
+	} `json:"permissions"`
+}
+
+type GitLabProjectsPage struct {
+	Projects []GitLabProject
+	NextPage *int
+	Total    int64
+}
+
+// GitLabTokenMetadata is the server-reported identity of the token used for
+// the request. Reading it from GitLab prevents a caller from claiming scopes
+// or an expiry date that the credential does not actually have.
+type GitLabTokenMetadata struct {
+	Name      string   `json:"name"`
+	Scopes    []string `json:"scopes"`
+	Active    bool     `json:"active"`
+	Revoked   bool     `json:"revoked"`
+	ExpiresAt string   `json:"expires_at"`
+}
+
+// InspectGitLabToken returns the authenticated token's actual scope and
+// expiration metadata. GitLab documents that any personal, project, or group
+// access token can call the `self` endpoint, including a repository-only token.
+func InspectGitLabToken(ctx context.Context, client *http.Client, instanceURL, token string) (GitLabTokenMetadata, error) {
+	if client == nil {
+		client = httpClient
+	}
+	endpoint := NormalizeInstanceURL(instanceURL) + "/api/v4/personal_access_tokens/self"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return GitLabTokenMetadata{}, fmt.Errorf("gitlab: build token metadata request: %w", err)
+	}
+	req.Header.Set("PRIVATE-TOKEN", token)
+	req.Header.Set("Accept", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return GitLabTokenMetadata{}, fmt.Errorf("gitlab: token metadata request: %w", err)
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusUnauthorized:
+		return GitLabTokenMetadata{}, ErrUnauthorized
+	case http.StatusForbidden:
+		return GitLabTokenMetadata{}, ErrForbidden
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return GitLabTokenMetadata{}, fmt.Errorf("gitlab: GET /personal_access_tokens/self: status %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	var metadata GitLabTokenMetadata
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&metadata); err != nil {
+		return GitLabTokenMetadata{}, fmt.Errorf("gitlab: decode token metadata: %w", err)
+	}
+	if metadata.Revoked || !metadata.Active {
+		return GitLabTokenMetadata{}, ErrUnauthorized
+	}
+	return metadata, nil
+}
+
+// ListGitLabProjects performs server-side, paginated repository discovery.
+// membership=true includes private projects reachable through subgroup or
+// direct membership while simple=true is deliberately omitted because the UI
+// needs permissions and default-branch metadata.
+func ListGitLabProjects(ctx context.Context, client *http.Client, instanceURL, token, search string, page, perPage int) (GitLabProjectsPage, error) {
+	if client == nil {
+		client = httpClient
+	}
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 50
+	}
+	q := url.Values{}
+	q.Set("membership", "true")
+	q.Set("order_by", "path")
+	q.Set("sort", "asc")
+	q.Set("page", strconv.Itoa(page))
+	q.Set("per_page", strconv.Itoa(perPage))
+	if strings.TrimSpace(search) != "" {
+		q.Set("search", strings.TrimSpace(search))
+	}
+	endpoint := NormalizeInstanceURL(instanceURL) + "/api/v4/projects?" + q.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return GitLabProjectsPage{}, fmt.Errorf("gitlab: build projects request: %w", err)
+	}
+	req.Header.Set("PRIVATE-TOKEN", token)
+	req.Header.Set("Accept", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return GitLabProjectsPage{}, fmt.Errorf("gitlab: projects request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return GitLabProjectsPage{}, ErrUnauthorized
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return GitLabProjectsPage{}, ErrForbidden
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return GitLabProjectsPage{}, fmt.Errorf("gitlab: GET /projects: status %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	var projects []GitLabProject
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 8<<20)).Decode(&projects); err != nil {
+		return GitLabProjectsPage{}, fmt.Errorf("gitlab: decode projects: %w", err)
+	}
+	out := GitLabProjectsPage{Projects: projects}
+	if n, _ := strconv.Atoi(resp.Header.Get("X-Total")); n > 0 {
+		out.Total = int64(n)
+	}
+	if n, _ := strconv.Atoi(resp.Header.Get("X-Next-Page")); n > 0 {
+		out.NextPage = &n
+	}
+	return out, nil
+}
 
 // gitlabProvider implements Provider for GitLab, which differs from
 // Forgejo/Gitea on every axis: /api/v4 with a PRIVATE-TOKEN header, webhooks
@@ -147,7 +285,10 @@ func normalizeGitLabMRState(state string, draft bool) string {
 }
 
 type glPipelinePayload struct {
-	ObjectKind       string `json:"object_kind"`
+	ObjectKind string `json:"object_kind"`
+	Project    struct {
+		PathWithNamespace string `json:"path_with_namespace"`
+	} `json:"project"`
 	ObjectAttributes struct {
 		SHA        string `json:"sha"`
 		Status     string `json:"status"`
@@ -169,8 +310,11 @@ func (gitlabProvider) ParseCIStatus(body []byte) (CIStatusEvent, error) {
 	if updatedAt == "" {
 		updatedAt = d.ObjectAttributes.CreatedAt
 	}
+	owner, name := splitNamespace(d.Project.PathWithNamespace)
 	return CIStatusEvent{
-		SHA: d.ObjectAttributes.SHA,
+		RepoOwner: owner,
+		RepoName:  name,
+		SHA:       d.ObjectAttributes.SHA,
 		// GitLab pipelines are modelled as one status per commit, not per named
 		// check, so a stable synthetic context keys the single status row.
 		// Known limitations of this simplification (acceptable for the default
@@ -203,6 +347,15 @@ func normalizeGitLabPipelineState(s string) string {
 }
 
 func (gitlabProvider) ValidateToken(ctx context.Context, instanceURL, token string) (Account, error) {
+	return ValidateGitLabToken(ctx, httpClient, instanceURL, token)
+}
+
+// ValidateGitLabToken is the custom-client variant used by enterprise
+// connections that add a private CA to the system trust pool.
+func ValidateGitLabToken(ctx context.Context, client *http.Client, instanceURL, token string) (Account, error) {
+	if client == nil {
+		client = httpClient
+	}
 	endpoint := NormalizeInstanceURL(instanceURL) + "/api/v4/user"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -211,14 +364,17 @@ func (gitlabProvider) ValidateToken(ctx context.Context, instanceURL, token stri
 	req.Header.Set("PRIVATE-TOKEN", token)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return Account{}, fmt.Errorf("gitlab: request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusUnauthorized {
 		return Account{}, ErrUnauthorized
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return Account{}, ErrForbidden
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))

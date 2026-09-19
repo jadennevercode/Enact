@@ -227,7 +227,7 @@ func normalizeWorkspaceRepos(repos []RepoData) []RepoData {
 			continue
 		}
 		seen[url] = struct{}{}
-		normalized = append(normalized, RepoData{URL: url, Description: repo.Description})
+		normalized = append(normalized, RepoData{URL: url, ResourceID: repo.ResourceID, Provider: repo.Provider, Description: repo.Description, Ref: repo.Ref, Kind: repo.Kind})
 	}
 	return normalized
 }
@@ -3664,6 +3664,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.DrainFinalDeliveries(r.Context())
 	h.emitIssueExecutedOnFirstCompletion(r, task)
 
 	// ENA-4195: guarantee at-least-once processing. If a member posted a
@@ -3827,6 +3828,9 @@ func (h *Handler) reconcileCommentsOnCompletion(ctx context.Context, task *db.Ag
 	scheduled := 0
 	for i := range comments {
 		c := comments[i]
+		if final, err := h.Queries.IsFinalDeliveryComment(ctx, c.ID); err != nil || final {
+			continue
+		}
 		if _, ok := delivered[uuidToString(c.ID)]; ok {
 			// Already delivered to this run (trigger or pre-claim coalesced).
 			continue

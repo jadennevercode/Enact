@@ -1,0 +1,24 @@
+# Optional code graph service for the self-hosted Enact stack.
+# Usage: docker compose -f docker-compose.selfhost.yml -f docker-compose.codegraph.yml up -d
+services:
+  codegraph:
+    build:
+      context: ./services/codegraph
+    image: enact-codegraph:local
+    environment:
+      CODEGRAPH_SERVICE_KEY: ${ENACT_CODEGRAPH_SERVICE_KEY:?Set an internal code graph service key}
+      CODEGRAPH_DATA_DIR: /data
+      CODEGRAPH_ALLOWED_HOSTS: ${ENACT_CODEGRAPH_ALLOWED_HOSTS:-github.com}
+    volumes:
+      - codegraph_state:/data
+    restart: unless-stopped
+
+  backend:
+    environment:
+      ENACT_CODEGRAPH_SERVICE_URL: http://codegraph:8767
+      ENACT_CODEGRAPH_SERVICE_KEY: ${ENACT_CODEGRAPH_SERVICE_KEY:?Set an internal code graph service key}
+    depends_on:
+      - codegraph
+
+volumes:
+  codegraph_state:

@@ -79,7 +79,7 @@
 | `project-doc` | 目标项目的 `docs/`、`CLAUDE.md`、`.sdlc/` 内的项目文档 | 只有本项目 | 下次有人读到 | 本项目内修正，影响可控 |
 | `template` | `sdlc-core/templates/*` | 之后所有同类产物 | 下次实例化模板 | 每份新产物都带上错误字段；已生成的不受影响 |
 | `checklist` | `sdlc-core/references/` 或各 Skill references 里的自检清单条目 | 用这份清单的所有工作 | 下次跑到这个检查点 | 多一条噪音，或漏放一类问题 |
-| `policy` | `.sdlc/config.yaml` 的 `protected_paths` / `data_policy` / `test_policy` / `tool_actions`、`roles` 与各 Gate 的 `require`，或 `sdlc-core/references/redlines.md` | 之后所有工作的**边界** | 立即，下一次范围检查就生效 | 两个方向都很贵：放宽了会静默放行本该被拦的动作，收紧了会把正常工作全部堵死 |
+| `policy` | `.sdlc/config.yaml` 的 `protected_paths` / `data_policy` / `test_policy` / `tool_actions` 与各 Gate 的 `require`（谁担哪个角色改的是工作区，不是这里），或 `sdlc-core/references/redlines.md` | 之后所有工作的**边界** | 立即，下一次范围检查就生效 | 两个方向都很贵：放宽了会静默放行本该被拦的动作，收紧了会把正常工作全部堵死 |
 | `eval` | `evals/scenarios.md` 的用例与通过判据 | 之后所有 Skill 变更的**验证基准** | 下次跑 eval | 基准错了，之后每一次"验证通过"都不可信 |
 | `tool` | `sdlc-core/scripts/*`、`tools/*` | 之后所有调用该脚本的环节 | 立即 | 确定性检查出错比人出错更难发现——没人会怀疑脚本 |
 | `skill` | 任一 `sdlc-*/SKILL.md` 或 `references/` | **之后所有工作，所有项目** | 立即，且整个会话常驻 | 静默影响每一次执行，最难回溯 |

@@ -1,84 +1,54 @@
 ---
-title: セルフホスト Git ホスティング
-description: ワークスペースごとにセルフホストの Forgejo、Gitea、GitLab インスタンスを接続し、イシュー番号を参照する Pull Request / Merge Request を対応するイシューへ自動的に紐づけ、マージ時に「完了」へ移動して CI ステータスを表示します。
+title: GitHub・GitHub Enterprise・GitLab のリポジトリ
+description: 「ソース → コードとディレクトリ」で、インスタンス URL とトークン、または GitHub App を使ってコードホスティングを接続します。
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="warn">
-**セルフホスト版 Enact 専用です。** この連携は Enact を**自分でデプロイしている**場合のみ利用でき、Enact Cloud では提供されません。ここでの「セルフホスト」は **Enact 自体**のセルフホストを意味します。通常は独自ネットワーク内の Git インスタンスへアクセスするために使用します。サーバー運用者が `ENACT_VCS_INTEGRATION_ENABLED=true` を設定して機能を有効にし、`ENACT_VCS_SECRET_KEY` も設定する必要があります。それまでは、設定 → 連携にこのセクションは表示されません。
+サーバーに必要な設定は `ENACT_VCS_SECRET_KEY`（base64 の 32 バイト鍵、`openssl rand -base64 32`）だけです。保存するトークン、Webhook secret、企業 CA をすべて暗号化します。未設定の場合、画面に不足内容が表示され、認証情報の保存は拒否されます。プロバイダーが到達できるアドレスで Webhook を登録するため、`ENACT_PUBLIC_URL` も設定してください。
 </Callout>
 
-Enact はワークスペースごとにセルフホストの Git ホスティング、**Forgejo**、**Gitea**、**GitLab** のいずれかへ接続します。接続後、ブランチ名、タイトル、本文にイシュー番号（例: `ENA-123`）を含む Pull Request（GitLab では Merge Request）は、対応する[イシュー](/issues)へ**自動的に紐づけられ**、イシューサイドバーの **Pull requests** に表示されます。終了キーワードを含む PR がマージされると、イシューは「完了」へ移動します。head commit の CI はカード上のチェックバーとして表示されます。
+設定はすべて **ソース → コードとディレクトリ** で、ワークスペースのオーナーまたは管理者が行います。**接続** から次のいずれかを選びます。
 
-これらの Git ホスティングは GitHub と並行して利用でき、1 つのワークスペースで任意に組み合わせられます。
+| 方式 | 用途 | 入力内容 |
+| --- | --- | --- |
+| トークンで GitHub.com に接続 | GitHub App 未設定の github.com | ファイングレインまたはクラシックトークン |
+| GitHub Enterprise Server | 社内ネットワーク上を含む GHES | インスタンス URL とトークン |
+| GitLab | GitLab.com またはセルフマネージド GitLab | インスタンス URL、API トークン、Git トークン |
+| GitHub App | App が設定済みの github.com | 入力不要。GitHub へ遷移します |
 
-<Callout type="info">
-GitHub と異なり、これらの Git ホスティングには「App」モデルがありません。各ワークスペースが独自のインスタンス URL とアクセストークンを保存し、リポジトリまたは組織へ Webhook を登録します。トークンと Webhook secret はどちらも暗号化して保存されます。
-</Callout>
+トークン接続にはデプロイ単位のプロバイダー設定が不要です。利用できる場合は GitHub App の方が強い認証情報です。リポジトリごとに短期トークンを発行し、Webhook は GitHub が登録します。
 
-## 前提条件（サーバー）
+## ネットワーク要件
 
-まず、このデプロイで連携を有効にします。デフォルトでは無効であり、有効にするまでセクションは表示されません。
+Enact サーバーはプロバイダー API を呼び出し、各 daemon は HTTPS でクローンします。どちらもインスタンスに到達できる必要があります。公開インターネット上の Enact サーバーは、社内ネットワークにしかない GitLab に到達できません。サーバーは `HTTPS_PROXY` と `NO_PROXY` に従います。
 
-```sh
-ENACT_VCS_INTEGRATION_ENABLED=true
-```
+Webhook は逆方向で、プロバイダーから Enact に届きます。セルフマネージド GitLab は内部アドレスへのリクエストを禁止していることが多いため、管理者に **Admin → Settings → Network → Outbound requests** で Enact の Webhook ホストを許可してもらってください。各接続カードに正確なアドレスが表示されます。
 
-公式のセルフホスト用 `docker compose` ファイル（`docker-compose.selfhost.yml`）では設定済みです。
+## トークン
 
-次に、保存する認証情報をサーバーが暗号化するための、base64 でエンコードした 32 バイトの鍵を設定します。設定しない場合、接続フォームは利用できません。
+**GitHub。** 1 つのトークンで API と HTTPS Git の両方を認証します。ファイングレイントークンには Contents 読み書き、Pull requests 読み書き、Webhooks 読み書き、Checks 読み取り、Commit statuses 読み取り、Metadata 読み取りが必要です。クラシックトークンには `repo` と `admin:repo_hook` が必要です。組織で SAML SSO を使う場合はトークンを認可してください。
 
-```sh
-openssl rand -base64 32
-```
+**GitLab。** GitLab は 2 つの役割を分けるため、トークンも 2 つ必要です。API トークンは `api` が必要で、Enact サーバーにのみ保持されます。Git トークンは `write_repository` が必要で、認可済み daemon にリポジトリ単位で配布されます。LDAP や SSO でサインインするアカウントも、ユーザー設定からこれらのトークンを作成できます。
 
-```sh
-ENACT_VCS_SECRET_KEY=<base64 32 バイト鍵>
-```
+有効期限は任意です。Enact は入力値ではなくプロバイダーが報告したスコープを記録します。
 
-両方が必要です。スイッチは機能を提供するかどうかを決め、鍵は保存するトークンと Webhook secret を暗号化します。接続、Webhook、ローテーションはいずれも両方の設定を必要とします。
+## エンタープライズ向けオプション
 
-`ENACT_PUBLIC_URL` にサーバーの公開ベース URL を設定すると、Enact がそのまま貼り付けられる Webhook URL を表示できます。設定しない場合、画面には Webhook のパスだけが表示されるため、origin を自分で補います。
+インスタンスを指定した場合のみ表示されます。
 
-## ワークスペースを接続
+- **クローンホスト**：Git 通信が API と異なるホスト名を使う場合に指定します。紐付けたリポジトリのリモートはこのホストに書き換えられます。
+- **企業 CA（PEM）**：サーバーの API 呼び出しと daemon の Git 通信の信頼ストアに追加されます。TLS 検証は無効化できません。
 
-1. Git ホスティング側で、リポジトリの読み取り権限を持つアクセストークンを作成します。
-   - **Forgejo / Gitea**: 設定 → アプリケーション。
-   - **GitLab**: `read_api` 権限を持つ個人（またはグループ/プロジェクト）アクセストークン。
-2. Enact で **設定 → 連携 → Git ホスティング**を開きます。
-3. **プロバイダー**を選択し、インスタンス URL（例: `https://forgejo.example.com`）とアクセストークンを入力して **接続**をクリックします。Enact は保存前に、そのトークンでインスタンスへアクセスして検証します。
-4. 接続後に表示される **Webhook URL** と **Webhook secret** をコピーします。
+## リポジトリと Webhook
 
-<Callout type="warn">
-Webhook secret は一度しか表示されません。ページを離れる前にコピーしてください。同じインスタンスへ再接続すると、トークンと secret がローテーションされます。
-</Callout>
+接続カードの **リポジトリを参照** から選択します。push できない、アーカイブ済み、紐付け済みのリポジトリは選択できません。紐付けると Enact がバックグラウンドで Webhook を登録し、状態は `registered`、`ok`、`manual`、`failed` のいずれかになります。`manual` の場合はカードのアドレスと接続時に一度だけ表示された secret で手動追加し、`failed` の場合は **Webhook を登録** で再試行します。
 
-## Webhook を登録
+## 接続の健全性
 
-リポジトリ（または全リポジトリを対象にする組織/グループ）で設定します。
+各カードは API、Webhook、Git 読み取り、Git 書き込み、PR/MR 作成の 5 つを個別に報告します。**テスト** は API を確認し、Git の読み書きは各 daemon がリポジトリごとに報告します。
 
-**Forgejo / Gitea** — 設定 → Webhook → Webhook を追加 → Forgejo/Gitea:
+## タスクからの push と PR
 
-- **送信先 URL**: 前の手順で取得した Webhook URL。
-- **HTTP メソッド** `POST`、**コンテンツタイプ** `application/json`。
-- **secret**: Webhook secret（`X-Gitea-Signature` HMAC の検証に使用）。
-- **トリガーイベント**: **Pull Request** を選び、CI をミラーするには **Commit Status** も選択。
-
-**GitLab** — 設定 → Webhooks:
-
-- **URL**: Webhook URL。
-- **Secret token**: Webhook secret（`X-Gitlab-Token` として送信され、文字列をそのまま比較）。
-- **トリガー**: **Merge request events** を有効にし、CI をミラーするには **Pipeline events** も有効化。
-
-Enact は保存済みの secret で各 delivery を検証するため、一致する secret がない Webhook は拒否されます。
-
-## ミラーされる内容
-
-- **Pull / Merge Request** — open、closed、merged、draft の状態、作成者、ブランチ、および Git ホスティングが提供する場合は diff 統計。
-- **イシューの紐づけ** — タイトル、本文、ブランチの番号で PR をイシューへ紐づけます。マージ済み PR に終了キーワード（`Closes`/`Fixes`/`Resolves ENA-123`）があり、open の関連 PR が残っていなければ、イシューを「完了」へ移動します。
-- **CI** — Forgejo/Gitea の commit status と GitLab pipeline を、head commit の成功/失敗/進行中チェックバーへ集約します。
-
-## エージェントによる Pull Request の作成
-
-PR の作成には Enact 側の Git ホスティング設定は不要です。エージェントはランタイムでリポジトリを checkout し、ランタイムホスト自身の Git 認証情報を使ってブランチを push し、PR を作成します。エージェントを特定の Git ホスティングで動かすには、SSH deploy key やホストの Git credential helper に保存したトークンなどを使って、デーモンホストがその Git ホスティングへ認証できるようにし、通常どおりリポジトリ URL を追加してください。任意の Git URL を checkout できるため、プロバイダー固有の設定は必要ありません。
+エージェントは `enact repo push` を使います。daemon はリポジトリ単位の認証情報を `0600` の一時ファイルに書き込んで push し、終了後に削除します。`enact repo change-request --title "…"` は Enact サーバー経由で PR/MR を作成するため、API トークンはエージェントのプロセスに入りません。SSH は別フェーズで提供予定です。

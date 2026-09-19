@@ -23,6 +23,8 @@ import { IssuesPage } from "@enact/views/issues/components";
 import { DashboardPage } from "@enact/views/dashboard";
 import { AutopilotsPage } from "@enact/views/autopilots/components";
 import { MarketplacePage } from "@enact/views/marketplace";
+import { CodeGraphsPage } from "@enact/views/codegraph";
+import { CodeGraphPage } from "./pages/code-graph-page";
 import { DesktopRuntimesPage } from "./components/desktop-runtimes-page";
 import {
   AiCreateAgentPage,
@@ -185,6 +187,16 @@ export const appRoutes: RouteObject[] = [
             path: "marketplace/:id",
             element: <MarketplaceListingPage />,
             handle: { title: "Marketplace" },
+          },
+          {
+            path: "codegraph",
+            element: <CodeGraphsPage />,
+            handle: { title: "Code graphs" },
+          },
+          {
+            path: "codegraph/:resourceId",
+            element: <CodeGraphPage />,
+            handle: { title: "Code graph" },
           },
           { path: "agents", element: <AgentsPage />, handle: { title: "Agents" } },
           { path: "members", element: <MembersPage />, handle: { title: "Members" } },

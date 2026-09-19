@@ -31,3 +31,8 @@
 - `server/internal/semantic/adapter.go` executes configured REST/PostgreSQL/MCP operations with the source caller's scoped credentials.
 - `server/internal/handler/semantic_application.go` stores immutable source/build versions and human publication history; `semantic_application_invoke.go` restricts each app to its pinned release, capability manifest and current user's runs.
 - `packages/views/resources/components/resources-page.tsx` links Connections; `packages/views/semantic` contains the shared web/desktop workbench and application host. `packages/core/semantic` owns wire validation and query state.
+
+## Code graph (`resource_ref.code_graph`)
+
+- The opt-in is a boolean on a `github_repo` ref, validated by `validateGithubRepoRef` / `rejectCodeGraphFlag` in `server/internal/handler/workspace_resource.go`. Flipping it on queues a build; flipping it off deletes the `code_graph_build` rows and asks the container to release the checkout (`releaseCodeGraphProject`). Deleting the resource clears the rows in the same transaction as the agent bindings.
+- Everything else about the feature — routes, queue, worker, triggers and the `enact graph` CLI — is mapped in the `enact-code-graph` skill's `references/code-graph-source-map.md`.

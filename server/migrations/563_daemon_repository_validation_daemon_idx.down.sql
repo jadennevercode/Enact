@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS idx_daemon_repository_validation_daemon;

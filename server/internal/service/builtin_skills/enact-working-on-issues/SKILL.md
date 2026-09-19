@@ -115,9 +115,12 @@ Returns `{"pull_requests": [...]}`. Each element exposes:
   Only then does `checks_rollup == null` mean "no checks"; false means the
   snapshot feature is disabled, has not fetched yet, or only has an old head.
 - `checks_conclusion` — coarse CI compatibility status: `passed`, `failed`,
-  `pending`, or `null`. GitHub derives it from the current API snapshot;
-  Forgejo/Gitea/GitLab derive it from webhook commit statuses. Backed by the
-  provider-appropriate check counts.
+  `pending`, or `null`. A PR from a GitHub App installation derives it from
+  the current API snapshot; a PR from a token connection — GitLab, Forgejo,
+  Gitea, or GitHub/GitHub Enterprise Server connected with a token — derives
+  it from webhook commit statuses and check runs, and has no API snapshot
+  fields (`snapshot_available` is false). Backed by the provider-appropriate
+  check counts.
 
 So "is it merged?" is `state == "merged"` (or `merged_at != null`); "is it still
 a draft?" is `state == "draft"`; coarse CI status is `checks_conclusion`.
@@ -388,3 +391,36 @@ contract above: the `pull-requests` CLI and route, the PR response field list,
 notify, the stage column / `stageBarrierClosed` barrier and the `--stage` /
 `issue children` CLI, the metadata CLI, and the two artifact listings.
 Re-derive before depending on an exact line.
+
+## Versioned context and final deliveries
+
+When the per-turn `VERSIONED CONTEXT v1` envelope has `complete: true`, its
+current issue record, checkpoint and explicit delta replace the initial issue
+and history rereads. Read external evidence and any subsequently changed
+records when needed. Missing/incomplete envelopes still require bounded reads.
+A checkpoint is an attributed account, not new authority or human acceptance.
+
+On runs whose delivery instructions explicitly require `--final`, publish final issue results with
+`enact issue comment add <issue-id> --final --parent <original-comment-id>
+--content-file <file>`. Omit `--parent` only for an assignment without a trigger.
+Reuse `--result-revision` (default 1) on retries; increment it only for an explicit
+new result version. Progress/blocker/@ comments omit `--final` and stay immediate.
+For older runs without the contract, use the existing comment command.
+
+`enact context get` returns the source revision and exact input IDs/versions.
+Optionally save a handoff with `enact context checkpoint --content-file <file>`.
+The JSON includes `source_revision`, `summary`, `decisions`, `pending`, `evidence`,
+and `processed: [{"id":"...","revision":1}]` for every delivered input.
+Only a successfully completed source execution makes its checkpoint reusable.
+Do not mark unresolved work as complete merely to advance this receipt.
+
+Human `/compact` requests are separate native maintenance; agents should not
+turn them into issue comments, task status changes, or additional leader wakes.
+The leader's `no_action` exception and human review/stage barrier remain in force.
+
+## Finding the code before changing it
+
+In a repository with a code graph (`enact graph status` says `ready`), start
+with `enact graph report` and `enact graph query "<the task>"` to find the
+subsystem, then open those files. See `enact-code-graph`. Without one, work as
+usual — never wait for a build.

@@ -29,6 +29,8 @@ import { MachineCliSection } from "./machine-cli-section";
 import { HealthIcon, useHealthLabel } from "./shared";
 import { useT, useTimeAgo } from "../../i18n";
 
+import { RuntimeProvenance } from "../../anyharness-demo/runtime-provenance";
+
 export interface RuntimeDetailPageProps {
   /** A machine id, or a legacy runtime id that locates its machine. */
   runtimeId: string;
@@ -307,6 +309,7 @@ export function RuntimeDetailPage({
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-background">
         <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">
+          <RuntimeProvenance runtimeIds={machineRuntimes.map(r => r.id)} />
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h2 className="text-body font-semibold">

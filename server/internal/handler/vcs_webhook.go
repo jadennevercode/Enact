@@ -2,18 +2,20 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/enact-ai/enact/server/internal/integrations/vcs"
 	"github.com/enact-ai/enact/server/internal/issuestatus"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/enact-ai/enact/server/pkg/protocol"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // ── Response mappers ────────────────────────────────────────────────────────
@@ -89,13 +91,6 @@ func vcsPullRequestRowToResponse(p db.ListVCSPullRequestsByIssueRow) GitHubPullR
 // adapter handles the provider-specific signature scheme, event header, and
 // payload shape, returning normalized events to the shared mirror logic below.
 func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
-	// Where the integration is off (the managed cloud) the endpoint behaves as
-	// if it does not exist — a bare 404 that reveals nothing about config, the
-	// same response a genuinely unknown connection id gets below.
-	if !h.isVCSAvailable() {
-		writeError(w, http.StatusNotFound, "unknown connection")
-		return
-	}
 	if !h.isVCSConfigured() {
 		writeError(w, http.StatusServiceUnavailable, "vcs webhooks not configured")
 		return
@@ -135,6 +130,7 @@ func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid signature")
 		return
 	}
+	_ = h.Queries.MarkVCSConnectionWebhookVerified(r.Context(), conn.ID)
 
 	switch provider.EventKind(r.Header) {
 	case vcs.EventPullRequest:
@@ -158,6 +154,10 @@ func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) mirrorVCSPullRequest(ctx context.Context, conn db.VcsConnection, ev vcs.PullRequestEvent) {
 	if ev.RepoOwner == "" || ev.RepoName == "" || ev.Number == 0 {
 		slog.Warn("vcs: pull_request missing repo identity", "provider", conn.Provider)
+		return
+	}
+	if !h.vcsRepositoryEnabled(ctx, conn, ev.RepoOwner, ev.RepoName) {
+		slog.Info("vcs: ignoring webhook for unbound repository", "connection_id", uuidToString(conn.ID), "repository", ev.RepoOwner+"/"+ev.RepoName)
 		return
 	}
 
@@ -286,6 +286,9 @@ func (h *Handler) mirrorVCSCIStatus(ctx context.Context, conn db.VcsConnection, 
 	if ev.SHA == "" || ev.State == "" {
 		return
 	}
+	if ev.RepoOwner == "" || ev.RepoName == "" || !h.vcsRepositoryEnabled(ctx, conn, ev.RepoOwner, ev.RepoName) {
+		return
+	}
 	// Use the provider's own event timestamp so UpsertVCSCommitStatus's
 	// monotonic guard has something real to compare — writing time.Now() here
 	// made the guard always true, so an out-of-order redelivery could regress a
@@ -317,4 +320,29 @@ func (h *Handler) mirrorVCSCIStatus(ctx context.Context, conn db.VcsConnection, 
 			"issue_id": uuidToString(issueID),
 		})
 	}
+}
+
+// vcsRepositoryEnabled reports whether a delivery names a repository this
+// workspace actually attached to this connection. Forgejo and Gitea keep their
+// original connection-scoped behavior, where every repository reachable by the
+// connection is in scope. GitLab and token-authenticated GitHub enforce the
+// binding, because their tokens routinely see an entire group or account and a
+// workspace should only mirror what it chose to attach.
+func (h *Handler) vcsRepositoryEnabled(ctx context.Context, conn db.VcsConnection, owner, name string) bool {
+	if conn.Provider != "gitlab" && conn.Provider != "github" {
+		return true
+	}
+	rows, err := h.Queries.ListWorkspaceResourcesUsingConnection(ctx, db.ListWorkspaceResourcesUsingConnectionParams{WorkspaceID: conn.WorkspaceID, ProviderConnectionID: uuidToString(conn.ID)})
+	if err != nil {
+		slog.Warn("vcs: repository binding lookup failed", "error", err)
+		return false
+	}
+	want := strings.Trim(strings.TrimSpace(owner+"/"+name), "/")
+	for _, row := range rows {
+		var ref codeRepositoryRef
+		if json.Unmarshal(row.ResourceRef, &ref) == nil && ref.Enabled && ref.Provider == conn.Provider && strings.EqualFold(strings.Trim(ref.FullName, "/"), want) {
+			return true
+		}
+	}
+	return false
 }

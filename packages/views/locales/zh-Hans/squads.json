@@ -34,9 +34,9 @@
     "title": "添加成员",
     "description": "添加工作区成员或智能体到这个Agent Family。",
     "label_member": "成员",
-    "label_role": "角色",
+    "label_role": "分工",
     "label_optional": "（可选）",
-    "placeholder_role_inline": "添加角色…",
+    "placeholder_role_inline": "添加分工…",
     "cancel": "取消"
   },
   "description_dialog": {

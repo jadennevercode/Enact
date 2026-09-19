@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -53,6 +54,7 @@ func init() {
 	autopilotCmd.GroupID = groupCore
 	workspaceCmd.GroupID = groupCore
 	repoCmd.GroupID = groupCore
+	graphCmd.GroupID = groupCore
 	skillCmd.GroupID = groupCore
 	marketplaceCmd.GroupID = groupCore
 	squadCmd.GroupID = groupCore
@@ -82,6 +84,7 @@ func init() {
 	rootCmd.AddCommand(autopilotCmd)
 	rootCmd.AddCommand(workspaceCmd)
 	rootCmd.AddCommand(repoCmd)
+	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(skillCmd)
 	rootCmd.AddCommand(marketplaceCmd)
 	rootCmd.AddCommand(squadCmd)
@@ -113,6 +116,14 @@ func main() {
 	}
 	cli.CleanupStaleUpdateArtifacts()
 	if err := rootCmd.Execute(); err != nil {
+		// A missing code graph is an expected answer, not a failure of the
+		// command: the caller is told in one line and given its own exit code
+		// so a script or an agent can carry on without parsing prose.
+		var graphMissing *errGraphUnavailable
+		if errors.As(err, &graphMissing) {
+			fmt.Fprintln(os.Stderr, graphMissing.Error())
+			os.Exit(graphUnavailableExitCode)
+		}
 		if err != errSilent {
 			fmt.Fprintln(os.Stderr, cli.FormatError(err, debugFlag))
 		}

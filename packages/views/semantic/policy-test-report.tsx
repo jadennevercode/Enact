@@ -5,6 +5,7 @@ import { useWorkspaceId } from "@enact/core/hooks";
 import { policyTestOptions, policyTestsForArtifact, policyTestStatus, recordList, type PolicyDecision, type PolicyTestResult } from "@enact/core/semantic";
 import { CheckCircle2, CircleDashed, CircleX, ShieldCheck } from "lucide-react";
 import { TechnicalDetails } from "./ontology-model";
+import { engineLabel } from "./quality-report";
 import { Failure, useSemanticText } from "./shared";
 
 function DecisionLabel({ decision }: { decision: PolicyDecision | null }) {
@@ -39,7 +40,7 @@ function PolicyTestCase({ test, historical = false }: { test: PolicyTestResult; 
       <div><dt className="text-caption text-muted-foreground">{t("qualityActual")}</dt><dd className="mt-1"><DecisionLabel decision={test.actualDecision} /></dd></div>
     </dl>
     <p className="text-body leading-relaxed">{reason}</p>
-    <p className="text-caption text-muted-foreground">{test.engine} · {t("policyTestFixture")} · <time dateTime={test.createdAt}>{Number.isNaN(Date.parse(test.createdAt)) ? t("qualityUnavailable") : new Date(test.createdAt).toLocaleString()}</time></p>
+    <p className="text-caption text-muted-foreground">{engineLabel(test.engine)} · {t("policyTestFixture")} · <time dateTime={test.createdAt}>{Number.isNaN(Date.parse(test.createdAt)) ? t("qualityUnavailable") : new Date(test.createdAt).toLocaleString()}</time></p>
     {rules.length > 0 && <details>
       <summary className="min-h-11 cursor-pointer content-center rounded text-body font-medium focus-visible:outline-2 focus-visible:outline-ring">{t("policyTestRules")}</summary>
       <ul className="mt-2 space-y-3">

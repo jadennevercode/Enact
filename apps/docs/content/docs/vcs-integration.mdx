@@ -1,89 +1,65 @@
 ---
-title: Self-hosted Git providers
-description: Connect a self-hosted Forgejo, Gitea, or GitLab instance per workspace so pull/merge requests that reference an issue identifier auto-attach to that issue, move it to Done on merge, and show CI status.
+title: GitHub, GitHub Enterprise and GitLab repositories
+description: Connect code hosting from Sources → Code & directories with an instance URL and a token, or with a GitHub App.
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="warn">
-**Self-hosted Enact only.** This integration is available only when you run
-Enact yourself; it is not offered on Enact Cloud. "Self-hosted" here means
-**Enact** is self-hosted — typically so it can reach a Git instance on your own
-network. A server operator must enable it (`ENACT_VCS_INTEGRATION_ENABLED=true`)
-and set `ENACT_VCS_SECRET_KEY`; until then the section does not appear in
-Settings → Integrations.
+The server needs one setting: `ENACT_VCS_SECRET_KEY`, a base64-encoded 32-byte key (`openssl rand -base64 32`). It encrypts every stored token, webhook secret and enterprise CA. Without it the page explains what is missing and refuses to store a credential. Set `ENACT_PUBLIC_URL` too, so Enact can register webhooks at an address the provider can reach.
 </Callout>
 
-Enact connects to a self-hosted Git provider per workspace: **Forgejo**, **Gitea**, or **GitLab**. Once connected, any pull request (GitLab: merge request) whose branch name, title, or body contains an issue identifier (for example `ENA-123`) is **auto-linked** to that [issue](/issues), appears under **Pull requests** in the issue sidebar, and — when merged with a closing keyword — moves the issue to **Done**. CI for the head commit shows as a checks bar on the card.
+Everything is configured in **Sources → Code & directories** by a workspace owner or admin. Choose **Connect** and pick one of:
 
-These providers run alongside GitHub: a workspace can use any combination.
+| Option | Use it for | What you enter |
+| --- | --- | --- |
+| GitHub.com with a token | github.com, when no GitHub App is set up | A fine-grained or classic token |
+| GitHub Enterprise Server | A GHES instance, including one on an internal network | Instance URL and a token |
+| GitLab | GitLab.com or a self-managed GitLab | Instance URL, an API token and a Git token |
+| GitHub App | github.com, when the deployment has an App configured | Nothing; you are redirected to GitHub |
 
-<Callout type="info">
-Unlike GitHub, these providers have no "App" model. Each workspace stores its own instance URL plus an access token, and registers a webhook on its repository or organisation. The token and webhook secret are encrypted at rest.
-</Callout>
+A token connection needs no deployment-level provider setup. The GitHub App remains the stronger credential where it is available: it mints a short-lived token per repository and GitHub registers its webhook.
 
-## Prerequisites (server)
+## Network requirements
 
-Turn the integration on for this deployment. It is off by default, so the section stays hidden until you set:
+The Enact server calls the provider API, and each daemon clones over HTTPS. Both must reach the instance. An Enact server on the public internet cannot reach a GitLab that only exists on an internal network. The server honours `HTTPS_PROXY` and `NO_PROXY`.
 
-```sh
-ENACT_VCS_INTEGRATION_ENABLED=true
-```
+Webhooks travel the other way, from the provider to Enact. A self-managed GitLab often blocks requests to internal addresses; ask its administrator to allow the Enact webhook host under **Admin → Settings → Network → Outbound requests**. Each connection card shows the exact address.
 
-The official self-hosted `docker compose` file (`docker-compose.selfhost.yml`) sets this for you.
+## Tokens
 
-Then set a base64-encoded 32-byte key so the server can encrypt stored credentials. Without it, the connect form is disabled.
+**GitHub.** One token authenticates both the API and HTTPS Git. A fine-grained token needs these repository permissions: Contents read and write, Pull requests read and write, Webhooks read and write, Checks read, Commit statuses read, and Metadata read. A classic token needs `repo` and `admin:repo_hook`. If your organization uses SAML SSO, authorize the token for it; otherwise GitHub accepts the token and then refuses every request.
 
-```sh
-openssl rand -base64 32
-```
+**GitLab.** GitLab splits the two jobs, so it takes two tokens. The API token needs `api` and stays on the Enact server for browsing and merge requests. The Git token needs `write_repository` and is delivered only to an authorized daemon, per repository. Prefer an expiring service account limited to the projects you need. Accounts that sign in through LDAP or SSO can create these tokens from their user settings.
 
-```sh
-ENACT_VCS_SECRET_KEY=<base64 32-byte key>
-```
+Expiry is optional. Enact records the scopes the provider reports, not the ones entered. A fine-grained GitHub token reports none, and the card says so rather than showing an empty list.
 
-Both are required: the switch decides whether the feature is offered, and the key encrypts the stored token and webhook secret. Connect, webhook, and rotate all require both.
+## Enterprise options
 
-Set `ENACT_PUBLIC_URL` to the server's public base URL so Enact can show a ready-to-paste webhook URL. Without it, the UI shows only the webhook path and you prepend your own origin.
+These fields appear only for an instance you supply:
 
-## Connect a workspace
+- **Clone host**: the hostname Git traffic uses when it differs from the API host. Enact rewrites each attached repository's remote to it.
+- **Enterprise CA (PEM)**: added to the trust store for server API calls and daemon Git traffic. TLS verification cannot be turned off.
 
-1. Create an access token in your provider with read access to the repositories you want mirrored:
-   - **Forgejo / Gitea**: Settings → Applications.
-   - **GitLab**: a personal (or group/project) access token with the `read_api` scope.
-2. In Enact, open **Settings → Integrations → Git providers**.
-3. Choose the **provider**, enter the instance URL (for example `https://forgejo.example.com`) and the access token, then **Connect**. Enact validates the token against the instance before saving.
-4. Copy the **webhook URL** and **webhook secret** shown after connecting.
+## Attaching repositories and webhooks
 
-<Callout type="warn">
-The webhook secret is shown only once. Copy it before leaving the page. Reconnecting the same instance rotates the token and secret.
-</Callout>
+Choose **Browse repositories** on a connection. The picker lists what the credential can reach. Repositories the credential cannot push to, archived repositories, and repositories already attached cannot be selected.
 
-## Register the webhook
+When you attach a repository, Enact registers a webhook on it in the background. The card's Webhook leg then shows one of:
 
-On the repository (or organisation/group, to cover every repo):
+- `registered`: the hook exists. It is not yet proof that a delivery arrived.
+- `ok`: a signed delivery was received.
+- `manual`: the token may not manage hooks. Add one by hand with the webhook address on the card and the secret shown once at connect time.
+- `failed`: registration did not succeed. Choose **Register webhooks** to retry.
 
-**Forgejo / Gitea** — Settings → Webhooks → Add Webhook → Forgejo/Gitea:
+Enact subscribes GitHub to `pull_request`, `check_run` and `status`, and GitLab to merge request and pipeline events. It only processes events for repositories attached to that connection.
 
-- **Target URL**: the webhook URL from the previous step.
-- **HTTP method** `POST`, **content type** `application/json`.
-- **Secret**: the webhook secret (used to verify the `X-Gitea-Signature` HMAC).
-- **Trigger events**: select **Pull Request**, and **Commit Status** to mirror CI.
+## Connection health
 
-**GitLab** — Settings → Webhooks:
+Each card reports five legs independently: API, Webhook, Git read, Git write, and PR or MR creation. **Test** checks the API leg. Git read and write are reported by each daemon for each repository. A healthy API says nothing about whether a daemon can clone.
 
-- **URL**: the webhook URL.
-- **Secret token**: the webhook secret (sent as `X-Gitlab-Token` and compared verbatim).
-- **Triggers**: enable **Merge request events**, and **Pipeline events** to mirror CI.
+## Pushing and pull requests from a task
 
-Enact authenticates every delivery against the stored secret, so a webhook without the matching secret is rejected.
+In a managed repository an agent uses `enact repo push`. The daemon fetches a repository-scoped credential, writes it to a `0600` temporary credential store for the push, and deletes it afterwards. `enact repo change-request --title "…"` then opens the pull or merge request through the Enact server, so the provider API token never enters the agent process.
 
-## What gets mirrored
-
-- **Pull / merge requests** — open, closed, merged, and draft state, author, branch, and (where the provider supplies them) diff stats.
-- **Issue links** — identifiers in the title, body, or branch link the PR to the issue. A closing keyword (`Closes`/`Fixes`/`Resolves ENA-123`) on a merged PR moves the issue to **Done** once no linked PR is still open.
-- **CI** — Forgejo/Gitea commit statuses and GitLab pipelines aggregate into a passed/failed/pending checks bar for the head commit.
-
-## Agents opening pull requests
-
-Creating PRs needs no provider configuration in Enact. Agents check out repositories in the runtime and push branches and open PRs using the runtime host's own Git credentials. To let agents work against a provider, ensure the daemon host can authenticate to it — for example an SSH deploy key, or a token in the host's Git credential helper — and add the repository URL as usual. Repository checkout works with any Git URL, so no provider-specific wiring is required.
+Repositories saved by older versions as a bare URL appear as **Pending configuration** and stay disabled until an admin binds them to a connection. SSH transport is planned as a separate phase.

@@ -71,6 +71,10 @@ import type {
   OntologySummary,
   ListGitHubInstallationsResponse,
   ListGitHubRepositoriesResponse,
+  ListVCSConnectionsResponse,
+  RegisterVCSWebhooksResponse,
+  ListVCSRepositoriesResponse,
+  TestVCSConnectionResponse,
   ListLabelsResponse,
   ListWebhookDeliveriesResponse,
   IssueStatusEntry,
@@ -96,6 +100,8 @@ import type {
   WorkspaceResource,
   SkillVersionDetail,
   ListSkillVersionsResponse,
+  TeamRole,
+  ListTeamRolesResponse,
 } from "../types";
 import type { CloudRuntimeNode } from "../runtimes/cloud-runtime";
 import type { CreateFeedbackResponse } from "../feedback/types";
@@ -384,6 +390,60 @@ export const EMPTY_LIST_GITHUB_REPOSITORIES_RESPONSE: ListGitHubRepositoriesResp
   next_page: null,
 };
 
+const VCSConnectionSchema = z.object({
+  id: z.string().default(""), workspace_id: z.string().default(""),
+  provider: z.enum(["forgejo", "gitea", "gitlab", "github"]).catch("gitlab"),
+  instance_url: z.string().default(""), account_login: z.string().default(""),
+  webhook_url: z.string().default(""), webhook_path: z.string().default(""),
+  created_at: z.string().default(""), token_type: z.string().default("personal"),
+  token_scopes: z.array(z.string()).default([]), token_expires_at: z.string().nullable().default(null),
+  clone_host: z.string().default(""), has_custom_ca: z.boolean().default(false),
+  last_validated_at: z.string().nullable().default(null), api_status: z.string().default("unknown"),
+  webhook_status: z.string().default("pending"), git_read_status: z.string().default("unknown"),
+  git_write_status: z.string().default("unknown"), change_request_status: z.string().default("unknown"),
+}).loose();
+
+export const ListVCSConnectionsResponseSchema = z.object({
+  connections: z.array(VCSConnectionSchema).default([]),
+  configured: z.boolean().optional().default(false), can_manage: z.boolean().optional().default(false),
+  requirements: z.object({
+    gitlab: z.object({ api_token_scope: z.string(), git_token_scope: z.string(), preferred_token_type: z.string(), webhook_events: z.array(z.string()) }).loose().optional(),
+    github: z.object({ fine_grained_permissions: z.array(z.string()).default([]), classic_scopes: z.array(z.string()).default([]), preferred_token_type: z.string().default("fine_grained"), webhook_events: z.array(z.string()).default([]) }).loose().optional(),
+  }).loose().optional(),
+}).loose();
+export const EMPTY_LIST_VCS_CONNECTIONS_RESPONSE: ListVCSConnectionsResponse = { connections: [], configured: false, can_manage: false };
+
+// One picker row for every provider. id is a string because GitLab numbers its
+// projects and GitHub numbers its repositories on different scales, and the
+// value is only ever echoed back to the server.
+const VCSRepositorySchema = z.object({
+  id: z.string().default(""), full_name: z.string().default(""), web_url: z.string().default(""),
+  clone_url: z.string().default(""),
+  description: z.string().nullable().transform((v) => v ?? ""),
+  visibility: z.string().default("private"), archived: z.boolean().default(false),
+  default_branch: z.string().default(""), can_push: z.boolean().default(false),
+}).loose();
+export const ListVCSRepositoriesResponseSchema = z.object({ repositories: z.array(VCSRepositorySchema).default([]), total_count: z.number().default(0), next_page: z.number().nullable().default(null) }).loose();
+export const EMPTY_LIST_VCS_REPOSITORIES_RESPONSE: ListVCSRepositoriesResponse = { repositories: [], total_count: 0, next_page: null };
+
+export const RegisterVCSWebhooksResponseSchema = z.object({
+  connection: VCSConnectionSchema,
+  repositories: z.array(z.object({ repository: z.string().default(""), status: z.string().default("failed") }).loose()).default([]),
+}).loose();
+export const EMPTY_REGISTER_VCS_WEBHOOKS_RESPONSE: RegisterVCSWebhooksResponse = {
+  connection: VCSConnectionSchema.parse({}), repositories: [],
+};
+
+export const TestVCSConnectionResponseSchema = z.object({
+  connection: VCSConnectionSchema,
+  api: z.object({ status: z.string(), detail: z.string() }),
+  webhook: z.object({ status: z.string(), detail: z.string() }),
+  git: z.object({ read_status: z.string(), write_status: z.string(), detail: z.string() }),
+}).loose();
+export const EMPTY_TEST_VCS_CONNECTION_RESPONSE: TestVCSConnectionResponse = {
+  connection: VCSConnectionSchema.parse({}), api: { status: "unknown", detail: "" }, webhook: { status: "pending", detail: "" }, git: { read_status: "unknown", write_status: "unknown", detail: "" },
+};
+
 export const GitHubPullRequestSchema = z.object({
   id: z.string(),
   provider: z.string().optional().default("github"),
@@ -513,6 +573,55 @@ export const EMPTY_LIST_ISSUE_STATUSES_RESPONSE: ListIssueStatusesResponse = {
   categories: ["backlog", "todo", "in_progress", "in_review", "done", "blocked", "cancelled"],
   total: 0,
 };
+
+// Team role catalog. A team role is functional (架构 / QA / ops), never a
+// permission — see packages/core/types/team-role.ts.
+export const TeamRoleSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string().optional().default(""),
+  key: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(""),
+  color: z.string().optional().default("#6b7280"),
+  position: z.number().optional().default(0),
+  archived_at: z.string().nullable().optional().default(null),
+  created_at: z.string().optional().default(""),
+  updated_at: z.string().optional().default(""),
+}).loose();
+
+export const EMPTY_TEAM_ROLE: TeamRole = {
+  id: "",
+  workspace_id: "",
+  key: "",
+  name: "",
+  description: "",
+  color: "#6b7280",
+  position: 0,
+  archived_at: null,
+  created_at: "",
+  updated_at: "",
+};
+
+export const ListTeamRolesResponseSchema = z.object({
+  team_roles: z.array(TeamRoleSchema).default([]),
+  total: z.number().default(0),
+}).loose();
+
+export const EMPTY_LIST_TEAM_ROLES_RESPONSE: ListTeamRolesResponse = {
+  team_roles: [],
+  total: 0,
+};
+
+// Denormalized onto every member payload. `archived` defaults to false so a
+// server that omits it does not make live roles look retired.
+export const TeamRoleRefSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string().optional().default(""),
+  color: z.string().optional().default("#6b7280"),
+  archived: z.boolean().optional().default(false),
+}).loose();
+
 
 export const ResourceLabelsResponseSchema = z.object({
   labels: z.array(LabelSchema).default([]),
@@ -734,7 +843,6 @@ export interface AppConfigResponse {
   /** Whether this deployment offers the self-hosted Git provider integration
    * (self-host only; off on the managed cloud). Absent/false hides the whole
    * Settings → Integrations "Git providers" section. */
-  vcs_integration_available?: boolean;
   feature_flags?: Record<string, boolean>;
   /** Whether this server understands local_directory `execution_mode` and
    * gates worktree mode at save time. Absent on every server that predates this
@@ -937,7 +1045,6 @@ export const AppConfigSchema = z.object({
   daemon_server_url: OptionalStringSchema,
   daemon_app_url: OptionalStringSchema,
   workspace_creation_disabled: BooleanWithDefaultSchema(false).optional(),
-  vcs_integration_available: BooleanWithDefaultSchema(false).optional(),
   feature_flags: FeatureFlagsSchema,
   local_worktree_supported: BooleanWithDefaultSchema(false),
   server_version: OptionalStringSchema,
@@ -951,7 +1058,6 @@ export const EMPTY_APP_CONFIG: AppConfigResponse = {
   daemon_server_url: "",
   daemon_app_url: "",
   workspace_creation_disabled: false,
-  vcs_integration_available: false,
   // Fail closed: an unreadable config must not look like a server that
   // validates execution_mode.
   local_worktree_supported: false,
@@ -3133,12 +3239,38 @@ export const MemberWithUserSchema = z.object({
   id: z.string(),
   workspace_id: z.string(),
   user_id: z.string(),
+  // The PERMISSION. Functional roles are `team_roles` below.
   role: z.string(),
   created_at: z.string().optional().default(""),
   name: z.string().optional().default(""),
   email: z.string().optional().default(""),
   avatar_url: z.string().nullable().optional().default(null),
+  // Defaulted, so a server that predates team roles yields [] rather than
+  // undefined and the roster can iterate without a guard.
+  team_roles: z.array(TeamRoleRefSchema).optional().default([]),
 }).loose();
+
+// The member list is the routing lookup ("who can review this"), so it is
+// parsed rather than cast: a malformed row would otherwise reach the roster as
+// `undefined.name`.
+export const MemberWithUserListSchema = z.array(MemberWithUserSchema).default([]);
+
+export const EMPTY_MEMBER_WITH_USER_LIST: MemberWithUser[] = [];
+
+// A single-member fallback carries no identity on purpose: a caller that gets
+// this back has no member to act on, and an empty id fails loudly at the next
+// request instead of quietly patching the wrong row.
+export const EMPTY_MEMBER_WITH_USER: MemberWithUser = {
+  id: "",
+  workspace_id: "",
+  user_id: "",
+  role: "member",
+  created_at: "",
+  name: "",
+  email: "",
+  avatar_url: null,
+  team_roles: [],
+};
 
 export const JoinShareLinkResponseSchema = z.object({
   member: MemberWithUserSchema,
@@ -3221,6 +3353,20 @@ const WorkspaceResourceSchema = z.object({
   position: z.number().default(0),
   created_at: z.string().default(""),
   created_by: z.string().nullable().default(null),
+  configuration_status: z.string().optional().default("ready"),
+  configuration_errors: z.array(z.string()).optional().default([]),
+  connection_summary: z.object({
+    provider: z.string().default(""),
+    connection_id: z.string().default(""),
+    full_name: z.string().optional(),
+    instance_url: z.string().optional(),
+    account_login: z.string().optional(),
+    token_type: z.string().optional(),
+  }).loose().nullable().optional().default(null),
+  daemon_validations: z.array(z.object({
+    daemon_id: z.string(), read_status: z.string(), write_status: z.string(),
+    error_code: z.string().optional(), error_message: z.string().optional(), checked_at: z.string(),
+  }).loose()).optional().default([]),
 }).loose();
 
 export const ListWorkspaceResourcesResponseSchema = z.object({
@@ -3272,6 +3418,10 @@ export const EMPTY_WORKSPACE_RESOURCE: WorkspaceResource = {
   position: 0,
   created_at: "",
   created_by: null,
+  configuration_status: "ready",
+  configuration_errors: [],
+  connection_summary: null,
+  daemon_validations: [],
 };
 
 // --- Marketplace -----------------------------------------------------------

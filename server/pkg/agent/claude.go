@@ -120,10 +120,21 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 	stderrBuf := newStderrTail(newLogWriter(b.cfg.Logger, "[claude:stderr] "), agentStderrTailBytes)
 	cmd.Stderr = stderrBuf
 
-	if err := cmd.Start(); err != nil {
+	if err := startOwnedProcessTree(cmd, b.cfg.Logger); err != nil {
 		closeStdin()
 		cancel()
 		return nil, fmt.Errorf("start claude: %w", err)
+	}
+
+	if opts.ProcessStarted != nil {
+		if err := opts.ProcessStarted(cmd.Process.Pid); err != nil {
+			signalProcessGroup(cmd, syscall.SIGKILL)
+			_ = cmd.Wait()
+			releaseProcessGroup(cmd)
+			closeStdin()
+			cancel()
+			return nil, fmt.Errorf("persist native process: %w", err)
+		}
 	}
 
 	b.cfg.Logger.Info("claude started", "pid", cmd.Process.Pid, "cwd", opts.Cwd, "model", opts.Model)
@@ -165,6 +176,7 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 		defer cancel()
 		defer close(msgCh)
 		defer close(resCh)
+		defer releaseProcessGroup(cmd)
 		if mcpConfigPath != "" {
 			defer cleanupMcpConfigTemp(mcpConfigPath)
 		}
@@ -178,6 +190,10 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 		var sessionID string
 		sawAsyncLaunch := false
 		usage := make(map[string]TokenUsage)
+		var contextSnapshot *ContextSnapshot
+		var lastContextUsage *claudeUsage
+		var lastContextModel string
+		compactionRan := false
 		eventCount := 0
 		invalidEventCount := 0
 		assistantEventCount := 0
@@ -233,6 +249,10 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 
 			switch msg.Type {
 			case "assistant":
+				var current claudeMessageContent
+				if json.Unmarshal(msg.Message, &current) == nil && current.Usage != nil {
+					lastContextUsage, lastContextModel = current.Usage, current.Model
+				}
 				assistantEventCount++
 				turn := b.handleAssistant(msg, msgCh, usage)
 				toolUseCount += turn.toolUses
@@ -245,6 +265,11 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 					sawAsyncLaunch = true
 				}
 			case "system":
+				if msg.Subtype == "compact_boundary" {
+					compactionRan = true
+					lastContextUsage = nil
+					contextSnapshot = nil
+				}
 				if msg.SessionID != "" {
 					sessionID = msg.SessionID
 				}
@@ -260,6 +285,14 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 				sessionID = msg.SessionID
 				if resultUsage := claudeResultUsage(msg, opts.Model); len(resultUsage) > 0 {
 					usage = resultUsage
+				}
+				if lastContextUsage != nil && lastContextModel != "" {
+					window := msg.ModelUsage[lastContextModel].ContextWindow
+					used := lastContextUsage.InputTokens + lastContextUsage.CacheReadInputTokens + lastContextUsage.CacheCreationInputTokens
+					if window > 0 && used >= 0 {
+						contextSnapshot = &ContextSnapshot{SessionID: sessionID, Model: lastContextModel, UsedTokens: &used, WindowTokens: &window, Basis: "claude_input_window", IsEstimate: true, ObservedAt: time.Now().UTC()}
+						trySend(msgCh, Message{Type: MessageStatus, SessionID: sessionID, Context: contextSnapshot})
+					}
 				}
 				closeStdin()
 			case "log":
@@ -355,14 +388,41 @@ func (b *claudeBackend) Execute(ctx context.Context, prompt string, opts ExecOpt
 			)
 		}
 
+		maintenanceStatus := ""
+		if opts.NativeCompaction {
+			maintenanceStatus = "failed"
+			if compactionRan {
+				maintenanceStatus = "succeeded"
+			} else if finalStatus == "completed" {
+				text := strings.ToLower(finalResultText)
+				if strings.Contains(text, "not enough messages") || strings.Contains(text, "nothing to compact") {
+					maintenanceStatus = "skipped"
+				} else {
+					maintenanceStatus = "closed_unknown"
+					finalError = "native compaction returned no completion evidence"
+				}
+			} else if runCtx.Err() != nil || scanErr != nil {
+				maintenanceStatus = "closed_unknown"
+			}
+		}
+		cleanupConfirmed := false
+		if opts.NativeCompaction {
+			if !waitProcessGroupGone(cmd, 100*time.Millisecond) {
+				signalProcessGroup(cmd, syscall.SIGKILL)
+			}
+			cleanupConfirmed = waitProcessGroupGone(cmd, 2*time.Second)
+		}
 		resCh <- Result{
-			Status:         finalStatus,
-			Output:         finalOutput,
-			Error:          finalError,
-			DurationMs:     duration.Milliseconds(),
-			SessionID:      reportedSessionID,
-			Usage:          usage,
-			ResumeRejected: resumeRejected,
+			CleanupConfirmed:  cleanupConfirmed,
+			MaintenanceStatus: maintenanceStatus,
+			Context:           contextSnapshot,
+			Status:            finalStatus,
+			Output:            finalOutput,
+			Error:             finalError,
+			DurationMs:        duration.Milliseconds(),
+			SessionID:         reportedSessionID,
+			Usage:             usage,
+			ResumeRejected:    resumeRejected,
 		}
 	}()
 
@@ -590,6 +650,7 @@ type claudeUsage struct {
 }
 
 type claudeResultModelUsage struct {
+	ContextWindow            int64 `json:"contextWindow"`
 	InputTokens              int64 `json:"inputTokens"`
 	OutputTokens             int64 `json:"outputTokens"`
 	CacheReadInputTokens     int64 `json:"cacheReadInputTokens"`

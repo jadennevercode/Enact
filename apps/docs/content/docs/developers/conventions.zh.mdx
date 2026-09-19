@@ -162,6 +162,10 @@ Enact 的产品名词分两类：
 | Retrospect | **复盘** |
 | Knowledge document | **知识文档** |
 | Knowledge base | **知识库** |
+| Code graph | **代码图谱** |
+| Subsystem (code graph community) | **子系统** |
+| God node | **关键枢纽** |
+| Call flow | **调用流** |
 
 导航区块的名字也在这张表里，它们是产品结构的一部分，不是随手写的标题：
 
@@ -213,17 +217,35 @@ Marketplace」，那个词现在不再出现在任何界面里：它把一个部
 | Active / Archived | 活跃（或 启用）/ 已归档 |
 | Status / Priority | 状态 / 优先级 |
 | Assignee / Reporter | 负责人 / 报告人 |
+| Permission | 权限（`owner` / `admin` / `member`）|
+| Role | 角色（工作区自定义的职能角色，不授予权限）|
 | Description / Title | 描述 / 标题 |
 | Date / Time | 日期 / 时间 |
 | Today / Yesterday / Tomorrow | 今天 / 昨天 / 明天 |
 | Empty / Failed / Success | 空 / 失败 / 成功 |
 | Error / Warning | 错误 / 警告 |
 
-### 角色名 + 状态名（小写英文，不翻）
+### 权限与角色 —— 两个不同的词
+
+产品里有两个概念，中文必须分开叫：
+
+| 概念 | 取值 | 英文 UI | 中文 UI | 代码 |
+| --- | --- | --- | --- | --- |
+| 一个人**能做什么** | `owner` / `admin` / `member` | Permission | 权限 | `member.role`、`MemberRole` |
+| 一个人**给出哪类判断** | 工作区自定义 | Role | 角色 | `team_role`、`TeamRole` |
+
+角色不授予任何访问权限。它存在的目的是把工作路由给合适的评审人 —— AI-SDLC
+套件就是按角色找到每个阶段的评审人的。
+
+代码里权限仍然叫 `member.role`：它是已经落库的列，也是已安装客户端在读的响应
+字段。功能性角色一律带 `team_role` 前缀，这样光写一个 `role` 永远指不到它。
+
+### 权限名 + 状态名（小写英文，不翻）
 
 这些是 schema-level 标识符，中文环境也保持小写英文：
 
-- 角色：`owner` / `admin` / `member`
+- 权限：`owner` / `admin` / `member`
+- 角色 key：工作区自定义，例如 `architect` / `qa` / `ops`
 - Issue 状态：`backlog` / `todo` / `in_progress` / `in_review` / `done` / `blocked` / `cancelled`
 
 UI 里展示这些值时保持英文（必要时用 code-style 包起来）：

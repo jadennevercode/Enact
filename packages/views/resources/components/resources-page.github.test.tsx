@@ -11,6 +11,10 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "../../test/i18n";
 
+vi.mock("./code-hosting", () => ({
+  CodeHostingConnections: () => null,
+}));
+
 const createMock = vi.hoisted(() => vi.fn().mockResolvedValue({}));
 const connectURLMock = vi.hoisted(() => vi.fn());
 const navReplaceMock = vi.hoisted(() => vi.fn());
@@ -31,6 +35,7 @@ const githubRepositoriesRef = vi.hoisted(() => ({
     id: number;
     full_name: string;
     clone_url: string;
+    default_branch: string;
     description: string | null;
     private: boolean;
     archived: boolean;
@@ -78,6 +83,11 @@ vi.mock("@enact/core/resources", () => ({
   useDeleteWorkspaceResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
+vi.mock("@enact/core/codegraph", () => ({
+  useCodeGraphCapability: () => ({ data: { enabled: false, graphify_version: null } }),
+  useCodeGraphStatuses: () => ({ data: { statuses: {} } }),
+  useRebuildCodeGraph: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 vi.mock("@enact/core/config", () => ({
   useConfigStore: (selector: (s: { localWorktreeSupported: boolean }) => unknown) =>
     selector({ localWorktreeSupported: true }),
@@ -185,7 +195,7 @@ describe("ResourcesPage — GitHub repositories", () => {
 
     expect(screen.queryByRole("button", { name: "Connect GitHub" })).toBeNull();
     // The section itself, and removal of existing rows, stay available.
-    expect(screen.getByText("GitHub repositories")).toBeTruthy();
+    expect(screen.getByText("Code repositories")).toBeTruthy();
   });
 
   it("disables the action when the deployment cannot browse repositories", () => {
@@ -213,6 +223,7 @@ describe("ResourcesPage — GitHub repositories", () => {
         id: 2,
         full_name: "enact-ai/console",
         clone_url: "https://github.com/enact-ai/console.git",
+        default_branch: "main",
         description: "Console app",
         private: true,
         archived: false,
@@ -228,7 +239,15 @@ describe("ResourcesPage — GitHub repositories", () => {
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith({
         resource_type: "github_repo",
-        resource_ref: { url: "https://github.com/enact-ai/console.git" },
+        resource_ref: {
+          provider: "github",
+          provider_connection_id: "installation-row-1",
+          provider_repository_id: "2",
+          full_name: "enact-ai/console",
+          url: "https://github.com/enact-ai/console.git",
+          default_branch_hint: "main",
+          enabled: true,
+        },
         label: "Console app",
       });
     });
@@ -247,6 +266,7 @@ describe("ResourcesPage — GitHub repositories", () => {
         id: 1,
         full_name: "enact-ai/enact",
         clone_url: "https://github.com/enact-ai/enact.git",
+        default_branch: "main",
         description: "Existing repository",
         private: false,
         archived: false,

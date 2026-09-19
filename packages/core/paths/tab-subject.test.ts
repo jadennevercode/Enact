@@ -16,6 +16,8 @@ describe("parseTabSubject", () => {
     ["/acme/usage", { kind: "page", page: "usage" }],
     ["/acme/runtimes", { kind: "page", page: "runtimes" }],
     ["/acme/ontologies", { kind: "page", page: "ontologies" }],
+    ["/acme/codegraph", { kind: "page", page: "codeGraphs" }],
+    ["/acme/codegraph/res-1", { kind: "page", page: "codeGraphs" }],
     ["/acme/skills", { kind: "page", page: "skills" }],
     ["/acme/settings", { kind: "page", page: "settings" }],
     // Resource details

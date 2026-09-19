@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#091810">
+  <meta name="description" content="从一次业务意图，到受治理的人机协同交付。Enact × AISDLC 交互动画指南。">
+  <title>Enact × AISDLC — 交付的下一种可能</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="content.js" defer></script>
+  <script src="guide-text.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#scene-title">跳到正文</a>
+  <header class="topbar">
+    <a class="enact-mark" href="#opening" aria-label="Enact Guide 首页"><img src="../favicon.svg" width="28" height="28" alt="" aria-hidden="true"><span>Enact</span><span class="brand-separator"></span><span class="brand-small">AI SDLC GUIDE</span></a>
+    <nav class="top-nav" aria-label="主要章节"><button data-go="opening" class="top-link active">理解方法</button><button data-go="product-intro" class="top-link">认识 Enact<span class="nav-count">05</span></button><button id="mobile-contents" class="top-link mobile-menu" aria-label="打开全部章节">目录<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><button id="read-button" class="top-link" aria-label="阅读完整指南">阅读指南<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3h8v12H5zM8 6h3M8 9h3"/></svg></button></nav>
+    <div class="deloitte-mark" aria-label="Deloitte">Deloitte<span>.</span></div>
+  </header>
+
+  <div class="guide-layout">
+    <aside class="chapter-rail" aria-label="章节导航"><span class="rail-label">THE JOURNEY</span><div id="chapter-list"></div><button id="contents-button" class="rail-index"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg><span>全部章节</span></button><span class="rail-bottom">A HUMAN–AI<br>DELIVERY STORY</span></aside>
+    <main id="main" class="main-stage" aria-label="动画指南">
+      <div id="scene"></div>
+    </main>
+  </div>
+
+  <footer class="player">
+    <div class="player-meta"><span class="live-dot"></span><span id="part-label">方法论 · 开场</span><span class="player-fraction"><b id="page-number">01</b><span>/</span><span id="page-total">34</span></span></div>
+    <div class="player-timeline" id="timeline" aria-label="页面进度"></div>
+    <div class="player-actions"><button class="icon-button" id="motion-toggle" aria-label="暂停场景动画" title="暂停场景动画"></button><button class="icon-button" id="replay" aria-label="重播场景" title="重播场景"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7a7 7 0 1 1-1 6M4 3v4h4"/></svg></button><button class="icon-button" id="previous" aria-label="上一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4-6 6 6 6"/></svg></button><button id="next" class="next-button"><span>开始旅程</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h13m-5-5 5 5-5 5"/></svg></button></div>
+  </footer>
+  <div class="classification"><span>Information Classification: Confidential</span><span>INTERACTIVE LEARNING EXPERIENCE · 2026</span></div>
+
+  <dialog id="contents-dialog" aria-labelledby="contents-title"><div class="dialog-head"><div><span class="eyebrow">EXPLORE THE GUIDE</span><h2 id="contents-title">选择你的起点</h2></div><button class="close-button" data-close="contents-dialog" aria-label="关闭目录">×</button></div><div id="contents-grid"></div></dialog>
+  <dialog id="reader-dialog" aria-labelledby="reader-title"><div class="dialog-head"><div><span class="eyebrow">THE COMPLETE GUIDE</span><h2 id="reader-title">完整指南，随时查阅</h2></div><button class="close-button" data-close="reader-dialog" aria-label="关闭指南">×</button></div><div class="reader-toolbar"><label for="guide-search">查找内容</label><input id="guide-search" type="search" placeholder="搜索：独立 QA、运行时、人工批准…"><a href="完整用户指南.md" download data-document="guide">下载完整指南 ↗</a><a href="方法论原文.md" download data-document="source">下载方法论原文 ↗</a></div><div id="reader-body"></div></dialog>
+  <dialog id="graphic-dialog" aria-labelledby="graphic-title"><div class="dialog-head"><div><span class="eyebrow">EXPLORE THE DIAGRAM</span><h2 id="graphic-title">图解详情</h2></div><button class="close-button" data-close="graphic-dialog" aria-label="关闭图解">×</button></div><p class="graphic-hint">当前讲解的静态图解。小屏可左右滑动查看。</p><div class="graphic-scroll" id="graphic-body"></div></dialog>
+  <div id="toast" role="status"></div>
+</body>
+</html>

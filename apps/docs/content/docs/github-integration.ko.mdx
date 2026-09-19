@@ -9,7 +9,9 @@ GitHub를 연결하면 Enact가 이슈 번호를 기준으로 pull request를 �
 
 GitHub 연동은 설치할 때 승인한 저장소만 읽으며 코드, 댓글, status check를 제출하지 않습니다.
 
-자체 배포한 Enact에서는 자체 호스팅 Forgejo, Gitea, GitLab 인스턴스도 동시에 연결해 동일한 PR 자동 연결, merge 시 Done 전환, CI 표시 기능을 사용할 수 있습니다. **설정 → 연동 → Git 코드 호스팅**에서 연결하며 자세한 내용은 [자체 호스팅 Git 코드 호스팅](/vcs-integration)을 참고하세요. Enact Cloud에는 이 메뉴가 없습니다.
+<Callout type="info">
+이 페이지는 GitHub App을 다룹니다. 토큰으로 연결하려면(GitHub Enterprise Server에는 필수이며, App을 등록하지 않고 어떤 배포에서도 사용 가능) [GitHub, GitHub Enterprise, GitLab 저장소](/vcs-integration)를 참고하세요.
+</Callout>
 
 ## GitHub 연결
 
@@ -38,7 +40,6 @@ GitHub 연동은 설치할 때 승인한 저장소만 읽으며 코드, 댓글, 
 | Co-authored-by | 에이전트가 만든 commit에 `Co-authored-by: enact-agent <github@enact.ai>`를 추가합니다. |
 | PR 자동 연결 | PR의 브랜치 이름, 제목, 본문에서 이슈 번호를 찾습니다. |
 | **PR 카드 → CI와 머지 가능 여부** | 연결된 각 PR에 대해 Enact는 인증된 GitHub API 스냅샷을 가져와, 그 **CI 상태**와 **머지 가능 여부**를 카드에 미러링합니다(아래 **PR 카드에 표시되는 것** 참조). |
-
 
 ## PR을 이슈에 연결
 

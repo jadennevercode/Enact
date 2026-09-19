@@ -17,6 +17,7 @@ import (
 	"github.com/enact-ai/enact/server/internal/analytics"
 	"github.com/enact-ai/enact/server/internal/auth"
 	"github.com/enact-ai/enact/server/internal/cloudruntime"
+	"github.com/enact-ai/enact/server/internal/codegraph"
 	"github.com/enact-ai/enact/server/internal/daemonws"
 	"github.com/enact-ai/enact/server/internal/entitlement"
 	"github.com/enact-ai/enact/server/internal/events"
@@ -74,16 +75,6 @@ type Config struct {
 	// invitation only. The public /api/config endpoint mirrors this flag so
 	// the UI can hide every "Create workspace" affordance — see #3433.
 	DisableWorkspaceCreation bool
-	// VCSIntegrationEnabled gates the self-hosted Git provider integration
-	// (Forgejo / Gitea / GitLab) at the deployment level, independent of whether
-	// ENACT_VCS_SECRET_KEY is set. It is the product boundary: the feature is
-	// intended for self-hosted Enact only (where Enact and the Git instance
-	// can share a network), and is left off on the managed cloud — connect,
-	// rotate, and webhook handlers reject when it is false, and /api/config
-	// omits it so the UI hides the whole section rather than showing a
-	// "missing key" message a cloud user cannot act on. Populated from
-	// ENACT_VCS_INTEGRATION_ENABLED; the self-host compose defaults it on.
-	VCSIntegrationEnabled bool
 	// PublicURL is the absolute base URL the API is reachable at from the
 	// public internet, with no trailing slash (e.g. "https://enact.ai").
 	// Used to build webhook_url responses and the fixed Remote MCP OAuth
@@ -229,7 +220,11 @@ type Handler struct {
 	WebhookAbsoluteIPRateLimiter WebhookRateLimiter
 	InvitationRateLimiters       InvitationRateLimiters
 	WebhookDeliveryWorker        *WebhookDeliveryWorker
-	CloudRuntime                 cloudRuntimeProxy
+	// CodeGraph is the client for the codegraph container. A client whose
+	// URL is unset is disabled and every route reports the feature off.
+	CodeGraph       *codegraph.Client
+	CodeGraphWorker *CodeGraphBuildWorker
+	CloudRuntime    cloudRuntimeProxy
 	// Lark integration. All three are nil when the Lark master key
 	// (ENACT_LARK_SECRET_KEY) is unset; the corresponding HTTP
 	// handlers return 503 in that case so a misconfigured self-host
@@ -469,6 +464,11 @@ func New(queries *db.Queries, txStarter txStarter, hub *realtime.Hub, bus *event
 		cfg: cfg,
 	}
 	h.WebhookDeliveryWorker = NewWebhookDeliveryWorker(h)
+	// Code graph: built unconditionally but inert when
+	// ENACT_CODEGRAPH_SERVICE_URL is unset, so a deployment without the
+	// container degrades to "the feature is off" rather than to errors.
+	h.CodeGraph = codegraph.NewFromEnv()
+	h.CodeGraphWorker = NewCodeGraphBuildWorker(h)
 
 	// GitHub API snapshot pipeline for PR cards (ENA-5265). Built
 	// unconditionally but inert (every trigger no-ops) when the App private key

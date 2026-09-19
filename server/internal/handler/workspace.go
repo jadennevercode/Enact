@@ -495,6 +495,9 @@ type MemberWithUserResponse struct {
 	Name        string  `json:"name"`
 	Email       string  `json:"email"`
 	AvatarURL   *string `json:"avatar_url"`
+	// TeamRoles are the functional roles this person holds (see team_role.go).
+	// Never nil, so clients can iterate without a guard.
+	TeamRoles []TeamRoleRef `json:"team_roles"`
 }
 
 func (h *Handler) ListMembersWithUser(w http.ResponseWriter, r *http.Request) {
@@ -509,22 +512,70 @@ func (h *Handler) ListMembersWithUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to list members")
 		return
 	}
+	// Two round trips regardless of member count: the roles are loaded in one
+	// query and grouped here, never per member.
+	rolesByUser, err := h.teamRoleRefsByUser(r.Context(), wsUUID)
+	if err != nil {
+		slog.Warn("list member team roles failed", append(logger.RequestAttrs(r), "error", err)...)
+		writeError(w, http.StatusInternalServerError, "failed to list members")
+		return
+	}
 
-	resp := make([]MemberWithUserResponse, len(members))
-	for i, m := range members {
-		resp[i] = MemberWithUserResponse{
+	// ?team_role=<key> (repeatable, OR semantics) narrows the list to people
+	// holding any of those roles. This is the routing lookup: "who can review
+	// this phase". Archived roles never match — a retired role routes nobody.
+	wantRoles := teamRoleKeyFilter(r.URL.Query()["team_role"])
+
+	resp := make([]MemberWithUserResponse, 0, len(members))
+	for _, m := range members {
+		userID := uuidToString(m.UserID)
+		roles := rolesByUser[userID]
+		if roles == nil {
+			roles = []TeamRoleRef{}
+		}
+		if len(wantRoles) > 0 && !holdsAnyActiveTeamRole(roles, wantRoles) {
+			continue
+		}
+		resp = append(resp, MemberWithUserResponse{
 			ID:          uuidToString(m.ID),
 			WorkspaceID: uuidToString(m.WorkspaceID),
-			UserID:      uuidToString(m.UserID),
+			UserID:      userID,
 			Role:        m.Role,
 			CreatedAt:   timestampToString(m.CreatedAt),
 			Name:        m.UserName,
 			Email:       m.UserEmail,
 			AvatarURL:   h.resolveAvatarURLPtr(textToPtr(m.UserAvatarUrl)),
-		}
+			TeamRoles:   roles,
+		})
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// teamRoleKeyFilter normalizes repeated ?team_role= values. Comma-separated
+// values are accepted too, so `--team-role qa,ops` and repeated flags agree.
+func teamRoleKeyFilter(raw []string) map[string]struct{} {
+	keys := make(map[string]struct{})
+	for _, value := range raw {
+		for _, part := range strings.Split(value, ",") {
+			if key := strings.ToLower(strings.TrimSpace(part)); key != "" {
+				keys[key] = struct{}{}
+			}
+		}
+	}
+	return keys
+}
+
+func holdsAnyActiveTeamRole(roles []TeamRoleRef, keys map[string]struct{}) bool {
+	for _, role := range roles {
+		if role.Archived {
+			continue
+		}
+		if _, ok := keys[role.Key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 type CreateMemberRequest struct {
@@ -532,8 +583,14 @@ type CreateMemberRequest struct {
 	Role  string `json:"role"`
 }
 
+// memberWithUserResponse builds a single-member payload with an EMPTY role
+// list. That is exact for the join paths (invitation accept, share link, direct
+// add): role assignments are deleted with the membership, so a person who just
+// joined holds none. Paths that change an existing member attach the real list
+// with teamRoleRefsForMember.
 func (h *Handler) memberWithUserResponse(member db.Member, user db.User) MemberWithUserResponse {
 	return MemberWithUserResponse{
+		TeamRoles:   []TeamRoleRef{},
 		ID:          uuidToString(member.ID),
 		WorkspaceID: uuidToString(member.WorkspaceID),
 		UserID:      uuidToString(member.UserID),
@@ -705,12 +762,15 @@ func (h *Handler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp := h.memberWithUserResponse(updatedMember, user)
+	resp.TeamRoles = h.teamRoleRefsForMember(r.Context(), updatedMember.WorkspaceID, updatedMember.UserID)
+
 	userID := requestUserID(r)
 	h.publish(protocol.EventMemberUpdated, uuidToString(requester.WorkspaceID), "member", userID, map[string]any{
-		"member": h.memberWithUserResponse(updatedMember, user),
+		"member": resp,
 	})
 
-	writeJSON(w, http.StatusOK, h.memberWithUserResponse(updatedMember, user))
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) DeleteMember(w http.ResponseWriter, r *http.Request) {
@@ -1243,7 +1303,12 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			name: "delete leaf data",
-			run:  func() error { return qtx.DeleteWorkspaceLeafData(ctx, requester.WorkspaceID) },
+			run: func() error {
+				if err := qtx.DeleteWorkspaceContext(ctx, requester.WorkspaceID); err != nil {
+					return err
+				}
+				return qtx.DeleteWorkspaceLeafData(ctx, requester.WorkspaceID)
+			},
 		},
 		{
 			name: "delete semantic workspace data",
@@ -1255,6 +1320,13 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 				}
 				return nil
 			},
+		},
+		{
+			// Code graph builds carry no foreign key, like the semantic
+			// tables above. The container's own copy of the graph is
+			// released by its operator; teardown here is about the rows.
+			name: "delete code graph builds",
+			run:  func() error { return qtx.DeleteCodeGraphBuildsByWorkspace(ctx, requester.WorkspaceID) },
 		},
 		{
 			name: "delete autopilot runs",
@@ -1292,6 +1364,20 @@ func (h *Handler) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 			name: "delete issue statuses",
 			run: func() error {
 				return qtx.DeleteIssueStatusEntriesForWorkspace(ctx, requester.WorkspaceID)
+			},
+		},
+		{
+			// team_role and member_team_role carry no foreign keys by repo
+			// rule; assignments first so no row outlives its role.
+			name: "delete member team roles",
+			run: func() error {
+				return qtx.DeleteMemberTeamRolesForWorkspace(ctx, requester.WorkspaceID)
+			},
+		},
+		{
+			name: "delete team roles",
+			run: func() error {
+				return qtx.DeleteTeamRolesForWorkspace(ctx, requester.WorkspaceID)
 			},
 		},
 		{

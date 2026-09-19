@@ -25,6 +25,10 @@ const skippedProductDirectories = new Set([
   "build",
   ".turbo",
   "coverage",
+  // Assets served verbatim (the standalone guide, icons). They are not
+  // compiled against the token system and carry their own self-contained
+  // styling, so the governance rules below do not apply to them.
+  "public",
 ]);
 
 const collectProductFiles = (
@@ -264,6 +268,66 @@ type RawVisualRule = {
 const dynamicStyleAllowlist: Partial<
   Record<GovernedComponentPath, readonly DynamicStyleRule[]>
 > = {
+  "packages/views/codegraph/components/code-graph-canvas.tsx": [
+    {
+      description: "measured canvas height, which only the DOM can know",
+      expectedMatches: 1,
+      pattern: /style=\{\{ height \}\}/g,
+    },
+  ],
+  "packages/views/codegraph/components/tree-tab.tsx": [
+    {
+      description: "indent per tree depth, which has no bounded class ladder",
+      expectedMatches: 1,
+      pattern: /style=\{\{ paddingLeft: `\$\{depth \* 14 \+ 4\}px` \}\}/g,
+    },
+  ],
+  "packages/views/members/components/members-roster.tsx": [
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 2,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+  ],
+  "packages/views/members/member-profile-card.tsx": [
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 1,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+  ],
+  "packages/views/settings/components/team-roles-tab.tsx": [
+    {
+      description: "drag-and-drop row transform supplied by dnd-kit",
+      expectedMatches: 1,
+      pattern:
+        /style=\{\{ transform: CSS\.Transform\.toString\(transform\), transition \}\}/g,
+    },
+    {
+      description: "workspace role swatch in its user-chosen color",
+      expectedMatches: 2,
+      pattern: /style=\{\{ backgroundColor: role\.color \}\}/g,
+    },
+    {
+      description: "role draft swatch in the color being edited",
+      expectedMatches: 1,
+      pattern: /style=\{\{ backgroundColor: draft\.color \}\}/g,
+    },
+  ],
+  "packages/views/semantic/explorer/graph-canvas.tsx": [
+    {
+      description: "fade the graph in once the layout has settled",
+      expectedMatches: 1,
+      pattern: /style=\{\{ opacity: ready && !settling \? 1 : 0 \}\}/g,
+    },
+  ],
+  "packages/views/semantic/native-validation-report.tsx": [
+    {
+      description: "meter fill as a percentage of the measured value",
+      expectedMatches: 1,
+      pattern: /style=\{\{ width: `\$\{d\.percent \?\? 0\}%` \}\}/g,
+    },
+  ],
   "packages/ui/components/common/actor-avatar.tsx": [
     {
       description: "prop-driven avatar box and fallback type geometry",

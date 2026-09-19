@@ -15,6 +15,8 @@ import { WorkspacePresencePrefetch } from "@enact/views/layout";
 import { SourceBackfillModal } from "@enact/views/onboarding";
 import { useTabStore } from "@/stores/tab-store";
 import { useWindowOverlayStore } from "@/stores/window-overlay-store";
+import { AnyHarnessBoundary } from "@enact/views/anyharness-demo";
+import { defaultStorage } from "@enact/core/platform";
 
 /**
  * Which mounted layout instance currently owns the platform workspace
@@ -177,6 +179,7 @@ export function WorkspaceRouteLayout() {
 
   return (
     <WorkspaceSlugProvider slug={workspaceSlug}>
+      <AnyHarnessBoundary storage={defaultStorage} embedded>
       <WorkspacePresencePrefetch />
       <Outlet />
       {/* Reads the welcome-store transient signal parked by
@@ -194,6 +197,7 @@ export function WorkspaceRouteLayout() {
        *  a portal-rendered Dialog at z-50 would otherwise sit above an
        *  active pre-workspace overlay. */}
       {!overlayActive && <SourceBackfillModal />}
+      </AnyHarnessBoundary>
     </WorkspaceSlugProvider>
   );
 }

@@ -10,6 +10,7 @@ import type { WorkspaceResource } from "./resources";
 
 // WebSocket event types (matching Go server protocol/events.go)
 export type WSEventType =
+  | "context_session:updated"
   | "issue:created"
   | "issue:updated"
   | "issue_attachments:changed"
@@ -78,6 +79,7 @@ export type WSEventType =
   | "property:created"
   | "property:updated"
   | "issue_status:changed"
+  | "team_role:changed"
   | "pin:created"
   | "pin:deleted"
   | "pin:reordered"
@@ -160,6 +162,19 @@ export interface PropertyChangedPayload {
  */
 export interface IssueStatusChangedPayload {
   action?: "created" | "updated" | "archived" | "reordered";
+}
+
+/**
+ * The team role catalog moved. Carries no role to merge: clients re-read the
+ * catalog AND the member list, because member payloads denormalize each role's
+ * name and color.
+ *
+ * `action` is advisory — it makes the frame self-describing in devtools, and
+ * nothing routes on it, so a write verb this client has never heard of still
+ * refreshes correctly.
+ */
+export interface TeamRoleChangedPayload {
+  action?: "created" | "updated" | "archived" | "restored" | "reordered" | "imported";
 }
 
 export interface AgentStatusPayload {
@@ -542,6 +557,7 @@ export interface WSEventPayloadMap {
   "property:created": PropertyChangedPayload;
   "property:updated": PropertyChangedPayload;
   "issue_status:changed": IssueStatusChangedPayload;
+  "team_role:changed": TeamRoleChangedPayload;
   "issue_reaction:added": IssueReactionAddedPayload;
   "issue_reaction:removed": IssueReactionRemovedPayload;
   "comment:created": CommentCreatedPayload;

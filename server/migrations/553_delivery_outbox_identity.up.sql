@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX CONCURRENTLY agent_delivery_outbox_identity ON agent_delivery_outbox(comment_id,comment_revision,target_id);

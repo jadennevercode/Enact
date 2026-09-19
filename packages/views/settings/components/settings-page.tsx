@@ -12,13 +12,13 @@ import {
   MessageCircle,
   Tags,
   CircleDot,
+  UserCog,
   Keyboard,
   ListTodo,
   Zap,
   Blocks,
   CreditCard,
 } from "lucide-react";
-import { GitHubMark } from "./github-mark";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@enact/ui/components/ui/tabs";
 import { useIsMobile } from "@enact/ui/hooks/use-mobile";
 import { useCurrentWorkspace, useWorkspacePaths } from "@enact/core/paths";
@@ -35,12 +35,12 @@ import { ChatTab } from "./chat-tab";
 import { IssueTab } from "./issue-tab";
 import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
-import { GitHubTab } from "./github-tab";
 import { IntegrationsTab } from "./integrations-tab";
 import { LabsTab } from "./labs-tab";
 import { NotificationsTab } from "./notifications-tab";
 import { LabelsTab } from "./labels-tab";
 import { IssueStatusesTab } from "./issue-statuses-tab";
+import { TeamRolesTab } from "./team-roles-tab";
 import { PropertiesTab } from "./properties-tab";
 import { QuickActionsTab } from "./quick-actions-tab";
 import { KeyboardShortcutsTab } from "./keyboard-shortcuts-tab";
@@ -62,37 +62,37 @@ const ACCOUNT_TAB_ICONS = {
 
 const WORKSPACE_TAB_KEYS = [
   "general",
-  "github",
   "integrations",
   "labs",
   "billing",
   "labels",
   "issue_statuses",
   "properties",
+  "team_roles",
   "quick_actions",
   "plugins",
 ] as const;
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
-  github: "github",
   integrations: "integrations",
   labs: "labs",
   billing: "billing",
   labels: "labels",
   issue_statuses: "issue-statuses",
   properties: "properties",
+  team_roles: "team-roles",
   quick_actions: "quick-actions",
   plugins: "plugins",
 } as const;
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
-  github: GitHubMark,
   integrations: Plug,
   labs: FlaskConical,
   billing: CreditCard,
   labels: Tags,
   issue_statuses: CircleDot,
   properties: SlidersHorizontal,
+  team_roles: UserCog,
   quick_actions: Zap,
   plugins: Blocks,
 } as const;
@@ -122,6 +122,7 @@ const MOVED_TAB_DESTINATIONS: Record<
   mcp: (paths) => paths.agentsTab("mcp"),
   resources: (paths) => paths.resources(),
   repositories: (paths) => paths.resources(),
+  github: (paths) => paths.resources(),
   // Who belongs to a workspace is not a setting. Inviting, changing a role and
   // removing someone now sit on the Members page, beside the roster they act
   // on. Old `?tab=members` links still land there.
@@ -284,6 +285,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
             activeTab === "labels" ||
             activeTab === "issue-statuses" ||
             activeTab === "properties" ||
+            activeTab === "team-roles" ||
             activeTab === "quick-actions"
               ? "wide"
               : "standard"
@@ -297,7 +299,6 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
-          <TabsContent value="github"><GitHubTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
           {billingEnabled ? (
@@ -306,6 +307,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="labels"><LabelsTab /></TabsContent>
           <TabsContent value="issue-statuses"><IssueStatusesTab /></TabsContent>
           <TabsContent value="properties"><PropertiesTab /></TabsContent>
+          <TabsContent value="team-roles"><TeamRolesTab /></TabsContent>
           <TabsContent value="quick-actions"><QuickActionsTab /></TabsContent>
           {pluginsEnabled ? <TabsContent value="plugins"><PluginsTab /></TabsContent> : null}
           {extraAccountTabs?.map((tab) => (

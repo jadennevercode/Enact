@@ -9,7 +9,9 @@ Once GitHub is connected, Enact automatically links pull requests based on issue
 
 The GitHub integration only reads the repositories authorized at install time; it never pushes commits, comments, or status checks.
 
-Self-hosted Enact can also connect self-hosted Forgejo, Gitea, or GitLab instances in parallel, with the same PR auto-linking, merge-to-Done, and CI display. The entry point is **Settings → Integrations → Git hosting**; see [Self-hosted Git hosting](/vcs-integration). Enact Cloud does not offer this entry point.
+<Callout type="info">
+This page covers the GitHub App. To connect with a token instead — required for GitHub Enterprise Server, and available on any deployment without registering an App — see [GitHub, GitHub Enterprise and GitLab repositories](/vcs-integration).
+</Callout>
 
 ## Connect GitHub
 
@@ -38,7 +40,6 @@ The **GitHub connection** decides which repositories Enact receives PR events fr
 | Co-authored-by | Adds `Co-authored-by: enact-agent <github@enact.ai>` to commits created by agents. |
 | Auto-link PRs | Detects issue identifiers in a PR's branch name, title, and body. |
 | **PR card → CI & mergeability** | For each linked PR, Enact fetches an authenticated GitHub API snapshot and mirrors its **CI status** and **mergeability** onto the card (see **What the PR card shows** below). |
-
 
 
 ## Link a PR to an issue

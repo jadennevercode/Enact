@@ -48,7 +48,7 @@ make selfhost
 처음 실행할 때 `make selfhost`가 다음 작업을 수행합니다.
 
 1. `.env.example`에서 `.env` 생성
-2. `JWT_SECRET`, PostgreSQL 비밀번호, `ENACT_VCS_SECRET_KEY`(자체 호스팅 Git 연동 암호화 키)를 임의 생성
+2. `JWT_SECRET`, PostgreSQL 비밀번호, `ENACT_VCS_SECRET_KEY`(코드 호스팅 연결 암호화 키)를 임의 생성
 3. PostgreSQL, Enact backend, Enact frontend 이미지 pull
 4. persistent data volume 생성 및 세 컨테이너 시작
 5. backend가 health check에 응답할 때까지 대기
@@ -144,7 +144,7 @@ curl -fsS https://api.example.com/readyz
 
 ## 4. 로그인 및 워크스페이스 만들기
 
-로컬 `http://localhost:3000` 또는 앞에서 설정한 `https://app.example.com`을 열고 사용자 이름, `@deloittecn.com.cn` 이메일, 비밀번호로 가입한 다음 첫 워크스페이스를 만듭니다. 이메일 서비스나 인증 코드 단계는 필요하지 않습니다.
+로컬 `http://localhost:3000` 또는 앞에서 설정한 `https://app.example.com`을 열고 사용자 이름, `@deloittecn.com.cn` 또는 `@deloitte.com.hk` 이메일, 비밀번호로 가입한 다음 첫 워크스페이스를 만듭니다. 이메일 서비스나 인증 코드 단계는 필요하지 않습니다.
 
 ## 5. 실행 컴퓨터 연결
 

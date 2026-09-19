@@ -101,7 +101,15 @@ func (s *popRecordingLocalSkillImportStore) PopPending(ctx context.Context, runt
 func setHandlerTestWorkspaceRepoResources(t *testing.T, repos []map[string]string) {
 	t.Helper()
 	for i, repo := range repos {
-		ref, err := json.Marshal(map[string]string{"url": strings.TrimSpace(repo["url"])})
+		url := strings.TrimSpace(repo["url"])
+		ref, err := json.Marshal(map[string]any{
+			"provider":               "github",
+			"provider_connection_id": "00000000-0000-0000-0000-000000000001",
+			"provider_repository_id": fmt.Sprintf("fixture-%d", i),
+			"full_name":              fmt.Sprintf("team/fixture-%d", i),
+			"url":                    url,
+			"enabled":                true,
+		})
 		if err != nil {
 			t.Fatalf("marshal repo ref: %v", err)
 		}
@@ -1499,8 +1507,8 @@ func TestGetDaemonWorkspaceRepos_WithDaemonToken(t *testing.T) {
 	}
 
 	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
-		{"url": "git@example.com:team/api.git", "description": "API"},
-		{"url": "  git@example.com:team/web.git  ", "description": " Web "},
+		{"url": "https://example.com/team/api.git", "description": "API"},
+		{"url": "  https://example.com/team/web.git  ", "description": " Web "},
 	})
 
 	req := newDaemonTokenRequest("GET", "/api/daemon/workspaces/"+testWorkspaceID+"/repos", nil, testWorkspaceID, "test-daemon-mdt")
@@ -1520,7 +1528,7 @@ func TestGetDaemonWorkspaceRepos_WithDaemonToken(t *testing.T) {
 	if len(resp.Repos) != 2 {
 		t.Fatalf("expected 2 repos, got %d", len(resp.Repos))
 	}
-	if resp.Repos[1]["url"] != "git@example.com:team/web.git" {
+	if resp.Repos[1]["url"] != "https://example.com/team/web.git" {
 		t.Fatalf("expected trimmed repo URL, got %q", resp.Repos[1]["url"])
 	}
 	if resp.ReposVersion == "" {
@@ -1544,8 +1552,8 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 	}
 
 	setHandlerTestWorkspaceRepoResources(t, []map[string]string{
-		{"url": "git@example.com:team/api.git", "description": "API"},
-		{"url": "git@example.com:team/web.git", "description": "Web"},
+		{"url": "https://example.com/team/api.git", "description": "API"},
+		{"url": "https://example.com/team/web.git", "description": "Web"},
 	})
 
 	getReposVersion := func() string {
@@ -1573,9 +1581,9 @@ func TestGetDaemonWorkspaceRepos_VersionIgnoresOrderAndDescription(t *testing.T)
 
 	// A different URL set must move it.
 	dbfx.Exec(t, `UPDATE workspace_resource
-	                 SET resource_ref = '{"url":"git@example.com:team/mobile.git"}'::jsonb
+	                 SET resource_ref = jsonb_set(resource_ref, '{url}', '"https://example.com/team/mobile.git"'::jsonb)
 	               WHERE workspace_id = $1 AND resource_type = 'github_repo'
-	                 AND resource_ref->>'url' = 'git@example.com:team/web.git'`, testWorkspaceID)
+	                 AND resource_ref->>'url' = 'https://example.com/team/web.git'`, testWorkspaceID)
 	version3 := getReposVersion()
 	if strings.EqualFold(version2, version3) {
 		t.Fatalf("expected repos_version to change when URL set changes, got %s", version3)

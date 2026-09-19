@@ -2640,6 +2640,15 @@ describe("ApiClient workspace resources response schema", () => {
     created_by: "user-1",
   };
 
+  // What the schema fills in for a row that predates code-hosting connections.
+  const withDefaults = {
+    ...validResource,
+    configuration_status: "ready",
+    configuration_errors: [],
+    connection_summary: null,
+    daemon_validations: [],
+  };
+
   function respondWith(body: unknown) {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(body), {
@@ -2656,7 +2665,7 @@ describe("ApiClient workspace resources response schema", () => {
 
     await expect(
       new ApiClient("https://api.example.test").listWorkspaceResources(),
-    ).resolves.toEqual({ resources: [validResource], total: 1 });
+    ).resolves.toEqual({ resources: [withDefaults], total: 1 });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "https://api.example.test/api/resources",
     );

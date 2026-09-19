@@ -19,6 +19,13 @@ const (
 // teardown. Adding a table requires an explicit ownership decision here; the
 // handler deletion graph must then implement that decision before CI passes.
 var workspaceDeletionManifest = map[string]workspaceDeleteAction{
+	"agent_context_checkpoint":          workspaceDelete,
+	"agent_context_operation":           workspaceDelete,
+	"agent_context_request":             workspaceDelete,
+	"agent_context_session":             workspaceDelete,
+	"agent_context_turn":                workspaceDelete,
+	"agent_delivery_outbox":             workspaceDelete,
+	"agent_final_delivery":              workspaceDelete,
 	"semantic_human_decision":           workspaceDelete,
 	"semantic_review_packet":            workspaceDelete,
 	"semantic_agent_ontology":           workspaceDelete,
@@ -77,6 +84,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"chat_pinned_agent":                   workspaceDelete,
 	"chat_session":                        workspaceDelete,
 	"client_usage_daily":                  workspaceDeleteDetach,
+	"code_graph_build":                    workspaceDelete,
 	"comment":                             workspaceDelete,
 	"comment_reaction":                    workspaceDelete,
 	"contact_sales_inquiry":               workspaceDeleteKeep,
@@ -102,6 +110,8 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"issue_pull_request":                  workspaceDelete,
 	"issue_reaction":                      workspaceDelete,
 	"issue_status":                        workspaceDelete,
+	"team_role":                           workspaceDelete,
+	"member_team_role":                    workspaceDelete,
 	"issue_subscriber":                    workspaceDelete,
 	"issue_to_label":                      workspaceDelete,
 	"issue_vcs_pull_request":              workspaceDelete,
@@ -154,6 +164,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"task_usage_hourly_rollup_state": workspaceDeleteKeep,
 	"user":                           workspaceDeleteKeep,
 	"user_composio_connection":       workspaceDeleteKeep,
+	"daemon_repository_validation":   workspaceDelete,
 	"vcs_commit_status":              workspaceDelete,
 	"vcs_connection":                 workspaceDelete,
 	"vcs_pull_request":               workspaceDelete,

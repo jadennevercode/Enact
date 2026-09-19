@@ -187,8 +187,11 @@ check: ## Run typecheck, TS tests, Go tests, and Playwright E2E for the current 
 	$(REQUIRE_ENV)
 	@ENV_FILE="$(ENV_FILE)" bash scripts/check.sh
 
-mmm-setup: cli ## Provision the vendored MMM Runtime and import its Claude skills
-	@./server/bin/enact mmm setup --runtime-dir "$(CURDIR)/mmm-runtime" --import-skills $(ENACT_ARGS)
+mmm-setup: ## Provision the external MMM Runtime and import its skills (MMM_RUNTIME_DIR=path; defaults to saved config)
+	@cd server && go build -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -o bin/enact ./cmd/enact
+	@set --; \
+	if [ -n "$(MMM_RUNTIME_DIR)" ]; then set -- --runtime-dir "$(MMM_RUNTIME_DIR)"; fi; \
+	./server/bin/enact mmm setup "$$@" --import-skills $(ENACT_ARGS)
 
 ontologizer-setup: cli ## Provision an Ontologizer checkout on this host and import its skills (ONTOLOGIZER_DIR=path)
 	@if [ -z "$(ONTOLOGIZER_DIR)" ]; then \

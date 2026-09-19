@@ -265,7 +265,6 @@ export function DesktopShell() {
     currentSlug && workspaces.some((w) => w.slug === currentSlug)
       ? currentSlug
       : null;
-
   return (
     <DesktopNavigationProvider>
       {/* WorkspaceSlugProvider accepts null — components that need slug

@@ -35,7 +35,8 @@
     "empty_description": "用上方的「邀请」按钮邀请成员。",
     "no_matches_title": "没有匹配的成员",
     "no_matches_description": "换个名字或邮箱试试。",
-    "load_failed": "成员列表加载失败"
+    "load_failed": "成员列表加载失败",
+    "team_roles_more": "+{{count}}"
   },
   "manage": {
     "section_title": "成员（{{count}}）",
@@ -53,7 +54,7 @@
     "revoke_invitation_description": "撤销发给 {{email}} 的邀请？对方将不能再加入该工作区。",
     "toast_invitation_revoked": "已撤销邀请",
     "toast_invitation_revoke_failed": "撤销邀请失败",
-    "toast_role_updated": "已更新角色",
+    "toast_role_updated": "已更新权限",
     "toast_role_failed": "更新成员失败",
     "toast_member_removed": "已移除成员",
     "toast_member_remove_failed": "移除成员失败",
@@ -61,7 +62,7 @@
     "remove_member_description": "从 {{workspace}} 中移除 {{name}}？该成员将失去对该工作区的访问权限。",
     "confirm_cancel": "取消",
     "confirm_action": "确认",
-    "change_role": "更改角色",
+    "change_role": "更改权限",
     "remove_action": "从工作区移除",
     "cannot_demote_last_owner_title": "请先把另一位成员升级为所有者——工作区必须至少保留一位所有者。",
     "cannot_demote_last_owner": "不能降级最后一位所有者",
@@ -80,7 +81,7 @@
       }
     },
     "share_links_title": "分享链接",
-    "role_field": "角色：",
+    "role_field": "权限：",
     "expiry_field": "有效期：",
     "share_links_create_title": "创建分享链接",
     "share_links_create_button": "生成",
@@ -98,6 +99,10 @@
     "expiry_24h": "24 小时",
     "expiry_7d": "7 天",
     "expiry_30d": "30 天",
-    "expiry_never": "永久有效"
+    "expiry_never": "永久有效",
+    "change_team_roles": "设置角色",
+    "no_team_roles": "还没有定义角色。在设置 › 角色中添加。",
+    "toast_team_roles_updated": "已更新角色",
+    "toast_team_roles_failed": "更新角色失败"
   }
 }

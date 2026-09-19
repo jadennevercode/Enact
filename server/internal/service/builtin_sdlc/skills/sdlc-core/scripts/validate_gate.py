@@ -31,6 +31,7 @@ from _common import (  # noqa: E402
     sdlc_root,
     ROLES,
     gate_required_roles,
+    known_role_names,
     role_holders,
 )
 
@@ -341,15 +342,15 @@ def check_roles(data, cfg):
             continue
         for r in (a.get("roles") or []):
             r = str(r).strip()
-            if r not in ROLES:
+            if r not in known_role_names():
                 out.append({"field": "approvals",
-                            "problem": f"角色 '{r}' 不在受控词表里",
-                            "fix": f"只能是 {' / '.join(ROLES)}。要新角色就改 sdlc-core，不要就地发明"})
+                            "problem": f"角色 '{r}' 既不在套件词表里，工作区也没有定义",
+                            "fix": f"套件自带的是 {' / '.join(ROLES)}；其他角色要先在「设置 › 角色」里建好，不要就地发明"})
                 continue
             if holders and who not in holders.get(r, []):
                 out.append({"field": "approvals",
-                            "problem": f"{who} 签了「{r}」，但 config.yaml 里这个角色下没有他",
-                            "fix": f"要么把 {who} 加进 roles.{r}，要么换一个真正担这个角色的人来签"})
+                            "problem": f"{who} 签了「{r}」，但工作区里这个角色下没有他",
+                            "fix": f"要么在成员页把「{r}」指派给 {who}，要么换一个真正担这个角色的人来签"})
             signed.setdefault(r, []).append(who)
 
     missing = [r for r in required if r not in signed]

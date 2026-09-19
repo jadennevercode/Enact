@@ -1,84 +1,65 @@
 ---
-title: 自托管 Git 代码托管
-description: 为每个工作区连接自托管的 Forgejo、Gitea 或 GitLab 实例，使引用了 issue 编号的 Pull Request / Merge Request 自动关联到对应 issue，在合并时将其移动到「完成」，并展示 CI 状态。
+title: GitHub、GitHub Enterprise 与 GitLab 代码仓库
+description: 在「来源 → 代码与目录」中通过实例地址和 token，或 GitHub App，连接代码托管。
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="warn">
-**仅适用于自部署的 Enact。** 此集成只在你**自己部署 Enact** 时可用，Enact 云端不提供。这里的「自托管」指的是 **Enact 本身自部署**——通常是为了让它能访问你自己网络内的 Git 实例。需要服务端运维开启（`ENACT_VCS_INTEGRATION_ENABLED=true`）并设置 `ENACT_VCS_SECRET_KEY`；在此之前，设置 → 集成里不会出现该板块。
+服务端只需要一项配置：`ENACT_VCS_SECRET_KEY`，base64 编码的 32 字节密钥（`openssl rand -base64 32`）。它加密所有已保存的 token、Webhook secret 与企业 CA。未配置时，页面会说明缺少什么，并拒绝保存凭据。同时请设置 `ENACT_PUBLIC_URL`，Enact 才能用供应商可访问的地址注册 Webhook。
 </Callout>
 
-Enact 按工作区连接自托管的 Git 代码托管：**Forgejo**、**Gitea** 或 **GitLab**。连接后，任何在分支名、标题或正文中包含 issue 编号（例如 `ENA-123`）的 Pull Request（GitLab 为 Merge Request）都会**自动关联**到对应的 [issue](/issues)，出现在 issue 侧栏的 **Pull requests** 中；当带有关闭关键字的 PR 合并后，issue 会被移动到「完成」。head commit 的 CI 会以检查条的形式显示在卡片上。
+所有配置都在 **来源 → 代码与目录** 中完成，需要工作区所有者或管理员权限。点击 **连接**，选择：
 
-这些代码托管与 GitHub 并行工作：一个工作区可任意组合使用。
+| 方式 | 适用场景 | 需要填写 |
+| --- | --- | --- |
+| 用 token 连接 GitHub.com | github.com，且部署未配置 GitHub App | 细粒度 token 或经典 token |
+| GitHub Enterprise Server | GHES 实例，包括内网部署 | 实例地址与 token |
+| GitLab | GitLab.com 或自建 GitLab | 实例地址、API token 与 Git token |
+| GitHub App | github.com，且部署已配置 App | 无需填写，跳转到 GitHub 安装 |
 
-<Callout type="info">
-与 GitHub 不同，这些代码托管没有「App」模型。每个工作区保存自己的实例地址和访问令牌，并在其仓库或组织上注册 Webhook。令牌和 Webhook 密钥均加密存储。
-</Callout>
+token 连接不需要任何部署级的供应商配置。在可用的情况下，GitHub App 仍是更强的凭据：它按仓库签发短期 token，并由 GitHub 注册 Webhook。
 
-## 前置条件（服务端）
+## 网络要求
 
-先为该部署开启此集成。它默认关闭，未开启时该板块不会出现：
+Enact 服务端调用供应商 API，每台 daemon 通过 HTTPS 克隆，两者都必须能访问实例。部署在公网的 Enact 服务端无法访问只存在于内网的 GitLab。服务端遵循 `HTTPS_PROXY` 与 `NO_PROXY`。
 
-```sh
-ENACT_VCS_INTEGRATION_ENABLED=true
-```
+Webhook 方向相反，由供应商访问 Enact。自建 GitLab 往往禁止访问内网地址，请管理员在 **Admin → Settings → Network → Outbound requests** 中放行 Enact 的 Webhook 主机。每张连接卡片都会显示完整地址。
 
-官方自部署 `docker compose` 文件（`docker-compose.selfhost.yml`）已为你设置好。
+## Token
 
-再设置一个 base64 编码的 32 字节密钥，供服务端加密存储的凭据。未设置时，连接表单将不可用。
+**GitHub。** 一个 token 同时用于 API 与 HTTPS Git。细粒度 token 需要以下仓库权限：Contents 读写、Pull requests 读写、Webhooks 读写、Checks 只读、Commit statuses 只读、Metadata 只读。经典 token 需要 `repo` 与 `admin:repo_hook`。组织启用 SAML SSO 时需要为该 token 授权，否则 GitHub 会接受 token 却拒绝所有请求。
 
-```sh
-openssl rand -base64 32
-```
+**GitLab。** GitLab 把两项能力拆开，所以需要两个 token。API token 需要 `api`，只保留在 Enact 服务端，用于浏览仓库和创建合并请求。Git token 需要 `write_repository`，只按仓库下发给已授权的 daemon。推荐使用有到期时间、只加入所需项目的服务账号。通过 LDAP 或 SSO 登录的企业账号，可以在个人设置中创建这些 token。
 
-```sh
-ENACT_VCS_SECRET_KEY=<base64 32 字节密钥>
-```
+到期时间可选。Enact 记录供应商实际报告的 scope，而不是填写的值。GitHub 细粒度 token 不报告 scope，卡片会如实显示，而不是显示空列表。
 
-两者都必需：开关决定是否提供该功能，密钥用于加密存储的令牌与 Webhook 密钥。连接、Webhook、轮换都要求两者同时满足。
+## 企业选项
 
-设置 `ENACT_PUBLIC_URL` 为服务端的公网基础地址，Enact 即可直接给出可粘贴的 Webhook 地址；否则界面只显示 Webhook 路径，需自行拼接来源地址。
+以下字段只在填写实例地址时出现：
 
-## 连接工作区
+- **Clone 主机**：Git 流量与 API 使用不同主机名时填写。Enact 会把关联仓库的远端地址改写到该主机。
+- **企业 CA（PEM）**：加入服务端 API 调用与 daemon Git 流量的信任链。TLS 校验无法关闭。
 
-1. 在代码托管中创建具备仓库读取权限的访问令牌：
-   - **Forgejo / Gitea**：设置 → 应用。
-   - **GitLab**：具备 `read_api` 权限的个人（或群组/项目）访问令牌。
-2. 在 Enact 中打开 **设置 → 集成 → Git 代码托管**。
-3. 选择**提供方**，填写实例地址（例如 `https://forgejo.example.com`）和访问令牌，点击 **连接**。Enact 会先用该令牌访问实例进行校验，再保存。
-4. 复制连接后显示的 **Webhook 地址** 与 **Webhook 密钥**。
+## 关联仓库与 Webhook
 
-<Callout type="warn">
-Webhook 密钥只显示一次，请在离开页面前复制。重新连接同一实例会轮换令牌与密钥。
-</Callout>
+在连接卡片上点击 **浏览仓库**。选择器列出该凭据可访问的仓库。无 push 权限、已归档或已关联的仓库不可选择。
 
-## 注册 Webhook
+关联仓库后，Enact 会在后台为其注册 Webhook。卡片上的 Webhook 状态会显示为：
 
-在仓库（或组织/群组，以覆盖所有仓库）：
+- `registered`：Hook 已存在，但还不能证明投递成功。
+- `ok`：已收到一次签名校验通过的投递。
+- `manual`：token 无权管理 Hook。请用卡片上的地址和连接时一次性显示的 secret 手动添加。
+- `failed`：注册失败。点击 **注册 Webhook** 重试。
 
-**Forgejo / Gitea** —— 设置 → Webhook → 添加 Webhook → Forgejo/Gitea：
+GitHub 订阅 `pull_request`、`check_run` 与 `status`，GitLab 订阅合并请求与 Pipeline 事件。Enact 只处理已关联到该连接的仓库事件。
 
-- **目标 URL**：上一步的 Webhook 地址。
-- **HTTP 方法** `POST`，**内容类型** `application/json`。
-- **密钥**：Webhook 密钥（用于校验 `X-Gitea-Signature` HMAC）。
-- **触发事件**：勾选 **Pull Request**，并勾选 **Commit Status** 以镜像 CI。
+## 连接健康度
 
-**GitLab** —— 设置 → Webhooks：
+每张卡片分别报告五条链路：API、Webhook、Git 读、Git 写、PR 或 MR 创建。**测试** 检查 API 链路；Git 读写由每台 daemon 按仓库上报。API 正常并不代表 daemon 能克隆。
 
-- **URL**：Webhook 地址。
-- **Secret token**：Webhook 密钥（作为 `X-Gitlab-Token` 发送并逐字比对）。
-- **触发器**：启用 **Merge request events**，并启用 **Pipeline events** 以镜像 CI。
+## 任务中的 push 与 PR
 
-Enact 会用存储的密钥校验每次投递，因此没有匹配密钥的 Webhook 会被拒绝。
+在受管仓库中，agent 使用 `enact repo push`。daemon 获取仓库限定的凭据，写入 `0600` 临时凭据文件完成 push，随后删除。之后用 `enact repo change-request --title "…"` 经由 Enact 服务端创建 PR 或 MR，供应商 API token 不会进入 agent 进程。
 
-## 镜像的内容
-
-- **Pull / Merge Request** —— open、closed、merged、draft 状态，以及作者、分支和（在代码托管提供时）diff 统计。
-- **issue 关联** —— 标题、正文或分支中的编号会将 PR 关联到 issue。合并的 PR 带有关闭关键字（`Closes`/`Fixes`/`Resolves ENA-123`）且没有仍处于 open 的关联 PR 时，issue 会被移动到「完成」。
-- **CI** —— Forgejo/Gitea 的提交状态与 GitLab 的流水线会汇总为 head commit 的通过/失败/进行中检查条。
-
-## 智能体创建 Pull Request
-
-创建 PR 无需在 Enact 中进行任何代码托管配置。智能体在运行时中检出仓库，并使用运行时主机自身的 Git 凭据推送分支和创建 PR。要让智能体在某个代码托管上工作，确保 daemon 主机能对其完成认证即可——例如 SSH 部署密钥，或主机 Git 凭据助手中的令牌——再像往常一样添加仓库地址。仓库检出支持任意 Git URL，因此无需提供方专属配置。
+旧版本只保存 URL 的仓库会显示为 **待配置** 并保持停用，直到管理员绑定连接。SSH 传输将作为后续独立阶段提供。

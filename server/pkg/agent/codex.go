@@ -1078,6 +1078,16 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		cancel()
 		return nil, fmt.Errorf("start codex: %w", err)
 	}
+	if opts.ProcessStarted != nil {
+		if err := opts.ProcessStarted(cmd.Process.Pid); err != nil {
+			signalProcessGroup(cmd, syscall.SIGKILL)
+			_ = cmd.Wait()
+			releaseProcessGroup(cmd)
+			cancel()
+			return nil, fmt.Errorf("persist native process: %w", err)
+		}
+	}
+
 	activeLaunches := activeCodexLaunches.Add(1)
 	for {
 		maxSeen := maxActiveCodexLaunchesObserved.Load()
@@ -1114,6 +1124,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 	turnDone := make(chan bool, 1) // true = aborted
 
 	c := &codexClient{
+		threadID:             opts.ResumeSessionID,
 		cfg:                  b.cfg,
 		stdin:                stdin,
 		pending:              make(map[int]*pendingRPC),
@@ -1124,6 +1135,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		activeLaunches:       activeLaunches,
 		notificationProtocol: "unknown",
 		acceptNotification:   turnNotificationGate.accept,
+		compactionDone:       make(chan struct{}, 1),
 		onDiscardedNotification: func(string, map[string]any) {
 			// Any app-server notification proves the process made semantic
 			// progress, even when it is intentionally excluded from the active
@@ -1445,11 +1457,32 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 			}
 			return
 		}
+		c.identityMu.Lock()
 		c.threadID = threadID
+		c.identityMu.Unlock()
 		if resumed {
 			b.cfg.Logger.Info("codex thread resumed", "thread_id", threadID)
 		} else {
 			b.cfg.Logger.Info("codex thread started", "thread_id", threadID)
+		}
+
+		if opts.NativeCompaction {
+			turnNotificationGate.arm()
+			maintenanceResult := c.compactNative(runCtx, threadID, turnDone)
+			drainAndWait()
+			maintenanceResult.CleanupConfirmed = cleanupConfirmed
+			c.usageMu.Lock()
+			maintenanceResult.Context = c.contextAfterCompaction
+			c.usageMu.Unlock()
+			if scanned := scanCodexSessionUsage(startTime, strings.TrimSpace(b.cfg.Env["CODEX_HOME"]), threadID, true); scanned != nil {
+				model := scanned.model
+				if model == "" {
+					model = opts.Model
+				}
+				maintenanceResult.Usage = map[string]TokenUsage{model: scanned.usage}
+			}
+			resCh <- maintenanceResult
+			return
 		}
 
 		// 3. Send turn and wait for completion. When a resume was expected but we
@@ -1732,6 +1765,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		var usageMap map[string]TokenUsage
 		c.usageMu.Lock()
 		u := c.usage
+		contextSnapshot := c.contextSnapshot
 		c.usageMu.Unlock()
 
 		// Fallback: if no usage from JSON-RPC, scan Codex session JSONL logs.
@@ -1763,6 +1797,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 			SessionID:                    threadID,
 			DurationMs:                   duration.Milliseconds(),
 			Usage:                        usageMap,
+			Context:                      contextSnapshot,
 			codexStartupRefreshRetrySafe: startupRefreshRetrySafe,
 		}
 	}()
@@ -1826,8 +1861,14 @@ func (c *codexClient) startOrResumeThread(ctx context.Context, opts ExecOptions,
 			if threadID := extractThreadID(resumeResult); threadID != "" {
 				return threadID, true, nil
 			}
+			if opts.NativeCompaction {
+				return "", false, fmt.Errorf("native compaction could not resume the existing session")
+			}
 			logger.Warn("codex thread/resume returned no thread ID; falling back to thread/start", "prior_thread_id", priorThreadID)
 		} else {
+			if opts.NativeCompaction {
+				return "", false, fmt.Errorf("native compaction resume failed: %w", err)
+			}
 			if isCodexTransportError(err) {
 				logger.Warn("codex thread/resume failed due to transport error; not falling back to thread/start", "prior_thread_id", priorThreadID, "error", err)
 				return "", false, fmt.Errorf("codex thread/resume failed: %w", err)
@@ -2166,6 +2207,7 @@ type codexClient struct {
 	activeLaunches     int64
 	threadStartSent    bool
 	threadStartStarted time.Time
+	identityMu         sync.RWMutex
 	threadID           string
 	turnID             string
 	onMessage          func(Message)
@@ -2190,8 +2232,12 @@ type codexClient struct {
 	turnStarted          bool
 	completedTurnIDs     map[string]bool
 
-	usageMu sync.Mutex
-	usage   TokenUsage // accumulated from turn events
+	usageMu                sync.Mutex
+	usage                  TokenUsage // accumulated from turn events
+	contextSnapshot        *ContextSnapshot
+	contextAfterCompaction *ContextSnapshot
+	compactionCompleted    bool
+	compactionDone         chan struct{}
 
 	turnErrorMu sync.Mutex
 	turnError   string // captured from turn/completed status=failed or terminal error notifications
@@ -2648,6 +2694,25 @@ func (c *codexClient) handleNotification(raw map[string]json.RawMessage) {
 	if c.isNotificationFromOtherThread(params) {
 		return
 	}
+	// Window telemetry may arrive during resume. It is a snapshot, not a
+	// billable event, and must not mutate the active turn gate.
+	if method == "thread/tokenUsage/updated" {
+		if c.currentThreadID() == "" {
+			return
+		}
+		if snapshot := codexContextSnapshot(params); snapshot != nil {
+			c.usageMu.Lock()
+			c.contextSnapshot = snapshot
+			if c.compactionCompleted {
+				c.contextAfterCompaction = snapshot
+			}
+			c.usageMu.Unlock()
+			if c.onMessage != nil {
+				c.onMessage(Message{Type: MessageStatus, Context: snapshot, SessionID: snapshot.SessionID})
+			}
+		}
+		return
+	}
 	if c.acceptNotification != nil && !c.acceptNotification(method, params) {
 		if c.onDiscardedNotification != nil {
 			c.onDiscardedNotification(method, params)
@@ -3035,7 +3100,7 @@ func (c *codexClient) handleEvent(msg map[string]any) {
 	case "task_started":
 		c.turnStarted = true
 		if c.onMessage != nil {
-			c.onMessage(Message{Type: MessageStatus, Status: "running", SessionID: c.threadID})
+			c.onMessage(Message{Type: MessageStatus, Status: "running", SessionID: c.currentThreadID()})
 		}
 	case "agent_message":
 		text, _ := msg["message"].(string)
@@ -3133,7 +3198,7 @@ func (c *codexClient) handleRawNotification(method string, params map[string]any
 			c.turnID = turnID
 		}
 		if c.onMessage != nil {
-			c.onMessage(Message{Type: MessageStatus, Status: "running", SessionID: c.threadID})
+			c.onMessage(Message{Type: MessageStatus, Status: "running", SessionID: c.currentThreadID()})
 		}
 
 	case "turn/completed":
@@ -3214,9 +3279,16 @@ func (c *codexClient) handleRawNotification(method string, params map[string]any
 	}
 }
 
+func (c *codexClient) currentThreadID() string {
+	c.identityMu.RLock()
+	defer c.identityMu.RUnlock()
+	return c.threadID
+}
+
 func (c *codexClient) isNotificationFromOtherThread(params map[string]any) bool {
 	threadID, ok := params["threadId"].(string)
-	return ok && c.threadID != "" && threadID != c.threadID
+	current := c.currentThreadID()
+	return ok && current != "" && threadID != current
 }
 
 func (c *codexClient) handleItemNotification(method string, params map[string]any) {
@@ -3230,6 +3302,15 @@ func (c *codexClient) handleItemNotification(method string, params map[string]an
 		return
 	}
 
+	if method == "item/completed" && strings.EqualFold(itemType, "contextCompaction") && c.compactionDone != nil {
+		c.usageMu.Lock()
+		c.compactionCompleted = true
+		c.usageMu.Unlock()
+		select {
+		case c.compactionDone <- struct{}{}:
+		default:
+		}
+	}
 	switch {
 	case method == "item/started" && itemType == "commandExecution":
 		command, _ := item["command"].(string)
@@ -3667,7 +3748,7 @@ func parseCodexSessionFileSince(path string, startTime time.Time, resumed bool) 
 	cachedTokens := finalUsage.CachedInputTokens
 	result.usage = TokenUsage{
 		InputTokens:     codexUncachedInputTokens(finalUsage.InputTokens, cachedTokens),
-		OutputTokens:    finalUsage.OutputTokens + finalUsage.ReasoningOutputTokens,
+		OutputTokens:    finalUsage.OutputTokens,
 		CacheReadTokens: cachedTokens,
 	}
 	return &result

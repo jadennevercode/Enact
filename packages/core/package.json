@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "exports": {
+    "./anyharness-demo": "./anyharness-demo/index.ts",
     ".": "./index.ts",
     "./markdown": "./markdown/index.ts",
     "./types": "./types/index.ts",
@@ -22,6 +23,7 @@
     "./api/ws-client": "./api/ws-client.ts",
     "./config": "./config/index.ts",
     "./auth": "./auth/index.ts",
+    "./auth/registration": "./auth/registration.ts",
     "./marketplace": "./marketplace/index.ts",
     "./marketplace/queries": "./marketplace/queries.ts",
     "./marketplace/mutations": "./marketplace/mutations.ts",
@@ -32,6 +34,9 @@
     "./workspace/hooks": "./workspace/hooks.ts",
     "./workspace/workspace-url": "./workspace/workspace-url.ts",
     "./workspace/avatar-url": "./workspace/avatar-url.ts",
+    "./team-roles": "./team-roles/index.ts",
+    "./team-roles/queries": "./team-roles/queries.ts",
+    "./team-roles/mutations": "./team-roles/mutations.ts",
     "./issue-statuses": "./issue-statuses/index.ts",
     "./issue-statuses/queries": "./issue-statuses/queries.ts",
     "./issue-statuses/hooks": "./issue-statuses/hooks.ts",
@@ -89,6 +94,7 @@
     "./artifacts/artifact-tree": "./artifacts/artifact-tree.ts",
     "./resources": "./resources/index.ts",
     "./resources/queries": "./resources/queries.ts",
+    "./codegraph": "./codegraph/index.ts",
     "./plugins": "./plugins/index.ts",
     "./plugins/queries": "./plugins/queries.ts",
     "./plugins/mutations": "./plugins/mutations.ts",
@@ -164,7 +170,8 @@
     "./skills/frontmatter": "./skills/frontmatter.ts",
     "./skills/stores": "./skills/stores/index.ts",
     "./autopilots/stores": "./autopilots/stores/index.ts",
-    "./semantic": "./semantic/index.ts"
+    "./semantic": "./semantic/index.ts",
+    "./context": "./context/index.ts"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "catalog:",

@@ -20,7 +20,8 @@
     "ontologies": "Ontology",
     "skills": "Skills",
     "connections": "数据与系统连接",
-    "applications": "应用"
+    "applications": "应用",
+    "codegraph": "代码图谱"
   },
   "tab": {
     "issue": "任务",
@@ -49,6 +50,8 @@
     "loading_named_prefix": "正在加载"
   },
   "sidebar": {
+    "guide": "Guide",
+    "guide_open": "在新窗口打开 AISDLC Guide",
     "unpin_tooltip": "取消固定",
     "workspaces_label": "工作区",
     "create_workspace": "创建工作区",

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/daemon/gitcredential"
 	"github.com/enact-ai/enact/server/internal/daemon/repocache"
 )
 
@@ -106,6 +107,22 @@ type repoCheckoutRequest struct {
 	// RetryBusy is sent by clients that understand 503 + Retry-After. Older
 	// clients omit it and retain their historical unbounded lock-wait behavior.
 	RetryBusy bool `json:"retry_busy,omitempty"`
+}
+
+type repoPushRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	TaskID      string `json:"task_id"`
+	WorkDir     string `json:"workdir"`
+}
+
+type repoChangeRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	TaskID      string `json:"task_id"`
+	WorkDir     string `json:"workdir"`
+	Base        string `json:"base,omitempty"`
+	Title       string `json:"title"`
+	Body        string `json:"body,omitempty"`
+	Draft       bool   `json:"draft,omitempty"`
 }
 
 type activeRepoCheckoutTask struct {
@@ -273,6 +290,8 @@ func (d *Daemon) serveHealth(ctx context.Context, ln net.Listener, startedAt tim
 	mux.HandleFunc("/health", d.healthHandler(startedAt))
 	mux.HandleFunc("/shutdown", d.shutdownHandler())
 	mux.HandleFunc("/repo/checkout", d.repoCheckoutHandler())
+	mux.HandleFunc("/repo/push", d.repoPushHandler())
+	mux.HandleFunc("/repo/change-request", d.repoChangeRequestHandler())
 
 	srv := &http.Server{Handler: mux}
 
@@ -284,6 +303,132 @@ func (d *Daemon) serveHealth(ctx context.Context, ln net.Listener, startedAt tim
 	d.logger.Info("health server listening", "addr", ln.Addr().String())
 	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		d.logger.Warn("health server error", "error", err)
+	}
+}
+
+func (d *Daemon) repoChangeRequestHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		activeTask, ok := d.activeRepoCheckoutTask(r)
+		if !ok {
+			http.Error(w, "change request requires an active task credential", http.StatusUnauthorized)
+			return
+		}
+		var req repoChangeRequest
+		if json.NewDecoder(r.Body).Decode(&req) != nil || req.WorkspaceID != activeTask.WorkspaceID || req.TaskID != activeTask.TaskID {
+			http.Error(w, "change request task context does not match the active task", http.StatusForbidden)
+			return
+		}
+		req.Title = strings.TrimSpace(req.Title)
+		if req.Title == "" {
+			http.Error(w, "title is required", http.StatusBadRequest)
+			return
+		}
+		workDir, err := authorizeRepoCheckoutWorkDir(activeTask.WorkDir, req.WorkDir)
+		if err != nil {
+			http.Error(w, "workdir is not owned by the active task", http.StatusForbidden)
+			return
+		}
+		remoteURL, err := repocache.RemoteURLContext(r.Context(), workDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		head, err := repocache.CurrentBranchContext(r.Context(), workDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		repos, err := d.refreshWorkspaceRepos(r.Context(), activeTask.WorkspaceID)
+		if err != nil {
+			http.Error(w, "refresh workspace repositories: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		var resourceID string
+		for _, repo := range repos.Repos {
+			if strings.TrimSpace(repo.URL) == strings.TrimSpace(remoteURL) {
+				resourceID = repo.ResourceID
+				break
+			}
+		}
+		if resourceID == "" {
+			http.Error(w, "origin is not an enabled managed code repository", http.StatusForbidden)
+			return
+		}
+		result, err := d.client.CreateRepositoryChangeRequest(r.Context(), activeTask.TaskID, resourceID, head, strings.TrimSpace(req.Base), req.Title, req.Body, req.Draft)
+		if err != nil {
+			http.Error(w, "create change request: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
+func (d *Daemon) repoPushHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		activeTask, ok := d.activeRepoCheckoutTask(r)
+		if !ok {
+			http.Error(w, "repo push requires an active task credential", http.StatusUnauthorized)
+			return
+		}
+		var req repoPushRequest
+		if json.NewDecoder(r.Body).Decode(&req) != nil || req.WorkspaceID != activeTask.WorkspaceID || req.TaskID != activeTask.TaskID {
+			http.Error(w, "repo push task context does not match the active task", http.StatusForbidden)
+			return
+		}
+		workDir, err := authorizeRepoCheckoutWorkDir(activeTask.WorkDir, req.WorkDir)
+		if err != nil {
+			http.Error(w, "repo push workdir is not owned by the active task", http.StatusForbidden)
+			return
+		}
+		remoteURL, err := repocache.RemoteURLContext(r.Context(), workDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		repos, err := d.refreshWorkspaceRepos(r.Context(), activeTask.WorkspaceID)
+		if err != nil {
+			http.Error(w, "refresh workspace repositories: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		var resourceID string
+		for _, repo := range repos.Repos {
+			if strings.TrimSpace(repo.URL) == strings.TrimSpace(remoteURL) {
+				resourceID = repo.ResourceID
+				break
+			}
+		}
+		if resourceID == "" {
+			http.Error(w, "origin is not an enabled managed code repository", http.StatusForbidden)
+			return
+		}
+		credential, err := d.client.GetRepositoryCredential(r.Context(), activeTask.WorkspaceID, resourceID)
+		if err != nil || strings.TrimSpace(credential.RepositoryURL) != strings.TrimSpace(remoteURL) {
+			http.Error(w, "repository credential is unavailable", http.StatusBadGateway)
+			return
+		}
+		temporary, err := gitcredential.New(remoteURL, credential.Username, credential.Password, credential.CAPEM)
+		if err != nil {
+			http.Error(w, "prepare repository credential: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer temporary.Cleanup()
+		if err := repocache.PushCurrentBranchContext(r.Context(), workDir, temporary.Env()); err != nil {
+			_ = d.client.ReportRepositoryValidation(r.Context(), activeTask.WorkspaceID, resourceID, "ok", classifyRepositoryGitError(err), "git_push_failed", err.Error())
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		_ = d.client.ReportRepositoryValidation(r.Context(), activeTask.WorkspaceID, resourceID, "ok", "ok", "", "")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "pushed", "repository_url": remoteURL})
 	}
 }
 

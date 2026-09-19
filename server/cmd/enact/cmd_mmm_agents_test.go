@@ -60,6 +60,7 @@ type bootstrapRecorder struct {
 	agentCreates  []map[string]any
 	skillBindings map[string][]string // agent ID -> skill IDs
 	squadCreates  []map[string]any
+	squadUpdates  []map[string]any
 	memberAdds    []map[string]any
 	apCreates     []map[string]any
 	triggerAdds   []map[string]any
@@ -153,6 +154,9 @@ func bootstrapMockServer(t *testing.T, ws bootstrapWorkspace, rec *bootstrapReco
 			body := decode(r)
 			rec.squadCreates = append(rec.squadCreates, body)
 			_ = json.NewEncoder(w).Encode(map[string]any{"id": "squad-1", "name": body["name"]})
+		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/squads/") && !strings.HasSuffix(r.URL.Path, "/members"):
+			rec.squadUpdates = append(rec.squadUpdates, decode(r))
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": strings.TrimPrefix(r.URL.Path, "/api/squads/")})
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/squads/") && strings.HasSuffix(r.URL.Path, "/members"):
 			members := ws.squadMembers
 			if members == nil {
@@ -254,6 +258,12 @@ func TestMMMAgentBootstrapCreatesFullPortfolio(t *testing.T) {
 	}
 	if got := rec.squadCreates[0]["leader_id"]; got != "agent-"+manifest.Squad.LeaderName {
 		t.Errorf("squad leader_id = %v, want agent-%s", got, manifest.Squad.LeaderName)
+	}
+	// The leader reads the routing rules on every turn, and the create
+	// endpoint takes no instructions — a squad created without the follow-up
+	// update routes by guesswork.
+	if len(rec.squadUpdates) != 1 || rec.squadUpdates[0]["instructions"] != manifest.Squad.Instructions {
+		t.Errorf("squad instructions were not written from the manifest: %+v", rec.squadUpdates)
 	}
 	if len(rec.memberAdds) != len(manifest.Squad.MemberNames) {
 		t.Errorf("expected %d member adds, got %d", len(manifest.Squad.MemberNames), len(rec.memberAdds))

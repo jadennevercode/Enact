@@ -5,12 +5,11 @@ import { LarkTab } from "./lark-tab";
 import { ComposioTab } from "./composio-tab";
 import { SlackTab } from "./slack-tab";
 import { DingTalkTab } from "./dingtalk-tab";
-import { VCSTab } from "./vcs-tab";
 import { WecomTab } from "./wecom-tab";
 import { TelegramTab } from "./telegram-tab";
 import { ApiError } from "@enact/core/api";
 import { composioToolkitsOptions } from "@enact/core/composio";
-import { useConfigStore, useFeatureEnabled } from "@enact/core/config";
+import { useFeatureEnabled } from "@enact/core/config";
 import { COMPOSIO_MCP_APPS_FLAG } from "@enact/core/feature-flags";
 import { useT } from "../../i18n";
 import { SettingsSection, SettingsTab } from "./settings-layout";
@@ -37,7 +36,6 @@ export function IntegrationsTab() {
   // Self-host-only integration: the managed cloud reports this false (field
   // omitted from /api/config), so the whole section — header included — is
   // hidden there rather than showing an operator-only "missing key" message.
-  const vcsAvailable = useConfigStore((s) => s.vcsIntegrationAvailable);
 
   return (
     <SettingsTab title={t(($) => $.page.tabs.integrations)}>
@@ -79,11 +77,6 @@ export function IntegrationsTab() {
       >
         <DingTalkTab />
       </SettingsSection>
-      {vcsAvailable && (
-        <SettingsSection title={t(($) => $.vcs.section_title)}>
-          <VCSTab />
-        </SettingsSection>
-      )}
       <SettingsSection
         title={
           <span className="enact-integration-section-heading">

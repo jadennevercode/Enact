@@ -142,6 +142,28 @@ export function useMemberManagement() {
     }
   };
 
+  /**
+   * Replaces the TEAM ROLES a person holds (角色) — what kind of judgement they
+   * are trusted to give. Distinct from `changeRole` above, which changes their
+   * PERMISSION (权限) and is the only one of the two that gates access.
+   *
+   * The payload is the whole intended set of active roles, so a retry is
+   * idempotent and assignments to archived roles are left alone.
+   */
+  const setTeamRoles = async (memberId: string, teamRoleIds: string[]) => {
+    if (!workspace) return;
+    setMemberActionId(memberId);
+    try {
+      await api.setMemberTeamRoles(workspace.id, memberId, teamRoleIds);
+      qc.invalidateQueries({ queryKey: workspaceKeys.members(wsId) });
+      toast.success(t(($) => $.manage.toast_team_roles_updated));
+    } catch (error) {
+      toast.error(failure(error, t(($) => $.manage.toast_team_roles_failed)));
+    } finally {
+      setMemberActionId(null);
+    }
+  };
+
   const removeMember = (member: MemberWithUser) => {
     if (!workspace) return;
     setConfirmAction({
@@ -221,6 +243,7 @@ export function useMemberManagement() {
     inviteMember,
     revokeInvitation,
     changeRole,
+    setTeamRoles,
     removeMember,
     createShareLink,
     revokeShareLink,

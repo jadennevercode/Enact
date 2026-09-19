@@ -26,6 +26,19 @@ a pointer.
 | plain text with no `mention://` parses to `nil` | `server/internal/util/mention_test.go:57-60` |
 | Skill eval: a name where a UUID belongs (`mention://member/Alice`) parses to `nil`; a bare `@name` parses to `nil`; a real UUID parses; `@all` → `{all, all}`; a **wrong** type with a real UUID still parses (points at the wrong entity) | `server/internal/service/builtin_skills_test.go:101-157` |
 
+## Finding the right person by role
+
+| Fact | Source |
+| --- | --- |
+| `team_role` is a FUNCTIONAL role, never a permission; `member.role` still gates access | `server/migrations/567_team_role.up.sql:1-18` |
+| `GET /api/workspaces/{id}/members` carries each member's `team_roles` | `server/internal/handler/workspace.go` (`ListMembersWithUser`, `MemberWithUserResponse.TeamRoles`) |
+| `?team_role=<key>` filters the roster to holders of those roles, OR semantics | `server/internal/handler/workspace.go` (`teamRoleKeyFilter`, `holdsAnyActiveTeamRole`) |
+| An ARCHIVED role matches nobody, even though the assignment survives | `server/internal/handler/workspace.go` (`holdsAnyActiveTeamRole` skips `role.Archived`) |
+| `enact workspace member list --team-role <key>` sends that filter | `server/cmd/enact/cmd_workspace.go` (`teamRoleQuery`) |
+| `enact workspace team-role list` returns each role with its holders | `server/cmd/enact/cmd_workspace.go` (`runWorkspaceTeamRoles`) |
+| Filter and archived-role behavior proven end to end | `server/internal/handler/team_role_test.go` (`TestMemberListCarriesTeamRolesAndFiltersByKey`) |
+| CLI filter and column behavior proven | `server/cmd/enact/cmd_workspace_team_role_test.go` |
+
 ## What each mention type enqueues
 
 | Fact | Source |

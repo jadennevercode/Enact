@@ -68,9 +68,24 @@ var agentGitExcludePatterns = []string{
 
 const repoCacheGitTimeout = 10 * time.Minute
 
-func newGitCommand(args ...string) *exec.Cmd {
+type gitEnvironmentContextKey struct{}
+
+// WithGitEnvironment adds per-repository environment variables to every Git
+// subprocess started below this context. It is used for short-lived credential
+// helper and CA files; the values are never copied into command arguments.
+func WithGitEnvironment(ctx context.Context, env []string) context.Context {
+	if len(env) == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, gitEnvironmentContextKey{}, append([]string(nil), env...))
+}
+
+func newGitCommandContext(ctx context.Context, args ...string) *exec.Cmd {
 	cmd := exec.Command("git", args...)
 	cmd.Env = gitEnv()
+	if extra, ok := ctx.Value(gitEnvironmentContextKey{}).([]string); ok {
+		cmd.Env = append(cmd.Env, extra...)
+	}
 	return cmd
 }
 
@@ -90,7 +105,7 @@ func runGitCombinedOutputWithTimeoutContext(parent context.Context, timeout time
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
-	cmd := newGitCommand(args...)
+	cmd := newGitCommandContext(parent, args...)
 	out, err := processtree.CombinedOutput(ctx, cmd, 5*time.Second)
 	if ctx.Err() == context.DeadlineExceeded {
 		return out, fmt.Errorf("git command timed out after %s: %w", timeout, ctx.Err())
@@ -114,7 +129,7 @@ func runGitOutputWithTimeoutContext(parent context.Context, timeout time.Duratio
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
-	cmd := newGitCommand(args...)
+	cmd := newGitCommandContext(parent, args...)
 	out, err := processtree.Output(ctx, cmd, 5*time.Second)
 	if ctx.Err() == context.DeadlineExceeded {
 		return out, fmt.Errorf("git command timed out after %s: %w", timeout, ctx.Err())
@@ -138,7 +153,7 @@ func runGitWithTimeoutContext(parent context.Context, timeout time.Duration, arg
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
-	cmd := newGitCommand(args...)
+	cmd := newGitCommandContext(parent, args...)
 	err := processtree.Run(ctx, cmd, 5*time.Second)
 	if ctx.Err() == context.DeadlineExceeded {
 		return fmt.Errorf("git command timed out after %s: %w", timeout, ctx.Err())
@@ -146,9 +161,44 @@ func runGitWithTimeoutContext(parent context.Context, timeout time.Duration, arg
 	return err
 }
 
+// RemoteURLContext returns origin without contacting the remote.
+func RemoteURLContext(ctx context.Context, workDir string) (string, error) {
+	out, err := runGitOutputContext(ctx, "-C", workDir, "remote", "get-url", "origin")
+	if err != nil {
+		return "", fmt.Errorf("read origin URL: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// CurrentBranchContext returns the checked-out branch and rejects detached
+// HEAD, which cannot be used as a pull/merge request source branch.
+func CurrentBranchContext(ctx context.Context, workDir string) (string, error) {
+	out, err := runGitOutputContext(ctx, "-C", workDir, "symbolic-ref", "--short", "HEAD")
+	if err != nil {
+		return "", fmt.Errorf("read current branch: %w", err)
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "" {
+		return "", errors.New("current checkout is detached")
+	}
+	return branch, nil
+}
+
+// PushCurrentBranchContext pushes the current task branch through the supplied
+// temporary credential helper environment. Credentials do not enter argv.
+func PushCurrentBranchContext(ctx context.Context, workDir string, env []string) error {
+	ctx = WithGitEnvironment(ctx, env)
+	out, err := runGitCombinedOutputContext(ctx, "-C", workDir, "push", "--set-upstream", "origin", "HEAD")
+	if err != nil {
+		return fmt.Errorf("git push: %s: %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
+}
+
 // RepoInfo describes a repository to cache.
 type RepoInfo struct {
-	URL string
+	URL    string
+	GitEnv []string
 }
 
 // CachedRepo describes a cached bare clone ready for worktree creation.
@@ -364,16 +414,17 @@ func (c *Cache) SyncContext(ctx context.Context, workspaceID string, repos []Rep
 		if repo.URL == "" {
 			continue
 		}
+		repoCtx := WithGitEnvironment(ctx, repo.GitEnv)
 		barePath := filepath.Join(wsDir, bareDirName(repo.URL))
 
 		repoLock := c.lockForRepo(barePath)
-		if err := repoLock.LockContext(ctx); err != nil {
+		if err := repoLock.LockContext(repoCtx); err != nil {
 			return err
 		}
 		if isBareRepo(barePath) {
 			// Already cached — fetch latest.
 			c.logger.Info("repo cache: fetching", "url", repo.URL, "path", barePath)
-			if err := gitFetchContext(ctx, barePath); err != nil {
+			if err := gitFetchContext(repoCtx, barePath); err != nil {
 				c.logger.Warn("repo cache: fetch failed", "url", repo.URL, "error", err)
 				if firstErr == nil {
 					firstErr = err
@@ -382,7 +433,7 @@ func (c *Cache) SyncContext(ctx context.Context, workspaceID string, repos []Rep
 		} else {
 			// Not cached — bare clone.
 			c.logger.Info("repo cache: cloning", "url", repo.URL, "path", barePath)
-			if err := gitCloneBareContext(ctx, repo.URL, barePath); err != nil {
+			if err := gitCloneBareContext(repoCtx, repo.URL, barePath); err != nil {
 				c.logger.Error("repo cache: clone failed", "url", repo.URL, "error", err)
 				if firstErr == nil {
 					firstErr = err

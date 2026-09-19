@@ -123,5 +123,34 @@
   },
   "navigation": {
     "open_in_new_tab": "新しいタブで開く"
+  },
+  "context": {
+    "title": "コンテキスト",
+    "unknown": "不明",
+    "select": "エージェントセッションを選択",
+    "compact": "コンテキストを圧縮",
+    "cancel": "待機中の圧縮をキャンセル",
+    "reading": "最後に記録された使用量",
+    "last_record": "記録時刻",
+    "basis": "ネイティブの有効ウィンドウを使用。累積課金トークンとは別の値です。",
+    "queued": "実行の終了を待機中",
+    "running": "圧縮中",
+    "succeeded": "ネイティブ圧縮完了",
+    "skipped": "圧縮不要",
+    "cancelled": "キャンセル済み",
+    "failed": "圧縮不可または失敗",
+    "unknown_result": "結果の確認が必要",
+    "awaiting_reading": "新しい使用量を待機中",
+    "unsupported": "このランタイムはネイティブ圧縮に未対応です",
+    "accepted": "圧縮リクエストを受け付けました",
+    "request_failed": "リクエストに失敗しました。下書きは保持されています。",
+    "handoffs": "引き継ぎ記録",
+    "source": "元の実行",
+    "decisions": "決定事項",
+    "pending": "人の判断待ち／未完了",
+    "evidence": "根拠",
+    "activity": "メンテナンス履歴",
+    "tokens": "tokens",
+    "revision": "リビジョン"
   }
 }

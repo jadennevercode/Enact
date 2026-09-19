@@ -55,7 +55,25 @@ var repoCheckoutCmd = &cobra.Command{
 	RunE:  runRepoCheckout,
 }
 
+var repoPushCmd = &cobra.Command{
+	Use:   "push",
+	Short: "Push the current task branch with a managed repository credential",
+	Args:  cobra.NoArgs,
+	RunE:  runRepoPush,
+}
+
+var repoChangeRequestCmd = &cobra.Command{
+	Use:   "change-request",
+	Short: "Create a pull or merge request for the current task branch",
+	Args:  cobra.NoArgs,
+	RunE:  runRepoChangeRequest,
+}
+
 var repoCheckoutRef string
+var repoChangeRequestTitle string
+var repoChangeRequestBody string
+var repoChangeRequestBase string
+var repoChangeRequestDraft bool
 
 func init() {
 	repoListCmd.Flags().String("output", "table", "Output format: table or json")
@@ -68,11 +86,18 @@ func init() {
 	repoRemoveCmd.Flags().String("output", "json", "Output format: table or json")
 
 	repoCheckoutCmd.Flags().StringVar(&repoCheckoutRef, "ref", "", "branch, tag, or commit to check out instead of the remote default branch")
+	repoChangeRequestCmd.Flags().StringVar(&repoChangeRequestTitle, "title", "", "pull or merge request title (required)")
+	repoChangeRequestCmd.Flags().StringVar(&repoChangeRequestBody, "body", "", "pull or merge request description")
+	repoChangeRequestCmd.Flags().StringVar(&repoChangeRequestBase, "base", "", "target branch (defaults to the configured repository default)")
+	repoChangeRequestCmd.Flags().BoolVar(&repoChangeRequestDraft, "draft", false, "create a draft pull or merge request")
+	_ = repoChangeRequestCmd.MarkFlagRequired("title")
 
 	repoCmd.AddCommand(repoListCmd)
 	repoCmd.AddCommand(repoAddCmd)
 	repoCmd.AddCommand(repoRemoveCmd)
 	repoCmd.AddCommand(repoCheckoutCmd)
+	repoCmd.AddCommand(repoPushCmd)
+	repoCmd.AddCommand(repoChangeRequestCmd)
 }
 
 // `enact repo` is the repository-shaped view of workspace resources. There is
@@ -370,6 +395,98 @@ func runRepoCheckout(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(os.Stdout, "%s\n", result.Path)
 	fmt.Fprintf(os.Stderr, "Checked out %s → %s (branch: %s)\n", repoURL, result.Path, result.BranchName)
 
+	return nil
+}
+
+func runRepoPush(cmd *cobra.Command, _ []string) error {
+	daemonPort := os.Getenv("ENACT_DAEMON_PORT")
+	taskToken := os.Getenv("ENACT_TOKEN")
+	if daemonPort == "" || taskToken == "" {
+		return fmt.Errorf("repo push requires an active daemon task credential")
+	}
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get working directory: %w", err)
+	}
+	body, err := json.Marshal(map[string]string{
+		"workspace_id": os.Getenv("ENACT_WORKSPACE_ID"),
+		"task_id":      os.Getenv("ENACT_TASK_ID"),
+		"workdir":      workDir,
+	})
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://127.0.0.1:%s/repo/push", daemonPort), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+taskToken)
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return fmt.Errorf("connect to daemon: %w", err)
+	}
+	defer resp.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("push failed: %s", strings.TrimSpace(string(responseBody)))
+	}
+	fmt.Fprintln(os.Stdout, "Pushed current task branch")
+	return nil
+}
+
+func runRepoChangeRequest(cmd *cobra.Command, _ []string) error {
+	daemonPort := os.Getenv("ENACT_DAEMON_PORT")
+	taskToken := os.Getenv("ENACT_TOKEN")
+	if daemonPort == "" || taskToken == "" {
+		return fmt.Errorf("repo change-request requires an active daemon task credential")
+	}
+	workDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	body, err := json.Marshal(map[string]any{
+		"workspace_id": os.Getenv("ENACT_WORKSPACE_ID"), "task_id": os.Getenv("ENACT_TASK_ID"),
+		"workdir": workDir, "base": repoChangeRequestBase, "title": repoChangeRequestTitle,
+		"body": repoChangeRequestBody, "draft": repoChangeRequestDraft,
+	})
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(cmd.Context(), time.Minute)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://127.0.0.1:%s/repo/change-request", daemonPort), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+taskToken)
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return fmt.Errorf("connect to daemon: %w", err)
+	}
+	defer resp.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("create change request failed: %s", strings.TrimSpace(string(responseBody)))
+	}
+	var result struct {
+		Provider string `json:"provider"`
+		Number   int64  `json:"number"`
+		URL      string `json:"url"`
+	}
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stdout, "%s #%d %s\n", result.Provider, result.Number, result.URL)
 	return nil
 }
 

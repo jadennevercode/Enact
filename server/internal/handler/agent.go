@@ -288,6 +288,8 @@ const (
 // daemon can set up worktrees for each workspace repo.
 type RepoData struct {
 	URL         string `json:"url"`
+	ResourceID  string `json:"resource_id,omitempty"`
+	Provider    string `json:"provider,omitempty"`
 	Description string `json:"description,omitempty"`
 	Ref         string `json:"ref,omitempty"`
 	// Kind separates the code a task works on from a knowledge base bound to
@@ -352,6 +354,7 @@ type TaskIssueStatusData struct {
 }
 
 type AgentTaskResponse struct {
+	ContextProtocol      string                 `json:"context_protocol,omitempty"`
 	ID                   string                 `json:"id"`
 	AgentID              string                 `json:"agent_id"`
 	RuntimeID            string                 `json:"runtime_id"`
@@ -787,6 +790,7 @@ func taskToResponse(t db.AgentTaskQueue, workspaceID string) AgentTaskResponse {
 		branchName = t.BranchName.String
 	}
 	return AgentTaskResponse{
+		ContextProtocol:        "v1",
 		ID:                     uuidToString(t.ID),
 		AgentID:                uuidToString(t.AgentID),
 		RuntimeID:              uuidToString(t.RuntimeID),
