@@ -1,14 +1,54 @@
 ---
-title: GitHub 및 사내 GitLab 저장소
-description: 코드 및 디렉터리에서 GitHub App, GitLab HTTPS, 기업 CA와 Webhook을 설정합니다.
+title: GitHub, GitHub Enterprise, GitLab 저장소
+description: "소스 → 코드와 디렉터리"에서 인스턴스 URL과 토큰, 또는 GitHub App으로 코드 호스팅을 연결합니다.
 ---
 
-코드 호스팅 설정은 **소스 → 코드 및 디렉터리**에 통합됩니다. GitHub는 GitHub App을 사용하고, 사내 GitLab의 1단계는 관리형 HTTPS를 사용합니다.
+import { Callout } from "fumadocs-ui/components/callout";
 
-연결 카드는 Server→API, provider→Webhook, daemon→Git remote 세 경로를 각각 표시합니다. GitLab은 만료일과 제한된 프로젝트 멤버십이 있는 Service Account를 권장합니다. API에는 `api`, Git HTTPS에는 `write_repository` token을 별도로 사용합니다. 비밀과 기업 CA PEM은 `ENACT_VCS_SECRET_KEY`로 암호화되며 브라우저 API에 반환되지 않습니다.
+<Callout type="warn">
+서버에 필요한 설정은 `ENACT_VCS_SECRET_KEY`(base64 32바이트 키, `openssl rand -base64 32`) 하나뿐입니다. 저장되는 모든 토큰, Webhook secret, 기업 CA를 암호화합니다. 설정하지 않으면 화면에 누락 내용이 표시되고 자격 증명 저장이 거부됩니다. 공급자가 접근할 수 있는 주소로 Webhook을 등록하도록 `ENACT_PUBLIC_URL`도 설정하세요.
+</Callout>
 
-관리 작업에서는 `enact repo push`로 daemon의 임시 저장소 범위 자격 증명을 사용해 push한 뒤 `enact repo change-request --title "…"`로 Enact Server에서 PR/MR을 만듭니다.
+모든 설정은 **소스 → 코드와 디렉터리**에서 워크스페이스 소유자 또는 관리자가 합니다. **연결**에서 다음 중 하나를 고릅니다.
 
-자체 배포에서는 `ENACT_VCS_INTEGRATION_ENABLED=true`, base64 32-byte `ENACT_VCS_SECRET_KEY`, 전체 Webhook URL을 위한 `ENACT_PUBLIC_URL`을 설정하세요. TLS 검증은 끌 수 없습니다. GitLab Outbound requests에서 Enact Webhook host/IP만 허용하고 Merge request 및 Pipeline event를 등록하세요.
+| 방식 | 용도 | 입력 |
+| --- | --- | --- |
+| 토큰으로 GitHub.com 연결 | GitHub App이 없는 github.com | 세분화 토큰 또는 클래식 토큰 |
+| GitHub Enterprise Server | 사내망을 포함한 GHES | 인스턴스 URL과 토큰 |
+| GitLab | GitLab.com 또는 자체 관리 GitLab | 인스턴스 URL, API 토큰, Git 토큰 |
+| GitHub App | App이 설정된 github.com | 입력 없음. GitHub로 이동 |
 
-GitHub App에는 Contents와 Pull requests 읽기/쓰기, Checks와 Commit statuses 읽기 권한이 필요합니다. URL만 저장된 기존 저장소는 ‘설정 대기’로 중지되며 연결을 지정하기 전에는 daemon에 전달되지 않습니다. SSH는 2단계입니다.
+토큰 연결에는 배포 단위 공급자 설정이 필요 없습니다. 사용할 수 있다면 GitHub App이 더 강한 자격 증명입니다. 저장소마다 단기 토큰을 발급하고 Webhook은 GitHub이 등록합니다.
+
+## 네트워크 요구 사항
+
+Enact 서버는 공급자 API를 호출하고 각 daemon은 HTTPS로 클론하므로, 둘 다 인스턴스에 접근할 수 있어야 합니다. 공용 인터넷의 Enact 서버는 사내망에만 있는 GitLab에 접근할 수 없습니다. 서버는 `HTTPS_PROXY`와 `NO_PROXY`를 따릅니다.
+
+Webhook은 반대로 공급자에서 Enact로 옵니다. 자체 관리 GitLab은 내부 주소 요청을 막는 경우가 많으니 관리자에게 **Admin → Settings → Network → Outbound requests**에서 Enact Webhook 호스트를 허용해 달라고 요청하세요. 각 연결 카드에 정확한 주소가 표시됩니다.
+
+## 토큰
+
+**GitHub.** 하나의 토큰으로 API와 HTTPS Git을 모두 인증합니다. 세분화 토큰에는 Contents 읽기/쓰기, Pull requests 읽기/쓰기, Webhooks 읽기/쓰기, Checks 읽기, Commit statuses 읽기, Metadata 읽기 권한이 필요합니다. 클래식 토큰에는 `repo`와 `admin:repo_hook`이 필요합니다. 조직이 SAML SSO를 쓰면 토큰을 인가하세요.
+
+**GitLab.** GitLab은 두 역할을 나누므로 토큰도 두 개가 필요합니다. API 토큰은 `api`가 필요하며 Enact 서버에만 보관됩니다. Git 토큰은 `write_repository`가 필요하며 인가된 daemon에 저장소 단위로만 전달됩니다. LDAP나 SSO로 로그인하는 계정도 사용자 설정에서 이 토큰을 만들 수 있습니다.
+
+만료일은 선택 사항입니다. Enact는 입력값이 아니라 공급자가 보고한 범위를 기록합니다.
+
+## 기업용 옵션
+
+인스턴스를 직접 입력할 때만 표시됩니다.
+
+- **클론 호스트**: Git 트래픽이 API와 다른 호스트명을 쓸 때 입력합니다. 연결된 저장소의 원격 주소가 이 호스트로 재작성됩니다.
+- **기업 CA(PEM)**: 서버 API 호출과 daemon Git 트래픽의 신뢰 저장소에 추가됩니다. TLS 검증은 끌 수 없습니다.
+
+## 저장소와 Webhook
+
+연결 카드의 **저장소 탐색**에서 선택합니다. push할 수 없거나, 보관되었거나, 이미 연결된 저장소는 선택할 수 없습니다. 연결하면 Enact가 백그라운드에서 Webhook을 등록하며 상태는 `registered`, `ok`, `manual`, `failed` 중 하나가 됩니다. `manual`이면 카드의 주소와 연결 시 한 번만 표시된 secret으로 직접 추가하고, `failed`이면 **Webhook 등록**으로 다시 시도하세요.
+
+## 연결 상태
+
+각 카드는 API, Webhook, Git 읽기, Git 쓰기, PR/MR 생성의 다섯 가지를 따로 보고합니다. **테스트**는 API를 확인하고 Git 읽기/쓰기는 각 daemon이 저장소별로 보고합니다.
+
+## 작업에서의 push와 PR
+
+에이전트는 `enact repo push`를 사용합니다. daemon은 저장소 단위 자격 증명을 `0600` 임시 파일에 써서 push한 뒤 삭제합니다. `enact repo change-request --title "…"`는 Enact 서버를 통해 PR/MR을 만들므로 API 토큰이 에이전트 프로세스에 들어가지 않습니다. SSH는 별도 단계로 제공될 예정입니다.

@@ -91,13 +91,6 @@ func vcsPullRequestRowToResponse(p db.ListVCSPullRequestsByIssueRow) GitHubPullR
 // adapter handles the provider-specific signature scheme, event header, and
 // payload shape, returning normalized events to the shared mirror logic below.
 func (h *Handler) HandleVCSWebhook(w http.ResponseWriter, r *http.Request) {
-	// Where the integration is off (the managed cloud) the endpoint behaves as
-	// if it does not exist — a bare 404 that reveals nothing about config, the
-	// same response a genuinely unknown connection id gets below.
-	if !h.isVCSAvailable() {
-		writeError(w, http.StatusNotFound, "unknown connection")
-		return
-	}
 	if !h.isVCSConfigured() {
 		writeError(w, http.StatusServiceUnavailable, "vcs webhooks not configured")
 		return
@@ -329,11 +322,14 @@ func (h *Handler) mirrorVCSCIStatus(ctx context.Context, conn db.VcsConnection, 
 	}
 }
 
+// vcsRepositoryEnabled reports whether a delivery names a repository this
+// workspace actually attached to this connection. Forgejo and Gitea keep their
+// original connection-scoped behavior, where every repository reachable by the
+// connection is in scope. GitLab and token-authenticated GitHub enforce the
+// binding, because their tokens routinely see an entire group or account and a
+// workspace should only mirror what it chose to attach.
 func (h *Handler) vcsRepositoryEnabled(ctx context.Context, conn db.VcsConnection, owner, name string) bool {
-	// Forgejo and Gitea keep their existing connection-scoped webhook behavior
-	// in this phase. Repository bindings and managed Git credentials are only
-	// introduced for GitLab (GitHub uses its own installation path).
-	if conn.Provider != "gitlab" {
+	if conn.Provider != "gitlab" && conn.Provider != "github" {
 		return true
 	}
 	rows, err := h.Queries.ListWorkspaceResourcesUsingConnection(ctx, db.ListWorkspaceResourcesUsingConnectionParams{WorkspaceID: conn.WorkspaceID, ProviderConnectionID: uuidToString(conn.ID)})

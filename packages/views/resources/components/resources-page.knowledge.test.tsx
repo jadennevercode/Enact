@@ -13,7 +13,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "../../test/i18n";
 
-vi.mock("./code-hosting-connections", () => ({
+vi.mock("./code-hosting", () => ({
   CodeHostingConnections: () => null,
 }));
 

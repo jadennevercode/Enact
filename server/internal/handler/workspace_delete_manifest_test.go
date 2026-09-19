@@ -162,6 +162,7 @@ var workspaceDeletionManifest = map[string]workspaceDeleteAction{
 	"task_usage_hourly_rollup_state": workspaceDeleteKeep,
 	"user":                           workspaceDeleteKeep,
 	"user_composio_connection":       workspaceDeleteKeep,
+	"daemon_repository_validation":   workspaceDelete,
 	"vcs_commit_status":              workspaceDelete,
 	"vcs_connection":                 workspaceDelete,
 	"vcs_pull_request":               workspaceDelete,

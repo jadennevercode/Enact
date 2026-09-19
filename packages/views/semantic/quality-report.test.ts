@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { ontologyQuality, qualityMeasure } from "./quality-report";
+import { engineLabel, ontologyQuality, qualityMeasure } from "./quality-report";
 describe("quality score evidence", () => {
   it("never turns zero tests, invalid counts or an unexecuted check into a perfect score", () => {
     expect(
@@ -56,5 +56,11 @@ describe("quality score evidence", () => {
     expect(
       report.dimensions.find((d) => d.key === "consistency")?.percent,
     ).toBeNull();
+  });
+  it("never displays the upstream Semantica brand in engine labels", () => {
+    expect(engineLabel("Semantica native/policies")).toBe("Native/policies");
+    expect(engineLabel("Semantica / SHACL Core")).toBe("SHACL Core");
+    expect(engineLabel("SPARQL + expected results")).toBe("SPARQL + expected results");
+    expect(qualityMeasure({ engine: "Semantica / SHACL Core" }).engine).toBe("SHACL Core");
   });
 });

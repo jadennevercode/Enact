@@ -49,9 +49,6 @@ vi.mock("./dingtalk-tab", () => ({
   DingTalkTab: () => <div data-testid="dingtalk-tab" />,
 }));
 
-vi.mock("./vcs-tab", () => ({
-  VCSTab: () => <div data-testid="vcs-tab" />,
-}));
 
 vi.mock("./wecom-tab", () => ({
   WecomTab: () => <div data-testid="wecom-tab" />,
@@ -78,9 +75,6 @@ describe("Settings IntegrationsTab", () => {
     queryCallsRef.current = [];
     composioErrorRef.current = null;
     configStore.getState().setFeatureFlags({ [COMPOSIO_MCP_APPS_FLAG]: true });
-    // Reset the self-host-only VCS gate to its default (hidden) so tests stay
-    // isolated; individual tests opt in below.
-    configStore.getState().setAuthConfig({ allowSignup: true, vcsIntegrationAvailable: false });
   });
 
   it("hides Composio and disables the toolkits query when the feature flag is off", () => {
@@ -137,18 +131,12 @@ describe("Settings IntegrationsTab", () => {
     expect(screen.queryByTestId("composio-tab")).toBeNull();
   });
 
-  it("hides the Git providers section when the deployment reports it unavailable", () => {
-    // Default (managed cloud / older server): vcsIntegrationAvailable is false.
+  // Code hosting lives on Sources → Code & directories, never here. This guards
+  // the split: an integrations row for GitHub/GitLab would give the product two
+  // places to connect the same thing.
+  it("keeps Git providers on Sources rather than the integrations tab", () => {
     renderTab();
 
-    expect(screen.queryByTestId("vcs-tab")).toBeNull();
-  });
-
-  it("keeps Git providers on Sources even when self-hosted VCS is enabled", () => {
-    configStore.getState().setAuthConfig({ allowSignup: true, vcsIntegrationAvailable: true });
-
-    renderTab();
-
-    expect(screen.queryByTestId("vcs-tab")).toBeNull();
+    expect(screen.queryByText(/gitlab/i)).toBeNull();
   });
 });

@@ -48,7 +48,7 @@ make selfhost
 On first run, `make selfhost` will:
 
 1. Create `.env` from `.env.example`
-2. Generate a random `JWT_SECRET`, PostgreSQL password, and `ENACT_VCS_SECRET_KEY` (the encryption key for self-hosted Git integrations)
+2. Generate a random `JWT_SECRET`, PostgreSQL password, and `ENACT_VCS_SECRET_KEY` (the encryption key for code hosting connections)
 3. Pull the PostgreSQL, Enact backend, and Enact frontend images
 4. Create persistent volumes and start the three containers
 5. Wait until the backend starts answering health checks
@@ -144,7 +144,7 @@ curl -fsS https://api.example.com/readyz
 
 ## 4. Log in and create a workspace
 
-Open `http://localhost:3000` locally, or the `https://app.example.com` you just configured. Register with a username, a `@deloittecn.com.cn` email address, and a password, then create your first workspace. No email service or verification-code step is required.
+Open `http://localhost:3000` locally, or the `https://app.example.com` you just configured. Register with a username, a `@deloittecn.com.cn` or `@deloitte.com.hk` email address, and a password, then create your first workspace. No email service or verification-code step is required.
 
 ## 5. Connect a computer
 

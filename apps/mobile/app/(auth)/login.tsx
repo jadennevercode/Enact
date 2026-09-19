@@ -8,6 +8,7 @@ import { TextField } from "@/components/ui/text-field";
 import { Button } from "@/components/ui/button";
 import { EnactLogo } from "@/components/brand/enact-logo";
 import { useAuthStore } from "@/data/auth-store";
+import { isRegistrationEmail } from "@enact/core/auth/registration";
 import { mapAuthError } from "@/lib/auth-error";
 
 export default function Login() {
@@ -23,11 +24,10 @@ export default function Login() {
   const onSubmit = async () => {
     const trimmed = email.trim();
     if (!trimmed || !password || (mode === "register" && !name.trim())) return;
-    if (
-      mode === "register" &&
-      !trimmed.toLowerCase().endsWith("@deloittecn.com.cn")
-    ) {
-      setError("Only @deloittecn.com.cn email addresses can register.");
+    if (mode === "register" && !isRegistrationEmail(trimmed)) {
+      setError(
+        "Only @deloittecn.com.cn and @deloitte.com.hk email addresses can register.",
+      );
       return;
     }
     if (mode === "register" && password.length < 8) {

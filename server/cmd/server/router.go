@@ -342,7 +342,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		AllowedEmails:            splitAndTrim(os.Getenv("ALLOWED_EMAILS")),
 		AllowedEmailDomains:      splitAndTrim(os.Getenv("ALLOWED_EMAIL_DOMAINS")),
 		DisableWorkspaceCreation: os.Getenv("DISABLE_WORKSPACE_CREATION") == "true",
-		VCSIntegrationEnabled:    os.Getenv("ENACT_VCS_INTEGRATION_ENABLED") == "true",
 		PublicURL:                strings.TrimRight(strings.TrimSpace(os.Getenv("ENACT_PUBLIC_URL")), "/"),
 		TrustedProxies:           parseTrustedProxies(os.Getenv("ENACT_TRUSTED_PROXIES")),
 		CloudRuntimeFleetURL:     cloudRuntimeFleetURLFromEnv(),
@@ -1575,6 +1574,11 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/vcs/connections/{connectionId}/rotate-webhook", h.RotateVCSConnectionWebhook)
 					r.Get("/vcs/connections/{connectionId}/repositories", h.ListVCSConnectionRepositories)
 					r.Post("/vcs/connections/{connectionId}/test", h.TestVCSConnection)
+					// Re-run hook registration for every bound repository.
+					// Attach already does this; this is the retry for a token
+					// that has since gained webhook permission, a rotated
+					// secret, or a hook deleted at the provider.
+					r.Post("/vcs/connections/{connectionId}/webhooks", h.RegisterVCSConnectionWebhooks)
 					r.Put("/vcs/connections/{connectionId}/credentials", h.RotateVCSConnectionCredentials)
 					r.Delete("/vcs/connections/{connectionId}", h.DeleteVCSConnection)
 				})

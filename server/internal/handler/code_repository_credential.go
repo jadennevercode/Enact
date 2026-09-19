@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,9 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/enact-ai/enact/server/internal/integrations/vcs"
 	"github.com/enact-ai/enact/server/internal/middleware"
 	db "github.com/enact-ai/enact/server/pkg/db/generated"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const codeRepositoryOperationResponseLimit = 2 << 20
@@ -74,9 +77,30 @@ func (h *Handler) ResolveCodeRepositoryCredential(w http.ResponseWriter, r *http
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"repository_url": repo.URL, "username": "oauth2", "password": token, "ca_pem": caPEM, "provider": "gitlab"})
 	case "github":
-		installation, err := h.Queries.GetGitHubInstallationByID(r.Context(), connectionUUID)
-		if err != nil || uuidToString(installation.WorkspaceID) != workspaceID {
-			writeError(w, http.StatusNotFound, "GitHub installation not found")
+		binding, ok := h.resolveGitHubBinding(r.Context(), connectionUUID, workspaceID)
+		if !ok {
+			writeError(w, http.StatusNotFound, "GitHub connection not found")
+			return
+		}
+		if !binding.isApp {
+			token, err := h.openVCSSecret(binding.connection.GitTokenEncrypted)
+			if err != nil || token == "" {
+				writeError(w, http.StatusServiceUnavailable, "GitHub Git credential is unavailable")
+				return
+			}
+			caPEM := ""
+			if binding.connection.CaPemEncrypted != "" {
+				caPEM, err = h.openVCSSecret(binding.connection.CaPemEncrypted)
+				if err != nil {
+					writeError(w, http.StatusInternalServerError, "CA secret error")
+					return
+				}
+			}
+			// x-access-token is GitHub's documented username for token-over-
+			// HTTPS on both github.com and Enterprise Server; the token is the
+			// password. No expiry is reported because the credential is the
+			// operator's own and lives until they rotate it.
+			writeJSON(w, http.StatusOK, map[string]any{"repository_url": repo.URL, "username": "x-access-token", "password": token, "ca_pem": caPEM, "provider": "github"})
 			return
 		}
 		repositoryID, err := strconv.ParseInt(strings.TrimSpace(repo.ProviderRepositoryID), 10, 64)
@@ -84,7 +108,7 @@ func (h *Handler) ResolveCodeRepositoryCredential(w http.ResponseWriter, r *http
 			writeError(w, http.StatusConflict, "GitHub repository identity is invalid")
 			return
 		}
-		token, expiresAt, err := mintGitHubRepositoryToken(r.Context(), installation.InstallationID, repositoryID)
+		token, expiresAt, err := mintGitHubRepositoryToken(r.Context(), binding.installation.InstallationID, repositoryID)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, "could not mint GitHub repository credential")
 			return
@@ -93,6 +117,36 @@ func (h *Handler) ResolveCodeRepositoryCredential(w http.ResponseWriter, r *http
 	default:
 		writeError(w, http.StatusConflict, "unsupported code repository provider")
 	}
+}
+
+// gitHubBinding is how a github repository ref reaches a credential. Both
+// shapes are legitimate and a workspace may hold one of each: a GitHub App
+// installation, which mints a short-lived token scoped to the single
+// repository, and a token connection, which stores one credential an admin
+// entered — the only option for GitHub Enterprise Server or for a deployment
+// that cannot register an App.
+//
+// The ref records only a connection id, so the id itself decides which table
+// it names. Resolving it in one place keeps the credential path, the pull
+// request path and the binding check from drifting into different answers.
+type gitHubBinding struct {
+	installation db.GithubInstallation
+	connection   db.VcsConnection
+	isApp        bool
+}
+
+func (h *Handler) resolveGitHubBinding(ctx context.Context, connectionID pgtype.UUID, workspaceID string) (gitHubBinding, bool) {
+	if installation, err := h.Queries.GetGitHubInstallationByID(ctx, connectionID); err == nil {
+		if uuidToString(installation.WorkspaceID) != workspaceID {
+			return gitHubBinding{}, false
+		}
+		return gitHubBinding{installation: installation, isApp: true}, true
+	}
+	connection, err := h.Queries.GetVCSConnectionByID(ctx, connectionID)
+	if err != nil || uuidToString(connection.WorkspaceID) != workspaceID || connection.Provider != string(vcs.KindGitHub) {
+		return gitHubBinding{}, false
+	}
+	return gitHubBinding{connection: connection, isApp: false}, true
 }
 
 type reportRepositoryValidationRequest struct {
@@ -224,11 +278,7 @@ func (h *Handler) CreateCodeRepositoryChangeRequest(w http.ResponseWriter, r *ht
 			writeError(w, http.StatusInternalServerError, "secret error")
 			return
 		}
-		caPEM := ""
-		if connection.CaPemEncrypted != "" {
-			caPEM, err = h.openVCSSecret(connection.CaPemEncrypted)
-		}
-		client, err := vcsHTTPClient(caPEM)
+		client, err := h.vcsConnectionHTTPClient(connection)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "invalid enterprise CA")
 			return
@@ -270,23 +320,43 @@ func (h *Handler) CreateCodeRepositoryChangeRequest(w http.ResponseWriter, r *ht
 		return
 	}
 	if repo.Provider == "github" {
-		installation, err := h.Queries.GetGitHubInstallationByID(r.Context(), connectionUUID)
-		if err != nil || uuidToString(installation.WorkspaceID) != workspaceID {
-			writeError(w, http.StatusNotFound, "GitHub installation not found")
+		binding, ok := h.resolveGitHubBinding(r.Context(), connectionUUID, workspaceID)
+		if !ok {
+			writeError(w, http.StatusNotFound, "GitHub connection not found")
 			return
 		}
-		repositoryID, err := strconv.ParseInt(repo.ProviderRepositoryID, 10, 64)
-		if err != nil {
-			writeError(w, http.StatusConflict, "GitHub repository identity is invalid")
-			return
-		}
-		token, _, err := mintGitHubRepositoryToken(r.Context(), installation.InstallationID, repositoryID)
-		if err != nil {
-			writeError(w, http.StatusBadGateway, "could not mint GitHub repository credential")
-			return
+		// An App mints a fresh repository-scoped token per call; a token
+		// connection uses the stored credential and, on Enterprise Server, its
+		// own API base and enterprise CA.
+		token, apiBase := "", strings.TrimRight(githubAPIBase, "/")
+		client := &http.Client{Timeout: 15 * time.Second}
+		if binding.isApp {
+			repositoryID, parseErr := strconv.ParseInt(repo.ProviderRepositoryID, 10, 64)
+			if parseErr != nil {
+				writeError(w, http.StatusConflict, "GitHub repository identity is invalid")
+				return
+			}
+			minted, _, mintErr := mintGitHubRepositoryToken(r.Context(), binding.installation.InstallationID, repositoryID)
+			if mintErr != nil {
+				writeError(w, http.StatusBadGateway, "could not mint GitHub repository credential")
+				return
+			}
+			token = minted
+		} else {
+			stored, secretErr := h.openVCSSecret(binding.connection.AccessTokenEncrypted)
+			if secretErr != nil || stored == "" {
+				writeError(w, http.StatusInternalServerError, "secret error")
+				return
+			}
+			enterpriseClient, clientErr := h.vcsConnectionHTTPClient(binding.connection)
+			if clientErr != nil {
+				writeError(w, http.StatusInternalServerError, "invalid enterprise CA")
+				return
+			}
+			token, apiBase, client = stored, vcs.GitHubAPIBase(binding.connection.InstanceUrl), enterpriseClient
 		}
 		body, _ := json.Marshal(map[string]any{"title": req.Title, "head": req.Head, "base": req.Base, "body": req.Body, "draft": req.Draft})
-		endpoint := strings.TrimRight(githubAPIBase, "/") + "/repos/" + strings.Trim(repo.FullName, "/") + "/pulls"
+		endpoint := apiBase + "/repos/" + strings.Trim(repo.FullName, "/") + "/pulls"
 		upstream, err := http.NewRequestWithContext(r.Context(), http.MethodPost, endpoint, bytes.NewReader(body))
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to build GitHub request")
@@ -294,7 +364,7 @@ func (h *Handler) CreateCodeRepositoryChangeRequest(w http.ResponseWriter, r *ht
 		}
 		setGitHubAPIHeaders(upstream, token)
 		upstream.Header.Set("Content-Type", "application/json")
-		resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(upstream)
+		resp, err := client.Do(upstream)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, "could not reach GitHub")
 			return
@@ -312,6 +382,10 @@ func (h *Handler) CreateCodeRepositoryChangeRequest(w http.ResponseWriter, r *ht
 		if json.NewDecoder(io.LimitReader(resp.Body, codeRepositoryOperationResponseLimit)).Decode(&out) != nil {
 			writeError(w, http.StatusBadGateway, "invalid GitHub response")
 			return
+		}
+		if !binding.isApp {
+			conn := binding.connection
+			_, _ = h.Queries.UpdateVCSConnectionValidation(r.Context(), db.UpdateVCSConnectionValidationParams{ID: conn.ID, WorkspaceID: workspaceUUID, ApiStatus: conn.ApiStatus, GitReadStatus: conn.GitReadStatus, GitWriteStatus: conn.GitWriteStatus, ChangeRequestStatus: "ok"})
 		}
 		writeJSON(w, http.StatusCreated, map[string]any{"provider": "github", "number": out.Number, "url": out.HTMLURL})
 		return

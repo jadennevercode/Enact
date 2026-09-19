@@ -32,23 +32,21 @@ func (h *Handler) ListCodeHostingConnections(w http.ResponseWriter, r *http.Requ
 			"created_at": timestampToString(row.CreatedAt),
 		})
 	}
-	if h.isVCSAvailable() {
-		rows, err := h.Queries.ListVCSConnectionsByWorkspace(r.Context(), workspaceUUID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list VCS connections")
-			return
-		}
-		for _, row := range rows {
-			resp := h.vcsConnectionToResponse(row)
-			connections = append(connections, map[string]any{
-				"id": resp.ID, "provider": resp.Provider, "instance_url": resp.InstanceURL, "account_login": resp.AccountLogin,
-				"token_type": resp.TokenType, "token_scopes": resp.TokenScopes, "token_expires_at": resp.TokenExpiresAt,
-				"clone_host": resp.CloneHost, "has_custom_ca": resp.HasCustomCA, "last_validated_at": resp.LastValidatedAt,
-				"api_status": resp.APIStatus, "webhook_status": resp.WebhookStatus, "git_read_status": resp.GitReadStatus,
-				"git_write_status": resp.GitWriteStatus, "change_request_status": resp.ChangeRequestStatus,
-				"webhook_url": resp.WebhookURL, "created_at": resp.CreatedAt,
-			})
-		}
+	rows, err := h.Queries.ListVCSConnectionsByWorkspace(r.Context(), workspaceUUID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list VCS connections")
+		return
+	}
+	for _, row := range rows {
+		resp := h.vcsConnectionToResponse(row)
+		connections = append(connections, map[string]any{
+			"id": resp.ID, "provider": resp.Provider, "instance_url": resp.InstanceURL, "account_login": resp.AccountLogin,
+			"token_type": resp.TokenType, "token_scopes": resp.TokenScopes, "token_expires_at": resp.TokenExpiresAt,
+			"clone_host": resp.CloneHost, "has_custom_ca": resp.HasCustomCA, "last_validated_at": resp.LastValidatedAt,
+			"api_status": resp.APIStatus, "webhook_status": resp.WebhookStatus, "git_read_status": resp.GitReadStatus,
+			"git_write_status": resp.GitWriteStatus, "change_request_status": resp.ChangeRequestStatus,
+			"webhook_url": resp.WebhookURL, "created_at": resp.CreatedAt,
+		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"connections": connections, "can_manage": canManage,

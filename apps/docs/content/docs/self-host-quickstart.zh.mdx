@@ -48,7 +48,7 @@ make selfhost
 第一次运行时，`make selfhost` 会：
 
 1. 从 `.env.example` 创建 `.env`
-2. 随机生成 `JWT_SECRET`、PostgreSQL 密码和 `ENACT_VCS_SECRET_KEY`（自托管 Git 集成的加密密钥）
+2. 随机生成 `JWT_SECRET`、PostgreSQL 密码和 `ENACT_VCS_SECRET_KEY`（代码托管连接的加密密钥）
 3. 拉取 PostgreSQL、Enact backend 和 Enact frontend 镜像
 4. 创建持久化数据卷并启动三个容器
 5. 等待 backend 开始响应健康检查
@@ -144,7 +144,7 @@ curl -fsS https://api.example.com/readyz
 
 ## 4. 登录并创建工作区
 
-打开本机的 `http://localhost:3000`，或刚才配置的 `https://app.example.com`，使用用户名、`@deloittecn.com.cn` 企业邮箱和密码完成注册，然后创建第一个工作区。不需要邮件服务或验证码步骤。
+打开本机的 `http://localhost:3000`，或刚才配置的 `https://app.example.com`，使用用户名、`@deloittecn.com.cn` 或 `@deloitte.com.hk` 企业邮箱和密码完成注册，然后创建第一个工作区。不需要邮件服务或验证码步骤。
 
 ## 5. 连接执行电脑
 

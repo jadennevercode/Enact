@@ -1,63 +1,65 @@
 ---
-title: GitHub 与企业 GitLab 代码仓库
-description: 在「来源 → 代码与目录」中配置 GitHub App、企业 GitLab、HTTPS 凭据、企业 CA 与 Webhook。
+title: GitHub、GitHub Enterprise 与 GitLab 代码仓库
+description: 在「来源 → 代码与目录」中通过实例地址和 token，或 GitHub App，连接代码托管。
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="warn">
-企业 GitLab 连接仅适用于自部署 Enact。启用 `ENACT_VCS_INTEGRATION_ENABLED=true`，并设置 base64 编码的 32 字节 `ENACT_VCS_SECRET_KEY`。该密钥用于加密 API token、Git token、Webhook secret 与企业 CA。
+服务端只需要一项配置：`ENACT_VCS_SECRET_KEY`，base64 编码的 32 字节密钥（`openssl rand -base64 32`）。它加密所有已保存的 token、Webhook secret 与企业 CA。未配置时，页面会说明缺少什么，并拒绝保存凭据。同时请设置 `ENACT_PUBLIC_URL`，Enact 才能用供应商可访问的地址注册 Webhook。
 </Callout>
 
-所有代码托管设置集中在 **来源 → 代码与目录**。GitHub 使用 GitHub App；第一阶段的 GitLab 使用 HTTPS。Forgejo/Gitea 旧连接仍可接收 Webhook，但暂不提供仓库浏览或托管 Git 凭据。
+所有配置都在 **来源 → 代码与目录** 中完成，需要工作区所有者或管理员权限。点击 **连接**，选择：
 
-## 三条独立链路
+| 方式 | 适用场景 | 需要填写 |
+| --- | --- | --- |
+| 用 token 连接 GitHub.com | github.com，且部署未配置 GitHub App | 细粒度 token 或经典 token |
+| GitHub Enterprise Server | GHES 实例，包括内网部署 | 实例地址与 token |
+| GitLab | GitLab.com 或自建 GitLab | 实例地址、API token 与 Git token |
+| GitHub App | github.com，且部署已配置 App | 无需填写，跳转到 GitHub 安装 |
 
-连接卡片分别显示：
+token 连接不需要任何部署级的供应商配置。在可用的情况下，GitHub App 仍是更强的凭据：它按仓库签发短期 token，并由 GitHub 注册 Webhook。
 
-1. **Enact Server → GitLab API**：用于身份验证、分页浏览项目和创建 Merge Request。
-2. **GitLab → Enact Webhook**：用于 Merge Request 与 Pipeline 事件。
-3. **Enact daemon → Git HTTPS remote**：用于 clone、fetch 与 push；每台 daemon、每个仓库单独记录结果。
+## 网络要求
 
-API 成功不代表 Webhook 或 Git transport 可用。页面会保留每条链路自己的状态和错误。
+Enact 服务端调用供应商 API，每台 daemon 通过 HTTPS 克隆，两者都必须能访问实例。部署在公网的 Enact 服务端无法访问只存在于内网的 GitLab。服务端遵循 `HTTPS_PROXY` 与 `NO_PROXY`。
 
-## GitLab 凭据
+Webhook 方向相反，由供应商访问 Enact。自建 GitLab 往往禁止访问内网地址，请管理员在 **Admin → Settings → Network → Outbound requests** 中放行 Enact 的 Webhook 主机。每张连接卡片都会显示完整地址。
 
-优先创建有到期时间、只加入所需项目的 **Service Account**。也可选择 Project、Group 或 Personal access token。连接表单显式记录 token 类型、范围与到期日。
+## Token
 
-- **API token**：需要 `api`，只在 Enact Server 解密，用于项目浏览与创建 MR。
-- **Git HTTPS token**：需要 `write_repository`，只通过 daemon 专用、仓库限定的凭据接口下发。
+**GitHub。** 一个 token 同时用于 API 与 HTTPS Git。细粒度 token 需要以下仓库权限：Contents 读写、Pull requests 读写、Webhooks 读写、Checks 只读、Commit statuses 只读、Metadata 只读。经典 token 需要 `repo` 与 `admin:repo_hook`。组织启用 SAML SSO 时需要为该 token 授权，否则 GitHub 会接受 token 却拒绝所有请求。
 
-秘密不会出现在普通浏览器 API，也不会再次回显。替换 token 或轮换 Webhook secret 时输入新值。
+**GitLab。** GitLab 把两项能力拆开，所以需要两个 token。API token 需要 `api`，只保留在 Enact 服务端，用于浏览仓库和创建合并请求。Git token 需要 `write_repository`，只按仓库下发给已授权的 daemon。推荐使用有到期时间、只加入所需项目的服务账号。通过 LDAP 或 SSO 登录的企业账号，可以在个人设置中创建这些 token。
 
-agent 在受管仓库中提交后使用 `enact repo push`。daemon 会即时获取仓库限定凭据，通过 `0600` 临时 credential store 完成 push，然后删除临时文件。随后使用 `enact repo change-request --title "…"` 创建 PR/MR；provider API token 仍只在 Enact Server 内使用。
+到期时间可选。Enact 记录供应商实际报告的 scope，而不是填写的值。GitHub 细粒度 token 不报告 scope，卡片会如实显示，而不是显示空列表。
 
-## 企业网络与 CA
+## 企业选项
 
-填写 GitLab API URL 和 HTTPS clone host。默认使用系统信任链；如果企业使用私有 CA，可粘贴连接级 PEM。Enact 将其加入系统信任链用于服务端 API，daemon Git 也使用同一 CA。TLS 校验始终开启，没有“跳过校验”选项。
+以下字段只在填写实例地址时出现：
 
-GitLab 自托管实例可能默认禁止 Webhook 请求访问内网地址。请让 GitLab 管理员在 **Admin → Settings → Network → Outbound requests** 中仅放行 Enact Webhook 的域名或 IP。
+- **Clone 主机**：Git 流量与 API 使用不同主机名时填写。Enact 会把关联仓库的远端地址改写到该主机。
+- **企业 CA（PEM）**：加入服务端 API 调用与 daemon Git 流量的信任链。TLS 校验无法关闭。
 
-## 添加仓库
+## 关联仓库与 Webhook
 
-选择 GitLab 连接后，Enact 通过 `/api/v4/projects` 分页搜索可见项目，保留 subgroup 完整路径、私有状态、默认分支、归档状态和权限。批量选择后，每条资源保存 provider、连接 ID、provider repository ID、完整路径、HTTPS URL、默认分支、可选固定 ref 和启用状态。
+在连接卡片上点击 **浏览仓库**。选择器列出该凭据可访问的仓库。无 push 权限、已归档或已关联的仓库不可选择。
 
-旧版本只保存 URL 的仓库会显示为 **待配置** 并停用，直到管理员绑定连接。待配置仓库不会下发给 daemon。
+关联仓库后，Enact 会在后台为其注册 Webhook。卡片上的 Webhook 状态会显示为：
 
-## Webhook
+- `registered`：Hook 已存在，但还不能证明投递成功。
+- `ok`：已收到一次签名校验通过的投递。
+- `manual`：token 无权管理 Hook。请用卡片上的地址和连接时一次性显示的 secret 手动添加。
+- `failed`：注册失败。点击 **注册 Webhook** 重试。
 
-连接成功时 Webhook secret 只显示一次。在 GitLab 项目或群组中注册：
+GitHub 订阅 `pull_request`、`check_run` 与 `status`，GitLab 订阅合并请求与 Pipeline 事件。Enact 只处理已关联到该连接的仓库事件。
 
-- URL：页面显示的 Webhook URL；
-- Secret token：一次性显示的 secret；
-- 事件：**Merge request events** 与 **Pipeline events**。
+## 连接健康度
 
-Enact 只处理当前工作区中已启用、且绑定到该连接的仓库事件。收到第一个通过 secret 校验的事件后，Webhook 状态会变为已验证。
+每张卡片分别报告五条链路：API、Webhook、Git 读、Git 写、PR 或 MR 创建。**测试** 检查 API 链路；Git 读写由每台 daemon 按仓库上报。API 正常并不代表 daemon 能克隆。
 
-## GitHub App 权限
+## 任务中的 push 与 PR
 
-GitHub App 需要 **Contents: Read & write**、**Pull requests: Read & write**、**Checks: Read** 和 **Commit statuses: Read**。Enact 按任务和单仓库签发短期 installation token。
+在受管仓库中，agent 使用 `enact repo push`。daemon 获取仓库限定的凭据，写入 `0600` 临时凭据文件完成 push，随后删除。之后用 `enact repo change-request --title "…"` 经由 Enact 服务端创建 PR 或 MR，供应商 API token 不会进入 agent 进程。
 
-## 第二阶段：SSH
-
-SSH 将作为后续独立阶段提供，包括 Ed25519 生成/导入、daemon 实机扫描 host key、管理员确认指纹、自定义 host/port、受控 `known_hosts` 与多连接 host alias。SSH 只替换 Git transport，创建 PR/MR 仍走服务端 API。
+旧版本只保存 URL 的仓库会显示为 **待配置** 并保持停用，直到管理员绑定连接。SSH 传输将作为后续独立阶段提供。

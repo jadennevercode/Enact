@@ -8,7 +8,7 @@ The canonical product copy lives in `apps/web/public/guide/` and is served at `/
 
 - `index.html`: standalone shell. The Enact mark and favicon reference `../favicon.svg`, sharing the product's generated brand asset.
 - `styles.css`: Deloitte visual style and responsive animation layout.
-- `content.js`: 33 scenes, lifecycle stages, pain/solution explanations and maintenance-only source metadata.
+- `content.js`: 34 scenes, lifecycle stages, pain/solution explanations and maintenance-only source metadata.
 - `app.js`: SVG scenes, playback, navigation, guide search and downloads.
 - `guide-text.js`: embedded Markdown for the reader and downloads. Keep it synchronized with the two Markdown documents when editing them.
 - `assets/`: local background images.
@@ -29,3 +29,5 @@ The browser verification uses the root Playwright dependency and an installed Ch
 The shared sidebar test verifies that the footer opens the connected environment's Guide and dismisses the mobile sheet. Existing desktop external-link handling owns opening the system browser.
 
 Integration verification on 2026-09-15: 18 sidebar tests, 6 reserved-slug tests, 8 brand synchronization tests and the browser suite (33 scenes, 109 non-cover steps, 132 responsive checks) passed. Sidebar ESLint passed. The views typecheck reported pre-existing fixture type errors in `semantic/issue-construction-reports.test.tsx:45`; that file was not changed for this integration.
+
+On 2026-09-16, the delivery-model comparison was inserted after the cover, bringing the guide to 34 scenes. The original 33 scene objects, all 115 original SVG states and the stylesheet were verified unchanged. The comparison also appears in the Markdown guide and embedded reader. Browser verification passed with 112 non-cover steps and 136 viewport checks.

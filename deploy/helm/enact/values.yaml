@@ -130,11 +130,6 @@ backend:
     # every caller. Bootstrap the workspace with this false, then flip to
     # true so users can only join via invitation.
     disableWorkspaceCreation: false
-    # Self-host-only VCS integration (Forgejo / Gitea / GitLab). The official
-    # chart enables the product surface by default; operators must also provide
-    # ENACT_VCS_SECRET_KEY through existingSecret before connections work.
-    # Set false to hide and reject the integration for this deployment.
-    vcsIntegrationEnabled: true
     # Managed Cloud policy consumer. The public/self-host chart keeps this off
     # by default, which also guarantees no quota-table access. To enable it,
     # set enabled=true and url to enact-cloud's HTTPS internal base URL, then

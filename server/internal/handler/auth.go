@@ -111,11 +111,25 @@ type RegisterRequest struct {
 }
 
 const (
-	registrationEmailDomain = "deloittecn.com.cn"
-	minPasswordLength       = 8
-	maxPasswordLength       = 72
-	maxDisplayNameLength    = 50
+	minPasswordLength    = 8
+	maxPasswordLength    = 72
+	maxDisplayNameLength = 50
 )
+
+// registrationEmailDomains are the only email domains that may create an
+// account. Keep in sync with REGISTRATION_EMAIL_DOMAINS in
+// packages/core/auth/registration.ts.
+var registrationEmailDomains = []string{"deloittecn.com.cn", "deloitte.com.hk"}
+
+var registrationDomainError = "registration requires a " + joinRegistrationDomains() + " email address"
+
+func joinRegistrationDomains() string {
+	labels := make([]string, len(registrationEmailDomains))
+	for i, d := range registrationEmailDomains {
+		labels[i] = "@" + d
+	}
+	return strings.Join(labels, " or ")
+}
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte("invalid-password"), bcrypt.DefaultCost)
 
@@ -133,7 +147,16 @@ func normalizeAuthEmail(raw string) (string, error) {
 
 func isAllowedRegistrationEmail(email string) bool {
 	at := strings.LastIndex(email, "@")
-	return at > 0 && strings.EqualFold(email[at+1:], registrationEmailDomain)
+	if at <= 0 {
+		return false
+	}
+	domain := email[at+1:]
+	for _, allowed := range registrationEmailDomains {
+		if strings.EqualFold(domain, allowed) {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handler) issueJWT(user db.User) (string, error) {
@@ -342,7 +365,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isAllowedRegistrationEmail(email) {
-		writeError(w, http.StatusForbidden, "registration requires a @"+registrationEmailDomain+" email address")
+		writeError(w, http.StatusForbidden, registrationDomainError)
 		return
 	}
 	if auth.IsTemporarilyDisabledUserEmail(email) {

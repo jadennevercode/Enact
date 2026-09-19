@@ -27,14 +27,7 @@ func withVCSBox(t *testing.T) *secretbox.Box {
 	}
 	prev := testHandler.VCSSecretBox
 	testHandler.VCSSecretBox = box
-	// The feature also requires the deployment-level switch; the box alone is
-	// no longer sufficient. Enable it for the "configured" path tests.
-	prevEnabled := testHandler.cfg.VCSIntegrationEnabled
-	testHandler.cfg.VCSIntegrationEnabled = true
-	t.Cleanup(func() {
-		testHandler.VCSSecretBox = prev
-		testHandler.cfg.VCSIntegrationEnabled = prevEnabled
-	})
+	t.Cleanup(func() { testHandler.VCSSecretBox = prev })
 	return box
 }
 
@@ -53,8 +46,14 @@ func seedVCSConnection(t *testing.T, ctx context.Context, box *secretbox.Box, pr
 		InstanceUrl:            instanceURL,
 		AccountLogin:           "acme",
 		AccessTokenEncrypted:   base64.StdEncoding.EncodeToString(tokenSealed),
+		GitTokenEncrypted:      base64.StdEncoding.EncodeToString(tokenSealed),
 		WebhookSecretEncrypted: base64.StdEncoding.EncodeToString(sealed),
-		ConnectedByID:          pgtype.UUID{},
+		TokenType:              "personal",
+		// NOT NULL with no default: a nil slice reaches Postgres as NULL, so
+		// every seeded connection needs an explicit empty list.
+		TokenScopes:   []string{},
+		CloneHost:     "",
+		ConnectedByID: pgtype.UUID{},
 	})
 	if err != nil {
 		t.Fatalf("UpsertVCSConnection: %v", err)
@@ -479,7 +478,13 @@ func TestVCSWebhook_CommitStatusMirrors(t *testing.T) {
 		t.Fatalf("pr: expected 202, got %d", w.Code)
 	}
 
-	stRaw, _ := json.Marshal(map[string]any{"sha": "deadbeef", "context": "ci/woodpecker", "state": "success"})
+	// Forgejo always names the repository on a status delivery, and the mirror
+	// refuses an event it cannot attribute to one. Omitting it here made the
+	// fixture exercise a shape the provider never sends.
+	stRaw, _ := json.Marshal(map[string]any{
+		"sha": "deadbeef", "context": "ci/woodpecker", "state": "success",
+		"repository": map[string]any{"name": "widget", "owner": map[string]any{"username": "acme"}},
+	})
 	w = httptest.NewRecorder()
 	testHandler.HandleVCSWebhook(w, vcsWebhookReq(connID, map[string]string{
 		"X-Gitea-Event": "status", "X-Gitea-Signature": giteaSig(stRaw),
@@ -522,28 +527,27 @@ func TestVCSWebhook_UnknownConnection(t *testing.T) {
 	}
 }
 
-// TestVCSWebhook_DisabledDeploymentReturns404 verifies the deployment-level
-// switch is enforced server-side: with the integration off (the managed-cloud
-// posture), even a valid, correctly-signed delivery to a real connection is
-// rejected with a bare 404, so the feature is never processed and reveals
-// nothing about config. The availability gate short-circuits before signature
-// verification.
-func TestVCSWebhook_DisabledDeploymentReturns404(t *testing.T) {
+// TestVCSWebhook_UnconfiguredDeploymentReturns503 verifies the encryption-key
+// gate is enforced server-side: with no key loaded, even a valid,
+// correctly-signed delivery to a real connection is refused before the stored
+// secret is touched, because opening it is exactly what the missing key
+// prevents. 503 (not 404) because the operator can fix it by setting the key.
+func TestVCSWebhook_UnconfiguredDeploymentReturns503(t *testing.T) {
 	ctx := context.Background()
-	box := withVCSBox(t) // sets the box AND enables the switch
+	box := withVCSBox(t)
 	connID := seedVCSConnection(t, ctx, box, "forgejo", "https://forgejo.test")
 	t.Cleanup(func() { cleanupVCS(ctx, "") })
 
-	// Now flip the deployment switch off (withVCSBox's cleanup restores it).
-	testHandler.cfg.VCSIntegrationEnabled = false
+	// Drop the key (withVCSBox's cleanup restores it).
+	testHandler.VCSSecretBox = nil
 
 	raw := []byte(`{"action":"opened","pull_request":{"number":1}}`)
 	w := httptest.NewRecorder()
 	testHandler.HandleVCSWebhook(w, vcsWebhookReq(connID, map[string]string{
 		"X-Gitea-Event": "pull_request", "X-Gitea-Signature": giteaSig(raw),
 	}, raw))
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 when integration disabled, got %d (%s)", w.Code, w.Body.String())
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when the encryption key is unset, got %d (%s)", w.Code, w.Body.String())
 	}
 }
 

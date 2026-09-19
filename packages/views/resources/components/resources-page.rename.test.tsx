@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithI18n } from "../../test/i18n";
 
-vi.mock("./code-hosting-connections", () => ({
+vi.mock("./code-hosting", () => ({
   CodeHostingConnections: () => null,
 }));
 

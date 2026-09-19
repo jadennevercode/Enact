@@ -528,6 +528,27 @@ func (q *Queries) RotateVCSConnectionWebhookSecret(ctx context.Context, arg Rota
 	return i, err
 }
 
+const setVCSConnectionWebhookStatus = `-- name: SetVCSConnectionWebhookStatus :exec
+UPDATE vcs_connection
+SET webhook_status = $3, updated_at = now()
+WHERE id = $1 AND workspace_id = $2
+`
+
+type SetVCSConnectionWebhookStatusParams struct {
+	ID            pgtype.UUID `json:"id"`
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	WebhookStatus string      `json:"webhook_status"`
+}
+
+// Records the outcome of registering the hook with the provider, which is a
+// different claim from MarkVCSConnectionWebhookVerified: that one means a
+// delivery actually arrived, this one means the hook exists (or that we were
+// not allowed to create it and the operator must).
+func (q *Queries) SetVCSConnectionWebhookStatus(ctx context.Context, arg SetVCSConnectionWebhookStatusParams) error {
+	_, err := q.db.Exec(ctx, setVCSConnectionWebhookStatus, arg.ID, arg.WorkspaceID, arg.WebhookStatus)
+	return err
+}
+
 const updateVCSConnectionCredentials = `-- name: UpdateVCSConnectionCredentials :one
 UPDATE vcs_connection
 SET account_login = $3,

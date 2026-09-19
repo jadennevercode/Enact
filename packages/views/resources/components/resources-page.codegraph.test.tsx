@@ -47,7 +47,7 @@ const githubRepositoriesRef = vi.hoisted(() => ({
 
 // The hosting panel is its own surface with its own suite; stub it so this
 // file stays about the code graph opt-in.
-vi.mock("./code-hosting-connections", () => ({
+vi.mock("./code-hosting", () => ({
   CodeHostingConnections: () => null,
 }));
 

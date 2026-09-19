@@ -78,6 +78,15 @@ RETURNING *;
 -- name: MarkVCSConnectionWebhookVerified :exec
 UPDATE vcs_connection SET webhook_status = 'ok', updated_at = now() WHERE id = $1;
 
+-- name: SetVCSConnectionWebhookStatus :exec
+-- Records the outcome of registering the hook with the provider, which is a
+-- different claim from MarkVCSConnectionWebhookVerified: that one means a
+-- delivery actually arrived, this one means the hook exists (or that we were
+-- not allowed to create it and the operator must).
+UPDATE vcs_connection
+SET webhook_status = $3, updated_at = now()
+WHERE id = $1 AND workspace_id = $2;
+
 -- name: CountWorkspaceResourcesUsingConnection :one
 SELECT count(*) FROM workspace_resource
 WHERE workspace_id = $1

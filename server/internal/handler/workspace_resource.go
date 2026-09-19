@@ -63,13 +63,16 @@ func (h *Handler) hydrateCodeRepositoryConnectionSummary(ctx context.Context, wo
 		return
 	}
 	if resp.ConnectionSummary.Provider == "github" {
+		// A github ref may name an App installation or a token connection, so
+		// try the App table first and fall through when the id belongs to the
+		// other one. Enterprise Server only ever appears as a connection.
 		row, err := h.Queries.GetGitHubInstallationByID(ctx, id)
 		if err == nil && row.WorkspaceID == workspaceID {
 			resp.ConnectionSummary.InstanceURL = "https://github.com"
 			resp.ConnectionSummary.AccountLogin = row.AccountLogin
 			resp.ConnectionSummary.TokenType = "installation"
+			return
 		}
-		return
 	}
 	row, err := h.Queries.GetVCSConnectionByID(ctx, id)
 	if err == nil && row.WorkspaceID == workspaceID {
@@ -765,61 +768,91 @@ func (h *Handler) loadWorkspaceForResource(w http.ResponseWriter, r *http.Reques
 	return parseUUIDOrBadRequest(w, h.resolveWorkspaceID(r), "workspace id")
 }
 
-// validateCodeRepositoryBinding protects the enabled path. Legacy and pending
-// rows are accepted disabled so an upgrade never drops data, while any row
-// that can reach a daemon must name a real connection in the same workspace
-// and use that connection's HTTPS host.
-func (h *Handler) validateCodeRepositoryBinding(w http.ResponseWriter, r *http.Request, workspaceID pgtype.UUID, raw json.RawMessage) bool {
+// normalizeCodeRepositoryBinding protects the enabled path and returns the ref
+// to actually persist. Legacy and pending rows are accepted disabled so an
+// upgrade never drops data, while any row that can reach a daemon must name a
+// real connection in the same workspace.
+//
+// It rewrites the remote's host to the connection's clone host rather than
+// merely checking it. The repository URL always arrives as the provider API
+// reported it, so on a deployment whose Git traffic is fronted by a different
+// hostname than its API — the reason clone_host exists — every repository
+// would otherwise be rejected for a mismatch the user has no way to correct.
+// Normalizing here means the stored URL is the one a daemon should clone, and
+// the daemon needs no knowledge of the connection to get the right remote.
+func (h *Handler) normalizeCodeRepositoryBinding(w http.ResponseWriter, r *http.Request, workspaceID pgtype.UUID, raw json.RawMessage) (json.RawMessage, bool) {
 	var repo codeRepositoryRef
 	if err := json.Unmarshal(raw, &repo); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid code repository payload")
-		return false
+		return nil, false
 	}
 	if !repo.Enabled {
-		return true
+		return raw, true
 	}
 	member, ok := middleware.MemberFromContext(r.Context())
 	if !ok || !roleAllowed(member.Role, "owner", "admin") {
 		writeError(w, http.StatusForbidden, "only workspace owners and admins can enable code repositories")
-		return false
+		return nil, false
 	}
 	u, err := url.Parse(repo.URL)
 	if err != nil || u.Scheme != "https" || u.Hostname() == "" {
 		writeError(w, http.StatusBadRequest, "enabled code repositories must use an HTTPS remote in phase one")
-		return false
+		return nil, false
 	}
 	connectionID, ok := parseUUIDOrBadRequest(w, repo.ProviderConnectionID, "provider_connection_id")
 	if !ok {
-		return false
+		return nil, false
 	}
+
+	cloneHost := ""
 	switch repo.Provider {
 	case "github":
-		installation, err := h.Queries.GetGitHubInstallationByID(r.Context(), connectionID)
-		if err != nil || uuidToString(installation.WorkspaceID) != uuidToString(workspaceID) {
-			writeError(w, http.StatusBadRequest, "GitHub installation does not belong to this workspace")
-			return false
+		// A GitHub App installation is bound to github.com by construction;
+		// only a token connection can name another host (GitHub Enterprise
+		// Server), and that one lives in vcs_connection like any other.
+		if installation, instErr := h.Queries.GetGitHubInstallationByID(r.Context(), connectionID); instErr == nil {
+			if uuidToString(installation.WorkspaceID) != uuidToString(workspaceID) {
+				writeError(w, http.StatusBadRequest, "GitHub installation does not belong to this workspace")
+				return nil, false
+			}
+			if !strings.EqualFold(u.Hostname(), "github.com") {
+				writeError(w, http.StatusBadRequest, "a GitHub App installation can only host github.com repositories")
+				return nil, false
+			}
+			return raw, true
 		}
-		if !strings.EqualFold(u.Hostname(), "github.com") {
-			writeError(w, http.StatusBadRequest, "GitHub.com repositories must use github.com")
-			return false
-		}
+		fallthrough
 	case "gitlab":
-		connection, err := h.Queries.GetVCSConnectionByID(r.Context(), connectionID)
-		if err != nil || uuidToString(connection.WorkspaceID) != uuidToString(workspaceID) || connection.Provider != "gitlab" {
-			writeError(w, http.StatusBadRequest, "GitLab connection does not belong to this workspace")
-			return false
+		connection, connErr := h.Queries.GetVCSConnectionByID(r.Context(), connectionID)
+		if connErr != nil || uuidToString(connection.WorkspaceID) != uuidToString(workspaceID) || connection.Provider != repo.Provider {
+			writeError(w, http.StatusBadRequest, "code hosting connection does not belong to this workspace")
+			return nil, false
 		}
-		instance, _ := url.Parse(connection.InstanceUrl)
-		cloneHost := connection.CloneHost
-		if cloneHost == "" && instance != nil {
-			cloneHost = instance.Host
+		cloneHost = connection.CloneHost
+		if cloneHost == "" {
+			if instance, parseErr := url.Parse(connection.InstanceUrl); parseErr == nil {
+				cloneHost = instance.Host
+			}
 		}
-		if !strings.EqualFold(u.Host, cloneHost) && !strings.EqualFold(u.Hostname(), cloneHost) {
-			writeError(w, http.StatusBadRequest, "repository host does not match the selected GitLab connection")
-			return false
-		}
+	default:
+		writeError(w, http.StatusBadRequest, "unsupported code repository provider")
+		return nil, false
 	}
-	return true
+	if cloneHost == "" {
+		writeError(w, http.StatusBadRequest, "the selected connection has no Git host configured")
+		return nil, false
+	}
+	if strings.EqualFold(u.Host, cloneHost) {
+		return raw, true
+	}
+	u.Host = cloneHost
+	repo.URL = u.String()
+	rewritten, err := json.Marshal(repo)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to normalize code repository payload")
+		return nil, false
+	}
+	return rewritten, true
 }
 
 // ListWorkspaceResources returns the resources attached to the workspace.
@@ -873,8 +906,12 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.ResourceType == "github_repo" && !h.validateCodeRepositoryBinding(w, r, wsID, normalizedRef) {
-		return
+	if req.ResourceType == "github_repo" {
+		bound, ok := h.normalizeCodeRepositoryBinding(w, r, wsID, normalizedRef)
+		if !ok {
+			return
+		}
+		normalizedRef = bound
 	}
 	if conflict, err := h.findCodeRepositoryConflict(r.Context(), wsID, req.ResourceType, normalizedRef, pgtype.UUID{}); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to check existing repositories")
@@ -925,6 +962,14 @@ func (h *Handler) CreateWorkspaceResource(w http.ResponseWriter, r *http.Request
 		}
 		writeError(w, http.StatusInternalServerError, "failed to create workspace resource")
 		return
+	}
+
+	// Point the repository at this workspace's webhook endpoint. Deliberately
+	// after the row is committed and deliberately non-fatal: the attachment is
+	// what the user asked for, and a hook the token may not create is a status
+	// to show, not a reason to undo their action.
+	if req.ResourceType == "github_repo" {
+		h.syncCodeRepositoryWebhook(r.Context(), wsID, normalizedRef)
 	}
 
 	resp := workspaceResourceToResponse(resource)
@@ -1000,8 +1045,12 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 			return
 		}
 		nextRef = normalized
-		if existing.ResourceType == "github_repo" && !h.validateCodeRepositoryBinding(w, r, wsID, nextRef) {
-			return
+		if existing.ResourceType == "github_repo" {
+			bound, bindOK := h.normalizeCodeRepositoryBinding(w, r, wsID, nextRef)
+			if !bindOK {
+				return
+			}
+			nextRef = bound
 		}
 		if conflict, checkErr := h.findCodeRepositoryConflict(r.Context(), wsID, existing.ResourceType, nextRef, existing.ID); checkErr != nil {
 			writeError(w, http.StatusInternalServerError, "failed to check existing repositories")
@@ -1151,6 +1200,13 @@ func (h *Handler) UpdateWorkspaceResource(w http.ResponseWriter, r *http.Request
 				"resource_id", uuidToString(updated.ID), "error", err)
 		}
 		h.releaseCodeGraphProject(updated)
+	}
+
+	// An edit can change which connection or repository the row points at, or
+	// enable a row that was pending, so registration runs here too. Same
+	// contract as on create: never fatal.
+	if refProvided && updated.ResourceType == "github_repo" {
+		h.syncCodeRepositoryWebhook(r.Context(), wsID, nextRef)
 	}
 
 	resp := workspaceResourceToResponse(updated)

@@ -118,6 +118,22 @@ export function useDownloadAttachment(): (attachmentId: string) => Promise<void>
     async (attachmentId: string) => {
       const failed = () => toast.error(t(($) => $.attachment.download_failed));
 
+      // Local AnyHarness documents have no server download endpoint. The API
+      // adapter still checks the live account/workspace before returning bytes.
+      if (attachmentId.startsWith("a11a0000-") && workspaceSlug === "anyharness") {
+        try {
+          const fresh = await api.getAttachment(attachmentId);
+          const blob = await api.getAttachmentBlob(attachmentId);
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = fresh.filename;
+          anchor.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch { failed(); }
+        return;
+      }
+
       if (hasDesktopDownloadBridge()) {
         try {
           const fresh = await api.getAttachment(attachmentId);

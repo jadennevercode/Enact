@@ -103,7 +103,7 @@ import { GitHubMark } from "../../settings/components/github-mark";
 import { CodeGraphStatusChip } from "../../codegraph/components/code-graph-status-chip";
 import { CollectionPageHeader } from "../../layout/collection-page";
 import { PAGE_GUTTER } from "../../layout/page-header";
-import { CodeHostingConnections } from "./code-hosting-connections";
+import { CodeHostingConnections } from "./code-hosting";
 
 // Workspace Resources settings tab.
 //
