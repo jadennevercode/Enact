@@ -88,7 +88,7 @@ NO GATE PASSAGE WITHOUT A HUMAN APPROVAL RECORD
 | `WI-###/build-evidence.md` | 实现侧证据与 criteria 映射 |
 | `WI-###/change-scope.yaml` + `gates/` | 边界，以及此前每一次批准 |
 | `WI-###/evidence.jsonl` | 关键节点事件；`boundary_stop` 有没有下文 |
-| `.sdlc/config.yaml` | `gates.release.require`（默认 业务负责人 + 运维）与 `roles`——谁有资格做 Release 决定 |
+| `.sdlc/config.yaml` | `gates.release.require`（默认 业务负责人 + 运维）。谁担这些角色在工作区（设置 › 角色 + 成员页），用 `enact workspace team-role list` 查 |
 
 **可发现范围**：`.sdlc/` 全部只读；业务代码库只读，且只在核对某一条具体证据时定向打开。
 

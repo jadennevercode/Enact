@@ -55,7 +55,7 @@ NO ASSET CHANGES WITHOUT AN APPROVED LESSON
 |---|---|
 | 触发它的证据 | `WI-###/qa-report.md`、`ledger.md`、`incidents/INC-###/incident.md`、evidence.jsonl 里的 `boundary_stop` |
 | `.sdlc/lessons/` 现有 LP | 是否已有同一条经验的候选、已发布版本或被拒记录 |
-| `.sdlc/config.yaml` | `gates.lesson-approval.require` 要哪些角色签、`roles` 里谁担这些角色；`protected_paths`、`data_policy`、`test_policy` 当前取值（改它们就是 `policy` 类经验） |
+| `.sdlc/config.yaml` | `gates.lesson-approval.require` 要哪些角色签（谁担这些角色看工作区（设置 › 角色 + 成员页））；`protected_paths`、`data_policy`、`test_policy` 当前取值（改它们就是 `policy` 类经验） |
 | 目标资产当前版本 | Classify 确定目标之后才读，且只读要改的那一份 |
 
 **版本固定（Capability bundle）**：本 Skill 实例化 `../sdlc-core/templates/lesson.md` 与 `../sdlc-core/templates/gate.yml`。首次复制时向 evidence.jsonl 追加 `capability_bundle_pinned`，`input_refs` 填两个模板路径 + 当前 git hash。Publish 阶段若发现模板已经变了，用记下的那个版本核对，不要用"现在的模板"倒推当初填过什么。
@@ -150,7 +150,7 @@ adoption_scope: all      # all | 本项目 | 指定环节
 |---|---|
 | 结构校验 | 校的是**改动后的资产**，不是这份 LP 自己。改 Skill / reference / 模板：`python3 tools/check_suite.py`；改 YAML（config、gate、test-plan）：`python3 -c "import yaml,sys;yaml.safe_load(open(sys.argv[1]))" <文件>`。这一步在 Publish 改完之后立刻跑，结果回填这一行 |
 | 依赖解析 | `grep -rn "<被改文件名>" .claude/skills/` 列出所有引用点，逐个确认措辞还对得上。删段落尤其危险 |
-| 权限检查 | 两问：**谁有资格批准**（`gates.lesson-approval.require` 要的角色 + `roles` 里谁担它）**和改动后谁被允许使用**（`adoption_scope`）。第二问不是重复——git 权限管的是谁能改文件，管不了这条资产对哪些工作生效 |
+| 权限检查 | 两问：**谁有资格批准**（`gates.lesson-approval.require` 要的角色 + 工作区里谁担它）**和改动后谁被允许使用**（`adoption_scope`）。第二问不是重复——git 权限管的是谁能改文件，管不了这条资产对哪些工作生效 |
 | 样例 / 反例 | 至少一个正例（本来会失败、改后应该通过）和一个反例（本来正常、改后不能被误伤）。两个方向都不看，就不知道自己是修好了还是修坏了 |
 | 场景运行 | 拿 2–3 个历史 WI 回放，问"如果当时就有这条规则会怎样"。出现"会拦下当时正确的做法"就是误伤，回去改措辞 |
 | 回归结果 | 见下 |

@@ -182,6 +182,16 @@ func (h *Handler) revokeAndRemoveMember(ctx context.Context, workspaceID, userID
 		return empty, err
 	}
 
+	// member_team_role carries no FK. A departed member's roles go with the
+	// membership, in the same tx, so a re-invite starts with no roles instead of
+	// silently regaining the right to sign off work they used to review.
+	if err := qtx.DeleteTeamRoleAssignmentsForMember(ctx, db.DeleteTeamRoleAssignmentsForMemberParams{
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+	}); err != nil {
+		return empty, err
+	}
+
 	// issue_subscriber carries no FK either (same ENA-3515 rule as the two
 	// prunes above), and ENA-5483 gave agents a path that writes member
 	// subscriber rows on their own initiative. Dropping them in this tx is what

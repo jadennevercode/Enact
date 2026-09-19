@@ -49,6 +49,51 @@
       "cancelled": "决定不做。"
     }
   },
+  "team_roles": {
+    "title": "角色",
+    "description": "角色说明一个人负责给出哪一类判断，例如业务负责人、架构、QA。角色不是权限：一个人在工作区里能做什么，仍由成员页面上的权限决定。",
+    "loading": "正在加载角色…",
+    "add": "新建角色",
+    "section_title": "角色（{{count}}）",
+    "archived_title": "已归档（{{count}}）",
+    "archived_hint": "不再用于新的指派。已经担任该角色的人仍然保留。",
+    "empty_title": "还没有角色",
+    "empty_description": "导入 AI-SDLC 角色，让研发各环节路由到对应的评审人，也可以自己定义。",
+    "import_preset": "导入 AI-SDLC 角色",
+    "preset_hint": "AI-SDLC 套件按这几个角色分派各阶段的评审。",
+    "preset_imported": "已导入角色",
+    "preset_failed": "导入角色失败。",
+    "reorder_failed": "保存新顺序失败。",
+    "restore_failed": "恢复角色失败。",
+    "actions": {
+      "open": "{{name}} 的操作",
+      "edit": "编辑",
+      "archive": "归档",
+      "restore": "恢复",
+      "reorder": "调整 {{name}} 的顺序"
+    },
+    "editor": {
+      "create_title": "新建角色",
+      "edit_title": "编辑角色",
+      "hint": "角色描述这个人给出的判断，不授予任何访问权限。",
+      "name": "名称",
+      "name_placeholder": "例如：安全评审",
+      "key_hint": "API、CLI 与 AI-SDLC 配置中使用 {{key}} 引用它。",
+      "description": "描述",
+      "description_placeholder": "这个角色负责什么",
+      "color": "颜色",
+      "cancel": "取消",
+      "save": "保存",
+      "save_failed": "保存角色失败。"
+    },
+    "archive_dialog": {
+      "title": "归档这个角色？",
+      "description": "指派角色时不会再出现 {{name}}。已经担任它的人仍然保留，恢复角色后他们也会回来。",
+      "cancel": "取消",
+      "confirm": "归档",
+      "failed": "归档角色失败。"
+    }
+  },
   "quick_actions": {
     "title": "快捷操作",
     "description": "预先配置好执行的 Agent 和提示词，之后在任意任务侧边栏一键触发。",
@@ -325,6 +370,7 @@
       "labels": "标签",
       "issue_statuses": "任务状态",
       "properties": "属性",
+      "team_roles": "角色",
       "quick_actions": "快捷操作",
       "plugins": "Plugins",
       "mcp": "MCP",

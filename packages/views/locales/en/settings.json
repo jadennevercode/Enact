@@ -49,6 +49,51 @@
       "cancelled": "Decided not to do."
     }
   },
+  "team_roles": {
+    "title": "Roles",
+    "description": "Roles say what kind of judgement someone is trusted to give — business owner, architect, QA. They are not permissions: what a person can do in the workspace is still set by their permission on the Members page.",
+    "loading": "Loading roles…",
+    "add": "Add role",
+    "section_title": "Roles ({{count}})",
+    "archived_title": "Archived ({{count}})",
+    "archived_hint": "Retired from new assignments. People who hold it keep it.",
+    "empty_title": "No roles yet",
+    "empty_description": "Import the AI-SDLC set to route each development phase to the right reviewer, or define your own.",
+    "import_preset": "Import AI-SDLC roles",
+    "preset_hint": "The AI-SDLC suite routes each phase's review to these roles.",
+    "preset_imported": "Roles imported",
+    "preset_failed": "Could not import the roles.",
+    "reorder_failed": "Could not save the new order.",
+    "restore_failed": "Could not restore the role.",
+    "actions": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "archive": "Archive",
+      "restore": "Restore",
+      "reorder": "Reorder {{name}}"
+    },
+    "editor": {
+      "create_title": "New role",
+      "edit_title": "Edit role",
+      "hint": "A role describes the judgement this person gives. It grants no access.",
+      "name": "Name",
+      "name_placeholder": "e.g. Security Review",
+      "key_hint": "Referred to as {{key}} by the API, the CLI and AI-SDLC config.",
+      "description": "Description",
+      "description_placeholder": "What this role is responsible for",
+      "color": "Color",
+      "cancel": "Cancel",
+      "save": "Save",
+      "save_failed": "Could not save the role."
+    },
+    "archive_dialog": {
+      "title": "Archive this role?",
+      "description": "{{name}} will no longer be offered when assigning roles. Everyone who holds it keeps it, and restoring the role brings them back.",
+      "cancel": "Cancel",
+      "confirm": "Archive",
+      "failed": "Could not archive the role."
+    }
+  },
   "quick_actions": {
     "title": "Quick Actions",
     "description": "Preset an agent and a prompt once, then trigger it from any issue's sidebar with a single click.",
@@ -325,6 +370,7 @@
       "labels": "Labels",
       "issue_statuses": "Issue Statuses",
       "properties": "Properties",
+      "team_roles": "Roles",
       "quick_actions": "Quick Actions",
       "plugins": "Plugins",
       "mcp": "MCP",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { Agent, MemberRole } from "@enact/core/types";
+import type { Agent, MemberRole, TeamRoleRef } from "@enact/core/types";
 import { useWorkspaceId } from "@enact/core";
 import { agentRunCounts30dOptions } from "@enact/core/agents";
 import { agentListOptions, memberListOptions } from "@enact/core/workspace/queries";
@@ -93,6 +93,7 @@ export function MemberProfileCard({ userId }: MemberProfileCardProps) {
           <p className="mt-0.5 truncate text-caption text-muted-foreground">
             {member.email}
           </p>
+          <TeamRoleChips roles={member.team_roles ?? []} />
         </div>
       </div>
 
@@ -112,6 +113,35 @@ function RoleBadge({ role }: { role: MemberRole }) {
           ? t(($) => $.role.admin)
           : t(($) => $.role.member)}
     </span>
+  );
+}
+
+/**
+ * The roles this person holds (角色) — what kind of judgement they are trusted
+ * to give, not what they are allowed to do.
+ *
+ * Archived roles are shown here, dimmed, unlike on the roster: this is the page
+ * someone opens to ask "what is this person responsible for", and a role that
+ * was retired while they still hold it is part of that answer.
+ */
+function TeamRoleChips({ roles }: { roles: TeamRoleRef[] }) {
+  if (roles.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+      {roles.map((role) => (
+        <span
+          key={role.id}
+          className={`flex items-center gap-1 rounded-full border border-surface-border px-1.5 py-0.5 text-micro ${role.archived ? "opacity-60" : ""}`}
+        >
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: role.color }}
+          />
+          <span className="max-w-24 truncate">{role.name}</span>
+        </span>
+      ))}
+    </div>
   );
 }
 

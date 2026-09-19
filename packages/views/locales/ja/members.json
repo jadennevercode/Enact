@@ -35,7 +35,8 @@
     "empty_description": "上の「招待」ボタンからメンバーを招待してください。",
     "no_matches_title": "一致するメンバーがいません",
     "no_matches_description": "別の名前かメールアドレスで検索してください。",
-    "load_failed": "メンバーを読み込めませんでした"
+    "load_failed": "メンバーを読み込めませんでした",
+    "team_roles_more": "+{{count}}"
   },
   "manage": {
     "section_title": "メンバー（{{count}}）",
@@ -53,7 +54,7 @@
     "revoke_invitation_description": "{{email}} への招待を取り消しますか？このワークスペースに参加できなくなります。",
     "toast_invitation_revoked": "招待を取り消しました",
     "toast_invitation_revoke_failed": "招待を取り消せませんでした",
-    "toast_role_updated": "ロールを更新しました",
+    "toast_role_updated": "権限を更新しました",
     "toast_role_failed": "メンバーを更新できませんでした",
     "toast_member_removed": "メンバーを削除しました",
     "toast_member_remove_failed": "メンバーを削除できませんでした",
@@ -61,7 +62,7 @@
     "remove_member_description": "{{workspace}} から {{name}} を削除しますか？このワークスペースへのアクセスを失います。",
     "confirm_cancel": "キャンセル",
     "confirm_action": "確認",
-    "change_role": "ロールを変更",
+    "change_role": "権限を変更",
     "remove_action": "ワークスペースから削除",
     "cannot_demote_last_owner_title": "先に別のメンバーを owner に昇格させてください。ワークスペースには少なくとも 1 人の owner が必要です。",
     "cannot_demote_last_owner": "最後の owner は降格できません",
@@ -80,7 +81,7 @@
       }
     },
     "share_links_title": "共有リンク",
-    "role_field": "ロール：",
+    "role_field": "権限：",
     "expiry_field": "有効期限：",
     "share_links_create_title": "共有リンクを作成",
     "share_links_create_button": "生成",
@@ -98,6 +99,10 @@
     "expiry_24h": "24時間",
     "expiry_7d": "7日",
     "expiry_30d": "30日",
-    "expiry_never": "無期限"
+    "expiry_never": "無期限",
+    "change_team_roles": "ロールを設定",
+    "no_team_roles": "ロールがまだありません。設定 › ロールで追加してください。",
+    "toast_team_roles_updated": "ロールを更新しました",
+    "toast_team_roles_failed": "ロールを更新できませんでした"
   }
 }

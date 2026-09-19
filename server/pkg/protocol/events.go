@@ -119,6 +119,11 @@ const (
 	// self-describing); nothing routes on it.
 	EventIssueStatusChanged = "issue_status:changed"
 
+	// Team role catalog events. Same shape as issue_status:changed: one event
+	// for every catalog write, clients re-read rather than merge. Assigning a
+	// role to a person is a member change and publishes member:updated instead.
+	EventTeamRoleChanged = "team_role:changed"
+
 	// Pin events
 	EventPinCreated   = "pin:created"
 	EventPinDeleted   = "pin:deleted"

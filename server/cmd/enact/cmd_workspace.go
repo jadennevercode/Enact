@@ -61,6 +61,26 @@ var workspaceMemberListCmd = &cobra.Command{
 	RunE:  runWorkspaceMembers,
 }
 
+// Team roles are the functional roles a workspace defines (角色) — business
+// owner, architect, QA. They are read-only from the CLI on purpose: editing the
+// catalog is a settings action, while READING it is what an agent needs in
+// order to route a review to the right person.
+var workspaceTeamRoleCmd = &cobra.Command{
+	Use:   "team-role",
+	Short: "Inspect workspace team roles and who holds them",
+}
+
+var workspaceTeamRoleListCmd = &cobra.Command{
+	Use:   "list [workspace-id|slug|prefix]",
+	Short: "List team roles and their holders",
+	Long: "Lists the workspace's team roles together with the people who hold " +
+		"each one. A team role says what kind of judgement someone gives " +
+		"(business owner, architect, QA); it is not a permission. Use it to " +
+		"find the right reviewer for a phase, then mention that person.",
+	Args: cobra.MaximumNArgs(1),
+	RunE: runWorkspaceTeamRoles,
+}
+
 var workspaceMemberInviteCmd = &cobra.Command{
 	Use:   "invite <email> [workspace-id|slug|prefix]",
 	Short: "Invite a member to a workspace by email",
@@ -163,6 +183,8 @@ func init() {
 	workspaceCmd.AddCommand(workspaceMemberCmd)
 	workspaceMemberCmd.AddCommand(workspaceMemberListCmd)
 	workspaceMemberCmd.AddCommand(workspaceMemberInviteCmd)
+	workspaceCmd.AddCommand(workspaceTeamRoleCmd)
+	workspaceTeamRoleCmd.AddCommand(workspaceTeamRoleListCmd)
 	workspaceCmd.AddCommand(workspaceUpdateCmd)
 	workspaceCmd.AddCommand(workspaceSwitchCmd)
 	workspaceCmd.AddCommand(workspaceMcpCmd)
@@ -183,6 +205,9 @@ func init() {
 	workspaceCreateCmd.Flags().String("output", "json", "Output format: table or json")
 	workspaceGetCmd.Flags().String("output", "json", "Output format: table or json")
 	workspaceMemberListCmd.Flags().String("output", "table", "Output format: table or json")
+	workspaceMemberListCmd.Flags().StringSlice("team-role", nil, "Only members holding any of these team role keys (repeatable or comma-separated)")
+	workspaceTeamRoleListCmd.Flags().String("output", "table", "Output format: table or json")
+	workspaceTeamRoleListCmd.Flags().Bool("include-archived", false, "Include roles retired from new assignments")
 	workspaceMemberInviteCmd.Flags().String("role", "member", "Member role to grant: member or admin (owner is not allowed)")
 	workspaceMemberInviteCmd.Flags().String("output", "table", "Output format: table or json")
 
@@ -800,8 +825,16 @@ func runWorkspaceMembers(cmd *cobra.Command, args []string) error {
 	ctx, cancel := cli.APIContext(context.Background())
 	defer cancel()
 
+	// --team-role narrows the roster to the people who hold any of those roles.
+	// This is the routing lookup: "who can review this kind of work".
+	path := "/api/workspaces/" + wsID + "/members"
+	teamRoles, _ := cmd.Flags().GetStringSlice("team-role")
+	if query := teamRoleQuery(teamRoles); query != "" {
+		path += "?" + query
+	}
+
 	var members []map[string]any
-	if err := client.GetJSON(ctx, "/api/workspaces/"+wsID+"/members", &members); err != nil {
+	if err := client.GetJSON(ctx, path, &members); err != nil {
 		return fmt.Errorf("list members: %w", err)
 	}
 
@@ -810,7 +843,10 @@ func runWorkspaceMembers(cmd *cobra.Command, args []string) error {
 		return cli.PrintJSON(os.Stdout, members)
 	}
 
-	headers := []string{"USER ID", "NAME", "EMAIL", "ROLE"}
+	// PERMISSION, not ROLE: owner/admin/member is what someone is allowed to do,
+	// and TEAM ROLES is what kind of judgement they give. The two used to share
+	// the word "role", which is exactly the confusion this column name avoids.
+	headers := []string{"USER ID", "NAME", "EMAIL", "PERMISSION", "TEAM ROLES"}
 	rows := make([][]string, 0, len(members))
 	for _, m := range members {
 		rows = append(rows, []string{
@@ -818,9 +854,146 @@ func runWorkspaceMembers(cmd *cobra.Command, args []string) error {
 			strVal(m, "name"),
 			strVal(m, "email"),
 			strVal(m, "role"),
+			strings.Join(activeTeamRoleKeys(m["team_roles"]), ","),
 		})
 	}
 	cli.PrintTable(os.Stdout, headers, rows)
+	return nil
+}
+
+// teamRoleQuery renders repeated ?team_role= parameters. Comma-separated values
+// are split so `--team-role qa,ops` and two flags mean the same thing.
+func teamRoleQuery(values []string) string {
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		for _, key := range strings.Split(value, ",") {
+			if key = strings.TrimSpace(key); key != "" {
+				parts = append(parts, "team_role="+url.QueryEscape(key))
+			}
+		}
+	}
+	return strings.Join(parts, "&")
+}
+
+// activeTeamRoleKeys pulls the keys out of a member payload's team_roles.
+// Archived roles are skipped: a retired role routes nobody, so printing it in
+// the column an agent reads would be an invitation to route to it.
+func activeTeamRoleKeys(raw any) []string {
+	entries, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	keys := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		role, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		if archived, _ := role["archived"].(bool); archived {
+			continue
+		}
+		if key := strVal(role, "key"); key != "" {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
+// runWorkspaceTeamRoles answers "who holds which role", which is the question a
+// phase review starts from. Holders are resolved client-side from the member
+// list so one command returns the whole picture.
+func runWorkspaceTeamRoles(cmd *cobra.Command, args []string) error {
+	wsID, err := resolveWorkspaceArg(cmd, args)
+	if err != nil {
+		return err
+	}
+	if wsID == "" {
+		return fmt.Errorf("workspace ID is required: pass an id/slug/prefix as argument or set ENACT_WORKSPACE_ID")
+	}
+
+	client, err := newAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := cli.APIContext(context.Background())
+	defer cancel()
+
+	includeArchived, _ := cmd.Flags().GetBool("include-archived")
+	catalogPath := "/api/team-roles"
+	if includeArchived {
+		catalogPath += "?include_archived=true"
+	}
+	var catalog struct {
+		TeamRoles []map[string]any `json:"team_roles"`
+	}
+	// The catalog endpoint resolves the workspace from the X-Workspace-ID
+	// header the client already carries, unlike the member list, which names
+	// the workspace in its path. Pinned here so an explicit workspace argument
+	// wins over the ambient one.
+	client.WorkspaceID = wsID
+	if err := client.GetJSON(ctx, catalogPath, &catalog); err != nil {
+		return fmt.Errorf("list team roles: %w", err)
+	}
+
+	var members []map[string]any
+	if err := client.GetJSON(ctx, "/api/workspaces/"+wsID+"/members", &members); err != nil {
+		return fmt.Errorf("list members: %w", err)
+	}
+
+	type holder struct {
+		UserID string `json:"user_id"`
+		Name   string `json:"name"`
+		Email  string `json:"email"`
+	}
+	holders := map[string][]holder{}
+	for _, m := range members {
+		for _, key := range activeTeamRoleKeys(m["team_roles"]) {
+			holders[key] = append(holders[key], holder{
+				UserID: strVal(m, "user_id"),
+				Name:   strVal(m, "name"),
+				Email:  strVal(m, "email"),
+			})
+		}
+	}
+
+	type roleView struct {
+		Key      string   `json:"key"`
+		Name     string   `json:"name"`
+		Archived bool     `json:"archived"`
+		Holders  []holder `json:"holders"`
+	}
+	views := make([]roleView, 0, len(catalog.TeamRoles))
+	for _, role := range catalog.TeamRoles {
+		key := strVal(role, "key")
+		view := roleView{
+			Key:      key,
+			Name:     strVal(role, "name"),
+			Archived: role["archived_at"] != nil,
+			Holders:  holders[key],
+		}
+		if view.Holders == nil {
+			view.Holders = []holder{}
+		}
+		views = append(views, view)
+	}
+
+	output, _ := cmd.Flags().GetString("output")
+	if output == "json" {
+		return cli.PrintJSON(os.Stdout, views)
+	}
+
+	rows := make([][]string, 0, len(views))
+	for _, view := range views {
+		names := make([]string, 0, len(view.Holders))
+		for _, h := range view.Holders {
+			names = append(names, h.Name)
+		}
+		// An empty HOLDERS cell is the answer to "why did nobody get asked to
+		// review this", so it is printed rather than filtered out.
+		rows = append(rows, []string{view.Key, view.Name, strings.Join(names, ", ")})
+	}
+	cli.PrintTable(os.Stdout, []string{"KEY", "NAME", "HOLDERS"}, rows)
 	return nil
 }
 

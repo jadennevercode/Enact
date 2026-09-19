@@ -1506,6 +1506,9 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Route("/members/{memberId}", func(r chi.Router) {
 						r.Patch("/", h.UpdateMember)
 						r.Delete("/", h.DeleteMember)
+						// Team roles are a separate write from the permission
+						// PATCH above: different meaning, different audit trail.
+						r.Put("/team-roles", h.SetMemberTeamRoles)
 					})
 					r.Delete("/invitations/{invitationId}", h.RevokeInvitation)
 					// Curating the shared MCP library is an admin action.
@@ -1886,6 +1889,21 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				r.Route("/{id}", func(r chi.Router) {
 					r.Patch("/", h.UpdateIssueStatus)
 					r.Delete("/", h.ArchiveIssueStatus)
+				})
+			})
+
+			// Team role catalog. Reads are open to any member — every roster
+			// renders roles. Writes are gated to workspace owner/admin inside
+			// the handlers.
+			r.Route("/api/team-roles", func(r chi.Router) {
+				r.Get("/", h.ListTeamRoles)
+				r.Post("/", h.CreateTeamRole)
+				r.Patch("/reorder", h.ReorderTeamRoles)
+				r.Post("/presets", h.ImportTeamRolePreset)
+				r.Route("/{id}", func(r chi.Router) {
+					r.Patch("/", h.UpdateTeamRole)
+					r.Delete("/", h.ArchiveTeamRole)
+					r.Post("/restore", h.RestoreTeamRole)
 				})
 			})
 

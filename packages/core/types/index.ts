@@ -88,6 +88,16 @@ export { RUNTIME_PROFILE_PROTOCOL_FAMILIES } from "./agent";
 export type { OntologyCatalogItem, OntologySummary, OntologyDetail } from "./ontology";
 export type { Workspace, WorkspaceMcpServer, Member, MemberRole, User, MemberWithUser, Invitation, ShareLink, ShareLinkInfo } from "./workspace";
 export type {
+  TeamRole,
+  TeamRoleRef,
+  ListTeamRolesResponse,
+  CreateTeamRoleRequest,
+  UpdateTeamRoleRequest,
+  SetMemberTeamRolesRequest,
+  TeamRolePreset,
+  ImportTeamRolePresetRequest,
+} from "./team-role";
+export type {
   WorkspaceSetup,
   WorkspaceSetupStep,
   WorkspaceSetupStepKey,

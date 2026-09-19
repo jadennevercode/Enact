@@ -52,6 +52,11 @@ import type {
   Workspace,
   WorkspaceMcpServer,
   MemberWithUser,
+  TeamRole,
+  ListTeamRolesResponse,
+  CreateTeamRoleRequest,
+  UpdateTeamRoleRequest,
+  ImportTeamRolePresetRequest,
   User,
   Skill,
   SkillSummary,
@@ -409,6 +414,10 @@ import {
   LabelSchema,
   ListLabelsResponseSchema,
   ListIssueStatusesResponseSchema,
+  ListTeamRolesResponseSchema,
+  TeamRoleSchema,
+  MemberWithUserSchema,
+  MemberWithUserListSchema,
   IssueStatusEntrySchema,
   IssuePropertySchema,
   ListPropertiesResponseSchema,
@@ -429,6 +438,10 @@ import {
   EMPTY_LABEL,
   EMPTY_LIST_LABELS_RESPONSE,
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+  EMPTY_LIST_TEAM_ROLES_RESPONSE,
+  EMPTY_TEAM_ROLE,
+  EMPTY_MEMBER_WITH_USER_LIST,
+  EMPTY_MEMBER_WITH_USER,
   EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_RESOURCE_LABELS_RESPONSE,
   GitHubConnectResponseSchema,
@@ -3001,8 +3014,20 @@ export class ApiClient {
   }
 
   // Members
-  async listMembers(workspaceId: string): Promise<MemberWithUser[]> {
-    return this.fetch(`/api/workspaces/${workspaceId}/members`);
+  /**
+   * The workspace roster, and the routing lookup behind it: each member
+   * carries the team roles they hold. `teamRoleKeys` narrows the list to the
+   * people holding any of those roles (OR semantics), which is how a caller
+   * asks "who can review this kind of work".
+   */
+  async listMembers(workspaceId: string, teamRoleKeys?: string[]): Promise<MemberWithUser[]> {
+    const query = teamRoleKeys?.length
+      ? `?${teamRoleKeys.map((key) => `team_role=${encodeURIComponent(key)}`).join("&")}`
+      : "";
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members${query}`);
+    return parseWithFallback(raw, MemberWithUserListSchema, EMPTY_MEMBER_WITH_USER_LIST, {
+      endpoint: "GET /api/workspaces/{id}/members",
+    });
   }
 
   async createMember(workspaceId: string, data: CreateMemberRequest): Promise<Invitation> {
@@ -3012,10 +3037,104 @@ export class ApiClient {
     });
   }
 
+  /** Changes a member's PERMISSION (owner/admin/member). */
   async updateMember(workspaceId: string, memberId: string, data: UpdateMemberRequest): Promise<MemberWithUser> {
-    return this.fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members/${memberId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, MemberWithUserSchema, EMPTY_MEMBER_WITH_USER, {
+      endpoint: "PATCH /api/workspaces/{id}/members/{memberId}",
+    });
+  }
+
+  /**
+   * Replaces the set of team roles a member holds. Set semantics: the payload
+   * is the whole intended set, so a retry is idempotent. Assignments to
+   * ARCHIVED roles are outside that set and survive untouched.
+   */
+  async setMemberTeamRoles(
+    workspaceId: string,
+    memberId: string,
+    teamRoleIds: string[],
+  ): Promise<MemberWithUser> {
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/members/${memberId}/team-roles`, {
+      method: "PUT",
+      body: JSON.stringify({ team_role_ids: teamRoleIds }),
+    });
+    return parseWithFallback(raw, MemberWithUserSchema, EMPTY_MEMBER_WITH_USER, {
+      endpoint: "PUT /api/workspaces/{id}/members/{memberId}/team-roles",
+    });
+  }
+
+  // Team role catalog. Reads are open to any workspace member; the mutations
+  // are owner/admin only and return 403 otherwise.
+  async listTeamRoles(includeArchived = false): Promise<ListTeamRolesResponse> {
+    const query = includeArchived ? "?include_archived=true" : "";
+    const raw = await this.fetch<unknown>(`/api/team-roles${query}`);
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "GET /api/team-roles",
+    });
+  }
+
+  async createTeamRole(data: CreateTeamRoleRequest): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "POST /api/team-roles",
+    });
+  }
+
+  async updateTeamRole(id: string, data: UpdateTeamRoleRequest): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "PATCH /api/team-roles/{id}",
+    });
+  }
+
+  /** Archives a role: it leaves the picker, and everyone who holds it keeps it. */
+  async archiveTeamRole(id: string): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}`, { method: "DELETE" });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "DELETE /api/team-roles/{id}",
+    });
+  }
+
+  async restoreTeamRole(id: string): Promise<TeamRole> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/${id}/restore`, { method: "POST" });
+    return parseWithFallback(raw, TeamRoleSchema, EMPTY_TEAM_ROLE, {
+      endpoint: "POST /api/team-roles/{id}/restore",
+    });
+  }
+
+  /**
+   * Rewrites the whole role order in one server-side statement. Not expressible
+   * as a sequence of updates: a row rejected mid-sequence would leave the
+   * earlier rows already reordered while the caller sees a failure.
+   */
+  async reorderTeamRoles(ids: string[]): Promise<ListTeamRolesResponse> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/reorder`, {
+      method: "PATCH",
+      body: JSON.stringify({ ids }),
+    });
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "PATCH /api/team-roles/reorder",
+    });
+  }
+
+  /** Idempotent: roles whose key or name already exists are left untouched. */
+  async importTeamRolePreset(data: ImportTeamRolePresetRequest): Promise<ListTeamRolesResponse> {
+    const raw = await this.fetch<unknown>(`/api/team-roles/presets`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, ListTeamRolesResponseSchema, EMPTY_LIST_TEAM_ROLES_RESPONSE, {
+      endpoint: "POST /api/team-roles/presets",
     });
   }
 

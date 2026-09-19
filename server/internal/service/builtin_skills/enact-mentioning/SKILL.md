@@ -41,6 +41,13 @@ not guaranteed to render as anything — do not invent one.
 A name is not a UUID. Look the UUID up first, from the matching list command:
 
 - a person → `enact workspace member list --output json` → use `user_id`
+  - looking for the right REVIEWER rather than a named person? Filter by role:
+    `enact workspace member list --team-role qa --output json`, or read the whole
+    picture with `enact workspace team-role list --output json`, which returns
+    each role and who holds it. A role says what kind of judgement someone gives
+    (架构 / QA / 运维); it is NOT a permission, and holding one grants nothing.
+    A role with no holders means nobody has been made responsible for that kind
+    of review — say so rather than mentioning the nearest person.
 - an agent → `enact agent list --output json` → use `id`
 - a squad  → `enact squad list --output json` → use `id`
 

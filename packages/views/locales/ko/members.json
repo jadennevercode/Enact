@@ -35,7 +35,8 @@
     "empty_description": "위의 “초대” 버튼으로 멤버를 초대하세요.",
     "no_matches_title": "일치하는 멤버가 없습니다",
     "no_matches_description": "다른 이름이나 이메일 주소로 검색해 보세요.",
-    "load_failed": "멤버를 불러오지 못했습니다"
+    "load_failed": "멤버를 불러오지 못했습니다",
+    "team_roles_more": "+{{count}}"
   },
   "manage": {
     "section_title": "멤버 ({{count}})",
@@ -53,7 +54,7 @@
     "revoke_invitation_description": "{{email}}에 보낸 초대를 취소할까요? 더 이상 이 워크스페이스에 참가할 수 없습니다.",
     "toast_invitation_revoked": "초대를 취소했습니다",
     "toast_invitation_revoke_failed": "초대를 취소하지 못했습니다",
-    "toast_role_updated": "역할을 업데이트했습니다",
+    "toast_role_updated": "권한을 업데이트했습니다",
     "toast_role_failed": "멤버를 업데이트하지 못했습니다",
     "toast_member_removed": "멤버를 제거했습니다",
     "toast_member_remove_failed": "멤버를 제거하지 못했습니다",
@@ -61,7 +62,7 @@
     "remove_member_description": "{{workspace}}에서 {{name}}님을 제거할까요? 이 워크스페이스에 접근할 수 없게 됩니다.",
     "confirm_cancel": "취소",
     "confirm_action": "확인",
-    "change_role": "역할 변경",
+    "change_role": "권한 변경",
     "remove_action": "워크스페이스에서 제거",
     "cannot_demote_last_owner_title": "먼저 다른 멤버를 소유자로 승격하세요. 워크스페이스에는 최소 한 명의 소유자가 필요합니다.",
     "cannot_demote_last_owner": "마지막 소유자는 강등할 수 없습니다",
@@ -80,7 +81,7 @@
       }
     },
     "share_links_title": "공유 링크",
-    "role_field": "역할：",
+    "role_field": "권한:",
     "expiry_field": "만료：",
     "share_links_create_title": "공유 링크 만들기",
     "share_links_create_button": "생성",
@@ -98,6 +99,10 @@
     "expiry_24h": "24시간",
     "expiry_7d": "7일",
     "expiry_30d": "30일",
-    "expiry_never": "무기한"
+    "expiry_never": "무기한",
+    "change_team_roles": "역할 설정",
+    "no_team_roles": "아직 역할이 없습니다. 설정 › 역할에서 추가하세요.",
+    "toast_team_roles_updated": "역할을 업데이트했습니다",
+    "toast_team_roles_failed": "역할을 업데이트하지 못했습니다"
   }
 }

@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Tags,
   CircleDot,
+  UserCog,
   Keyboard,
   ListTodo,
   Zap,
@@ -39,6 +40,7 @@ import { LabsTab } from "./labs-tab";
 import { NotificationsTab } from "./notifications-tab";
 import { LabelsTab } from "./labels-tab";
 import { IssueStatusesTab } from "./issue-statuses-tab";
+import { TeamRolesTab } from "./team-roles-tab";
 import { PropertiesTab } from "./properties-tab";
 import { QuickActionsTab } from "./quick-actions-tab";
 import { KeyboardShortcutsTab } from "./keyboard-shortcuts-tab";
@@ -66,6 +68,7 @@ const WORKSPACE_TAB_KEYS = [
   "labels",
   "issue_statuses",
   "properties",
+  "team_roles",
   "quick_actions",
   "plugins",
 ] as const;
@@ -77,6 +80,7 @@ const WORKSPACE_TAB_VALUES = {
   labels: "labels",
   issue_statuses: "issue-statuses",
   properties: "properties",
+  team_roles: "team-roles",
   quick_actions: "quick-actions",
   plugins: "plugins",
 } as const;
@@ -88,6 +92,7 @@ const WORKSPACE_TAB_ICONS = {
   labels: Tags,
   issue_statuses: CircleDot,
   properties: SlidersHorizontal,
+  team_roles: UserCog,
   quick_actions: Zap,
   plugins: Blocks,
 } as const;
@@ -280,6 +285,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
             activeTab === "labels" ||
             activeTab === "issue-statuses" ||
             activeTab === "properties" ||
+            activeTab === "team-roles" ||
             activeTab === "quick-actions"
               ? "wide"
               : "standard"
@@ -301,6 +307,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="labels"><LabelsTab /></TabsContent>
           <TabsContent value="issue-statuses"><IssueStatusesTab /></TabsContent>
           <TabsContent value="properties"><PropertiesTab /></TabsContent>
+          <TabsContent value="team-roles"><TeamRolesTab /></TabsContent>
           <TabsContent value="quick-actions"><QuickActionsTab /></TabsContent>
           {pluginsEnabled ? <TabsContent value="plugins"><PluginsTab /></TabsContent> : null}
           {extraAccountTabs?.map((tab) => (

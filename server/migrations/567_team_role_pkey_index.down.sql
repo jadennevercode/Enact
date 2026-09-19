@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS team_role_pkey_uidx;

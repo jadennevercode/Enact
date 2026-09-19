@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@enact/core/i18n/react";
 import { RESOURCES } from "../../locales";
@@ -10,10 +10,12 @@ const state = vi.hoisted(() => ({
   invitations: [] as unknown[],
   shareLinks: [] as unknown[],
   agents: [] as unknown[],
+  teamRoles: [] as unknown[],
   viewerId: "u-owner",
 }));
 const push = vi.hoisted(() => vi.fn());
 const createMember = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+const setMemberTeamRoles = vi.hoisted(() => vi.fn().mockResolvedValue({}));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual =
@@ -22,7 +24,11 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
     ...actual,
     useQuery: (options: { queryKey: readonly unknown[] }) => {
       const key = JSON.stringify(options.queryKey);
-      const data = key.includes("invitation")
+      // Already selected: the real options carry a `select` that maps the
+      // response down to the array, and this stub stands in for both.
+      const data = key.includes("team-roles")
+        ? state.teamRoles
+        : key.includes("invitation")
         ? state.invitations
         : key.includes("shareLink") || key.includes("share_link")
           ? state.shareLinks
@@ -48,6 +54,7 @@ vi.mock("@enact/core/api", async (importOriginal) => {
       ...actual.api,
       getBaseUrl: () => "http://127.0.0.1:8080",
       createMember,
+      setMemberTeamRoles,
     },
   };
 });
@@ -117,9 +124,11 @@ beforeEach(() => {
   state.invitations = [];
   state.shareLinks = [];
   state.agents = [];
+  state.teamRoles = [];
   state.viewerId = "u-owner";
   push.mockClear();
   createMember.mockClear();
+  setMemberTeamRoles.mockClear();
 });
 
 afterEach(cleanup);
@@ -172,16 +181,96 @@ describe("MembersPage", () => {
       screen.queryByRole("button", { name: "Invite" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Change role" }),
+      screen.queryByRole("button", { name: "Change permission" }),
     ).not.toBeInTheDocument();
   });
 
-  it("lets an owner reach the role menu for someone else", () => {
+  it("lets an owner reach the permission menu for someone else", () => {
     renderPage();
     // One menu: the owner's own row is never actionable by themselves.
     expect(
-      screen.getAllByRole("button", { name: "Change role" }),
+      screen.getAllByRole("button", { name: "Change permission" }),
     ).toHaveLength(1);
+  });
+
+  // The roster is where "who does what" is read, so the roles a person holds
+  // are on the row. Archived roles are left out: a retired role says nothing
+  // about who reviews what today.
+  it("shows the roles a member holds and hides archived ones", () => {
+    state.members = [
+      OWNER,
+      {
+        ...PLAIN,
+        team_roles: [
+          { id: "r-1", key: "qa", name: "QA", color: "#111111", archived: false },
+          { id: "r-2", key: "ops", name: "Ops", color: "#222222", archived: true },
+        ],
+      },
+    ];
+    renderPage();
+    expect(screen.getByText("QA")).toBeInTheDocument();
+    expect(screen.queryByText("Ops")).not.toBeInTheDocument();
+  });
+
+  // A save carries the WHOLE intended set, not a delta: that is what makes a
+  // double click or a retry converge instead of toggling twice.
+  it("sends the whole role set when an owner picks one", async () => {
+    const user = userEvent.setup();
+    state.teamRoles = [
+      {
+        id: "r-1",
+        workspace_id: "ws-1",
+        key: "qa",
+        name: "QA",
+        description: "",
+        color: "#111111",
+        position: 0,
+        archived_at: null,
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "r-2",
+        workspace_id: "ws-1",
+        key: "ops",
+        name: "Ops",
+        description: "",
+        color: "#222222",
+        position: 1,
+        archived_at: null,
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+    state.members = [
+      OWNER,
+      {
+        ...PLAIN,
+        team_roles: [
+          { id: "r-1", key: "qa", name: "QA", color: "#111111", archived: false },
+        ],
+      },
+    ];
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Change permission" }));
+    // fireEvent, not user-event: the submenu positioner keeps pointer-events
+    // off until its open animation finishes, which jsdom never runs.
+    fireEvent.click(await screen.findByText("Set roles"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Ops/ }));
+
+    expect(setMemberTeamRoles).toHaveBeenCalledWith("ws-1", "m-2", ["r-1", "r-2"]);
+  });
+
+  // An empty catalog must not look like a broken menu.
+  it("points at settings when no roles are defined", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Change permission" }));
+    fireEvent.click(await screen.findByText("Set roles"));
+    expect(
+      await screen.findByText("No roles defined yet. Add them in Settings › Roles."),
+    ).toBeInTheDocument();
   });
 
   it("shows pending invitations to someone who can revoke them", () => {
