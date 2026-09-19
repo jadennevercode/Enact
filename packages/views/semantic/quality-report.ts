@@ -10,6 +10,11 @@ export type QualityMeasure = {
   description: string;
   engine: string;
 };
+// Engine names can carry the upstream vendor brand; the product never shows it.
+export function engineLabel(engine: string): string {
+  const label = engine.replace(/\bSemantica\b\s*\/?\s*/gi, "").trim();
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 const finite = (v: unknown) =>
   typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
 export function qualityMeasure(raw: Record<string, unknown>): QualityMeasure {
@@ -37,7 +42,7 @@ export function qualityMeasure(raw: Record<string, unknown>): QualityMeasure {
             ? "warning"
             : "not_evaluated",
     description: String(raw.description || raw.detail || ""),
-    engine: String(raw.engine || ""),
+    engine: engineLabel(String(raw.engine || "")),
   };
 }
 export function ontologyQuality(artifact: Record<string, unknown>) {
@@ -59,7 +64,7 @@ export function ontologyQuality(artifact: Record<string, unknown>) {
             : shacl.valid === false
               ? "fail"
               : "not_evaluated",
-        engine: "Semantica / SHACL Core",
+        engine: "SHACL Core",
       }),
       qualityMeasure({
         key: "questions",
