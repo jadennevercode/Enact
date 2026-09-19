@@ -9,7 +9,7 @@ Enact supports email-and-password accounts by default; Google OAuth can be added
 
 ## Email-and-password sign-in
 
-New users register with a username, a `@deloittecn.com.cn` email address, and a password of at least 8 characters. The username is shown to teammates throughout the product. Returning users sign in with their email and password; passwords are stored only as secure hashes.
+New users register with a username, a `@deloittecn.com.cn` or `@deloitte.com.hk` email address, and a password of at least 8 characters. The username is shown to teammates throughout the product. Returning users sign in with their email and password; passwords are stored only as secure hashes.
 
 Accounts created before password authentication was introduced can use the registration form once to set their initial username and password. After that first setup, the email is treated as an existing account and cannot be registered again.
 
@@ -88,7 +88,7 @@ The URLs in the Google Console and in `GOOGLE_REDIRECT_URI` must match exactly, 
 
 ## Signup restrictions
 
-Registration has a mandatory `@deloittecn.com.cn` domain gate. The three deployment variables below can narrow registration further, but cannot allow another email domain:
+Registration has a mandatory `@deloittecn.com.cn` / `@deloitte.com.hk` domain gate. The three deployment variables below can narrow registration further, but cannot allow another email domain:
 
 | Variable | Effect |
 |---|---|
@@ -98,7 +98,7 @@ Registration has a mandatory `@deloittecn.com.cn` domain gate. The three deploym
 
 The evaluation order is:
 
-1. Reject any email outside `@deloittecn.com.cn`.
+1. Reject any email outside `@deloittecn.com.cn` and `@deloitte.com.hk`.
 2. The email matches `ALLOWED_EMAILS` — allow.
 3. Or its domain matches `ALLOWED_EMAIL_DOMAINS` — allow.
 4. With no match, if `ALLOW_SIGNUP=false` — reject.

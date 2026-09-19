@@ -23,6 +23,7 @@
     "./api/ws-client": "./api/ws-client.ts",
     "./config": "./config/index.ts",
     "./auth": "./auth/index.ts",
+    "./auth/registration": "./auth/registration.ts",
     "./marketplace": "./marketplace/index.ts",
     "./marketplace/queries": "./marketplace/queries.ts",
     "./marketplace/mutations": "./marketplace/mutations.ts",

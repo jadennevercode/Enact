@@ -168,7 +168,8 @@ describe("LoginPage", () => {
     });
   });
 
-  it("rejects registration outside the Deloitte China email domain", async () => {
+  // Domain matrix lives in packages/core/auth/registration.test.ts.
+  it("rejects registration outside the Deloitte email domains", async () => {
     const user = userEvent.setup();
     renderWithI18n(<LoginPage onSuccess={onSuccess} />);
 
@@ -179,7 +180,7 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: /^create account$/i }));
 
     expect(
-      await screen.findByText(/limited to @deloittecn\.com\.cn/i),
+      await screen.findByText(/limited to @deloittecn\.com\.cn and @deloitte\.com\.hk/i),
     ).toBeInTheDocument();
     expect(mockRegisterWithEmail).not.toHaveBeenCalled();
   });

@@ -9,7 +9,7 @@ Enact 默认支持邮箱密码账号，也可以增加 Google OAuth。已经存�
 
 ## 邮箱密码登录
 
-新用户需要填写用户名、`@deloittecn.com.cn` 企业邮箱和至少 8 个字符的密码。用户名会在产品内向工作区成员展示。已有用户使用邮箱和密码登录；服务端只保存安全的密码哈希。
+新用户需要填写用户名、`@deloittecn.com.cn` 或 `@deloitte.com.hk` 企业邮箱和至少 8 个字符的密码。用户名会在产品内向工作区成员展示。已有用户使用邮箱和密码登录；服务端只保存安全的密码哈希。
 
 在密码认证上线前已经创建的账号，可以通过注册表单一次性设置初始用户名和密码。完成首次设置后，该邮箱会按已有账号处理，不能再次注册。
 
@@ -88,7 +88,7 @@ Google Console 与 `GOOGLE_REDIRECT_URI` 中的地址必须完全一致，包括
 
 ## 注册范围控制
 
-注册首先强制校验 `@deloittecn.com.cn` 邮箱域。下面三个部署变量可以进一步收紧注册范围，但不能放行其他邮箱域：
+注册首先强制校验 `@deloittecn.com.cn` / `@deloitte.com.hk` 邮箱域。下面三个部署变量可以进一步收紧注册范围，但不能放行其他邮箱域：
 
 | 变量 | 作用 |
 |---|---|
@@ -98,7 +98,7 @@ Google Console 与 `GOOGLE_REDIRECT_URI` 中的地址必须完全一致，包括
 
 判断顺序如下：
 
-1. 非 `@deloittecn.com.cn` 邮箱直接拒绝；
+1. 非 `@deloittecn.com.cn` 或 `@deloitte.com.hk` 邮箱直接拒绝；
 2. 邮箱命中 `ALLOWED_EMAILS`，允许；
 3. 或域名命中 `ALLOWED_EMAIL_DOMAINS`，允许；
 4. 未命中时，如果 `ALLOW_SIGNUP=false`，拒绝；
