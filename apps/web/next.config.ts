@@ -39,6 +39,10 @@ const allowedDevOrigins = process.env.CORS_ALLOWED_ORIGINS
   : undefined;
 
 const nextConfig: NextConfig = {
+  webpack(config) {
+    if (process.env.ENACT_NEXT_DISABLE_CACHE === "1") config.cache = false;
+    return config;
+  },
   // Separate preview output avoids taking the lock of an existing dev server.
   ...(process.env.ENACT_NEXT_DIST_DIR ? { distDir: process.env.ENACT_NEXT_DIST_DIR } : {}),
   ...(process.env.STANDALONE === "true" ? { output: "standalone" as const } : {}),

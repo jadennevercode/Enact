@@ -13,7 +13,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test'
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   const scenes = await page.evaluate(() => GUIDE_SCENES.map(s => ({ id: s.id, type: s.type, frames: s.frames.length })));
-  assert.equal(scenes.length, 33);
+  assert.equal(scenes.length, 34);
+  assert.deepEqual(scenes.slice(0,3).map(s=>s.id), ['opening','delivery-model','broken-journey']);
+  await page.locator('.primary-button[data-go="delivery-model"]').click();
+  assert.equal(await page.locator('#page-number').textContent(), '02');
+  assert.match(await page.locator('#visual').textContent(), /AI Coding \/ Vibe Coding/);
+  assert.match(await page.locator('#visual').textContent(), /管理对象.*执行依据.*协作方式.*质量判断.*人的工作.*完成标准/);
+  await page.locator('#next').click();
+  assert.equal(await page.evaluate(()=>location.hash), '#broken-journey');
   const mark=page.locator('.enact-mark img');
   assert.equal(await mark.getAttribute('src'),'../favicon.svg');
   await mark.evaluate(img=>img.decode());
@@ -29,7 +36,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test'
   assert.equal(await page.locator('[data-frame="0"]').getAttribute('aria-pressed'), 'true');
   await page.waitForTimeout(650);
   assert.equal(await page.locator('[data-frame="1"]').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('#page-number').textContent(), '03');
+  assert.equal(await page.locator('#page-number').textContent(), '04');
 
   // Pause preserves elapsed progress and resumes the remaining interval.
   await page.locator('[data-frame="0"]').click();
@@ -59,7 +66,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test'
   assert.equal(await page.locator('[data-frame="1"]').getAttribute('aria-pressed'), 'true');
   await page.locator('[data-frame="2"]').click();
   await page.waitForTimeout(4800);
-  assert.equal(await page.locator('#page-number').textContent(), '03');
+  assert.equal(await page.locator('#page-number').textContent(), '04');
   assert.equal(await page.locator('[data-frame="2"]').getAttribute('aria-pressed'), 'true');
   await page.locator('#motion-toggle').click();
 
@@ -129,15 +136,15 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test'
 
   await page.locator('#contents-button').click();
   await page.locator('.contents-scene[data-go="evidence-chain"]').click();
-  assert.equal(await page.locator('#page-number').textContent(), '15');
-  await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#page-number').textContent(), '16');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#page-number').textContent(), '17');
   await page.keyboard.press('ArrowLeft');
-  assert.equal(await page.locator('#page-number').textContent(), '15');
+  assert.equal(await page.locator('#page-number').textContent(), '16');
   await page.locator('#replay').click();
   assert.equal(await page.locator('[data-frame="0"]').getAttribute('aria-pressed'), 'true');
   await page.reload({ waitUntil: 'domcontentloaded' });
-  assert.equal(await page.locator('#page-number').textContent(), '15');
+  assert.equal(await page.locator('#page-number').textContent(), '16');
   for (const start of stageStarts) {
     await page.locator(`.stage-node[data-go="${start}"]`).click();
     assert.equal(await page.evaluate(() => location.hash), '#'+start);
@@ -191,7 +198,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test'
   await offline.route('https://**/*', r => r.abort());
   await offline.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('storage blocked'); } }));
   await offline.goto(url, { waitUntil: 'domcontentloaded' });
-  await offline.locator('.primary-button[data-go="broken-journey"]').click();
+  await offline.locator('.primary-button[data-go="delivery-model"]').click();
   assert.equal(await offline.locator('#page-number').textContent(), '02');
   assert.equal(await offline.locator('#visual svg').count(), 1);
   assert.deepEqual(errors, []);

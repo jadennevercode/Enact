@@ -147,6 +147,26 @@
         g+=`<rect x="217" y="155" width="166" height="105" rx="2" fill="#102f20" stroke="#8aba50"/>${text(300,180,'ONE BUSINESS CHANGE','viz-mono')}${text(300,215,'一次业务变更','viz-big')}${text(300,243,k===0?'INTENT':k===1?'EVIDENCE':'IMPACT','viz-mono')}`;
         break;
       }
+      case 'comparison': {
+        g+=text(139,34,'AI Coding / Vibe Coding','viz-label')+text(461,34,'AISDLC','viz-label viz-accent');
+        g+=text(139,54,'聚焦局部产出与快速迭代','viz-small')+text(461,54,'组织端到端业务交付','viz-small');
+        const rows=[
+          ['管理对象','一次提示 / 一段代码','围绕一个功能推进','一次业务变更','围绕端到端结果推进'],
+          ['执行依据','提示词与对话上下文','人持续补充背景','共享规范与版本化上下文','已确认的业务决定'],
+          ['协作方式','生成 → 检查 → 修改','由人串联各环节','阶段关联与责任交接','需求 → 设计 → 开发 → QA → 发布 → 运营'],
+          ['质量判断','自测与人工 Review','检查生成结果是否符合预期','独立验证与可追溯证据','组件 / 系统契约 / 业务旅程'],
+          ['人的工作','补背景 / 查输出 / 协调修改','持续参与检查与返工','定义 / 编排 / 验证 / 判断','更有组织地承担关键判断'],
+          ['完成标准','功能能跑 / 修改完成','局部完成点','获准发布 → 验证业务结果','区分执行、质量、批准与部署'],
+        ];
+        rows.forEach(([label,left,leftSub,right,rightSub],i)=>{
+          const y=74+i*48,active=Math.floor(i/2)===k;
+          g+=box(16,y,246,42,left,leftSub,false);
+          g+=text(300,y+14,label,'viz-small')+flow(`M270 ${y+29}H330`,active);
+          g+=group(true,box(338,y,246,42,right,rightSub,active),active);
+        });
+        g+=line('M16 377H584')+text(300,401,'关注重心的扩展 · AI Coding 也可以具备严谨的工程实践','viz-small');
+        break;
+      }
       case 'efficiency': {
         const queue=k>=1;
         g+=text(300,43,'从生成速度，看整条交付链','viz-big');
@@ -384,14 +404,14 @@
   function render() {
     stopTimer();
     const s=scenes[page],hero=s.type==='hero'||s.type==='closing',product=s.chapter==='product'&&!hero;
-    const extras=s.type==='hero'?`<div class="hero-buttons"><button class="primary-button" data-go="broken-journey">开始理解方法 ${arrow}</button><button class="secondary-button" data-go="product-intro">简要认识 Enact ${arrow}</button></div><div class="hero-annotation"><span class="small-dot"></span>26 幕方法论 · 5 幕产品介绍 · 自主掌握节奏</div>`:s.type==='closing'?`<div class="hero-buttons"><button class="primary-button" data-read>阅读完整指南 ${arrow}</button><button class="secondary-button" data-copy>复制任务模板 ${arrow}</button><button class="secondary-button" data-go="broken-journey">重看方法论</button></div>`:'';
+    const extras=s.type==='hero'?`<div class="hero-buttons"><button class="primary-button" data-go="delivery-model">开始理解方法 ${arrow}</button><button class="secondary-button" data-go="product-intro">简要认识 Enact ${arrow}</button></div><div class="hero-annotation"><span class="small-dot"></span>27 幕方法论 · 5 幕产品介绍 · 自主掌握节奏</div>`:s.type==='closing'?`<div class="hero-buttons"><button class="primary-button" data-read>阅读完整指南 ${arrow}</button><button class="secondary-button" data-copy>复制任务模板 ${arrow}</button><button class="secondary-button" data-go="delivery-model">重看方法论</button></div>`:'';
     $('#scene').innerHTML=`<article class="scene ${hero?s.type:''} ${product?'product-scene':''} ${s.chapter==='lifecycle'?'lifecycle-scene':''}"><div class="scene-header"><span class="eyebrow">${escape(s.eyebrow)}</span><span class="scene-tag">${hero?'AN INTERACTIVE STORY':product?'PRODUCT OVERVIEW':'METHODOLOGY IN MOTION'}</span></div>${stageNavigation(s)}<div class="scene-body"><div class="scene-copy"><h1 id="scene-title" tabindex="-1">${escape(s.title).replace(/\n/g,'<br>')}</h1><div class="keyline"></div>${narrative(s)}${extras}<div class="step-list" aria-label="分步讲解">${s.frames.map((f,i)=>`<button class="step-button" data-frame="${i}" aria-pressed="false"><span class="step-num">0${i+1}</span><span class="step-label">${escape(f[0])}</span>${arrow}</button>`).join('')}</div><p class="takeaway">${escape(s.takeaway)}</p></div><div class="visual-column"><div class="visual-panel"><div class="visual-topline"><span ${s.chapter==='lifecycle'?'id="process-state"':''}>${product?'ENACT / CONCEPT MAP':'ONE BUSINESS CHANGE'}</span><span>${product?'教学示意':'FROM INTENT TO IMPACT'}</span></div><div id="visual"></div><span class="scene-note">${product?'CONCEPTUAL OVERVIEW · NO LIVE CONNECTION':s.type==='risk'?'CONCEPTUAL ILLUSTRATION · NOT MEASURED DATA':'AISDLC / CONNECTED DELIVERY'}</span></div><div class="visual-caption" id="caption"></div></div></div><div class="scene-bottom"><button class="detail-trigger" id="detail-trigger" aria-expanded="false" aria-controls="scene-detail">补充解释与适用边界 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button></div><div class="detail-box" id="scene-detail" hidden>${escape(s.detail)}</div></article>`;
     $('#chapter-list').innerHTML=chapters.map((c,i)=>{const chapterIndex=chapters.findIndex(c=>c.id===s.chapter);return `<button class="chapter-button ${i===chapterIndex?'active':i<chapterIndex?'passed':''}" data-go="${c.start}" ${i===chapterIndex?'aria-current="step"':''}><span class="chapter-number">0${i+1}</span><span><strong>${escape(c.name)}</strong><small>${c.sub}</small></span></button>`;}).join('');
     $('#page-number').textContent=String(page+1).padStart(2,'0');$('#page-total').textContent=scenes.length;
     $('#part-label').textContent=`${s.chapter==='product'?'产品':'方法论'} · ${chapters.find(c=>c.id===s.chapter).name}`;
     $('#timeline').innerHTML=scenes.map((v,i)=>`<button class="timeline-segment ${i===page?'current':i<page?'past':''} ${i&&v.chapter!==scenes[i-1].chapter?'chapter-start':''}" data-go="${v.id}" aria-label="第 ${i+1} 页：${escape(v.title.replace(/\n/g,''))}" ${i===page?'aria-current="step"':''} title="${escape(v.title.replace(/\n/g,''))}"></button>`).join('');
     $('#previous').disabled=page===0;$('#next').disabled=page===scenes.length-1;
-    $('#next span').textContent=page===0?'开始旅程':page===26?'走进 Enact':page===scenes.length-1?'旅程完成':'下一幕';
+    $('#next span').textContent=page===0?'开始旅程':s.id==='method-summary'?'走进 Enact':page===scenes.length-1?'旅程完成':'下一幕';
     document.querySelectorAll('.top-link[data-go]').forEach(el=>el.classList.toggle('active',(el.dataset.go==='product-intro')===(s.chapter==='product')));
     if(!hero){const zoom=document.createElement('button');zoom.className='zoom-button';zoom.dataset.zoom='';zoom.setAttribute('aria-label','放大当前图解');zoom.textContent='放大图解 ↗';$('.visual-topline').lastElementChild.replaceWith(zoom);}
     frame=media.matches?s.frames.length-1:0;renderFrame();save();
