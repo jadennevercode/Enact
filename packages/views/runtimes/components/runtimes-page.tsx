@@ -58,6 +58,8 @@ import { HealthDot, HealthIcon, useHealthLabel } from "./shared";
 import { useT, useTimeAgo } from "../../i18n";
 import { daemonRuntimesDocsHref } from "./runtime-docs";
 
+import { CreateEnterpriseRuntime } from "../../anyharness-demo/create-runtime";
+
 export interface RuntimesPageProps {
   /** Desktop-only daemon id used to identify this device. */
   localDaemonId?: string | null;
@@ -396,6 +398,7 @@ function PageHeaderBar({
       }}
       actions={
         <>
+          <CreateEnterpriseRuntime />
           {cloudRuntimeEnabled && (
             <CollectionPageHeaderAction
               icon={Cloud}

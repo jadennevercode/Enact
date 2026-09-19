@@ -37,11 +37,25 @@ export function getApi(): ApiClientType {
  * Convenience re-export: a proxy that forwards every property access to the
  * singleton so existing call-sites (`api.listIssues(...)`) keep working.
  */
+export type ApiOperationResolver = (
+  method: string,
+  args: unknown[],
+) => (() => Promise<unknown>) | undefined;
+let operationResolver: ApiOperationResolver | undefined;
+export function setApiOperationResolver(resolver: ApiOperationResolver) {
+  operationResolver = resolver;
+}
+
 export const api = new Proxy({} as ApiClientType, {
   get(_target, prop, receiver) {
     // Allow property inspection (HMR/React Refresh) before initialisation
     if (!_api) return undefined;
     const value = Reflect.get(_api, prop, receiver);
-    return typeof value === "function" ? value.bind(_api) : value;
+    return typeof value === "function"
+      ? (...args: unknown[]) => {
+          const operation = operationResolver?.(String(prop), args);
+          return operation ? operation() : value.apply(_api, args);
+        }
+      : value;
   },
 });

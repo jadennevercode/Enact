@@ -275,7 +275,7 @@ export const domainRows = [
     "模型调用",
     "内部模型网关；示例 endpoint 为 internal://model，凭证由企业管理",
     "adapters/model",
-    "超时和错误结构统一；本演示不连接",
+    "超时、取消和错误结构统一；调用经企业模型网关",
   ],
   [
     "单 Agent 循环",

@@ -1,69 +1,66 @@
 "use client";
 
-import { lazy, Suspense, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuthStore } from "@enact/core/auth";
 import { useCurrentWorkspace } from "@enact/core/paths";
-import { createDemoRepository, eligible } from "@enact/core/anyharness-demo";
+import { getNativeRepository } from "@enact/core/anyharness-demo";
+import type { Workspace } from "@enact/core/types";
 import type { StorageAdapter } from "@enact/core/types/storage";
-import { Button } from "@enact/ui/components/ui/button";
+import { workspaceListOptions } from "@enact/core/workspace";
 import { useNavigation } from "../navigation";
-const DemoApp = lazy(() =>
-  import("./demo-app").then((module) => ({ default: module.DemoApp })),
-);
 
+/** Data/cache scope only. All children remain the original Enact screens. */
 export function AnyHarnessBoundary({
   children,
-  storage,
-  embedded = false,
 }: {
   children: ReactNode;
-  storage: StorageAdapter;
+  storage?: StorageAdapter;
   embedded?: boolean;
 }) {
   const user = useAuthStore((s) => s.user);
   const workspace = useCurrentWorkspace();
   const nav = useNavigation();
-  const allowed =
-    eligible(user?.email, workspace?.slug) &&
-    nav.pathname.split("/")[1] === workspace?.slug;
-  const repository = useMemo(
-    () =>
-      allowed && user && workspace
-        ? createDemoRepository(storage, user.id, workspace.id)
+  const outer = useQueryClient();
+  const repository = getNativeRepository({
+    user,
+    slug:
+      nav.pathname.split("/")[1] === workspace?.slug
+        ? workspace?.slug || null
         : null,
-    [allowed, user?.id, workspace?.id, storage],
-  );
-  if (!allowed || !repository) return children;
-  if (nav.searchParams.get("demo") === "1")
-    return (
-      <Suspense
-        fallback={
-          <div className="p-6 text-body text-muted-foreground">
-            正在加载本地演示…
-          </div>
-        }
-      >
-        <DemoApp
-          key={repository.key}
-          repository={repository}
-          embedded={embedded}
-        />
-      </Suspense>
-    );
-  return (
-    <>
-      {children}
-      <div
-        className="fixed right-5 bottom-5 z-30 rounded-xl border border-border bg-background p-3 shadow-lg"
-        data-testid="anyharness-entry"
-      >
-        <div className="mb-2 text-caption text-muted-foreground">
-          AnyHarness · 独立本地演示
-        </div>
-        <Button onClick={() => nav.push("/anyharness/runtimes?demo=1")}>
-          自建企业 Runtime
-        </Button>
-      </div>
-    </>
+    workspaceId: workspace?.id || null,
+  });
+  const queryClient = useMemo(() => {
+    if (!repository) return null;
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 15_000 },
+        mutations: { retry: false },
+      },
+    });
+    const options = workspaceListOptions();
+    const workspaces = outer.getQueryData<Workspace[]>(options.queryKey);
+    if (workspaces)
+      client.setQueryData<Workspace[]>(options.queryKey, workspaces);
+    return client;
+  }, [repository, outer]);
+  useEffect(() => {
+    if (!repository || !queryClient) return;
+    return repository.subscribe(() => {
+      void queryClient.invalidateQueries({
+        predicate: (q) =>
+          JSON.stringify(q.queryKey) !==
+          JSON.stringify(workspaceListOptions().queryKey),
+      });
+    });
+  }, [repository, queryClient]);
+  return queryClient ? (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  ) : (
+    children
   );
 }

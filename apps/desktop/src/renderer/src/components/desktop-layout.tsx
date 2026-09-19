@@ -36,9 +36,6 @@ import { TabBar } from "./tab-bar";
 import { TopBarActions } from "@enact/views/layout";
 import { TabContent } from "./tab-content";
 import { WindowOverlay } from "./window-overlay";
-import { useTabStore } from "@/stores/tab-store";
-import { useAuthStore } from "@enact/core/auth";
-import { eligible } from "@enact/core/anyharness-demo";
 
 const TOP_BAR_HEIGHT_CLASS = "h-12";
 const WINDOW_TOOLBAR_CLEARANCE = 184;
@@ -234,11 +231,6 @@ function DesktopInboxBridge() {
 }
 
 export function DesktopShell() {
-  const demoEmail = useAuthStore(s => s.user?.email);
-  const activeUrl = useTabStore(s => {
-    const group = s.activeWorkspaceSlug ? s.byWorkspace[s.activeWorkspaceSlug] : undefined;
-    return group?.tabs.find(t => t.id === group.activeTabId)?.url ?? "";
-  });
   useInternalLinkHandler();
   useNativeNavigationGestures();
   useNavigationInputBindings();
@@ -273,10 +265,6 @@ export function DesktopShell() {
     currentSlug && workspaces.some((w) => w.slug === currentSlug)
       ? currentSlug
       : null;
-  const isAnyHarnessDemo = eligible(demoEmail, slug) &&
-    activeUrl.split('?')[0]?.split('/')[1] === slug &&
-    new URLSearchParams(activeUrl.split('?')[1]).get('demo') === '1';
-
   return (
     <DesktopNavigationProvider>
       {/* WorkspaceSlugProvider accepts null — components that need slug
@@ -306,9 +294,9 @@ export function DesktopShell() {
             hasExternalTrigger
             className="enact-desktop-provider flex-1"
           >
-            {slug && !isAnyHarnessDemo && <GlobalShortcuts />}
+            {slug && <GlobalShortcuts />}
             {slug && <WindowToolbar />}
-            {slug && !isAnyHarnessDemo && <AppSidebar variant="inset" topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
+            {slug && <AppSidebar variant="inset" topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
             {/* Right side: header + content container */}
             <div className="enact-desktop-main flex flex-1 min-w-0 flex-col">
               <MainTopBar />
@@ -320,13 +308,13 @@ export function DesktopShell() {
                     froze until the destination committed (ENA-6404). */}
                 <NavigationProgress />
                 <TabContent />
-                {slug && !isAnyHarnessDemo && <FloatingChat />}
+                {slug && <FloatingChat />}
               </MainCanvas>
             </div>
           </SidebarProvider>
         </div>
-        {slug && !isAnyHarnessDemo && <ModalRegistry />}
-        {slug && !isAnyHarnessDemo && <SearchCommand />}
+        {slug && <ModalRegistry />}
+        {slug && <SearchCommand />}
         <WindowOverlay />
       </WorkspaceSlugProvider>
     </DesktopNavigationProvider>

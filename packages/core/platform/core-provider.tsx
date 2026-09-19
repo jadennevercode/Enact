@@ -3,8 +3,13 @@
 import { useEffect, useMemo } from "react";
 import { ApiClient } from "../api/client";
 import { installFreezeWatchdog } from "../diagnostics/freeze-watchdog";
-import { setApiInstance, setSchemaLogger } from "../api";
+import { setApiInstance, setSchemaLogger, setApiOperationResolver } from "../api";
 import { createAuthStore, registerAuthStore } from "../auth";
+import {
+  configureNativeStorage,
+  resolveNativeOperation,
+} from "../anyharness-demo/native-api";
+import { getCurrentSlug, getCurrentWsId } from "./workspace-storage";
 import { createChatStore, registerChatStore } from "../chat";
 import {
   I18nProvider,
@@ -75,6 +80,14 @@ function initCore(
 
   authStore = createAuthStore({ api, storage, onLogin, onLogout, cookieAuth });
   registerAuthStore(authStore);
+  configureNativeStorage(storage);
+  setApiOperationResolver((method, args) =>
+    resolveNativeOperation({
+      user: authStore.getState().user,
+      slug: getCurrentSlug(),
+      workspaceId: getCurrentWsId(),
+    }, method, args),
+  );
 
   chatStore = createChatStore({ storage });
   registerChatStore(chatStore);
